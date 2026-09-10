@@ -26,7 +26,7 @@ EBIT                         16.3   0.4% of revenue
 D&A                          62.0
 EBITDA                       78.3   2.0% of revenue
 Stock-based compensation    823.0  20.7% of revenue
-Net income                  177.5
+Net income                  177.6
 Diluted shares (mm)         366.9
 
 ──────────────────── Enterprise value bridge ────────────────────
