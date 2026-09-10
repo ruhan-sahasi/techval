@@ -262,3 +262,40 @@ def test_build_is_deterministic():
     assert a.revenue == b.revenue
     assert a.diluted_shares == b.diluted_shares
     assert a.ebit == b.ebit
+
+
+def test_audited_report_beats_a_later_proxy():
+    """A proxy summarises the financials; it does not restate them.
+
+    CrowdStrike's fiscal 2024 net income is 72.2mm in the 10-K that restated it
+    and 73.4mm in the proxy filed six weeks later. Taking the latest filing
+    regardless of form would swap the audited figure for a summary of it.
+    """
+    facts = load_facts("CRWD")
+    annual = {
+        (f.start, f.end): f
+        for f in facts.facts("NetIncomeLoss")
+        if f.start and 350 <= f.days <= 380
+    }
+    fy2024 = annual[(date(2023, 2, 1), date(2024, 1, 31))]
+    assert fy2024.form == "10-K"
+    assert fy2024.val / 1e6 == pytest.approx(72.2, rel=1e-2)
+
+    # Every annual net income must come from a periodic report, never a proxy.
+    assert all(f.form.startswith(("10-K", "10-Q")) for f in annual.values())
+
+
+def test_latest_periodic_report_still_wins_within_its_class():
+    """Genuine restatements between two 10-Ks must be picked up.
+
+    The same CrowdStrike year reads 89.3mm in the 10-K filed in 2024 and 72.2mm
+    in the one filed in 2026. Form class decides first, filing date second.
+    """
+    facts = load_facts("CRWD")
+    fy2024 = next(
+        f
+        for f in facts.facts("NetIncomeLoss")
+        if f.start == date(2023, 2, 1) and f.end == date(2024, 1, 31)
+    )
+    assert fy2024.filed == date(2026, 3, 5)
+    assert fy2024.val / 1e6 == pytest.approx(72.2, rel=1e-2)

@@ -83,10 +83,21 @@ nothing for either company.
 
 **Treatment.** Period algebra rather than quarter summing.
 
-1. Deduplicate facts by period, keeping the most recently filed value. A period
-   is reported many times, once when filed and again as a comparative in later
-   filings, and restatements mean those values differ. The latest filing is the
-   number the company now stands behind.
+1. Deduplicate facts by period. A period is reported many times: when filed,
+   again as a comparative in later filings, again in an amendment, and sometimes
+   again in a proxy statement. Two rules pick between them.
+
+   **Form class first.** An audited periodic report (10-K, 10-Q, 20-F and their
+   amendments) beats anything else no matter when it was filed. A proxy
+   summarises the financial statements, it does not restate them, and letting a
+   DEF 14A override a 10-K because it happened to be filed six weeks later swaps
+   an audited figure for a summary of one. CrowdStrike's fiscal 2024 net income
+   is 72.2mm in the 10-K and 73.4mm in the proxy.
+
+   **Filing date second.** Within the same class the most recently filed value
+   wins, because that is the genuine restatement and the number the company now
+   stands behind. The same CrowdStrike year read 89.3mm in the 10-K filed in 2024
+   and 72.2mm in the one filed in 2026, and the later figure is the right one.
 2. Derive every period recoverable by subtraction. Where two reported windows
    share a **start** date, their difference is the tail period. Where they share
    an **end** date, their difference is the head period. Applied repeatedly, this

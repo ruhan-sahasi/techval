@@ -206,6 +206,14 @@ def _d(s: str) -> date:
     return date(int(y), int(m), int(dd))
 
 
+def _neg_date(iso: str) -> tuple[int, ...]:
+    """Sort key that orders ISO dates newest-first inside an ascending compare."""
+    try:
+        return tuple(-int(part) for part in iso.split("-"))
+    except ValueError:
+        return (0, 0, 0)
+
+
 @dataclass
 class Provenance:
     """Where a single reported figure came from.
@@ -348,13 +356,39 @@ class CompanyFacts:
         # Share counts scale up; per-share figures scale down by the same ratio.
         return value * factor if unit == "shares" else value / factor
 
+    # A period can be reported by an audited financial statement and, later, by a
+    # proxy. They disagree: CrowdStrike's fiscal 2024 net income is 72.2mm in the
+    # 10-K that restated it and 73.4mm in the proxy filed six weeks afterwards.
+    # The periodic report is the audited statement and wins on class, before
+    # filing date is consulted at all.
+    _FORM_RANK = {
+        "10-K": 0, "10-K/A": 0, "10-KT": 0,
+        "10-Q": 0, "10-Q/A": 0, "10-QT": 0,
+        "20-F": 0, "20-F/A": 0, "40-F": 0,
+        "8-K": 1, "8-K/A": 1,
+    }
+
+    @classmethod
+    def _rank(cls, form: str) -> int:
+        # Everything else (DEF 14A, PRE 14A, S-1, ARS) ranks last.
+        return cls._FORM_RANK.get(form or "", 2)
+
     def facts(self, tag: str) -> list[Fact]:
         """Deduplicated, split-adjusted facts for one tag.
 
         A period is reported many times: once when filed, again as the prior-year
-        comparative in later filings, again in an amendment. Restatements mean
-        those values can differ, so the most recently filed value for a period
-        wins. That is the number the company itself now stands behind.
+        comparative in later filings, again in an amendment, and sometimes again
+        in a proxy statement. Those values differ, so two rules pick between them.
+
+        First, an audited periodic report beats anything else, whenever it was
+        filed. A proxy summarises the financials, it does not restate them, and
+        letting one override a 10-K because it happened to be filed later swaps an
+        audited figure for a summary of it.
+
+        Second, within the same class the most recently filed value wins, because
+        that is the genuine restatement and the number the company now stands
+        behind. CrowdStrike's fiscal 2024 net income moved from 89.3mm to 72.2mm
+        between two 10-Ks, and the later one is right.
 
         Share and per-share facts are restated into current units first, so that
         deduplication compares like with like across a split.
@@ -372,7 +406,15 @@ class CompanyFacts:
                 continue
             key = (r.get("start"), end)
             prev = best.get(key)
-            if prev is None or (r.get("filed") or "") > (prev.get("filed") or ""):
+            if prev is None or (
+                self._rank(r.get("form", "")),
+                # Negated so that a lower tuple wins on rank first, then on the
+                # latest filing date within that rank.
+                _neg_date(r.get("filed") or ""),
+            ) < (
+                self._rank(prev.get("form", "")),
+                _neg_date(prev.get("filed") or ""),
+            ):
                 best[key] = r
 
         out = []
