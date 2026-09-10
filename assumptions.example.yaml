@@ -1,0 +1,138 @@
+# techval assumptions
+#
+# Every judgment that moves the valuation is in this file. Nothing in the engine
+# carries a hardcoded rate, growth path, margin or multiple, so this file plus a
+# set of cached filings fully determines the output.
+#
+# The values below are a worked example for Datadog (DDOG) as of September 2026.
+# They are illustrative, not a recommendation. Read docs/methodology.md before
+# changing anything: several of these settings are paired, and the engine will
+# refuse combinations that are internally inconsistent rather than quietly
+# producing a number that mixes conventions.
+
+ticker: DDOG
+
+price_source: nasdaq        # nasdaq | stooq | csv
+# price_csv_dir: tests/fixtures/prices   # required when price_source is csv
+
+market:
+  # Forward equity risk premium over the 10Y Treasury. This is the single
+  # largest unobservable in the model. Practitioners cluster in 4.5% to 6.0%;
+  # Damodaran's implied ERP and the Kroll recommended rate both sit in that band.
+  equity_risk_premium: 0.050
+
+  # Leave null to pull the latest 10Y constant-maturity yield from the US
+  # Treasury daily curve. Set a number to pin the run to a fixed date.
+  risk_free_rate: null
+
+  market_index: SPY         # beta regression benchmark
+  beta_lookback_years: 2.0
+  beta_frequency: weekly    # weekly | monthly
+  beta_adjustment: raw      # raw | blume (0.67*raw + 0.33*1.0)
+  size_premium: 0.0
+
+tax:
+  # Marginal, not effective. 21% federal plus a blended state burden. The GAAP
+  # effective rate of a company carrying NOLs or large SBC windfalls describes
+  # discrete items, not the burden on an incremental dollar of operating profit.
+  marginal_tax_rate: 0.24
+  use_effective_rate: false
+
+leases:
+  # false: operating lease liabilities stay out of debt, and every multiple is
+  #        quoted on EBITDA, which under ASC 842 is already after rent.
+  # true:  liabilities count as debt, and every multiple switches to EBITDAR.
+  # The engine will not let you mix the two. See methodology.md.
+  capitalize_operating_leases: false
+  include_finance_leases_in_debt: true
+
+convertibles:
+  # ASU 2020-06 makes if-converted mandatory, so an in-the-money convertible's
+  # shares are already inside diluted WASO. Counting the principal as debt as
+  # well double-counts the instrument.
+  #   auto          decide from conversion_price when supplied
+  #   if_converted  exclude from debt (shares already in diluted WASO)
+  #   debt          include principal in debt
+  treatment: auto
+  # Datadog's 2029 notes convert at roughly $148.15. With the stock well above
+  # that, the notes are in the money and belong in equity, not debt.
+  conversion_price: 148.15
+
+cost_of_debt:
+  # filings   interest expense / average debt. A book yield. For a zero-coupon
+  #           convertible issuer it returns something near zero, which is why it
+  #           is not the default. The engine rejects a result below the
+  #           risk-free rate and falls back to synthetic.
+  # synthetic interest coverage -> implied rating -> spread over the risk-free rate.
+  # override  use override_rate below.
+  method: synthetic
+  override_rate: null
+
+dcf:
+  projection_years: 5
+
+  # Revenue growth fades linearly from start to terminal across the horizon.
+  revenue_growth_start: 0.22
+  revenue_growth_terminal: 0.08
+
+  # EBIT margin path. Null start anchors on the realised TTM margin, which for
+  # Datadog is under one percent on a GAAP basis because stock compensation runs
+  # above twenty percent of revenue. The terminal margin is therefore the single
+  # most consequential assumption in this file.
+  ebit_margin_start: null
+  ebit_margin_terminal: 0.22
+
+  capex_pct_revenue: 0.030
+  da_pct_revenue: 0.020
+
+  # Negative for subscription software: customers are billed ahead of delivery,
+  # so deferred revenue grows with the business and growth releases cash.
+  nwc_pct_revenue: -0.06
+
+  # expense  leave SBC inside EBIT, charged against free cash flow (default)
+  # addback  restore it as a non-cash charge
+  # GAAP EBIT is already net of SBC, so 'expense' adds nothing back. See
+  # methodology.md for why adding it back without modelling dilution overstates value.
+  sbc_treatment: expense
+
+  mid_year_convention: true
+  terminal_growth: 0.025
+
+  # Null uses the peer median EV/EBITDA.
+  exit_multiple: null
+  wacc_override: null
+
+  sensitivity_wacc_step: 0.015
+  sensitivity_growth_step: 0.010
+
+comps:
+  peers: [MDB, NET, ZS, CRWD, SNOW, HUBS]
+  # Above this, EV/EBITDA is shown as NM. A 900x multiple on a two percent GAAP
+  # EBITDA margin is arithmetic, not valuation.
+  ev_ebitda_nm_threshold: 100.0
+  apply_percentiles: [0.25, 0.75]
+
+merger:
+  # Set exactly one of offer_price_per_share or offer_premium.
+  offer_price_per_share: null
+  offer_premium: 0.30
+
+  pct_cash: 0.40
+  cost_of_new_debt: 0.055
+  foregone_cash_yield: 0.040
+  balance_sheet_cash_used: 2000.0
+
+  deal_fees: 250.0          # one-time, excluded from run-rate EPS
+  financing_fees: 90.0
+  financing_fee_amort_years: 7
+
+  # Purchase-accounting step-up amortisation is off by default: it is a non-cash
+  # artefact of the transaction and the street quotes cash EPS.
+  include_intangible_amortization: false
+  intangible_step_up: 0.0
+  intangible_life_years: 10
+
+  synergies:
+    pretax_cost_synergies: 400.0
+    pretax_revenue_synergies: 0.0
+    phase_in_year_one: 0.60
