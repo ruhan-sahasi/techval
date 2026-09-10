@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
+.venv
 .venv/
 .pytest_cache/
 *.egg-info/
@@ -9,3 +10,4 @@ __pycache__/
 # Generated charts, except the one the README embeds.
 out/*
 !out/DDOG_football.png
+.venv.nosync/

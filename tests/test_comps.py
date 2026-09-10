@@ -193,3 +193,63 @@ def test_growth_is_measured_not_guessed(result):
     for p in result.peers:
         if p.revenue_growth is not None:
             assert -1.0 < p.revenue_growth < 3.0
+
+
+def test_growth_works_for_a_52_53_week_filer(assumptions, market, monkeypatch):
+    """A 13-week fiscal quarter does not land on the calendar anniversary.
+
+    A 52/53-week year closes 364 days back, one day before a fixed 365-day step
+    lands, and the tiler cannot cover a window whose end falls between two
+    reported periods. Anchoring on a period end the filer actually reported is
+    what makes growth available for this calendar at all. Cisco, Broadcom,
+    Marvell, NetApp and Dell all use it, and all are plausible comp-set members.
+    """
+    import json
+    from datetime import date, timedelta
+
+    from techval.edgar import CompanyFacts
+
+    # Thirteen-week quarters marching back from 2026-08-01.
+    end = date(2026, 8, 1)
+    quarters = []
+    for i in range(9):
+        q_end = end - timedelta(days=91 * i)
+        quarters.append(
+            {
+                "start": (q_end - timedelta(days=90)).isoformat(),
+                "end": q_end.isoformat(),
+                "val": 250_000_000 - 10_000_000 * i,
+                "form": "10-Q",
+                "filed": (q_end + timedelta(days=30)).isoformat(),
+            }
+        )
+    payload = {
+        "cik": 1,
+        "entityName": "Thirteen Weeks Inc",
+        "facts": {
+            "us-gaap": {
+                "RevenueFromContractWithCustomerExcludingAssessedTax": {
+                    "units": {"USD": quarters}
+                }
+            }
+        },
+    }
+    facts = CompanyFacts(payload, "WEEK")
+
+    from techval.financials import Financials
+    from techval.comps import _revenue_growth
+
+    current, _ = facts.resolve_ttm(
+        "revenue",
+        ["RevenueFromContractWithCustomerExcludingAssessedTax"],
+        end,
+    )
+    stub = object.__new__(Financials)
+    object.__setattr__(stub, "as_of", end)
+    object.__setattr__(stub, "revenue", current / 1e6)
+    object.__setattr__(stub, "provenance", {})
+    flags: list[str] = []
+    growth = _revenue_growth(stub, facts, flags)
+
+    assert growth is not None, f"growth unavailable for a 13-week filer: {flags}"
+    assert growth > 0

@@ -64,8 +64,14 @@ INTEREST_INCOME = [
 
 # --- cash flow --------------------------------------------------------------
 
-# The combined tag first; then the components summed, for filers such as
-# CrowdStrike that never publish a combined depreciation and amortisation line.
+# The combined tag first; then the components summed, for filers that publish
+# depreciation and amortisation separately but never together.
+#
+# The composite is not a guarantee. It fires only where every component is
+# tagged over the same periods, and some filers tag neither a combined line nor
+# a separate depreciation one: CrowdStrike reports amortisation of intangibles
+# but no depreciation tag at all, so its EBITDA genuinely cannot be built from
+# company facts and the comps table flags it rather than inventing a figure.
 DA = [
     "DepreciationDepletionAndAmortization",
     "DepreciationAmortizationAndAccretionNet",

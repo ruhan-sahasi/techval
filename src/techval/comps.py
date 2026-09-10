@@ -102,6 +102,10 @@ class PeerMetrics:
     price: float
     market_cap: float
     enterprise_value: float
+    # Gross book debt, carried so a caller can unlever this peer's beta at the
+    # same leverage definition the target is relevered at. Net debt would floor
+    # at zero for the cash-rich and quietly unlever them at 0.0x.
+    gross_debt: float
     revenue: float
     ebitda: float | None
     ebit: float
@@ -203,13 +207,25 @@ def _revenue_growth(
 ) -> float | None:
     """Year-over-year growth of trailing twelve month revenue.
 
-    The prior window is anchored 365 days before the current balance-sheet date
-    and handed to the same tiler, so the comparison is twelve reported months
-    against twelve reported months. Stepping back with ``date.replace`` instead
-    would raise on a 29 February year end, and a 52/53-week filer does not report
-    on the calendar anniversary anyway.
+    The prior window is anchored on the filer's **own** reported period end
+    nearest a year before the current balance-sheet date, then handed to the same
+    tiler, so the comparison is twelve reported months against twelve reported
+    months.
+
+    A fixed 365-day step looks equivalent and is not. A 52/53-week filer closes
+    its year 364 days back, one day before where the step lands, and the tiler
+    cannot cover a window whose end falls between two reported periods. Growth
+    and Rule of 40 would then read NM for every such filer, permanently, and that
+    calendar is common among US technology names. Anchoring on a date the company
+    actually reported sidesteps the arithmetic entirely, and also avoids the 29
+    February problem that ``date.replace`` would raise on.
     """
-    prior_as_of = fin.as_of - timedelta(days=365)
+    target = fin.as_of - timedelta(days=365)
+    _, series, _ = facts.resolve_duration_series("revenue", tags.REVENUE)
+    candidates = [f.end for f in series if abs((f.end - target).days) <= 10]
+    prior_as_of = (
+        min(candidates, key=lambda d: abs((d - target).days)) if candidates else target
+    )
     raw, prov = facts.resolve_ttm(
         "prior-year revenue", tags.REVENUE, prior_as_of, required=False
     )
@@ -238,11 +254,41 @@ def _revenue_growth(
     return fin.revenue / prior - 1.0
 
 
+def _for_company(
+    fin: Financials, assumptions: Assumptions, is_target: bool
+) -> Assumptions:
+    """Assumptions as they apply to one company in the set.
+
+    ``convertibles.conversion_price`` is read from the target's own notes
+    footnote and means nothing for anybody else. Left global it would be applied
+    to every peer, silently reclassifying each peer's convertibles as equity or
+    debt on the strength of a number taken from a different company's indenture.
+    MongoDB carries no converts and Cloudflare's convert at a different strike;
+    neither is served by Datadog's 148.15.
+
+    So a peer is priced with the treatment set to ``auto`` and no conversion
+    price, which is the honest position: its notes go into debt and the bridge
+    says out loud that enterprise value may be overstated by that amount. Supply
+    each peer's own strike by running it as the target if the multiple matters.
+    """
+    if is_target:
+        return assumptions
+    return assumptions.model_copy(
+        update={
+            "convertibles": assumptions.convertibles.model_copy(
+                update={"treatment": "auto", "conversion_price": None}
+            )
+        }
+    )
+
+
 def compute_peer_metrics(
     fin: Financials,
     facts: CompanyFacts,
     price: float,
     assumptions: Assumptions,
+    *,
+    is_target: bool = False,
 ) -> PeerMetrics:
     """Price one company at ``price`` and cut it into multiples.
 
@@ -250,9 +296,9 @@ def compute_peer_metrics(
     statements, the fact set behind them and the quote, so the same peer can be
     repriced at a different price without another fetch.
     """
-    bridge = build_ev_bridge(fin, price, assumptions)
+    bridge = build_ev_bridge(fin, price, _for_company(fin, assumptions, is_target))
     ev = bridge.enterprise_value
-    flags: list[str] = []
+    flags: list[str] = list(bridge.notes) if not is_target else []
 
     # The single point where the lease convention enters the multiples.
     ebitda, basis = bridge.multiple_denominator(fin)
@@ -294,6 +340,15 @@ def compute_peer_metrics(
         )
         return None
 
+    # EV/EBIT carries the same lease trap as EV/EBITDA, so it takes its
+    # denominator from the bridge too rather than reaching for GAAP EBIT.
+    ebit_den, ebit_basis = bridge.ebit_denominator(fin)
+    ebit_note = (
+        f"{ebit_basis} cannot be formed from this filer's tags"
+        if ebit_den is None
+        else f"EBIT margin {fin.ebit_margin:.1%}"
+    )
+
     ev_ebitda = take("EV/EBITDA", ev, ebitda, ebitda_note)
     if ev_ebitda is not None and ev_ebitda > assumptions.comps.ev_ebitda_nm_threshold:
         # Above the cut-off the multiple is measuring how close the margin is to
@@ -322,6 +377,7 @@ def compute_peer_metrics(
         price=price,
         market_cap=bridge.equity_value,
         enterprise_value=ev,
+        gross_debt=bridge.total_debt,
         revenue=fin.revenue,
         ebitda=ebitda,
         ebit=fin.ebit,
@@ -343,7 +399,7 @@ def compute_peer_metrics(
         ev_ebitda=ev_ebitda,
         ev_ebit=cap(
             "EV/EBIT",
-            take("EV/EBIT", ev, fin.ebit, f"EBIT margin {fin.ebit_margin:.1%}"),
+            take("EV/EBIT", ev, ebit_den, ebit_note),
             assumptions.comps.ev_ebitda_nm_threshold,
             f"on an EBIT margin of {fin.ebit_margin:.1%}",
         ),
@@ -525,7 +581,7 @@ def run_comps(
     target_price = market_data.spot(target_ticker)
     target_bridge = build_ev_bridge(target_fin, target_price, assumptions)
     target = compute_peer_metrics(
-        target_fin, target_facts, target_price, assumptions
+        target_fin, target_facts, target_price, assumptions, is_target=True
     )
 
     built: list[PeerMetrics] = []

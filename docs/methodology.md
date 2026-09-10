@@ -114,6 +114,15 @@ non-critical items falls back to the most recent full fiscal year and says so in
 both the provenance record and a warning. Operating lease cost is the usual case:
 several filers disclose it only annually.
 
+Some concepts are simply not there. Where a filer publishes no combined
+depreciation and amortisation line, the ladder tries summing the components, but
+only over periods where every component is tagged, so a partial sum is never
+passed off as a total. CrowdStrike tags amortisation of intangibles and no
+depreciation line at all, so its EBITDA cannot be built from company facts.
+The engine reports that rather than publishing an EBITDA missing its
+depreciation, and the comp table keeps the company with its revenue multiples
+intact and a flag on the one it could not form.
+
 ### 2.4 Stock splits
 
 This is the subtlest of the four and the one most likely to produce a confidently
@@ -356,8 +365,12 @@ D/E uses market equity against book debt, matching the WACC weights.
 
 Three methods, and the default is not the obvious one.
 
-**`filings`** divides interest expense by average total debt. This is a
-backward-looking *accounting* yield, not a market one. For a company whose
+**`filings`** divides interest expense by total debt at the latest balance
+sheet date. Averaging opening and closing debt would be better, and is what a
+credit analyst would do, but only one balance-sheet instant is normalized here,
+so the period-end balance is what there is. For an issuer that borrowed heavily
+during the year this understates the divisor and overstates the implied rate.
+Either way it is a backward-looking *accounting* yield, not a market one. For a company whose
 borrowings are zero-coupon convertible notes it returns something near 0.5%,
 which is not a rate anyone would lend at. The engine therefore rejects any book
 yield that lands below the risk-free rate and falls through to the synthetic
@@ -525,8 +538,11 @@ here because it is comparable across the set from filings alone.
 
 **Not meaningful.** A multiple is suppressed and flagged, never quietly printed,
 when its denominator is negative or when it exceeds a configured cut-off: 100x
-for the enterprise multiples, 75x for P/E, which is lower because net income sits
-below interest, tax and every non-operating item and so reaches zero sooner. Past
+for EV/EBITDA and EV/EBIT, 75x for P/E, which is lower because net income sits
+below interest, tax and every non-operating item and so reaches zero sooner.
+EV/Revenue and EV/Gross Profit carry no ceiling, because their denominators do
+not approach zero the way an earnings line does; a high revenue multiple is a
+statement about the company rather than an artefact of arithmetic. Past
 those lines the ratio is measuring how close the denominator is to zero, not what
 the market pays for the business, and letting it into a percentile drags the
 whole distribution with it.

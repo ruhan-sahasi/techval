@@ -75,13 +75,26 @@ def _mult(v: float | None) -> str:
     return "NM" if v is None else f"{v:,.1f}x"
 
 
+# Rows whose value is a fraction, not an amount. Printing 0.176 where the label
+# says "%" understates the figure by a hundred and reads as seventeen cents.
+_PERCENT_ROWS = (
+    "premium to unaffected price",
+    "accretion / (dilution), %",
+    "mix: cash",
+    "mix: stock",
+)
+
+
 def _kv_table(rows: list[tuple[str, float]], *, title: str, dp: int = 1) -> Table:
     t = Table(title=title, title_justify="left", box=None, pad_edge=False)
     t.add_column("", style="", no_wrap=True)
     t.add_column("", justify="right")
     for label, value in rows:
         style = "bold" if label.lower().startswith(("enterprise", "pro forma eps")) else ""
-        t.add_row(Text(label, style=style), Text(_money(value, dp), style=style))
+        shown = (
+            _pct(value) if label.lower() in _PERCENT_ROWS else _money(value, dp)
+        )
+        t.add_row(Text(label, style=style), Text(shown, style=style))
     return t
 
 
@@ -393,15 +406,19 @@ def value(
 
 
 def _peer_betas(comps_result, market, assumptions):
-    """Levered peer betas, unlevered at each peer's own capital structure."""
+    """Levered peer betas, unlevered at each peer's own capital structure.
+
+    The leverage ratio here has to be the same one the target is relevered at,
+    which is gross book debt over market equity. Using net debt instead, and
+    clamping it at zero for the cash-rich, unlevers every peer at 0.0x, leaves
+    the asset beta equal to the levered beta, and then reapplies the target's
+    leverage on top. That inflates beta and the cost of equity, and it does so
+    silently because both halves look reasonable in isolation.
+    """
     out = []
     for p in comps_result.peers:
         try:
-            de = (
-                (p.enterprise_value - p.market_cap) / p.market_cap
-                if p.market_cap
-                else 0.0
-            )
+            de = (p.gross_debt / p.market_cap) if p.market_cap else 0.0
             out.append(
                 estimate_beta(
                     market.prices(p.ticker),

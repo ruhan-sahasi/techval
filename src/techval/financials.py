@@ -92,6 +92,18 @@ class Financials:
         return self.ebitda + self.operating_lease_cost
 
     @property
+    def ebitr(self) -> float | None:
+        """EBIT before operating lease cost.
+
+        The EBIT counterpart of ``ebitdar``, and the only operating profit figure
+        that may be paired with an enterprise value counting lease liabilities as
+        debt.
+        """
+        if self.operating_lease_cost is None:
+            return None
+        return self.ebit + self.operating_lease_cost
+
+    @property
     def ebitda_margin(self) -> float | None:
         e = self.ebitda
         return None if e is None or not self.revenue else e / self.revenue
@@ -129,11 +141,19 @@ class Financials:
 
     @property
     def net_working_capital(self) -> float | None:
-        """Non-cash, non-debt working capital.
+        """Non-cash working capital.
 
         Cash and short-term investments come out of current assets because they
         are financing, not operations, and are already counted in the EV bridge.
         Leaving them in would let a cash pile masquerade as operating capital.
+
+        Current liabilities are taken whole, which means any current debt and
+        current lease liability sit inside this figure even though they are
+        financing too. Stripping them would need those balances at the same
+        instant and they are resolved for the bridge, not here. The DCF does not
+        read this property, it projects working capital as a share of revenue, so
+        the inconsistency does not reach a valuation; it matters only if you use
+        this figure directly.
         """
         if self.current_assets is None or self.current_liabilities is None:
             return None
@@ -150,6 +170,22 @@ class Financials:
 
 
 _MM = 1e6
+
+
+def _straight_debt(instant) -> float:
+    """Borrowings, split current and non-current, or a combined tag if that is all.
+
+    Some filers publish only ``LongTermDebt`` and never the current/non-current
+    pair. Resolving the pair alone returns zero for them, which reads as a
+    debt-free company and understates enterprise value by the whole balance. The
+    combined tag is consulted only when the split resolves to nothing, so a filer
+    that reports both is not double counted.
+    """
+    noncurrent = instant("long-term debt", tags.DEBT_NONCURRENT, default=0.0) or 0.0
+    current = instant("current debt", tags.DEBT_CURRENT, default=0.0) or 0.0
+    if noncurrent or current:
+        return noncurrent + current
+    return instant("total debt", tags.DEBT_COMBINED, default=0.0) or 0.0
 
 
 def build_financials(
@@ -205,12 +241,25 @@ def build_financials(
     # The balance-sheet date is the end of the most recent period for which the
     # filer reported revenue. Anchoring on revenue rather than on any balance
     # item keeps the income statement and the balance sheet on the same filing.
-    rev_tag, rev_series, tried = facts.resolve_duration_series("revenue", tags.REVENUE)
-    if not rev_series:
+    # The latest period end across EVERY revenue tag in the ladder, not just the
+    # first one that has any facts at all. A filer that migrated from one revenue
+    # tag to another leaves the old tag in place forever, and anchoring on it
+    # would date the whole valuation to whenever that tag was retired, then pull
+    # a balance sheet to match. The result looks entirely normal and is years stale.
+    ends = [
+        f.end
+        for tag in tags.REVENUE
+        for f in facts.facts(tag)
+        if not f.is_instant
+    ]
+    if not ends:
         raise MissingDataError(
-            "revenue", ticker=ticker, tags_tried=tried, hint="no revenue tag reported"
+            "revenue",
+            ticker=ticker,
+            tags_tried=list(tags.REVENUE),
+            hint="no revenue tag in the ladder is reported by this filer",
         )
-    as_of = max(f.end for f in rev_series)
+    as_of = max(ends)
 
     revenue = flow("revenue", tags.REVENUE)
     ebit = flow("EBIT", tags.EBIT)
@@ -246,10 +295,7 @@ def build_financials(
         short_term_investments=instant(
             "short-term investments", tags.SHORT_TERM_INVESTMENTS, default=0.0
         ),
-        straight_debt=(
-            (instant("long-term debt", tags.DEBT_NONCURRENT, default=0.0) or 0.0)
-            + (instant("current debt", tags.DEBT_CURRENT, default=0.0) or 0.0)
-        ),
+        straight_debt=_straight_debt(instant),
         convertible_debt=(
             (
                 instant(
@@ -377,9 +423,15 @@ def _run_controls(
     eps_reported, _ = facts.resolve_ttm(
         "reported diluted EPS", tags.EPS_DILUTED, as_of, required=False
     )
-    if eps_reported and abs(eps_reported) > 0.05 and fin.diluted_shares:
+    if eps_reported is not None and fin.diluted_shares:
         implied = fin.net_income / fin.diluted_shares
-        if abs(implied - eps_reported) > 0.10 * abs(eps_reported):
+        # Compared in cents per share rather than as a ratio. A relative test
+        # switches itself off exactly where it is needed most: a filer near
+        # breakeven has an EPS close to zero, so any tolerance expressed as a
+        # percentage of it is met by everything. CrowdStrike, the one company in
+        # the fixture set that actually split, earns about four cents.
+        tolerance = max(0.02, 0.10 * abs(eps_reported))
+        if abs(implied - eps_reported) > tolerance:
             warnings.append(
                 f"EPS tie-out: net income over diluted shares gives "
                 f"{implied:,.2f}, against {eps_reported:,.2f} summed from the "

@@ -303,7 +303,7 @@ class CompanyFacts:
         if self._splits is not None:
             return self._splits
 
-        votes: dict[tuple[str, float], int] = {}
+        votes: dict[tuple[str, float], set[tuple[str | None, str]]] = {}
         for tag in (
             "WeightedAverageNumberOfDilutedSharesOutstanding",
             "WeightedAverageNumberOfSharesOutstandingBasic",
@@ -326,14 +326,22 @@ class CompanyFacts:
                     for nice in self._SPLIT_RATIOS:
                         if abs(ratio - nice) < 0.005 * nice:
                             key = (newer["filed"], nice)
-                            votes[key] = votes.get(key, 0) + 1
+                            # Keyed by period, not by observation. Diluted and
+                            # basic shares both report the same quarter, so
+                            # counting observations would let a single period
+                            # clear a safeguard meant to require two.
+                            votes.setdefault(key, set()).add(
+                                (newer.get("start"), newer["end"])
+                            )
                             break
 
         # One agreeing period could be a typo in a single tagged fact. Two or
-        # more periods moving by the identical ratio in the identical filing is
-        # a corporate action.
+        # more distinct periods moving by the identical ratio in the identical
+        # filing is a corporate action.
         self._splits = sorted(
-            (_d(filed), factor) for (filed, factor), n in votes.items() if n >= 2
+            (_d(filed), factor)
+            for (filed, factor), periods in votes.items()
+            if len(periods) >= 2
         )
         return self._splits
 
@@ -533,11 +541,14 @@ class CompanyFacts:
     def _composite_series(self, parts: tuple[str, ...]) -> list[Fact]:
         """Sum several tags over identical periods.
 
-        Some filers never publish a combined line. CrowdStrike reports no annual
-        ``DepreciationDepletionAndAmortization`` at all; the figure only exists as
-        separate depreciation and amortisation tags. A composite ladder entry adds
-        them, but only across periods where every component is present, so a
-        partial sum is never passed off as a total.
+        Some filers never publish a combined line and tag the components instead.
+        A composite ladder entry adds them, but only across periods where every
+        component is present, so a partial sum is never passed off as a total.
+
+        That restraint means the composite can decline to fire. CrowdStrike tags
+        amortisation of intangibles and no depreciation line whatever, so nothing
+        can be summed and its EBITDA is simply unavailable. Reporting that is the
+        correct outcome; the alternative is an EBITDA missing its depreciation.
         """
         series = [
             {(f.start, f.end): f for f in self.facts(p) if not f.is_instant}
@@ -751,14 +762,19 @@ def derive_periods(facts: list[Fact], passes: int = 3) -> list[Fact]:
 
 
 def cover_window(
-    facts: list[Fact], window_start: date, window_end: date, *, slack_days: int = 4
+    facts: list[Fact], window_start: date, window_end: date, *, slack_days: int = 8
 ) -> list[Fact] | None:
-    """Tile ``[window_start, window_end]`` exactly with non-overlapping periods.
+    """Tile ``[window_start, window_end]`` with contiguous, non-overlapping periods.
 
     Returns the tiling, longest pieces first where there is a choice, or None if
-    the window cannot be covered. ``slack_days`` absorbs the fact that a fiscal
-    quarter is thirteen weeks rather than a calendar quarter, so four of them do
-    not land precisely on the anniversary of the start date.
+    the window cannot be covered. Tiles are contiguous by construction: each one
+    begins the day after the last ended.
+
+    ``slack_days`` absorbs the fact that a fiscal quarter is thirteen weeks
+    rather than a calendar quarter, so four of them do not land precisely on the
+    anniversary of the start date. Eight days rather than four, because a 53-week
+    fiscal year inserts a whole extra week and the quarters that follow one are
+    offset by seven days, not by the day or two a 52-week year drifts.
     """
     by_start: dict[date, list[Fact]] = {}
     for f in facts:

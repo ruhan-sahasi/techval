@@ -162,3 +162,38 @@ def test_company_without_convertibles_is_left_alone(mdb, assumptions, market):
     b = build_ev_bridge(mdb, market.spot("MDB"), assumptions)
     assert b.convertible_treatment == "none"
     assert b.convertible_in_debt == 0.0
+
+
+def test_conversion_shares_are_confirmed_present_in_diluted_waso(
+    ddog, assumptions, market
+):
+    """The if-converted treatment rests on a testable claim, so it is tested.
+
+    Datadog's diluted WASO runs 14.6mm above basic and conversion accounts for
+    6.7mm of that, so the shares really are in the count the equity value is
+    built on.
+    """
+    assumptions.convertibles.treatment = "auto"
+    assumptions.convertibles.conversion_price = 148.15
+    b = build_ev_bridge(ddog, market.spot("DDOG"), assumptions)
+
+    implied = ddog.convertible_debt / 148.15
+    gap = ddog.diluted_shares - ddog.basic_shares
+    assert gap > implied
+    assert any(n.startswith("Checked:") for n in b.notes)
+
+
+def test_conversion_shares_missing_from_diluted_waso_is_flagged(
+    ddog, assumptions, market
+):
+    """If the gap cannot hold the conversion shares, the treatment is unsound.
+
+    Forced here by naming a conversion price low enough that conversion would
+    create more shares than the whole diluted-to-basic gap.
+    """
+    assumptions.convertibles.treatment = "auto"
+    assumptions.convertibles.conversion_price = 20.0
+    b = build_ev_bridge(ddog, market.spot("DDOG"), assumptions)
+
+    assert b.convertible_treatment == "if_converted"
+    assert any(n.startswith("Warning:") and "understated" in n for n in b.notes)

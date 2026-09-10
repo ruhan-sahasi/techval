@@ -47,6 +47,11 @@ leases:
   include_finance_leases_in_debt: true
 
 convertibles:
+  # This applies to the TARGET only. A conversion price comes from one company's
+  # indenture and means nothing for anybody else, so peers in the comp set are
+  # priced with treatment 'auto' and no conversion price: their notes go into
+  # debt and the bridge says so. Run a peer as the target to price its own notes.
+  #
   # ASU 2020-06 makes if-converted mandatory, so an in-the-money convertible's
   # shares are already inside diluted WASO. Counting the principal as debt as
   # well double-counts the instrument.
@@ -59,7 +64,7 @@ convertibles:
   conversion_price: 148.15
 
 cost_of_debt:
-  # filings   interest expense / average debt. A book yield. For a zero-coupon
+  # filings   interest expense / period-end debt. A book yield. For a zero-coupon
   #           convertible issuer it returns something near zero, which is why it
   #           is not the default. The engine rejects a result below the
   #           risk-free rate and falls back to synthetic.
@@ -107,9 +112,17 @@ dcf:
 
 comps:
   peers: [MDB, NET, ZS, CRWD, SNOW, HUBS]
-  # Above this, EV/EBITDA is shown as NM. A 900x multiple on a two percent GAAP
-  # EBITDA margin is arithmetic, not valuation.
+
+  # Above this, EV/EBITDA and EV/EBIT are shown as NM. A 900x multiple on a two
+  # percent GAAP EBITDA margin is arithmetic, not valuation: it measures how near
+  # the denominator sits to zero. Expect most of a GAAP software comp set to be
+  # NM on these; the revenue and gross profit multiples are what survive.
   ev_ebitda_nm_threshold: 100.0
+
+  # Lower, because net income sits below interest, tax and every non-operating
+  # item, so it reaches zero sooner than an operating line does.
+  pe_nm_threshold: 75.0
+
   apply_percentiles: [0.25, 0.75]
 
 merger:

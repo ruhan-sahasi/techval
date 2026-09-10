@@ -168,8 +168,8 @@ class CostOfDebtAssumptions(_Base):
     method: Literal["filings", "synthetic", "override"] = Field(
         "synthetic",
         description=(
-            "'filings' divides interest expense by average total debt, which is a "
-            "backward-looking book yield, not a market one; for a 0%-coupon "
+            "'filings' divides interest expense by period-end total debt, which "
+            "is a backward-looking book yield, not a market one; for a 0%-coupon "
             "convertible issuer it returns a near-zero cost of debt that is plainly "
             "wrong. 'synthetic' assigns a rating from interest coverage and adds the "
             "corresponding spread to the risk-free rate. 'override' takes the value below."

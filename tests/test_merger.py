@@ -345,3 +345,61 @@ def test_balance_sheet_cash_reduces_new_debt_and_costs_the_foregone_yield(hand_c
     assert r.consideration.cash_used == pytest.approx(1000.0)
     labels = [lab for lab, _ in r.accretion.components]
     assert any("foregone" in lab.lower() for lab in labels)
+
+
+# --------------------------------------------------------------------------- #
+# pro forma leverage
+# --------------------------------------------------------------------------- #
+
+
+def test_cash_spent_on_the_deal_raises_pro_forma_net_debt(hand_case):
+    """Cash that leaves the balance sheet is not a reduction in net debt.
+
+    Post-deal debt is the two companies' debt plus new borrowing; post-deal cash
+    is their cash less what was spent. Net debt is the difference, which puts
+    cash used on the same side as new debt. Netting it off instead understates
+    leverage by twice the cash spent, and understates it most on exactly the
+    deals that should worry a reader.
+
+    Isolation: an acquirer holding 3,000mm of cash and no debt buys a debt-free,
+    cash-free target for 1,000mm of that cash. The combined company must hold
+    2,000mm of net cash.
+    """
+    _, a, _, _ = hand_case
+    acq = _company(
+        "ACQ", revenue=8000, ebit=1400, da=200, net_income=1000, shares=500, cash=3000
+    )
+    tgt = _company("TGT", revenue=1500, ebit=280, da=60, net_income=200, shares=100)
+
+    a.merger.offer_premium = None
+    a.merger.offer_price_per_share = 10.0        # 100mm shares -> 1,000mm price
+    a.merger.pct_cash = 1.0
+    a.merger.balance_sheet_cash_used = 1000.0
+    a.merger.deal_fees = 0.0
+    a.merger.financing_fees = 0.0
+    a.merger.synergies.pretax_cost_synergies = 0.0
+
+    r = run_merger(
+        acq, tgt, build_ev_bridge(acq, 60.0, a), build_ev_bridge(tgt, 25.0, a),
+        60.0, 25.0, a,
+    )
+    assert r.consideration.new_debt == pytest.approx(0.0)
+    assert r.consideration.cash_used == pytest.approx(1000.0)
+
+    leverage = next(c for c in r.checks if "Pro forma" in c and "EBITDA" in c)
+    assert "net cash of 2,000mm" in leverage
+
+
+def test_zero_cost_cash_does_not_crash_the_run(hand_case):
+    """A cash leg assumed to cost nothing has no crossover offer to quote."""
+    _, a, acq, tgt = hand_case
+    a.merger.pct_cash = 1.0
+    a.merger.cost_of_new_debt = 0.0
+    a.merger.foregone_cash_yield = 0.0
+    a.merger.balance_sheet_cash_used = 0.0
+
+    r = run_merger(
+        acq, tgt, build_ev_bridge(acq, 60.0, a), build_ev_bridge(tgt, 25.0, a),
+        60.0, 25.0, a,
+    )
+    assert any("cost nothing" in c for c in r.checks)

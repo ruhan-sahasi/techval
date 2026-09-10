@@ -32,6 +32,15 @@ import numpy as np
 from .edgar import HttpCache, http_get
 from .errors import DataSourceError, MissingDataError
 
+# Nasdaq's quote API and the Treasury CSV endpoint both reject clients whose
+# User-Agent they do not recognise, and neither publishes a fair-access policy
+# asking automated callers to identify themselves the way the SEC's does. So a
+# browser string is sent to those two hosts and nothing is claimed about it.
+# This is worth stating plainly rather than leaving in the code, because the SEC
+# client one module over makes a point of declaring a real contact address, and
+# a reader is entitled to know the two are not held to the same standard here.
+# Neither endpoint is rate limited by this package beyond ordinary use: a full
+# valuation makes one request per ticker.
 _BROWSER_UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
@@ -59,6 +68,18 @@ class PriceSeries:
     dates: list[date]
     closes: np.ndarray
     source: str
+
+    def __post_init__(self) -> None:
+        if len(self.closes) == 0:
+            raise MissingDataError(
+                "price history",
+                ticker=self.symbol,
+                hint=(
+                    f"{self.source} returned no closes for {self.symbol} inside the "
+                    "requested window. A delisted or newly listed ticker, or a CSV "
+                    "whose dates fall outside the history period, will do this."
+                ),
+            )
 
     @property
     def last(self) -> float:

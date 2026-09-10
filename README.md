@@ -255,8 +255,16 @@ solved breakeven synergy figure returns pro forma EPS to standalone.
 - **Fundamentals**: `data.sec.gov/api/xbrl/companyfacts`. Requests declare a
   contact in the `User-Agent` as the SEC requires, are throttled to 8 per second
   against a published limit of 10, and back off exponentially on 429 and 503.
-- **Prices**: Nasdaq's public quote API. No key, no account.
+- **Prices**: Nasdaq's public quote API. No key, no account. One request per
+  ticker per run.
 - **Risk-free rate**: US Treasury daily yield curve, 10-year constant maturity.
+
+Nasdaq and Treasury both reject clients whose `User-Agent` they do not
+recognise, and neither publishes a fair-access policy of the kind the SEC does,
+so requests to those two hosts carry a browser string. That is stated here
+rather than left in the code, because the SEC client deliberately declares a
+real contact address and a reader should know the two are not held to the same
+standard.
 
 The package originally targeted Stooq for prices. Stooq now answers plain HTTP
 clients with a JavaScript proof-of-work challenge instead of CSV. Defeating a bot

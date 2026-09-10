@@ -818,6 +818,13 @@ def _rule_of_thumb_checks(
             f"compared with the {cash_cost:.2%} after-tax cost of the cash; the "
             "target has to earn something before borrowing to buy it can pay."
         )
+    elif cash_cost <= 0:
+        checks.append(
+            "Cash-funded rule: the cash leg is assumed to cost nothing, so any "
+            "positive earnings yield clears it and there is no crossover offer to "
+            "quote. Set merger.cost_of_new_debt or merger.foregone_cash_yield to a "
+            "real rate to make the comparison say anything."
+        )
     else:
         crossover_price = tgt_ni / (cash_cost * tgt_fin.diluted_shares)
         checks.append(
@@ -917,8 +924,15 @@ def run_merger(
             + (syn.pretax_cost_synergies + syn.pretax_revenue_synergies)
             * syn.phase_in_year_one
         )
+        # Cash spent on the deal leaves the balance sheet, so it RAISES net debt.
+        # Post-deal debt is D_acq + D_tgt + new debt; post-deal cash is
+        # C_acq + C_tgt - cash used. Net debt is the difference, which puts cash
+        # used on the same side as new borrowing, not against it.
         pf_net_debt = (
-            _net_debt(acq_bridge) + _net_debt(tgt_bridge) + cons.new_debt - cons.cash_used
+            _net_debt(acq_bridge)
+            + _net_debt(tgt_bridge)
+            + cons.new_debt
+            + cons.cash_used
         )
         if pf_earnings > 0:
             position = (
@@ -947,8 +961,11 @@ def run_merger(
             f"share count for {ni_row.target_pct:.1%} of combined net income. Its "
             "owners receive "
             + ("more" if ownership["target"] > ni_row.target_pct else "less")
-            + " of the combined company than the earnings they bring, which is the "
-            "same statement as the EPS effect above, read off the share register."
+            + " of the combined company than the earnings they bring. On an "
+            "all-stock deal that is the same statement as the EPS effect above, "
+            "read off the share register. Where cash funds part of the price the "
+            "two diverge, because cash buys earnings without issuing the shares "
+            "that would show up in ownership."
         )
 
     notes.append(

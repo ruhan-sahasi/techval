@@ -96,6 +96,18 @@ class EVBridge:
             return fin.ebitdar, "EBITDAR (before operating lease cost)"
         return fin.ebitda, "EBITDA (after operating lease cost, per ASC 842)"
 
+    def ebit_denominator(self, fin: Financials) -> tuple[float | None, str]:
+        """The operating profit figure that legitimately pairs with this EV.
+
+        EV/EBIT carries the same lease trap as EV/EBITDA and for the same reason:
+        under ASC 842 the rent charge sits inside operating income, so a
+        lease-inclusive enterprise value divided by GAAP EBIT counts the lease
+        twice. Under that convention the denominator is EBIT before rent.
+        """
+        if self.operating_lease_in_debt > 0:
+            return fin.ebitr, "EBIT before operating lease cost"
+        return fin.ebit, "EBIT (after operating lease cost, per ASC 842)"
+
     def rows(self) -> list[tuple[str, float]]:
         return [
             ("Share price", self.price),
@@ -111,6 +123,39 @@ class EVBridge:
             ("- Short-term investments", -self.short_term_investments),
             ("Enterprise value", self.enterprise_value),
         ]
+
+
+def _check_conversion_shares_are_present(fin: Financials, conv_cfg) -> list[str]:
+    """Confirm the conversion shares really are inside diluted WASO.
+
+    Treating an in-the-money convertible as equity rests entirely on the claim
+    that its shares are already in the diluted count. That claim is testable: the
+    gap between diluted and basic weighted-average shares has to be at least as
+    large as the shares conversion would create. If it is not, the filer excluded
+    them as antidilutive despite the price, the assumption behind the treatment is
+    false, and enterprise value is understated by the note principal.
+
+    Datadog: 366.9mm diluted against 352.3mm basic leaves a 14.6mm gap, and
+    conversion accounts for 6.7mm of it, with the balance option and RSU
+    overhang. The treatment holds.
+    """
+    if fin.basic_shares is None or not conv_cfg.conversion_price:
+        return []
+    implied = fin.convertible_debt / conv_cfg.conversion_price
+    gap = fin.diluted_shares - fin.basic_shares
+    if gap >= implied:
+        return [
+            f"Checked: conversion would create {implied:,.1f}mm shares and diluted "
+            f"WASO runs {gap:,.1f}mm above basic, so the shares are inside the "
+            "count the equity value is built on."
+        ]
+    return [
+        f"Warning: conversion would create {implied:,.1f}mm shares but diluted "
+        f"WASO runs only {gap:,.1f}mm above basic, so they do not appear to be in "
+        "the diluted count. The filer may have excluded them as antidilutive. "
+        "Treating the notes as debt is then the correct call, and enterprise "
+        f"value here is understated by up to {fin.convertible_debt:,.0f}mm."
+    ]
 
 
 def build_ev_bridge(
@@ -134,6 +179,7 @@ def build_ev_bridge(
                     "conversion price. Under ASU 2020-06 their shares are already in "
                     "diluted WASO, so they are carried as equity, not debt."
                 )
+                notes.extend(_check_conversion_shares_are_present(fin, conv_cfg))
             else:
                 treatment = "debt"
                 notes.append(
