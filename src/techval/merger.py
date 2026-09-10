@@ -717,8 +717,11 @@ def accretion_sensitivity(
                 }
             )
             cell = assumptions.model_copy(update={"merger": cell_merger})
+            # No bridge is passed, so the target is re-bridged at each cell's
+            # offer price and a convertible that crosses into the money at a
+            # higher premium is treated accordingly in that cell.
             cons = build_consideration(
-                acq_fin, tgt_fin, acq_price, tgt_price, cell, tgt_bridge
+                acq_fin, tgt_fin, acq_price, tgt_price, cell, None
             )
             res = _run_accretion(acq_fin, tgt_fin, cons, cell, tax_rate)
             row.append(
@@ -879,8 +882,13 @@ def run_merger(
     notes: list[str] = []
     tax_rate = _tax_rate(acq_fin, assumptions, notes)
 
+    # The consideration prices the target's balance sheet at the OFFER, not at
+    # the unaffected market price, because moneyness at the offer is what
+    # decides whether a convertible converts in the deal. Passing no bridge lets
+    # build_consideration apply its documented rule; the market-priced bridge
+    # the caller supplied still serves the standalone comparisons below.
     cons = build_consideration(
-        acq_fin, tgt_fin, acq_price, tgt_price, assumptions, tgt_bridge, notes
+        acq_fin, tgt_fin, acq_price, tgt_price, assumptions, None, notes
     )
     sources_uses = _sources_and_uses(cons, assumptions)
     accretion = _run_accretion(acq_fin, tgt_fin, cons, assumptions, tax_rate)

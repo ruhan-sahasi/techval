@@ -165,17 +165,24 @@ def test_terminal_methods_discount_on_different_clocks(ddog, ddog_bridge, assump
 def test_gordon_and_exit_reconcile_through_the_implied_multiple(
     ddog, ddog_bridge, assumptions, wacc_result
 ):
-    """Setting the exit multiple to the one Gordon implies makes them agree."""
+    """Setting the exit multiple to the one Gordon implies makes them agree.
+
+    Agreement means equal PRESENT values. The implied multiple is restated onto
+    the exit method's whole-period clock, so under mid-year discounting the two
+    end-of-year-N amounts deliberately differ by the half-year factor while the
+    discounted answers coincide.
+    """
     assumptions.dcf.exit_multiple = 20.0
     first = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
 
     assumptions.dcf.exit_multiple = first.terminal_gordon.implied_exit_multiple
     second = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
 
-    # Both terminal values now describe the same end-of-year-N amount; they
-    # differ only by the half year of timing the conventions disagree on.
+    assert second.terminal_exit.pv == pytest.approx(
+        second.terminal_gordon.pv, rel=1e-9
+    )
     assert second.terminal_exit.value == pytest.approx(
-        second.terminal_gordon.value, rel=1e-6
+        second.terminal_gordon.value * (1 + second.wacc) ** 0.5, rel=1e-9
     )
 
 
@@ -259,3 +266,79 @@ def test_sensitivity_grid_is_monotonic_in_both_directions(ddog, ddog_bridge, ass
     for row in range(values.shape[0]):
         row_vals = values[row, finite[row, :]]
         assert np.all(np.diff(row_vals) >= -1e-6), "value should rise with growth"
+
+
+def test_dcf_equity_walk_never_subtracts_operating_leases(
+    ddog, assumptions, market, wacc_result
+):
+    """The DCF flows pay rent every year, so the lease is already serviced.
+
+    Under the capitalise-leases convention the bridge counts the liability as
+    debt for multiples, but a DCF enterprise value built on post-rent FCFF is a
+    lease-excluded EV by construction. Subtracting the liability on the walk to
+    equity would charge the same lease twice, so the equity value must be
+    identical under either convention.
+    """
+    from techval.ev_bridge import build_ev_bridge
+
+    price = market.spot("DDOG")
+    plain = run_dcf(ddog, build_ev_bridge(ddog, price, assumptions), wacc_result,
+                    assumptions)
+
+    assumptions.leases.capitalize_operating_leases = True
+    leased_bridge = build_ev_bridge(ddog, price, assumptions)
+    leased = run_dcf(ddog, leased_bridge, wacc_result, assumptions)
+
+    assert ddog.operating_lease_liability > 0
+    assert leased.equity_value_gordon == pytest.approx(plain.equity_value_gordon)
+    assert leased.per_share_gordon == pytest.approx(plain.per_share_gordon)
+
+
+def test_implied_exit_multiple_sits_on_the_exit_clock(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """Feeding the implied multiple back must reproduce Gordon's PRESENT value.
+
+    The two terminal methods discount on different clocks under the mid-year
+    convention, so the multiple that means "the same answer as Gordon" is the
+    one that equates present values, not end-of-year-N amounts. Equal PVs make
+    equal enterprise values and equal per-share figures, which is the property
+    a reader actually wants from the cross-check.
+    """
+    assumptions.dcf.mid_year_convention = True
+    assumptions.dcf.exit_multiple = 20.0
+    first = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+
+    assumptions.dcf.exit_multiple = first.terminal_gordon.implied_exit_multiple
+    second = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+
+    assert second.terminal_exit.pv == pytest.approx(
+        second.terminal_gordon.pv, rel=1e-9
+    )
+    assert second.per_share_exit == pytest.approx(second.per_share_gordon, rel=1e-9)
+
+    # And the multiple itself carries the half-year gross-up against the raw
+    # end-of-year ratio.
+    raw = second.terminal_gordon.value / (
+        second.terminal_exit.value / first.terminal_gordon.implied_exit_multiple
+    )
+    assert first.terminal_gordon.implied_exit_multiple == pytest.approx(
+        raw * (1 + first.wacc) ** 0.5, rel=1e-9
+    )
+
+
+def test_reinvestment_check_reads_a_g_consistent_steady_state(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """The identity must be read at the perpetuity's growth, not the fade path's.
+
+    The terminal explicit year grows at revenue_growth_terminal, so its
+    working-capital release is sized for that faster growth and flatters the
+    reinvestment rate. The check builds the first perpetuity year at g and
+    quotes that rate instead, and it discloses when the shortcut terminal flow
+    disagrees with the steady state it claims to capitalise.
+    """
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    line = next(c for c in d.checks if "reinvestment" in c.lower())
+    assert "Steady-state" in line
+    assert f"{assumptions.dcf.terminal_growth:.2%}" in line

@@ -365,39 +365,59 @@ def value(
         w = compute_wacc(fin, bridge, market, assumptions, peer_betas=peer_betas)
         _render_wacc(w)
 
-        d = run_dcf(
-            fin,
-            bridge,
-            w,
-            assumptions,
-            peer_median_ev_ebitda=peer_median_ev_ebitda,
-        )
-        _render_dcf(d, fin)
-
-        _rule("Sensitivities")
-        console.print(
-            _frame_table(
-                sensitivity_wacc_growth(fin, bridge, assumptions, w.wacc),
-                title="Implied price per share: WACC by terminal growth",
-                index_label="WACC",
+        # A DCF that cannot be formed, because the terminal year is a loss or an
+        # assumption is inconsistent, is reported and stepped past. The comps
+        # and the chart stand on their own evidence, and discarding them because
+        # one methodology declined would throw away the part of the report that
+        # still means something.
+        d = None
+        growth_grid = exit_grid = None
+        try:
+            d = run_dcf(
+                fin,
+                bridge,
+                w,
+                assumptions,
+                peer_median_ev_ebitda=peer_median_ev_ebitda,
             )
-        )
-        if peer_median_ev_ebitda:
-            console.print()
+            _render_dcf(d, fin)
+
+            _rule("Sensitivities")
+            # Centred on the discount rate the DCF actually used, which is the
+            # override when one is set, not the computed WACC beside it.
+            growth_grid = sensitivity_wacc_growth(fin, bridge, assumptions, d.wacc)
             console.print(
                 _frame_table(
-                    sensitivity_wacc_exit(
-                        fin, bridge, assumptions, w.wacc, peer_median_ev_ebitda
-                    ),
-                    title="Implied price per share: WACC by exit multiple",
+                    growth_grid,
+                    title="Implied price per share: WACC by terminal growth",
                     index_label="WACC",
                 )
+            )
+            if peer_median_ev_ebitda:
+                exit_grid = sensitivity_wacc_exit(
+                    fin, bridge, assumptions, d.wacc, peer_median_ev_ebitda
+                )
+                console.print()
+                console.print(
+                    _frame_table(
+                        exit_grid,
+                        title="Implied price per share: WACC by exit multiple",
+                        index_label="WACC",
+                    )
+                )
+        except TechvalError as exc:
+            _rule("Discounted cash flow")
+            console.print(
+                f"[yellow]The DCF could not be formed and is omitted: {exc}[/yellow]"
             )
 
         if comps_result is not None:
             _render_comps(comps_result)
 
-        path = _chart(ticker, fin, market, d, comps_result, price, out)
+        path = _chart(
+            ticker, fin, market, d, comps_result, price, out,
+            growth_grid=growth_grid, exit_grid=exit_grid,
+        )
         _rule("Output")
         console.print(f"Football field written to [bold]{path}[/bold]")
     except TechvalError as exc:
@@ -434,7 +454,21 @@ def _peer_betas(comps_result, market, assumptions):
     return out or None
 
 
-def _chart(ticker, fin, market, dcf_result, comps_result, price, out_dir):
+def _grid_band(grid) -> tuple[float, float] | None:
+    """The span of a sensitivity grid, ignoring cells that were withheld."""
+    if grid is None:
+        return None
+    values = pd.to_numeric(grid.stack(), errors="coerce").dropna()
+    values = values[values > 0]
+    if values.empty:
+        return None
+    return float(values.min()), float(values.max())
+
+
+def _chart(
+    ticker, fin, market, dcf_result, comps_result, price, out_dir,
+    *, growth_grid=None, exit_grid=None,
+):
     rows: list[FootballRow] = []
     lo, hi = market.prices(ticker).fifty_two_week_range()
     rows.append(FootballRow("52-week trading range", lo, hi))
@@ -448,14 +482,24 @@ def _chart(ticker, fin, market, dcf_result, comps_result, price, out_dir):
             if pd.notna(low) and pd.notna(high) and low > 0:
                 rows.append(FootballRow(f"Comps: {label}", float(low), float(high)))
 
-    for label, base in (
-        ("DCF: Gordon growth", dcf_result.per_share_gordon),
-        ("DCF: exit multiple", dcf_result.per_share_exit),
-    ):
-        if base and base > 0:
-            # The sensitivity grid is the honest width of a DCF: a single point
-            # estimate implies a precision the inputs do not support.
-            rows.append(FootballRow(label, base * 0.85, base * 1.15))
+    # The DCF bands are the full span of the sensitivity grids, so the bar shows
+    # the same range the tables print rather than a decorative percentage. A
+    # point estimate implies a precision the inputs do not support.
+    subtitle_dcf = ""
+    if dcf_result is not None:
+        for label, base, band in (
+            ("DCF: Gordon growth", dcf_result.per_share_gordon, _grid_band(growth_grid)),
+            ("DCF: exit multiple", dcf_result.per_share_exit, _grid_band(exit_grid)),
+        ):
+            if band is not None:
+                rows.append(FootballRow(label, band[0], band[1]))
+            elif base and base > 0:
+                rows.append(FootballRow(label, base * 0.85, base * 1.15))
+        subtitle_dcf = (
+            " DCF bands span the sensitivity grids."
+            if (growth_grid is not None or exit_grid is not None)
+            else " DCF bands are the point estimate plus or minus 15%."
+        )
 
     path = Path(out_dir) / f"{ticker.upper()}_football.png"
     return football_field(
@@ -463,9 +507,7 @@ def _chart(ticker, fin, market, dcf_result, comps_result, price, out_dir):
         price,
         ticker.upper(),
         path,
-        subtitle=(
-            f"TTM to {fin.as_of}. DCF bands are the point estimate plus or minus 15%."
-        ),
+        subtitle=f"TTM to {fin.as_of}." + subtitle_dcf,
     )
 
 

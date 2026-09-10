@@ -174,13 +174,15 @@ class CompsResult:
         )
 
 
-def _ratio(numerator: float, denominator: float | None) -> float:
+def _ratio(numerator: float | None, denominator: float | None) -> float:
     """Divide, or refuse.
 
     Raises rather than returning a figure that reads like a valuation and is
     not. Callers catch this and record a flag, so the reason survives to the
     printed table instead of being lost as a blank cell.
     """
+    if numerator is None:
+        raise NotMeaningfulError("the numerator is not meaningful")
     if denominator is None:
         raise NotMeaningfulError("the denominator is not reported")
     if denominator <= 0:
@@ -300,7 +302,24 @@ def compute_peer_metrics(
     ev = bridge.enterprise_value
     flags: list[str] = list(bridge.notes) if not is_target else []
 
-    # The single point where the lease convention enters the multiples.
+    # A negative enterprise value means the market prices the equity below the
+    # cash on hand. It happens, and every EV multiple built on it comes out
+    # negative and would drag the whole percentile distribution below zero, so
+    # the EV multiples are withheld with the reason on show while P/E survives.
+    ev_numerator: float | None = ev
+    if ev <= 0:
+        flags.append(
+            f"EV multiples NM: enterprise value of {ev:,.0f}mm is not positive; "
+            "cash and investments exceed market capitalisation plus debt"
+        )
+        ev_numerator = None
+
+    # The single point where the lease convention enters the multiples. Note
+    # what follows from it: the columns headed "EBITDA margin" and "Rule of 40"
+    # are computed on this same convention-matched figure, so under the
+    # capitalise-leases convention they are EBITDAR-based. That is deliberate,
+    # because a margin on one basis sitting beside a multiple on another would
+    # describe two different firms, and the table note says which basis is live.
     ebitda, basis = bridge.multiple_denominator(fin)
     ebitda_margin = None if ebitda is None or not fin.revenue else ebitda / fin.revenue
     growth = _revenue_growth(fin, facts, flags)
@@ -349,7 +368,7 @@ def compute_peer_metrics(
         else f"EBIT margin {fin.ebit_margin:.1%}"
     )
 
-    ev_ebitda = take("EV/EBITDA", ev, ebitda, ebitda_note)
+    ev_ebitda = take("EV/EBITDA", ev_numerator, ebitda, ebitda_note)
     if ev_ebitda is not None and ev_ebitda > assumptions.comps.ev_ebitda_nm_threshold:
         # Above the cut-off the multiple is measuring how close the margin is to
         # zero, not how the market prices the business.
@@ -387,7 +406,7 @@ def compute_peer_metrics(
         ebitda_margin=ebitda_margin,
         gross_margin=fin.gross_margin,
         rule_of_40=rule_of_40,
-        ev_revenue=take("EV/Revenue", ev, fin.revenue, ""),
+        ev_revenue=take("EV/Revenue", ev_numerator, fin.revenue, ""),
         ev_gross_profit=take(
             "EV/Gross Profit",
             ev,
@@ -399,7 +418,7 @@ def compute_peer_metrics(
         ev_ebitda=ev_ebitda,
         ev_ebit=cap(
             "EV/EBIT",
-            take("EV/EBIT", ev, ebit_den, ebit_note),
+            take("EV/EBIT", ev_numerator, ebit_den, ebit_note),
             assumptions.comps.ev_ebitda_nm_threshold,
             f"on an EBIT margin of {fin.ebit_margin:.1%}",
         ),

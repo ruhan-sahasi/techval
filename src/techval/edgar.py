@@ -471,6 +471,7 @@ class CompanyFacts:
         """
         ladder = list(ladder)
         stale: list[str] = []
+        zero_hit: tuple[float, Provenance] | None = None
         for tag in ladder:
             facts = [f for f in self.facts(tag) if f.is_instant and f.end <= as_of]
             if not facts:
@@ -479,7 +480,7 @@ class CompanyFacts:
             if (as_of - newest.end).days > tolerance_days:
                 stale.append(f"{tag} (newest {newest.end})")
                 continue
-            return newest.val, Provenance(
+            prov = Provenance(
                 concept=concept,
                 tag=tag,
                 method="balance sheet, latest instant",
@@ -488,6 +489,24 @@ class CompanyFacts:
                 filed=str(newest.filed),
                 tags_tried=ladder,
             )
+            # An explicit zero is kept as a candidate but does not end the
+            # search. A filer can report zero under the ladder's first tag while
+            # carrying the real balance under a later one, and stopping at the
+            # zero would defeat the retired-tag defence in the one case it is
+            # for. If every current tag reads zero, zero is the answer, sourced
+            # from the first of them.
+            if newest.val == 0 and zero_hit is None:
+                zero_hit = (newest.val, prov)
+                continue
+            if newest.val != 0:
+                if zero_hit is not None:
+                    prov.note = (
+                        f"{zero_hit[1].tag} reports an explicit zero at the same "
+                        "date; the non-zero balance below it in the ladder is taken"
+                    )
+                return newest.val, prov
+        if zero_hit is not None:
+            return zero_hit
 
         if default_when_absent is not None:
             note = "no tag reports this; read as zero"

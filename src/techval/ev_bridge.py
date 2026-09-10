@@ -267,6 +267,35 @@ def build_ev_bridge(
     )
 
 
+def equity_value_from_dcf_ev(
+    enterprise_value: float, fin: Financials, bridge: EVBridge
+) -> float:
+    """Walk a DCF enterprise value to equity.
+
+    Differs from ``equity_value_from_ev`` in exactly one line item: operating
+    lease liabilities are never subtracted, whatever convention the bridge was
+    built under. A DCF enterprise value is the present value of free cash flow
+    that pays rent in every projected year and in the terminal perpetuity, so
+    the lease obligation is already serviced inside the flows. Subtracting the
+    liability as well would charge the same lease twice, which is the DCF-side
+    twin of the EV/EBITDA pairing trap the bridge exists to prevent.
+
+    Finance leases stay in the walk: their interest and principal are financing
+    flows that unlevered FCFF deliberately excludes, so the claim is outstanding
+    against the enterprise value exactly as straight debt is.
+    """
+    return (
+        enterprise_value
+        - bridge.straight_debt
+        - bridge.convertible_in_debt
+        - bridge.finance_lease
+        - bridge.preferred
+        - bridge.nci
+        + bridge.cash
+        + bridge.short_term_investments
+    )
+
+
 def equity_value_from_ev(
     enterprise_value: float, fin: Financials, bridge: EVBridge
 ) -> float:

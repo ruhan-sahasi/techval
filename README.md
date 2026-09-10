@@ -49,41 +49,48 @@ Notes
 Input                    Value  Source
 Risk-free rate           4.83%  US Treasury 10Y constant maturity, 2026-09-09
 Equity risk premium      5.00%  assumption: market.equity_risk_premium
-Levered beta             1.421  median of 6 peer unlevered betas, relevered
+Levered beta             1.395  median of 6 peer unlevered betas, relevered
 Pre-tax cost of debt    11.27%  synthetic: EBIT/interest of 1.4x maps to B3/B-
 Weight of equity          1.00  E / (D + E) on 82,659mm
-Cost of equity          11.93%  CAPM: risk-free + beta x ERP + size premium
-WACC                    11.93%  100.0% x 11.93% + 0.0% x 8.57%
+Cost of equity          11.80%  CAPM: risk-free + beta x ERP + size premium
+WACC                    11.80%  100.0% x 11.80% + 0.0% x 8.57%
 
 Notes
   - DDOG is net cash by 4,985mm. Weights still use gross debt, because the
     tax shield attaches to debt outstanding and not to a net position.
+  - Peer regressions: R-squared runs 0.11 to 0.24 and the slope standard
+    error 0.28 to 0.39 across 6 names. The median asset beta pools these
+    estimates; it does not sharpen any one of them.
 
 ────────────────────── Discounted cash flow ──────────────────────
-  Implied per share, Gordon growth   $41.98
-  Implied per share, exit multiple  $129.40
+  Implied per share, Gordon growth   $42.45
+  Implied per share, exit multiple  $130.07
 
 Cross-checks
-  - The Gordon terminal value implies an exit multiple of 7.3x terminal
-    EBITDA of 1,906mm. The peer median today is 37.3x, a gap of -80%.
-  - The 37.3x exit multiple implies perpetuity growth of 9.84% against a
-    WACC of 11.93%.
+  - The Gordon terminal value implies an exit multiple of 7.8x terminal
+    EBITDA of 1,906mm, restated onto the exit method's whole-period
+    discount clock so the comparison is like for like. The peer median
+    today is 37.3x, a gap of -79%.
+  - The 37.3x exit multiple implies perpetuity growth of 9.71% against a
+    WACC of 11.80%.
   - FLAG: Gordon terminal value is 81% of enterprise value, above the 75%
     mark. The valuation is a bet on the terminal assumption, not on the
     forecast.
-  - FLAG: Terminal reinvestment is 44mm on 1,328mm of NOPAT, a reinvestment
-    rate of 3.3%. It implies a terminal ROIC of 75.2%, above the 60% mark.
-    A perpetual return that far above the cost of capital assumes no
-    competitor ever arrives.
+  - Steady-state reinvestment at 2.50% growth is 69mm on 1,361mm of NOPAT,
+    a reinvestment rate of 5.1%. It implies a terminal ROIC of 49.0%
+    against a WACC of 11.80%, so terminal growth creates value and the
+    assumption hangs together.
 ```
 
 The Datadog run is worth reading as a result, not just as a demo. On GAAP
 economics with stock compensation expensed, the DCF lands far below the market
 price, the implied exit multiple from the perpetuity is a fifth of what the peer
 set trades at, and four fifths of the value sits in the terminal assumption. The
-engine says all of that on screen rather than printing a single number. Flipping
-`sbc_treatment` to `addback` roughly triples the DCF, which is the honest measure
-of how much that one accounting judgment is carrying.
+engine says all of that on screen rather than printing a single number, and it
+reads the g = ROIC x reinvestment identity off a g-consistent steady state
+rather than off a terminal year still growing at eight percent. Flipping
+`sbc_treatment` to `addback` roughly triples the DCF, which is the honest
+measure of how much that one accounting judgment is carrying.
 
 ---
 

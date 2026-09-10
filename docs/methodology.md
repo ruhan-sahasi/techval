@@ -18,10 +18,14 @@ USD millions, share counts in millions of shares, per-share figures in dollars.
 which is exact enough for a valuation whose largest input is a judgment about the
 equity risk premium.
 
-The engine is deterministic. The same ticker, the same assumptions file and the
-same cached filings produce the same numbers, because every HTTP response is
-cached by request URL under `~/.techval/cache`. A number in a memo can be
-reproduced a year later from the cache alone.
+The engine is deterministic, with one scope worth stating precisely. Filing
+data is cached by request URL under `~/.techval/cache`, and those URLs carry
+only the CIK, so the same ticker against the same cached filings reproduces the
+same fundamentals indefinitely. Price requests embed the request window, whose
+end is the run date, so a market-data run is byte-reproducible on the same day
+and refreshes on the next. To pin a valuation completely, point
+`price_source: csv` at exported price files; that is how the test suite and the
+demo notebook stay identical forever.
 
 Nothing is interpolated. When a required figure cannot be sourced, the engine
 raises `MissingDataError` naming the concept, the us-gaap tags it tried in order,
@@ -47,9 +51,14 @@ held a value in early 2025. HubSpot's `ConvertibleLongTermNotesPayable` stops in
 exists" returns a number that is years stale, with nothing on screen to say so.
 
 **Treatment.** Balance-sheet concepts resolve *as of a date*. A tag wins only if
-it carries a fact within 20 days of the balance-sheet date being asked about. A
-ladder entry whose newest fact is older than that is skipped, and if every entry
-is stale the engine raises `StaleDataError` listing what it found and when.
+it carries a fact within 20 days of the balance-sheet date being asked about,
+and an explicit zero does not end the search: a filer can report zero under the
+ladder's first tag while carrying the real balance under a later one, so a
+non-zero balance at the date beats a zero above it, with the provenance saying
+so. When every entry is stale, a concept that must exist raises
+`StaleDataError` listing what was found and when; a concept whose absence
+legitimately means zero (preferred, non-controlling interest) records "only
+stale tags found, read as zero" in its provenance instead of raising.
 
 This is not hypothetical. Zscaler reports its marketable securities under
 `DebtSecuritiesAvailableForSaleExcludingAccruedInterestCurrent`, a tag outside
@@ -98,6 +107,13 @@ nothing for either company.
    wins, because that is the genuine restatement and the number the company now
    stands behind. The same CrowdStrike year read 89.3mm in the 10-K filed in 2024
    and 72.2mm in the one filed in 2026, and the later figure is the right one.
+
+   One asymmetry is accepted deliberately: recast statements furnished on Form
+   8-K, after a segment change or a discontinued operation, rank below the
+   periodic reports, so a recast that exists only in an 8-K is not picked up
+   until the next 10-Q restates the comparatives. Ranking 8-K above the audited
+   reports would let every unaudited earnings release override them, which is
+   the worse trade.
 2. Derive every period recoverable by subtraction. Where two reported windows
    share a **start** date, their difference is the tail period. Where they share
    an **end** date, their difference is the head period. Applied repeatedly, this
@@ -492,14 +508,25 @@ Terminal EBITDA is terminal EBIT plus terminal D&A, on the same post-rent
 definition the comps are quoted on, so the exit multiple and the peer median
 describe the same quantity.
 
+**The walk back to equity never subtracts operating leases**, whichever bridge
+convention is configured. The projected cash flows pay rent in every explicit
+year and in the terminal perpetuity, so the lease obligation is serviced inside
+the DCF; subtracting the liability as well would charge the same lease twice,
+the DCF-side twin of the EV/EBITDA pairing trap. Finance leases stay in the
+walk, because unlevered FCFF excludes their interest and principal and the
+claim is therefore still outstanding.
+
 ### 6.4 Cross-checks
 
 These are where a DCF is either coherent or is not, and the engine prints them
 rather than leaving them to be noticed.
 
-1. **Implied exit multiple from the Gordon terminal value.** If Gordon implies
-   7.3x and the peer set trades at 37.3x, the growth and margin assumptions do
-   not support what the market is paying, and one of the two is wrong.
+1. **Implied exit multiple from the Gordon terminal value**, restated onto the
+   exit method's whole-period discount clock, since the two conventions differ
+   by half a year under mid-year discounting and the comparison against a peer
+   multiple has to be like for like. If Gordon implies 7.7x and the peer set
+   trades at 37.3x, the growth and margin assumptions do not support what the
+   market is paying, and one of the two is wrong.
 2. **Implied perpetuity growth from the exit multiple.** Solving the Gordon
    formula backwards. An exit multiple that implies 9.8% growth in perpetuity
    against an 11.9% WACC is a multiple no long-run assumption supports.
@@ -514,11 +541,26 @@ rather than leaving them to be noticed.
    reinvestment rate = (capex + change in NWC - D&A) / NOPAT
    ```
 
-   so the terminal year implies a return on capital. The engine backs it out and
-   flags an implied ROIC that is negative, above 60%, or below the WACC. That
-   last case is the interesting one: it means the model is capitalising growth
-   that destroys value. A terminal assumption that survives this check is
-   internally consistent; one that does not is arithmetic with a story attached.
+   The subtlety is which year to read the rate from. The final explicit year
+   still grows at the faded revenue rate, so its working-capital swing is sized
+   for that growth, not for the perpetuity's g, and reading the identity off it
+   mixes two growth rates. The engine instead constructs the first perpetuity
+   year properly: revenue one notch of g beyond the terminal year, margins and
+   capital intensity at their terminal settings, the working-capital change
+   sized by g alone. That is the steady state the Gordon formula claims to
+   capitalise, and it is Damodaran's construction for exactly this reason.
+
+   The same construction exposes a quieter bias. The terminal value is computed
+   off `FCFF_N x (1+g)`, the standard shortcut, and that flow inherits
+   reinvestment sized for the faster explicit-period growth. Where the shortcut
+   and the steady-state flow disagree by more than two percent the engine says
+   so and by how much, because that gap sits inside the terminal value itself.
+
+   The implied ROIC is then flagged when negative, above 60%, or below the
+   WACC. That last case is the interesting one: it means the model is
+   capitalising growth that destroys value. A terminal assumption that survives
+   this check is internally consistent; one that does not is arithmetic with a
+   story attached.
 
 ---
 

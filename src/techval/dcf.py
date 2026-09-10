@@ -87,7 +87,7 @@ import pandas as pd
 
 from .config import Assumptions
 from .errors import ConfigError, MissingDataError, NotMeaningfulError
-from .ev_bridge import EVBridge, equity_value_from_ev
+from .ev_bridge import EVBridge, equity_value_from_dcf_ev
 from .financials import Financials
 
 if TYPE_CHECKING:  # the WACC build is a peer module, imported for typing only
@@ -444,7 +444,17 @@ def run_dcf(
     tv_gordon = gordon_terminal_value(terminal.fcff, wacc, g)
     pv_gordon = _pv_terminal_gordon(tv_gordon, wacc, n, cfg.mid_year_convention)
     ev_gordon = pv_explicit + pv_gordon
-    implied_multiple = tv_gordon / terminal_ebitda if terminal_ebitda > 0 else None
+    # Restated onto the exit method's clock so the two cross-checks convert
+    # between conventions the same way. Under mid-year discounting the Gordon
+    # value carries a half-year uplift the exit method does not, so the multiple
+    # that reproduces Gordon's PRESENT VALUE under the exit convention is the
+    # end-of-year-N Gordon value grossed up by (1+w)^0.5. Quoting the raw ratio
+    # instead would understate the implied multiple by half a year of WACC and
+    # feed an inconsistency into the comparison against the peer median.
+    _clock = (1 + wacc) ** 0.5 if cfg.mid_year_convention else 1.0
+    implied_multiple = (
+        tv_gordon * _clock / terminal_ebitda if terminal_ebitda > 0 else None
+    )
     terminal_gordon = TerminalValue(
         method="gordon",
         value=tv_gordon,
@@ -512,8 +522,13 @@ def run_dcf(
                 "definition the comps are quoted on."
             )
 
-    equity_gordon = equity_value_from_ev(ev_gordon, fin, bridge)
-    equity_exit = None if ev_exit is None else equity_value_from_ev(ev_exit, fin, bridge)
+    # The walk back to equity never subtracts operating leases: the projected
+    # flows pay rent every year, so the obligation is serviced inside the DCF
+    # and taking the liability out as debt would charge it twice.
+    equity_gordon = equity_value_from_dcf_ev(ev_gordon, fin, bridge)
+    equity_exit = (
+        None if ev_exit is None else equity_value_from_dcf_ev(ev_exit, fin, bridge)
+    )
 
     checks.extend(
         _cross_checks(
@@ -588,7 +603,8 @@ def _cross_checks(
         line = (
             f"The Gordon terminal value implies an exit multiple of "
             f"{terminal_gordon.implied_exit_multiple:.1f}x terminal EBITDA of "
-            f"{terminal_ebitda:,.0f}mm."
+            f"{terminal_ebitda:,.0f}mm, restated onto the exit method's "
+            "whole-period discount clock so the comparison is like for like."
         )
         if peer_median_ev_ebitda:
             gap = terminal_gordon.implied_exit_multiple / peer_median_ev_ebitda - 1.0
@@ -633,7 +649,7 @@ def _cross_checks(
                 f"{label} terminal value is {tv.pct_of_ev:.0%} of enterprise value."
             )
 
-    out.extend(_reinvestment_check(terminal, g, wacc))
+    out.extend(_reinvestment_check(terminal, g, wacc, assumptions, tax_rate))
 
     if bridge.operating_lease_in_debt > 0 and terminal_exit is not None:
         out.append(
@@ -662,59 +678,120 @@ def _cross_checks(
     return out
 
 
-def _reinvestment_check(terminal: ProjectionYear, g: float, wacc: float) -> list[str]:
-    """g = ROIC * reinvestment rate, read backwards out of the terminal year.
+def _reinvestment_check(
+    terminal: ProjectionYear,
+    g: float,
+    wacc: float,
+    assumptions: Assumptions,
+    tax_rate: float,
+) -> list[str]:
+    """g = ROIC * reinvestment rate, read out of a g-consistent steady state.
 
     The terminal assumption is a claim about returns whether or not the analyst
-    states one. This is the single best signal of whether it is coherent.
+    states one, and this identity is the single best signal of whether it is
+    coherent. The subtlety is which year to read it from. The final explicit
+    year grows at ``revenue_growth_terminal``, so its capital spending and its
+    working-capital swing are sized for that growth, not for the perpetuity's
+    ``g``. Reading the reinvestment rate straight off that year mixes the two
+    growth rates and misstates the implied return, usually upward, because the
+    working-capital release that fast growth produces flatters the rate.
+
+    So the check builds the first perpetuity year properly: revenue one notch of
+    ``g`` beyond the terminal year, margins and capital intensity held at their
+    terminal settings, and the working-capital change sized by ``g`` alone. That
+    is the steady state the Gordon formula claims to capitalise, and it is the
+    construction Damodaran recommends for exactly this reason.
+
+    The same construction exposes a second, quieter issue. The terminal value is
+    computed off ``FCFF_N * (1 + g)``, the standard shortcut, and that flow
+    inherits the terminal year's reinvestment, which was sized for the faster
+    growth. Where the shortcut flow and the steady-state flow disagree by more
+    than a couple of percent, the check says so and by how much, because the gap
+    is a bias in the terminal value itself, not a stylistic quibble.
     """
-    reinvestment = terminal.capex + terminal.delta_nwc - terminal.da
-    if terminal.nopat <= 0:
+    cfg = assumptions.dcf
+    rev_next = terminal.revenue * (1.0 + g)
+    ebit_next = cfg.ebit_margin_terminal * rev_next
+    nopat_next = ebit_next - tax_rate * max(ebit_next, 0.0)
+    da_next = cfg.da_pct_revenue * rev_next
+    capex_next = cfg.capex_pct_revenue * rev_next
+    # Working capital scales with revenue, so in steady state its change is the
+    # NWC ratio applied to one year of growth, not to the terminal year's faster
+    # revenue step.
+    dnwc_next = cfg.nwc_pct_revenue * terminal.revenue * g
+
+    if nopat_next <= 0:
         return [
-            f"FLAG: terminal NOPAT of {terminal.nopat:,.0f}mm is not positive, so no "
-            "reinvestment rate can be formed and the terminal growth rate is being "
-            "capitalised without any implied return standing behind it."
+            f"FLAG: steady-state NOPAT of {nopat_next:,.0f}mm at the terminal "
+            "margin is not positive, so no reinvestment rate can be formed and "
+            "the terminal growth rate is being capitalised without any implied "
+            "return standing behind it."
         ]
 
-    rate = reinvestment / terminal.nopat
+    out: list[str] = []
+
+    fcff_steady = nopat_next + da_next - capex_next - dnwc_next
+    if cfg.sbc_treatment == "addback" and terminal.revenue:
+        fcff_steady += (terminal.sbc / terminal.revenue) * rev_next
+    fcff_shortcut = terminal.fcff * (1.0 + g)
+    if fcff_shortcut:
+        gap = fcff_shortcut / fcff_steady - 1.0 if fcff_steady else float("inf")
+        if abs(gap) > 0.02:
+            out.append(
+                f"FLAG: the terminal value capitalises FCFF of "
+                f"{fcff_shortcut:,.0f}mm, the final explicit year grown at "
+                f"{g:.2%}, but a steady state at that growth supports "
+                f"{fcff_steady:,.0f}mm. The shortcut flow inherits reinvestment "
+                f"sized for {terminal.growth:.1%} growth, so the Gordon value is "
+                f"{'overstated' if gap > 0 else 'understated'} by roughly "
+                f"{abs(gap):.1%} before discounting."
+            )
+
+    reinvestment = capex_next + dnwc_next - da_next
+    rate = reinvestment / nopat_next
     head = (
-        f"Terminal reinvestment is {reinvestment:,.0f}mm on {terminal.nopat:,.0f}mm of "
-        f"NOPAT, a reinvestment rate of {rate:.1%}."
+        f"Steady-state reinvestment at {g:.2%} growth is {reinvestment:,.0f}mm "
+        f"on {nopat_next:,.0f}mm of NOPAT, a reinvestment rate of {rate:.1%}."
     )
     if abs(rate) < 1e-6:
-        return [
-            "FLAG: " + head + f" Growing at {g:.2%} on no reinvestment implies an "
-            "infinite return on capital. Either capex and working capital have to "
-            "rise in the terminal year or the growth rate has to come down."
-        ]
+        out.append(
+            "FLAG: " + head + f" Growing at {g:.2%} on no reinvestment implies "
+            "an infinite return on capital. Either capex and working capital "
+            "have to rise in the terminal state or the growth rate has to come "
+            "down."
+        )
+        return out
 
     roic = g / rate
     if rate < 0:
-        return [
-            "FLAG: " + head + f" It is negative, so the terminal year releases more "
-            f"capital than it absorbs while still growing at {g:.2%}. The implied "
-            f"return on capital is {roic:.1%}, which is not a return at all: growth "
-            "is being funded by disinvestment. Raise capex, or hold working capital "
-            "flat as a share of revenue in the terminal year."
-        ]
-    if roic > _ROIC_CEILING:
-        return [
-            "FLAG: " + head + f" It implies a terminal ROIC of {roic:.1%}, above the "
-            f"{_ROIC_CEILING:.0%} mark. A perpetual return that far above the cost of "
-            "capital assumes no competitor ever arrives."
-        ]
-    if roic < wacc:
-        return [
-            "FLAG: " + head + f" It implies a terminal ROIC of {roic:.1%} against a "
-            f"WACC of {wacc:.2%}. Growth at that return destroys value, yet the model "
-            "capitalises it as though it were worth paying for. Either the growth is "
-            "worth less than zero or the reinvestment assumption is too heavy."
-        ]
-    return [
-        head + f" It implies a terminal ROIC of {roic:.1%} against a WACC of "
-        f"{wacc:.2%}, so terminal growth creates value and the assumption hangs "
-        "together."
-    ]
+        out.append(
+            "FLAG: " + head + " It is negative, so the steady state releases "
+            f"more capital than it absorbs while still growing at {g:.2%}. The "
+            f"implied return on capital is {roic:.1%}, which is not a return at "
+            "all: growth is being funded by disinvestment. Raise capex, or hold "
+            "working capital flat as a share of revenue."
+        )
+    elif roic > _ROIC_CEILING:
+        out.append(
+            "FLAG: " + head + f" It implies a terminal ROIC of {roic:.1%}, "
+            f"above the {_ROIC_CEILING:.0%} mark. A perpetual return that far "
+            "above the cost of capital assumes no competitor ever arrives."
+        )
+    elif roic < wacc:
+        out.append(
+            "FLAG: " + head + f" It implies a terminal ROIC of {roic:.1%} "
+            f"against a WACC of {wacc:.2%}. Growth at that return destroys "
+            "value, yet the model capitalises it as though it were worth paying "
+            "for. Either the growth is worth less than zero or the reinvestment "
+            "assumption is too heavy."
+        )
+    else:
+        out.append(
+            head + f" It implies a terminal ROIC of {roic:.1%} against a WACC "
+            f"of {wacc:.2%}, so terminal growth creates value and the "
+            "assumption hangs together."
+        )
+    return out
 
 
 # -- sensitivities -------------------------------------------------------- #
@@ -725,7 +802,7 @@ def _grid_axis(centre: float, step: float) -> np.ndarray:
 
 
 def _per_share(ev: float, fin: Financials, bridge: EVBridge) -> float:
-    return equity_value_from_ev(ev, fin, bridge) / fin.diluted_shares
+    return equity_value_from_dcf_ev(ev, fin, bridge) / fin.diluted_shares
 
 
 def sensitivity_wacc_growth(

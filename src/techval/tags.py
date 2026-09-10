@@ -187,10 +187,17 @@ OPERATING_LEASE_COST = [
 
 NCI = ["MinorityInterest", "MinorityInterestInOperatingPartnerships"]
 
+# Mezzanine first. Redeemable preferred lives in temporary equity at its
+# carrying amount; ``PreferredStockValue`` is the par value inside permanent
+# equity, often a few thousand dollars against a nine-figure liquidation
+# preference. Par-first would read a real preferred stack as roughly zero.
+# The temporary-equity tag can also carry redeemable NCI, which mislabels the
+# line but not the bridge: either way it is a claim ahead of the common and
+# belongs in enterprise value.
 PREFERRED = [
-    "PreferredStockValue",
-    "PreferredStockValueOutstanding",
     "TemporaryEquityCarryingAmountAttributableToParent",
+    "PreferredStockValueOutstanding",
+    "PreferredStockValue",
 ]
 
 CURRENT_ASSETS = ["AssetsCurrent"]

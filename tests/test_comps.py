@@ -253,3 +253,37 @@ def test_growth_works_for_a_52_53_week_filer(assumptions, market, monkeypatch):
 
     assert growth is not None, f"growth unavailable for a 13-week filer: {flags}"
     assert growth > 0
+
+
+def test_negative_enterprise_value_withholds_ev_multiples(assumptions, market):
+    """Cash above market cap plus debt makes every EV multiple negative.
+
+    Negative multiples would drag the whole percentile distribution below zero,
+    so they are withheld with the reason on show while P/E, an equity multiple,
+    survives on its own merits.
+    """
+    from datetime import date as _date
+
+    from techval.comps import compute_peer_metrics
+    from techval.financials import Financials
+
+    fin = Financials(
+        ticker="CASHBOX", entity_name="Cashbox", cik=1, as_of=_date(2026, 6, 30),
+        revenue=500.0, gross_profit=350.0, ebit=40.0, da=10.0, sbc=0.0,
+        net_income=50.0, pretax_income=60.0, tax_expense=10.0,
+        interest_expense=0.0, operating_lease_cost=0.0, capex=5.0, cfo=None,
+        diluted_shares=100.0, basic_shares=100.0,
+        cash=2_000.0, short_term_investments=0.0, straight_debt=0.0,
+        convertible_debt=0.0, operating_lease_liability=0.0,
+        finance_lease_liability=0.0, nci=0.0, preferred=0.0,
+        current_assets=None, current_liabilities=None, deferred_revenue=0.0,
+    )
+    from techval.edgar import CompanyFacts
+
+    # Priced at 10.00 the equity is 1,000mm against 2,000mm of cash: EV -1,000mm.
+    empty = CompanyFacts({"cik": 1, "entityName": "Cashbox", "facts": {}}, "CASHBOX")
+    m = compute_peer_metrics(fin, empty, 10.0, assumptions)
+    assert m.enterprise_value <= 0
+    assert m.ev_revenue is None and m.ev_ebitda is None and m.ev_ebit is None
+    assert m.pe is not None and m.pe > 0
+    assert any("not positive" in f for f in m.flags)

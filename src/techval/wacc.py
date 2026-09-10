@@ -587,6 +587,19 @@ def compute_wacc(
             f"median of {len(peer_betas)} peer unlevered betas ({tickers}), "
             f"relevered at {debt_to_equity:,.2f}x D/E and a {tax_rate:.1%} tax rate"
         )
+        # The regression quality has to reach the reader on this path too, or
+        # the median laundered the uncertainty out of sight. A median of six
+        # slopes whose R-squareds run 0.05 to 0.30 is a judgment, not a datum.
+        r2s = sorted(e.r_squared for e in peer_betas)
+        ses = sorted(e.stderr for e in peer_betas)
+        notes.append(
+            f"Peer regressions: R-squared runs {r2s[0]:.2f} to {r2s[-1]:.2f} and "
+            f"the slope standard error {ses[0]:.2f} to {ses[-1]:.2f} across "
+            f"{len(peer_betas)} names, each on at least "
+            f"{min(e.n_observations for e in peer_betas)} weekly observations. "
+            "The median asset beta pools these estimates; it does not sharpen any "
+            "one of them."
+        )
         unlevered_source = (
             f"Hamada on each peer at its own D/E and tax rate, then the median. "
             f"{mkt_cfg.beta_adjustment} adjustment applied to each peer regression"
@@ -709,6 +722,15 @@ def compute_wacc(
             f"outstanding and not to a net position. At a {weight_debt:.1%} debt "
             "weight the WACC is its cost of equity to within a few basis points."
         )
+        if bridge.convertible_debt > 0 and bridge.convertible_in_debt == 0:
+            notes.append(
+                f"Gross debt reads {debt:,.0f}mm despite {bridge.convertible_debt:,.0f}mm "
+                "of convertible notes outstanding, because the bridge carries those as "
+                "equity under the if-converted treatment: their shares already sit in "
+                "the diluted count the equity weight is built on. Counting them as debt "
+                "here while counting their shares in equity would weight the same "
+                "instrument twice."
+            )
 
     inputs.extend(
         [
