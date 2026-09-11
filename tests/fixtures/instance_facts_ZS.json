@@ -1,0 +1,538 @@
+{
+ "_source": "SEC EDGAR XBRL instance document",
+ "_ticker": "ZS",
+ "_accession": "0001713683-26-000157",
+ "_filed": "2026-09-03",
+ "_retrieved": "2026-09-10",
+ "_note": "Pruned to share-count and share-based award facts: every fact whose unit is shares or USD/shares and whose tag mentions an option, a nonvested award, shares outstanding or shares issued. Near-miss tags (options exercisable, vested and expected to vest) are kept deliberately, so the tests can prove the ladders exclude them.",
+ "facts": [
+  {
+   "tag": "CommonStockSharesIssued",
+   "value": 158301000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2025-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "CommonStockSharesIssued",
+   "value": 163055000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "CommonStockSharesOutstanding",
+   "value": 147169000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2023-07-31",
+   "dimensions": {
+    "StatementEquityComponentsAxis": "CommonStockMember"
+   }
+  },
+  {
+   "tag": "CommonStockSharesOutstanding",
+   "value": 152490000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2024-07-31",
+   "dimensions": {
+    "StatementEquityComponentsAxis": "CommonStockMember"
+   }
+  },
+  {
+   "tag": "CommonStockSharesOutstanding",
+   "value": 158301000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2025-07-31",
+   "dimensions": {
+    "StatementEquityComponentsAxis": "CommonStockMember"
+   }
+  },
+  {
+   "tag": "CommonStockSharesOutstanding",
+   "value": 158301000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2025-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "CommonStockSharesOutstanding",
+   "value": 163055000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {
+    "StatementEquityComponentsAxis": "CommonStockMember"
+   }
+  },
+  {
+   "tag": "CommonStockSharesOutstanding",
+   "value": 163055000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ConvertibleDebtSettlementSharesIssued",
+   "value": 3800000.0,
+   "unit": "shares",
+   "start": "2020-06-25",
+   "end": "2020-06-25",
+   "dimensions": {
+    "DebtInstrumentAxis": "ConvertibleSeniorNotesDue2025Member"
+   }
+  },
+  {
+   "tag": "EntityCommonStockSharesOutstanding",
+   "value": 163054698.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-08-27",
+   "dimensions": {}
+  },
+  {
+   "tag": "OptionIndexedToIssuersEquityCapPrice",
+   "value": 784.85,
+   "unit": "USD/shares",
+   "start": "2025-07-03",
+   "end": "2025-07-03",
+   "dimensions": {
+    "DebtInstrumentAxis": "ConvertibleSeniorNotesDue2028Member"
+   }
+  },
+  {
+   "tag": "OptionIndexedToIssuersEquityStrikePrice1",
+   "value": 439.52,
+   "unit": "USD/shares",
+   "start": "2025-07-03",
+   "end": "2025-07-03",
+   "dimensions": {
+    "DebtInstrumentAxis": "ConvertibleSeniorNotesDue2028Member"
+   }
+  },
+  {
+   "tag": "PreferredStockSharesIssued",
+   "value": 0.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2025-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "PreferredStockSharesIssued",
+   "value": 0.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "PreferredStockSharesOutstanding",
+   "value": 0.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2025-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "PreferredStockSharesOutstanding",
+   "value": 0.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsForfeitedInPeriod",
+   "value": 1901000.0,
+   "unit": "shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockUnitsRestrictedSharesAndPerformanceStockAwardsMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsForfeituresWeightedAverageGrantDateFairValue",
+   "value": 203740.0,
+   "unit": "USD/shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockUnitsRestrictedSharesAndPerformanceStockAwardsMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsGrantsInPeriod",
+   "value": 6120000.0,
+   "unit": "shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockUnitsRestrictedSharesAndPerformanceStockAwardsMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsGrantsInPeriodWeightedAverageGrantDateFairValue",
+   "value": 213560.0,
+   "unit": "USD/shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockUnitsRestrictedSharesAndPerformanceStockAwardsMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsNonvestedNumber",
+   "value": 400000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2024-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsNonvestedNumber",
+   "value": 200000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2025-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsNonvestedNumber",
+   "value": 9444000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2025-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockUnitsRestrictedSharesAndPerformanceStockAwardsMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsNonvestedNumber",
+   "value": 500000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsNonvestedNumber",
+   "value": 9876000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockUnitsRestrictedSharesAndPerformanceStockAwardsMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsNonvestedWeightedAverageGrantDateFairValue",
+   "value": 175550.0,
+   "unit": "USD/shares",
+   "start": null,
+   "end": "2025-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockUnitsRestrictedSharesAndPerformanceStockAwardsMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsNonvestedWeightedAverageGrantDateFairValue",
+   "value": 189890.0,
+   "unit": "USD/shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockUnitsRestrictedSharesAndPerformanceStockAwardsMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsVestedInPeriod",
+   "value": 3787000.0,
+   "unit": "shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockUnitsRestrictedSharesAndPerformanceStockAwardsMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardEquityInstrumentsOtherThanOptionsVestedInPeriodWeightedAverageGrantDateFairValue",
+   "value": 185440.0,
+   "unit": "USD/shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockUnitsRestrictedSharesAndPerformanceStockAwardsMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsExercisableNumber",
+   "value": 47000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2025-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsExercisableNumber",
+   "value": 71000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsExercisableWeightedAverageExercisePrice",
+   "value": 172.65,
+   "unit": "USD/shares",
+   "start": null,
+   "end": "2025-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsExercisableWeightedAverageExercisePrice",
+   "value": 220.45,
+   "unit": "USD/shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsForfeituresAndExpirationsInPeriod",
+   "value": 0.0,
+   "unit": "shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsForfeituresAndExpirationsInPeriodWeightedAverageExercisePrice",
+   "value": 0.0,
+   "unit": "USD/shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsGrantsInPeriodGross",
+   "value": 0.0,
+   "unit": "shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsGrantsInPeriodWeightedAverageGrantDateFairValue",
+   "value": 117.41,
+   "unit": "USD/shares",
+   "start": "2023-08-01",
+   "end": "2024-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsGrantsInPeriodWeightedAverageGrantDateFairValue",
+   "value": 144.58,
+   "unit": "USD/shares",
+   "start": "2024-08-01",
+   "end": "2025-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
+   "value": 177000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2025-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
+   "value": 324000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "CommittedPerformanceStockAwardsBasedOnTargetNumberOfSharesMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
+   "value": 1757000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "EmployeeStockMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
+   "value": 150000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "EmployeeStockOptionMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
+   "value": 997000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "PerformanceSharesMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
+   "value": 8879000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {
+    "AwardTypeAxis": "RestrictedStockUnitsRSUMember"
+   }
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber",
+   "value": 150000.0,
+   "unit": "shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingWeightedAverageExercisePrice",
+   "value": 220.95,
+   "unit": "USD/shares",
+   "start": null,
+   "end": "2025-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingWeightedAverageExercisePrice",
+   "value": 232.89,
+   "unit": "USD/shares",
+   "start": null,
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementsByShareBasedPaymentAwardOptionsExercisesInPeriodWeightedAverageExercisePrice",
+   "value": 152.43,
+   "unit": "USD/shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ShareBasedCompensationArrangementsByShareBasedPaymentAwardOptionsGrantsInPeriodWeightedAverageExercisePrice",
+   "value": 0.0,
+   "unit": "USD/shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "StockIssuedDuringPeriodSharesStockOptionsExercised",
+   "value": 864000.0,
+   "unit": "shares",
+   "start": "2023-08-01",
+   "end": "2024-07-31",
+   "dimensions": {
+    "StatementEquityComponentsAxis": "CommonStockMember"
+   }
+  },
+  {
+   "tag": "StockIssuedDuringPeriodSharesStockOptionsExercised",
+   "value": 352000.0,
+   "unit": "shares",
+   "start": "2024-08-01",
+   "end": "2025-07-31",
+   "dimensions": {
+    "StatementEquityComponentsAxis": "CommonStockMember"
+   }
+  },
+  {
+   "tag": "StockIssuedDuringPeriodSharesStockOptionsExercised",
+   "value": 27000.0,
+   "unit": "shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {
+    "StatementEquityComponentsAxis": "CommonStockMember"
+   }
+  },
+  {
+   "tag": "StockIssuedDuringPeriodSharesStockOptionsExercised",
+   "value": 27000.0,
+   "unit": "shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 149586000.0,
+   "unit": "shares",
+   "start": "2023-08-01",
+   "end": "2024-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 154404000.0,
+   "unit": "shares",
+   "start": "2024-08-01",
+   "end": "2025-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 160219000.0,
+   "unit": "shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 149586000.0,
+   "unit": "shares",
+   "start": "2023-08-01",
+   "end": "2024-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 154404000.0,
+   "unit": "shares",
+   "start": "2024-08-01",
+   "end": "2025-07-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 160219000.0,
+   "unit": "shares",
+   "start": "2025-08-01",
+   "end": "2026-07-31",
+   "dimensions": {}
+  }
+ ]
+}

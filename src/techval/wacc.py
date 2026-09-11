@@ -38,6 +38,21 @@ Bloomberg convention shrinks the estimate two-thirds of the way from 1.0 toward
 the regression result. It is applied after the OLS and before unlevering, so the
 leverage adjustment operates on the beta actually used in the cost of equity.
 
+**Vasicek.** The median and Blume share a blind spot: neither looks at how well
+each beta was measured. The median treats a slope estimated on an R-squared of
+0.05 exactly like one estimated on 0.40, and Blume shrinks every slope by the
+same 33% whether it came from a tight regression or a scatter. Vasicek (1973) is
+the Bayesian answer, and it lets the data decide the shrinkage: each peer's asset
+beta is pulled toward the cross-sectional mean of the peer set by a weight that
+is the ratio of the dispersion across peers to that dispersion plus the peer's
+own sampling variance. A precisely measured beta keeps nearly all of its own
+value, a noisy one is pulled hard toward the group, and the pooled figure is the
+precision-weighted mean of what comes out. That buys information the median
+throws away, at the cost of the median's robustness: one broken regression, a
+peer in a takeover or three weeks of a short squeeze, can move a mean and cannot
+move a median. Which is why the median remains the default and Vasicek is opt-in
+through market.peer_beta_method.
+
 **Net cash.** A company holding more cash than debt still has a debt weight of
 D/(D+E) using gross debt, not net. The interest tax shield attaches to the debt
 outstanding, not to a net position, and netting cash against debt in the weights
@@ -70,6 +85,17 @@ from .market import MarketData, PriceSeries
 # the standard error on the slope is wide enough that the point estimate is not
 # worth quoting, and it is roughly seven months of trading.
 MIN_OBSERVATIONS = 30
+
+# The Bloomberg weight on the regression slope, with 1 - this on the market beta
+# of 1.0. Named because the Vasicek path has to rescale the standard error by the
+# same number when the two adjustments are combined.
+_BLUME_SLOPE = 0.67
+
+# Vasicek needs a cross-sectional variance, and a variance of two points is a
+# statement about two points. With fewer names than this the prior is the peer
+# set's own noise, so the engine falls back to the median rather than pretending
+# to have measured a dispersion.
+MIN_PEERS_FOR_SHRINKAGE = 3
 
 # Damodaran's synthetic rating table for large-cap issuers, keyed on the floor of
 # each interest coverage band, with the spread over the risk-free rate that goes
@@ -133,6 +159,12 @@ class BetaEstimate:
     ``unlevered_beta`` is the adjusted beta stripped of this issuer's own
     leverage, and is the figure that may legitimately be averaged across a peer
     set.
+
+    ``shrunk_beta`` and ``shrink_weight`` are filled in only where this estimate
+    was pooled under Vasicek, and record what the shrinkage did to it: the asset
+    beta after it was pulled toward the peer mean, and the weight it kept on its
+    own regression. Both stay None under the median, which shrinks nothing, so a
+    populated pair is proof that shrinkage was applied rather than requested.
     """
 
     ticker: str
@@ -145,6 +177,9 @@ class BetaEstimate:
     debt_to_equity: float
     tax_rate: float
     note: str
+    adjustment: str = "raw"
+    shrunk_beta: float | None = None
+    shrink_weight: float | None = None
 
     def as_row(self) -> dict:
         return {
@@ -152,6 +187,8 @@ class BetaEstimate:
             "raw_beta": self.raw_beta,
             "adjusted_beta": self.adjusted_beta,
             "unlevered_beta": self.unlevered_beta,
+            "shrunk_beta": self.shrunk_beta,
+            "shrink_weight": self.shrink_weight,
             "debt_to_equity": self.debt_to_equity,
             "tax_rate": self.tax_rate,
             "r_squared": self.r_squared,
@@ -355,7 +392,7 @@ def estimate_beta(
     r_squared = 0.0 if syy <= 0.0 else 1.0 - sse / syy
 
     if adjustment == "blume":
-        adjusted = 0.67 * raw_beta + 0.33 * 1.0
+        adjusted = _BLUME_SLOPE * raw_beta + (1.0 - _BLUME_SLOPE) * 1.0
         note = f"Blume-adjusted from a raw slope of {raw_beta:,.2f}"
     else:
         adjusted = raw_beta
@@ -379,6 +416,7 @@ def estimate_beta(
         debt_to_equity=debt_to_equity,
         tax_rate=tax_rate,
         note=note,
+        adjustment=adjustment,
     )
 
 
@@ -391,22 +429,206 @@ def _median_unlevered(estimates: Sequence[BetaEstimate]) -> float:
     return float(np.median([e.unlevered_beta for e in estimates]))
 
 
+# -- Vasicek shrinkage ------------------------------------------------------ #
+
+
+def vasicek_adjust(
+    betas: Sequence[float], stderrs: Sequence[float]
+) -> tuple[list[float], list[float]]:
+    """Shrink each beta toward the cross-sectional mean by its own precision.
+
+        w_i     = sigma_cross^2 / (sigma_cross^2 + se_i^2)
+        beta_i* = w_i * beta_i + (1 - w_i) * beta_cross_mean
+
+    Vasicek (1973). The peer set is treated as a prior: betas are drawn from a
+    distribution centred on ``beta_cross_mean`` with variance ``sigma_cross^2``,
+    and each regression is a noisy reading of one draw with variance ``se_i^2``.
+    The posterior mean is the precision-weighted blend above. Read the weight
+    directly: a peer whose standard error is small against the spread of the
+    group keeps its own number, and a peer whose standard error is as wide as the
+    spread of the group is told that half of what it thinks it knows is noise.
+
+    This is what Blume does not do. Blume moves every estimate 33% toward 1.0
+    whether it was measured on an R-squared of 0.05 or 0.40, so the beta the
+    market told you least about is corrected by exactly as much as the one it
+    told you most about.
+
+    ``sigma_cross^2`` is the sample variance of the betas passed in, on n-1
+    degrees of freedom, because the mean was estimated from the same points. The
+    betas and the standard errors must be in the same units: if the betas are
+    unlevered then the standard errors must be unlevered too, or the weights are
+    a ratio of two different things.
+
+    Raises NotMeaningfulError in the three degenerate cases, so the caller can
+    fall back to the median and say it did: fewer than three peers, a peer set
+    with no dispersion at all, and a standard error that is zero, negative or not
+    finite. None of the three is a division that should be attempted.
+    """
+    b = np.asarray(list(betas), dtype=float)
+    s = np.asarray(list(stderrs), dtype=float)
+    if b.size != s.size:
+        raise ConfigError(
+            f"vasicek_adjust got {b.size} betas and {s.size} standard errors; each "
+            "beta must carry the standard error of its own regression"
+        )
+    if b.size < MIN_PEERS_FOR_SHRINKAGE:
+        raise NotMeaningfulError(
+            f"Vasicek shrinkage needs at least {MIN_PEERS_FOR_SHRINKAGE} peers to "
+            f"measure a cross-sectional variance and {b.size} were supplied"
+        )
+    if not np.all(np.isfinite(s)) or np.any(s <= 0.0):
+        raise NotMeaningfulError(
+            "Vasicek shrinkage needs a positive standard error on every peer "
+            "regression, and at least one is zero, negative or missing"
+        )
+
+    mean = float(b.mean())
+    sigma2 = float(b.var(ddof=1))
+    if sigma2 <= 0.0:
+        raise NotMeaningfulError(
+            "the peer asset betas have no cross-sectional variance, so the prior "
+            "is a point and shrinkage toward it has no weight to compute"
+        )
+
+    weights = [sigma2 / (sigma2 + float(se) ** 2) for se in s]
+    adjusted = [w * float(beta) + (1.0 - w) * mean for w, beta in zip(weights, b)]
+    return adjusted, weights
+
+
+def _unlevered_stderr(est: BetaEstimate) -> float:
+    """Standard error of the peer's asset beta, not of its levered slope.
+
+    This is the subtle part of applying Vasicek at the unlevered level. Both
+    steps between the OLS slope and the number being pooled are multiplications
+    by constants, not new estimates: Blume multiplies the slope by 0.67 and adds
+    a constant, and unlevering divides by 1 + (1-t)D/E, which comes off the
+    balance sheet. So the standard error rides through both on exactly the same
+    scale: se divided by the leverage factor, and by a further 0.67 where the
+    slope was Blume-adjusted on the way.
+
+    Skip the division and the weights are computed on mismatched units: a levered
+    peer's asset beta would be paired with the standard error of its equity beta,
+    which is larger by the leverage factor. Its weight would come out too low and
+    it would be dragged toward the peer mean for no reason except that it carries
+    debt. The shrinkage would then be reading capital structure, which is the one
+    thing unlevering exists to remove.
+    """
+    scale = _BLUME_SLOPE if est.adjustment == "blume" else 1.0
+    return est.stderr * scale / _leverage_factor(est.debt_to_equity, est.tax_rate)
+
+
+def pool_unlevered_betas(
+    estimates: Sequence[BetaEstimate], method: str = "median"
+) -> tuple[float, str, list[str]]:
+    """Pool peer asset betas into the one figure the target is relevered at.
+
+    Returns the pooled asset beta, the method that was actually used, and the
+    notes a reader needs. The method returned is not always the method asked
+    for: a Vasicek request over a degenerate peer set falls back to the median
+    and says so in the notes rather than dividing by zero.
+
+    Under 'median' the answer is the middle asset beta, which is the sell-side
+    default because one peer with a broken regression cannot move it. Under
+    'vasicek' each asset beta is first shrunk toward the cross-sectional mean by
+    its own precision, then pooled as a precision-weighted mean with weights
+    1/se^2 on the unlevered standard errors.
+
+    The mean is the deliberate part. Having spent the effort to work out which
+    estimates are well measured, taking a median of them throws that ordering
+    away again: the median reads only the middle of the sorted list and cannot
+    tell whether the estimate sitting there was the tightest regression in the
+    set or the loosest. The mean uses all of it, and gives up the robustness in
+    exchange. With a peer set that contains one genuinely broken regression, a
+    peer in a takeover or one that listed nine weeks ago, the median is still the
+    safer pool, because shrinkage narrows a bad estimate's influence without ever
+    removing it. That trade is why 'median' is the default.
+
+    Precision here is sampling precision, 1/se^2, rather than the posterior
+    precision that would add 1/sigma_cross^2 to every peer. The posterior version
+    compresses the weights toward equal and is harder to defend at a desk: the
+    number quoted is the one that comes off each regression's own output.
+
+    The estimates are updated in place with the shrunk beta and the weight, so
+    a caller holding them can show what the prior did to each peer. Pooling under
+    the median clears both fields, because nothing was shrunk.
+    """
+    if method not in ("median", "vasicek"):
+        raise ConfigError(
+            f"unknown peer beta method {method!r}; expected 'median' or 'vasicek'"
+        )
+    median = _median_unlevered(estimates)
+    for e in estimates:
+        e.shrunk_beta = None
+        e.shrink_weight = None
+    if method == "median":
+        return median, "median", []
+
+    betas = [e.unlevered_beta for e in estimates]
+    stderrs = [_unlevered_stderr(e) for e in estimates]
+    try:
+        shrunk, weights = vasicek_adjust(betas, stderrs)
+    except NotMeaningfulError as exc:
+        return (
+            median,
+            "median",
+            [
+                "market.peer_beta_method is 'vasicek', but it could not be applied: "
+                f"{exc}. The median asset beta of {median:,.3f} was used instead, "
+                "and the peer betas reaching the cost of equity are unshrunk."
+            ],
+        )
+
+    precision = [1.0 / se**2 for se in stderrs]
+    pooled = sum(p * b for p, b in zip(precision, shrunk)) / sum(precision)
+
+    for e, b, w in zip(estimates, shrunk, weights):
+        e.shrunk_beta = b
+        e.shrink_weight = w
+
+    mean = float(np.mean(betas))
+    sd = float(np.std(betas, ddof=1))
+    notes = [
+        f"Vasicek shrinkage pooled {len(estimates)} peer asset betas toward a "
+        f"cross-sectional mean of {mean:,.3f} with a standard deviation of "
+        f"{sd:,.3f}. The weight each peer kept on its own regression runs "
+        f"{min(weights):.2f} to {max(weights):.2f}, the remainder going to that "
+        f"mean. The precision-weighted pool is {pooled:,.3f}, against a median of "
+        f"{median:,.3f} on the same unshrunk betas."
+    ]
+    if any(e.adjustment == "blume" for e in estimates):
+        notes.append(
+            "Peer regressions arrived here Blume-adjusted, so those estimates are "
+            "shrunk twice: two thirds of the way toward 1.0 by a fixed rule, then "
+            "toward the peer mean by its own precision. The two corrections are "
+            "answers to the same question and stacking them pulls dispersion out of "
+            "the peer set beyond what either intends. Set market.beta_adjustment to "
+            "'raw' to let the data do the shrinking on its own."
+        )
+    return pooled, "vasicek", notes
+
+
 def peer_unlevered_beta(
     peers: Sequence[tuple[PriceSeries, float, float]],
     market: PriceSeries,
     *,
     adjustment: str = "raw",
+    method: str = "median",
     lookback_years: float | None = None,
     min_observations: int = MIN_OBSERVATIONS,
-) -> tuple[float, list[BetaEstimate]]:
-    """Median unlevered beta of a peer set, and the estimates behind it.
+) -> tuple[float, list[BetaEstimate], list[str]]:
+    """Pooled unlevered beta of a peer set, the estimates, and the pooling notes.
 
     Each peer is ``(prices, debt_to_equity, tax_rate)``, with the ratio and the
     rate belonging to that peer, not to the target. Unlevering happens before
-    averaging, which is the entire point: it removes the capital structure
+    pooling, which is the entire point: it removes the capital structure
     differences that make raw betas incomparable, and leaves an asset beta that
     describes the business the peers have in common. The caller relevers the
-    median at the target's own D/E.
+    pooled figure at the target's own D/E.
+
+    ``method`` is 'median' or 'vasicek'; see ``pool_unlevered_betas``. The notes
+    come back rather than being discarded because a Vasicek request can end in a
+    median, and a pooled beta that does not say how it was pooled is not
+    auditable.
 
     A peer that cannot be regressed, typically a recent listing with too few
     weeks, is dropped rather than allowed to fail the set. The returned list is
@@ -435,7 +657,8 @@ def peer_unlevered_beta(
             "peer unlevered beta",
             hint="no peer produced a usable regression: " + "; ".join(skipped),
         )
-    return _median_unlevered(estimates), estimates
+    pooled, _, notes = pool_unlevered_betas(estimates, method)
+    return pooled, estimates, notes
 
 
 # -- cost of debt ---------------------------------------------------------- #
@@ -529,10 +752,11 @@ def compute_wacc(
     """Assemble a discount rate from filings, market data and the assumptions.
 
     ``peer_betas`` are estimates already produced by ``peer_unlevered_beta``.
-    When supplied, their median unlevered beta is relevered at the target's own
+    When supplied, their pooled unlevered beta is relevered at the target's own
     capital structure and the target's own regression is not run at all, which is
     the right call whenever the target's R-squared is poor or its listing history
-    is short.
+    is short. The pooling is the median by default, or the Vasicek shrunk mean
+    where market.peer_beta_method asks for it, and the notes say which was used.
     """
     notes: list[str] = []
     inputs: list[tuple[str, float, str]] = []
@@ -580,29 +804,45 @@ def compute_wacc(
     # -- beta --------------------------------------------------------------- #
     regression: BetaEstimate | None = None
     if peer_betas:
-        unlevered_beta = _median_unlevered(peer_betas)
+        unlevered_beta, pool_method, pool_notes = pool_unlevered_betas(
+            peer_betas, mkt_cfg.peer_beta_method
+        )
         levered_beta = relever(unlevered_beta, debt_to_equity, tax_rate)
         tickers = ", ".join(e.ticker for e in peer_betas)
+        pool_label = (
+            "Vasicek-shrunk precision-weighted mean"
+            if pool_method == "vasicek"
+            else "median"
+        )
         beta_source = (
-            f"median of {len(peer_betas)} peer unlevered betas ({tickers}), "
+            f"{pool_label} of {len(peer_betas)} peer unlevered betas ({tickers}), "
             f"relevered at {debt_to_equity:,.2f}x D/E and a {tax_rate:.1%} tax rate"
         )
         # The regression quality has to reach the reader on this path too, or
-        # the median laundered the uncertainty out of sight. A median of six
-        # slopes whose R-squareds run 0.05 to 0.30 is a judgment, not a datum.
+        # the pooling laundered the uncertainty out of sight. A median of six
+        # slopes whose R-squareds run 0.05 to 0.30 is a judgment, not a datum,
+        # and a shrunk mean of the same six is a different judgment.
         r2s = sorted(e.r_squared for e in peer_betas)
         ses = sorted(e.stderr for e in peer_betas)
+        pooling_sentence = (
+            "Vasicek shrinkage pools these estimates by weighting each against how "
+            "well it was measured; it does not sharpen any one of them."
+            if pool_method == "vasicek"
+            else "The median asset beta pools these estimates; it does not sharpen "
+            "any one of them."
+        )
         notes.append(
             f"Peer regressions: R-squared runs {r2s[0]:.2f} to {r2s[-1]:.2f} and "
             f"the slope standard error {ses[0]:.2f} to {ses[-1]:.2f} across "
             f"{len(peer_betas)} names, each on at least "
             f"{min(e.n_observations for e in peer_betas)} weekly observations. "
-            "The median asset beta pools these estimates; it does not sharpen any "
-            "one of them."
+            + pooling_sentence
         )
+        notes.extend(pool_notes)
         unlevered_source = (
-            f"Hamada on each peer at its own D/E and tax rate, then the median. "
-            f"{mkt_cfg.beta_adjustment} adjustment applied to each peer regression"
+            f"Hamada on each peer at its own D/E and tax rate, then the "
+            f"{pool_label}. {mkt_cfg.beta_adjustment} adjustment applied to each "
+            "peer regression"
         )
     else:
         regression = estimate_beta(

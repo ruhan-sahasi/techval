@@ -62,6 +62,10 @@ class MarketAssumptions(_Base):
             "every beta by the same 33% no matter how well measured it was."
         ),
     )
+    size_premium: float = Field(
+        0.0,
+        description="Additive CAPM adjustment for small-cap illiquidity. Default off.",
+    )
 
 
 class DilutionAssumptions(_Base):
@@ -258,10 +262,6 @@ class PurchaseAccountingAssumptions(_Base):
         ge=0.0,
         le=1.0,
         description="Share of free cash flow swept to repay acquisition debt each year.",
-    )
-    size_premium: float = Field(
-        0.0,
-        description="Additive CAPM adjustment for small-cap illiquidity. Default off.",
     )
 
 
