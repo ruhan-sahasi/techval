@@ -1,0 +1,747 @@
+{
+ "_source": "SEC EDGAR XBRL instance document",
+ "_ticker": "TMUS",
+ "_accession": "0001283699-26-000101",
+ "_filed": "2026-07-23",
+ "_retrieved": "2026-09-11",
+ "_note": "Pruned from the filing's own XBRL instance document to the facts techval.tmt.kpis could plausibly match, keeping every fact, dimensioned or not, whose element name contains any of: recurring, retention, remainingperformance, customer, subscriber, arpu, churn, billing, content, additions, number, amortization, revenue, shares. That filter is wider than the module's concept ladders on purpose. The near misses it sweeps in (NumberOfCustomerCategories, NumberOfSegmentManagers, RevenueRemainingPerformanceObligationPercentage, the contract liability balances) are the point: the tests use them to prove the anchored patterns exclude what a substring search would take. Values, units, contexts and dimensions are exactly as filed; nothing is rescaled or recomputed.",
+ "facts": [
+  {
+   "tag": "ContractWithCustomerAssetNet",
+   "value": 1307000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2025-12-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerAssetNet",
+   "value": 1283000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerAssetNetCurrent",
+   "value": 920000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2025-12-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerAssetNetCurrent",
+   "value": 1000000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiability",
+   "value": 1653000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2025-12-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiability",
+   "value": 1511000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityCurrent",
+   "value": 1533000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2025-12-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityCurrent",
+   "value": 1439000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityRevenueRecognized",
+   "value": 1050000000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityRevenueRecognized",
+   "value": 147000000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityRevenueRecognized",
+   "value": 1266000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityRevenueRecognized",
+   "value": 206000000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "IncreaseDecreaseInContractWithCustomerAsset",
+   "value": -24000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "IncreaseDecreaseInContractWithCustomerLiability",
+   "value": -142000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "NumberOfCompaniesIncludedInJointVenture",
+   "value": 1.0,
+   "unit": "company",
+   "start": "2026-04-24",
+   "end": "2026-04-24",
+   "dimensions": {
+    "srt:ScheduleOfEquityMethodInvestmentEquityMethodInvesteeNameAxis": "tmus:WrenHouseJointVentureMember"
+   }
+  },
+  {
+   "tag": "NumberOfCompaniesIncludedInJointVenture",
+   "value": 2.0,
+   "unit": "company",
+   "start": "2026-04-25",
+   "end": "2026-04-25",
+   "dimensions": {
+    "srt:ScheduleOfEquityMethodInvestmentEquityMethodInvesteeNameAxis": "tmus:OakHillJointVentureMember"
+   }
+  },
+  {
+   "tag": "NumberOfCustomerAccountsImpacted",
+   "value": 37000000.0,
+   "unit": "customer_account",
+   "start": "2023-01-05",
+   "end": "2023-01-05",
+   "dimensions": {}
+  },
+  {
+   "tag": "NumberOfCustomerCategories",
+   "value": 2.0,
+   "unit": "customer_category",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "NumberOfOperatingSegments",
+   "value": 1.0,
+   "unit": "segment",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "NumberOfReportableSegments",
+   "value": 1.0,
+   "unit": "segment",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "NumberOfSeparateAssetPurchaseAgreements",
+   "value": 3.0,
+   "unit": "agreement",
+   "start": "2025-07-22",
+   "end": "2025-07-22",
+   "dimensions": {
+    "us-gaap:BusinessAcquisitionAxis": "tmus:FarmersCellularTelephoneCompanyAcquisitionMember",
+    "us-gaap:TypeOfArrangementAxis": "tmus:PurchaseAgreementMember"
+   }
+  },
+  {
+   "tag": "NumberofCustomerClasses",
+   "value": 2.0,
+   "unit": "class",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "NumberofPortfolioSegments",
+   "value": 2.0,
+   "unit": "segment",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "OperatingLeaseRightOfUseAssetAmortizationExpense",
+   "value": 311000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:RestructuringPlanAxis": "tmus:UScellularAcquisitionRestructuringInitiativesMember"
+   }
+  },
+  {
+   "tag": "OperatingLeaseRightOfUseAssetAmortizationExpense",
+   "value": 27000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:RestructuringCostAndReserveAxis": "tmus:NetworkingDecommissioningMember",
+    "us-gaap:RestructuringPlanAxis": "tmus:NetworkOptimizationRestructuringInitiativesMember"
+   }
+  },
+  {
+   "tag": "OperatingLeaseRightOfUseAssetAmortizationExpense",
+   "value": 31000000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:RestructuringPlanAxis": "tmus:UScellularAcquisitionRestructuringInitiativesMember"
+   }
+  },
+  {
+   "tag": "OperatingLeaseRightOfUseAssetAmortizationExpense",
+   "value": 16000000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:RestructuringCostAndReserveAxis": "tmus:NetworkingDecommissioningMember",
+    "us-gaap:RestructuringPlanAxis": "tmus:NetworkOptimizationRestructuringInitiativesMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 27672000000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:BrandedPostpaidRevenueMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 5286000000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:BrandedPrepaidRevenueMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 1405000000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:WholesaleAndOtherServiceRevenueMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 34363000000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "us-gaap:ServiceMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 7143000000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:ProductEquipmentMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 512000000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "us-gaap:ProductAndServiceOtherMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 42018000000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 42018000000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementBusinessSegmentsAxis": "tmus:WirelessMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 14078000000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:BrandedPostpaidRevenueMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 2643000000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:BrandedPrepaidRevenueMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 717000000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:WholesaleAndOtherServiceRevenueMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 17438000000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "us-gaap:ServiceMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 3439000000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:ProductEquipmentMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 255000000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "us-gaap:ProductAndServiceOtherMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 21132000000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 21132000000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementBusinessSegmentsAxis": "tmus:WirelessMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 31482000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:BrandedPostpaidRevenueMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 4990000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:BrandedPrepaidRevenueMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 1342000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:WholesaleAndOtherServiceRevenueMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 37814000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "us-gaap:ServiceMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 7520000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:ProductEquipmentMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 564000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "us-gaap:ProductAndServiceOtherMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 45898000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 45898000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementBusinessSegmentsAxis": "tmus:WirelessMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 15853000000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:BrandedPostpaidRevenueMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 2473000000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:BrandedPrepaidRevenueMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 657000000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:WholesaleAndOtherServiceRevenueMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 18983000000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "us-gaap:ServiceMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 3524000000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:ProductEquipmentMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 284000000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "us-gaap:ProductAndServiceOtherMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 22791000000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 22791000000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementBusinessSegmentsAxis": "tmus:WirelessMember"
+   }
+  },
+  {
+   "tag": "RevenueRemainingPerformanceObligation",
+   "value": 2600000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:ProductOrServiceAxis": "tmus:BrandedPostpaidRevenueMember"
+   }
+  },
+  {
+   "tag": "RevenueRemainingPerformanceObligation",
+   "value": 694000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueRemainingPerformanceObligation",
+   "value": 1000000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueRemainingPerformanceObligation",
+   "value": 2300000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "SaleLeasebackTransactionNumberOfRenewalOptions",
+   "value": 0.0,
+   "unit": "renewal_option",
+   "start": "2020-04-01",
+   "end": "2020-04-01",
+   "dimensions": {}
+  },
+  {
+   "tag": "SaleLeasebackTransactionNumberOfUnits",
+   "value": 6200.0,
+   "unit": "tower_site",
+   "start": "2012-01-01",
+   "end": "2012-12-31",
+   "dimensions": {
+    "srt:CounterpartyNameAxis": "tmus:CrownCastleInternationalCorp.Member",
+    "us-gaap:SaleLeasebackTransactionDescriptionAxis": "tmus:TowerTransactionMember"
+   }
+  },
+  {
+   "tag": "SaleLeasebackTransactionNumberOfUnits",
+   "value": 6400.0,
+   "unit": "tower_site",
+   "start": "2020-04-01",
+   "end": "2020-04-01",
+   "dimensions": {
+    "srt:CounterpartyNameAxis": "tmus:CrownCastleInternationalCorp.Member",
+    "us-gaap:SaleLeasebackTransactionDescriptionAxis": "tmus:TowerTransactionMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 1139770739.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 1139770739.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 1134846966.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 1134846966.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 1092356249.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 1092356249.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 1082409636.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 1082409636.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 1136627715.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 1136627715.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 1132760465.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 1132760465.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 1090922014.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 1090922014.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 1081771279.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 1081771279.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  }
+ ]
+}

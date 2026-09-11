@@ -1,0 +1,498 @@
+{
+ "_source": "SEC EDGAR XBRL instance document",
+ "_ticker": "NFLX",
+ "_accession": "0001065280-26-000212",
+ "_filed": "2026-07-17",
+ "_retrieved": "2026-09-11",
+ "_note": "Pruned from the filing's own XBRL instance document to the facts techval.tmt.kpis could plausibly match, keeping every fact, dimensioned or not, whose element name contains any of: recurring, retention, remainingperformance, customer, subscriber, arpu, churn, billing, content, additions, number, amortization, revenue, shares. That filter is wider than the module's concept ladders on purpose. The near misses it sweeps in (NumberOfCustomerCategories, NumberOfSegmentManagers, RevenueRemainingPerformanceObligationPercentage, the contract liability balances) are the point: the tests use them to prove the anchored patterns exclude what a substring search would take. Values, units, contexts and dimensions are exactly as filed; nothing is rescaled or recomputed.",
+ "facts": [
+  {
+   "tag": "AdditionstoStreamingContentAssets",
+   "value": 7385470000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "AdditionstoStreamingContentAssets",
+   "value": 3835813000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "AdditionstoStreamingContentAssets",
+   "value": 9774440000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "AdditionstoStreamingContentAssets",
+   "value": 4927523000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContentAssetsNetNoncurrent",
+   "value": 32778392000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2025-12-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContentAssetsNetNoncurrent",
+   "value": 33837573000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityCurrent",
+   "value": 1775730000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2025-12-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityCurrent",
+   "value": 1776000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2025-12-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityCurrent",
+   "value": 1797456000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityCurrent",
+   "value": 1797000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityCurrent",
+   "value": 1797000000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 7655186000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 4008732000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:FiniteLivedIntangibleAssetsByMajorClassAxis": "nflx:LicensedContentMember"
+   }
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 3646454000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:FiniteLivedIntangibleAssetsByMajorClassAxis": "nflx:ProducedContentMember"
+   }
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 7655186000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 7655186000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementBusinessSegmentsAxis": "nflx:ReportableSegmentMember"
+   }
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 3832074000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 2010207000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:FiniteLivedIntangibleAssetsByMajorClassAxis": "nflx:LicensedContentMember"
+   }
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 1821867000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:FiniteLivedIntangibleAssetsByMajorClassAxis": "nflx:ProducedContentMember"
+   }
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 3832074000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 3832074000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementBusinessSegmentsAxis": "nflx:ReportableSegmentMember"
+   }
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 8529209000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 4546776000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:FiniteLivedIntangibleAssetsByMajorClassAxis": "nflx:LicensedContentMember"
+   }
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 3982433000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:FiniteLivedIntangibleAssetsByMajorClassAxis": "nflx:ProducedContentMember"
+   }
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 8529209000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 8529209000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementBusinessSegmentsAxis": "nflx:ReportableSegmentMember"
+   }
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 4311309000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 2260963000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:FiniteLivedIntangibleAssetsByMajorClassAxis": "nflx:LicensedContentMember"
+   }
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 2050346000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:FiniteLivedIntangibleAssetsByMajorClassAxis": "nflx:ProducedContentMember"
+   }
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 4311309000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "CostofServicesAmortizationofStreamingContentAssets",
+   "value": 4311309000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementBusinessSegmentsAxis": "nflx:ReportableSegmentMember"
+   }
+  },
+  {
+   "tag": "IncreaseDecreaseInContractWithCustomerLiability",
+   "value": 207548000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "IncreaseDecreaseInContractWithCustomerLiability",
+   "value": 118635000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "IncreaseDecreaseInContractWithCustomerLiability",
+   "value": 21726000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "IncreaseDecreaseInContractWithCustomerLiability",
+   "value": 54008000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "IncreaseDecreaseInContractWithCustomerLiabilityAndAcquisitionRelatedDeferredRevenue",
+   "value": 22000000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "NumberOfOperatingSegments",
+   "value": 1.0,
+   "unit": "segment",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "NumberOfReportableSegments",
+   "value": 1.0,
+   "unit": "segment",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 4359167000.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 4359167000.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 4348825000.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 4348825000.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 4279776000.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 4279776000.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 4261300000.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 4261300000.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 4262347000.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 4262347000.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 4262347000.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 4252112000.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 4252112000.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 4252112000.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 4205952000.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 4205952000.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 4205952000.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 4189303000.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 4189303000.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 4189303000.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  }
+ ]
+}
