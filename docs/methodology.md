@@ -167,6 +167,39 @@ few percent rather than by exactly four.
 Facts filed before that date are then restated into current units: share counts
 multiplied by the factor, per-share figures divided by it.
 
+**One corporate action gets one threshold.** A split is not restated all at once.
+The first 10-Q after it restates the comparatives that quarter happens to show,
+the next 10-Q restates its own, and the 10-K restates the annual periods, so a
+single four-for-one is detected in three separate filings months apart. Counting
+each detection as its own action multiplies a pre-split fact by four three times.
+Nvidia is the case: two splits, a four-for-one in July 2021 and a ten-for-one in
+June 2024, produce six detections, and its fiscal 2022 diluted share count came
+back as 2,535,000mm against a true 25,350mm. Detections of the same ratio are
+therefore one action unless a later one restates a period *ending after* the open
+action's own filing date, since a period that closed after a split was first
+reported on the new basis and cannot be that split restating itself. Arista is
+the case that decides the rule, with two genuine four-for-one splits three years
+apart across six filings.
+
+**A split the knowledge date has not reached has not happened.** Detection reads
+the same rows `facts` reads and filters them on the filing date in the same way.
+Without that filter a run pinned to March 2022 reads Nvidia's June 2024 split off
+the 2024 filings and applies it to a 2022 valuation, and every point-in-time
+equity value for a company that later split is wrong by the split ratio.
+
+**A price feed is on a different basis, and that is not fixed here.** Price
+vendors restate their whole history for a split, so Nvidia's close for 31 March
+2022 comes back as 27.29 rather than the 272.86 that printed. A point-in-time
+share count is on the basis of its own day. Multiplying the two gives an equity
+value a tenth of the truth. The engine's valuation path is unaffected, because a
+live run prices today's share count against today's close, but any historical
+run pairs the two bases: `backtest.py` values a splitter at a tenth or a
+fortieth of its size on a date before the split. `ml/warranted.share_basis_factor`
+computes the conversion, from the ratio between a period's share count as
+reported today and the same period's count as reported at the row date, and
+applies it where that module builds its panel. Lifting it into `ev_bridge` would
+change the signature of a function the whole engine calls and has not been done.
+
 **Control.** Net income divided by TTM diluted shares must reproduce diluted EPS
 summed from the filings. A gap above 10% is reported, because that is precisely
 what mixing units on either side of a corporate action looks like.

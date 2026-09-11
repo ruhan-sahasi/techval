@@ -220,8 +220,30 @@ def _cluster_sightings(
     Walking the sightings in order of the filing that first showed the new
     units, a cluster stays open while the running intersection is non-empty and
     closes the moment a sighting starts at or after the earliest new-units
-    filing already in it. The cluster is dated at that earliest filing, which is
-    the first date on which the new units were on the record.
+    filing already in it.
+
+    The cluster is dated at that earliest new-units filing, which is the first
+    date on which the new units are known to be on the record.
+
+    **The bracket is not always tight, and this is a known limitation.** The
+    true ex date lies somewhere inside ``(lo, hi]`` and neither end is it. Where
+    a filing falls between the two ends it reports whichever basis was current
+    when it was made, and the threshold can be on the wrong side of it. Palo
+    Alto split three for one in September 2022 and the first filing to restate a
+    comparative by three is dated May 2023, eight months later, so the 10-Q
+    filed in November 2022 already reported post-split shares and is multiplied
+    by three a second time. Dating at ``lo`` instead is not a fix but a trade:
+    measured across every splitter in the fixtures it repairs Palo Alto's three
+    affected periods and breaks five of CrowdStrike's, whose own bracket is a
+    year wide. The real fix anchors each period on its own latest filing and
+    reads the restatement ratio off the filer, the way
+    ``techval.ml.warranted.share_basis_factor`` already does across two fact
+    sets, rather than deciding from a date at all.
+
+    Nothing silently consumes a figure this affects: ``share_basis_factor``
+    compares a pinned fact set against a current one, returns a ratio that is
+    not a product of any declared split, and the caller drops the row with the
+    reason attached rather than training on it.
 
     A cluster resting on a single period is discarded. One period moving by
     exactly four could be a typo in one tagged fact; two could not.
@@ -255,6 +277,37 @@ def _neg_date(iso: str) -> tuple[int, ...]:
         return tuple(-int(part) for part in iso.split("-"))
     except ValueError:
         return (0, 0, 0)
+
+
+def _collapse_to_actions(
+    detections: list[tuple[date, float, date]],
+) -> list[tuple[date, float]]:
+    """Reduce split detections to one threshold per corporate action.
+
+    ``detections`` is ``(filed, factor, latest_period_end_restated)``, sorted.
+    A company reflects one split across several filings, because each report
+    restates only the comparative periods it happens to show, so the same
+    four-for-one is detected three or four times over the following year. Every
+    one of those detections is the same event and a pre-split fact must be
+    multiplied by four once, not once per filing.
+
+    The test that separates a repeat from a second split is the period end. A
+    filing reflecting split S can only restate periods that closed before S,
+    since anything that closed afterwards was first reported on the new basis.
+    So a detection whose latest restated period ends after the open action's own
+    filing date cannot belong to that action, and opens a new one.
+
+    Returns ``(filed_on_or_after, factor)``, which is what ``_split_adjust``
+    multiplies through.
+    """
+    thresholds: list[tuple[date, float]] = []
+    open_action: dict[float, date] = {}
+    for filed, factor, latest_end in detections:
+        opened = open_action.get(factor)
+        if opened is None or latest_end > opened:
+            open_action[factor] = filed
+            thresholds.append((filed, factor))
+    return sorted(thresholds)
 
 
 @dataclass
@@ -373,6 +426,18 @@ class CompanyFacts:
         of one ratio are therefore clustered by intersecting interval, and each
         cluster is one split dated at the earliest filing that showed the new
         units.
+
+        **A split is a unit, not information, so it is NOT knowledge dated.**
+        This is the opposite of how every other fact here is treated and the
+        reason is arithmetic rather than principle. The vendor restates its whole
+        price history for a split, which is checkable in the committed close
+        series: Nvidia split four for one in 2021 and ten for one in 2024, and
+        the largest single-day move across 2,513 trading days is 1.298. Pair a
+        share count left on the basis of its own day with a price already divided
+        by ten and the market capitalisation is out by ten. Both sides of a ratio
+        have to be quoted in the same unit; only the facts have to be point in
+        time. A split carries no information about value either, since it
+        multiplies the count and divides the price by the same number.
 
         Returns ``(filed_on_or_after, factor)`` pairs: any fact filed strictly
         before that date must be multiplied by ``factor`` to be comparable.
