@@ -206,6 +206,49 @@ def _d(s: str) -> date:
     return date(int(y), int(m), int(dd))
 
 
+def _cluster_sightings(
+    seen: set[tuple[str, str, str | None, str]],
+) -> list[str]:
+    """Collapse repeated sightings of one split into one effective date each.
+
+    Each sighting is ``(last filing in old units, first filing in new units,
+    period start, period end)`` and brackets the split inside the half-open
+    interval ``(older, newer]``. Sightings of the same corporate action all
+    bracket the same day, so their intervals share at least that day; two real
+    splits at the same ratio are separated by years and share nothing.
+
+    Walking the sightings in order of the filing that first showed the new
+    units, a cluster stays open while the running intersection is non-empty and
+    closes the moment a sighting starts at or after the earliest new-units
+    filing already in it. The cluster is dated at that earliest filing, which is
+    the first date on which the new units were on the record.
+
+    A cluster resting on a single period is discarded. One period moving by
+    exactly four could be a typo in one tagged fact; two could not.
+    """
+    effective: list[str] = []
+    cluster: list[tuple[str, str, str | None, str]] = []
+    lo = hi = ""
+
+    def close() -> None:
+        if len({(s, e) for _, _, s, e in cluster}) >= 2:
+            effective.append(hi)
+
+    for older, newer, start, end in sorted(seen):
+        if cluster:
+            nlo, nhi = max(lo, older), min(hi, newer)
+            if nlo >= nhi:
+                close()
+                cluster, nlo, nhi = [], older, newer
+        else:
+            nlo, nhi = older, newer
+        cluster.append((older, newer, start, end))
+        lo, hi = nlo, nhi
+    if cluster:
+        close()
+    return effective
+
+
 def _neg_date(iso: str) -> tuple[int, ...]:
     """Sort key that orders ISO dates newest-first inside an ascending compare."""
     try:
@@ -307,9 +350,29 @@ class CompanyFacts:
 
         Detection needs no external data. Where one period carries two filed
         values whose ratio is within half a percent of a ratio a board would
-        actually declare, that is a split, and the filing that introduced the new
-        value dates it. Ordinary restatements are excluded by the tightness of
-        that test.
+        actually declare, that is a split. Ordinary restatements are excluded by
+        the tightness of that test.
+
+        **One split is seen many times, and counting the sightings compounds the
+        adjustment.** A quarterly report shows the current period and its
+        prior-year comparative and nothing else, so a single four-for-one split
+        is first reflected in one period at the next 10-Q, in two more periods
+        at the one after that, and in more again at the 10-K. Treating each of
+        those filings as its own corporate action multiplies the factor by four
+        once per filing. Nvidia is the case that shows the damage: three filings
+        first-restate periods across the 2021 four-for-one and three more across
+        the 2024 ten-for-one, so a naive count applies 4 cubed times 10 cubed,
+        and the diluted share count comes out at 2.5 trillion against a true
+        24.9 billion.
+
+        What each sighting actually pins down is an interval. A period whose
+        value moves between a filing on A and the next filing on B says the
+        split took effect somewhere in (A, B]. Every sighting of the same split
+        brackets the same date, so their intervals intersect, and two genuinely
+        separate splits at the same ratio are years apart and cannot. Sightings
+        of one ratio are therefore clustered by intersecting interval, and each
+        cluster is one split dated at the earliest filing that showed the new
+        units.
 
         Returns ``(filed_on_or_after, factor)`` pairs: any fact filed strictly
         before that date must be multiplied by ``factor`` to be comparable.
@@ -317,7 +380,12 @@ class CompanyFacts:
         if self._splits is not None:
             return self._splits
 
-        votes: dict[tuple[str, float], set[tuple[str | None, str]]] = {}
+        # ratio -> sightings of (last filing in old units, first in new units,
+        # the period that moved). Keyed on the period rather than on the
+        # observation because diluted and basic shares report the same quarter,
+        # and counting observations would let one period clear a safeguard
+        # meant to require two.
+        sightings: dict[float, set[tuple[str, str, str | None, str]]] = {}
         for tag in (
             "WeightedAverageNumberOfDilutedSharesOutstanding",
             "WeightedAverageNumberOfSharesOutstandingBasic",
@@ -329,34 +397,32 @@ class CompanyFacts:
             _, rows = found
             groups: dict[tuple[str | None, str], list[dict]] = {}
             for r in rows:
-                if r.get("val") in (None, 0) or not r.get("end"):
+                if r.get("val") in (None, 0) or not r.get("end") or not r.get("filed"):
                     continue
                 groups.setdefault((r.get("start"), r["end"]), []).append(r)
 
             for versions in groups.values():
-                versions.sort(key=lambda r: r.get("filed") or "")
+                versions.sort(key=lambda r: r["filed"])
                 for older, newer in zip(versions, versions[1:]):
                     ratio = float(newer["val"]) / float(older["val"])
                     for nice in self._SPLIT_RATIOS:
                         if abs(ratio - nice) < 0.005 * nice:
-                            key = (newer["filed"], nice)
-                            # Keyed by period, not by observation. Diluted and
-                            # basic shares both report the same quarter, so
-                            # counting observations would let a single period
-                            # clear a safeguard meant to require two.
-                            votes.setdefault(key, set()).add(
-                                (newer.get("start"), newer["end"])
+                            sightings.setdefault(nice, set()).add(
+                                (
+                                    older["filed"],
+                                    newer["filed"],
+                                    newer.get("start"),
+                                    newer["end"],
+                                )
                             )
                             break
 
-        # One agreeing period could be a typo in a single tagged fact. Two or
-        # more distinct periods moving by the identical ratio in the identical
-        # filing is a corporate action.
-        self._splits = sorted(
-            (_d(filed), factor)
-            for (filed, factor), periods in votes.items()
-            if len(periods) >= 2
-        )
+        out: list[tuple[date, float]] = []
+        for factor, seen in sightings.items():
+            out.extend(
+                (_d(effective), factor) for effective in _cluster_sightings(seen)
+            )
+        self._splits = sorted(out)
         return self._splits
 
     def split_note(self) -> str | None:
