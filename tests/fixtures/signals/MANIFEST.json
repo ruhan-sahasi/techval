@@ -1,0 +1,30 @@
+{
+ "retrieved": "2026-09-11",
+ "note": "The point-in-time trailing EV/Revenue panel this package's signal harness is demonstrated on, and the daily closes it is scored against. Recorded once from SEC EDGAR and the Nasdaq daily quote endpoint on the date above and read from these files afterwards, so two runs of the test suite agree byte for byte. Nothing here was edited by hand: a fixture adjusted to suit a result is no longer evidence of anything.",
+ "universe": "techval.tmt.taxonomy.SEED, the 110 name technology, media and telecommunications seed universe, less the five names the sources could no longer serve. EA, FI, FYBR, IPG and JNPR are absent from the SEC company_tickers.json file and return no rows from the Nasdaq endpoint, every one of them having left the tape to an acquisition. That absence is itself the survivorship finding and is recorded here rather than quietly worked around.",
+ "companies_scored": 100,
+ "rebalance_dates": 39,
+ "company_dates": 2992,
+ "price_series": 106,
+ "first_date": "2016-12-15",
+ "last_date": "2026-06-15",
+ "files": {
+  "ev_revenue.csv.gz": {
+   "source": "https://data.sec.gov/api/xbrl/companyfacts/CIK##########.json, one call per company",
+   "built_by": "techval.ml.signals.ev_revenue_scores with cheap_is_high false, so the column is the multiple as reported. Each row is techval.ev_bridge.build_ev_bridge enterprise value over techval.financials.build_financials trailing twelve month revenue, both built through a CompanyFacts pinned to the row date and priced at the last close on or before it.",
+   "columns": "ticker, as_of, ev_revenue, statement_date (the balance sheet date the trailing figures anchor on), max_filed (the latest filing date behind any figure that reached the row, which is the point-in-time proof the tests check rather than trust)",
+   "rows": 2992,
+   "bytes": 33926,
+   "sha256": "86005c35e71316af51d180791b1a64f6ecf625918caac7b826b406ed94d5fa63"
+  },
+  "closes.csv.gz": {
+   "source": "https://api.nasdaq.com/api/quote/{symbol}/historical, one call per symbol",
+   "pruned": "daily closes from 2016-01-01 to 2026-09-10, which is the whole of what the endpoint serves: it returns ten years and no more, so the fifteen year sample the brief assumed is not available from a free source.",
+   "note": "Closes are retroactively adjusted for splits by the vendor, which is why techval.edgar detects splits from the whole fact set rather than only the filings visible at a knowledge date. Both sides of a market capitalisation have to be in the same units. They are not adjusted for dividends, so a dividend paying name is understated here by its yield.",
+   "rows": 245049,
+   "bytes": 1340796,
+   "sha256": "9e7c7d2302661050b721e84d72d7d60da6d3bf3d4080bfbab509de6188fccb32"
+  }
+ },
+ "coverage": "2,992 of a possible 3,900 company-dates carry a multiple. 777 could not be built because the trailing twelve months would not tile out of the quarterly facts on file at the date, which hits the December cross-sections hardest because they anchor on a third quarter, and 326 because no close had printed for a company that had not yet listed. PSKY and UNIT report revenue under tags outside the ladder and resolve almost nowhere."
+}
