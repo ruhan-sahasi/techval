@@ -924,7 +924,10 @@ def _render_evaluation(evaluation: PeerEvaluation) -> None:
         (
             "Encoder",
             f"{evaluation.headline.score:.4f}",
-            f"fold sd {_num(evaluation.headline.fold_sd, 4)}",
+            # Per-query dispersion, and the label must say so: the headline's
+            # folds are NDCG by target, not by period, and calling their spread
+            # fold noise is the claim the verdict below no longer makes either.
+            f"sd across queries {_num(evaluation.headline.fold_sd, 4)}",
         ),
         (
             "Popularity prior (query ignored)",

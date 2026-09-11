@@ -748,6 +748,35 @@ def test_the_paired_test_is_reported_because_the_fold_sd_answers_another_questio
     )
 
 
+def test_the_headline_carries_the_paired_delta_and_the_frame_agrees(evaluated):
+    """One paired statistic, two producers, and they cannot be allowed to drift.
+
+    ``evaluate_ranking`` computes the paired per-query difference from its own
+    aligned scores and the headline's verdict cites it; ``paired_lift`` computes
+    the same difference for the full baseline table. Both walk the same queries
+    with the same NDCG, so the popularity row of the frame must reproduce the
+    headline's ``paired`` to the last decimal, and the verdict must name the
+    spread as across queries rather than as fold noise.
+    """
+    p = evaluated.headline.paired
+    assert p is not None
+    assert evaluated.headline.fold_unit == "query"
+
+    frame = evaluated.paired
+    row = frame[frame["baseline"] == "popularity prior"].iloc[0]
+    assert p.mean == pytest.approx(row["mean_difference"])
+    assert p.sd == pytest.approx(row["sd_of_difference"])
+    assert p.standard_error == pytest.approx(row["standard_error"])
+    assert p.t == pytest.approx(row["t"])
+    assert p.win_rate == pytest.approx(row["win_rate"])
+    assert p.n == row["n_queries"]
+
+    text = evaluated.verdict()
+    assert "Paired on identical queries" in text
+    assert "Fold standard deviation" not in text
+    assert "fold-to-fold noise" not in text.replace("not fold-to-fold noise", "")
+
+
 def test_paired_lift_against_an_identical_ranking_is_exactly_zero():
     """The one case with an arithmetic answer, so the sign convention is pinned."""
     relevance = {q: {"A": 1.0, "B": 1.0} for q in range(6)}
