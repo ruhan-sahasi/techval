@@ -1,0 +1,61 @@
+{
+ "_note": "Recorded live on 2026-09-11. start 2019-01-01, end 2023-12-31. The four delisted names are acquisition targets that completed; DDOG is a survivor. This is the evidence that no price-derived feature can be used in the propensity model: the data is missing for exactly the positive class, so its absence is a perfect predictor of the label.",
+ "_retrieved": "2026-09-11",
+ "_window": [
+  "2019-01-01",
+  "2023-12-31"
+ ],
+ "results": {
+  "SPLK": {
+   "nasdaq": {
+    "rows": 0,
+    "error": "MissingDataError"
+   },
+   "stooq": {
+    "rows": 0,
+    "error": "DataSourceError"
+   }
+  },
+  "ZEN": {
+   "nasdaq": {
+    "rows": 0,
+    "error": "MissingDataError"
+   },
+   "stooq": {
+    "rows": 0,
+    "error": "DataSourceError"
+   }
+  },
+  "WORK": {
+   "nasdaq": {
+    "rows": 0,
+    "error": "MissingDataError"
+   },
+   "stooq": {
+    "rows": 0,
+    "error": "DataSourceError"
+   }
+  },
+  "MNDT": {
+   "nasdaq": {
+    "rows": 0,
+    "error": "MissingDataError"
+   },
+   "stooq": {
+    "rows": 0,
+    "error": "DataSourceError"
+   }
+  },
+  "DDOG": {
+   "nasdaq": {
+    "rows": 832,
+    "first": "2020-09-10",
+    "last": "2023-12-29"
+   },
+   "stooq": {
+    "rows": 0,
+    "error": "DataSourceError"
+   }
+  }
+ }
+}
