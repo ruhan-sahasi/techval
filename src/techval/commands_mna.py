@@ -456,6 +456,101 @@ def _render_sub_vertical_stats(result: PrecedentSet) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# precedents: naming a target the SEC ticker file has forgotten
+# --------------------------------------------------------------------------- #
+
+
+def pin_ciks(client, pinned: dict[str, int]):
+    """Teach an existing client the CIK of a delisted target, and return it.
+
+    This exists because of a circularity that makes ``precedents`` unusable for
+    the deals it is for. ``EdgarClient.ticker_to_cik`` resolves through
+    https://www.sec.gov/files/company_tickers.json, and that file lists CURRENT
+    registrants only. A completed acquisition delists its target, the target
+    files a Form 15 and drops out of the file, and the command that reads
+    completed acquisitions can then no longer name one. Measured on 2026-09-11:
+    the file carries 10,407 tickers, DDOG and VZ among them; SPLK, ZEN, MNDT,
+    WORK and TWTR are all absent, and all five are US filers. Every completed
+    TMT deal in this package's own fixtures is in that state, and the command's
+    own --help example was five tickers none of which could resolve.
+
+    The refusal a reader hit said "not present in the SEC ticker file; the engine
+    covers US filers only", which points at the wrong cause: it reads as a
+    foreign-filer problem and it is a delisting.
+
+    The data is still there. The submissions and companyfacts endpoints serve a
+    delisted filer in full by CIK, and Splunk's payload comes back with 1,001
+    filings and an empty ``tickers`` list, which is the delisting stated by the
+    source itself. So the only thing missing is the lookup, and a caller who has
+    the CIK can supply it: ``precedents SPLK=1353283``. The ticker stays the
+    label on every row and in every flag, so the printed table reads the way a
+    reader expects while the resolution goes around a file that cannot help.
+
+    The real fix is an escape hatch on ``ticker_to_cik`` itself, which lives in
+    ``edgar.py`` and belongs to another change. This one is the command layer
+    doing what it can from outside.
+
+    **Why the override goes on the instance and not on a wrapper.** The obvious
+    shape is a proxy object that delegates everything except ``ticker_to_cik``,
+    and it does not work: ``EdgarClient.submissions`` and ``filings`` call
+    ``self.ticker_to_cik`` internally, ``__getattr__`` hands back the INNER
+    object's bound method, and ``self`` inside it is the inner client whose
+    lookup has not been pinned. Measured: a proxy resolved SPLK for the top-level
+    call and then failed inside ``_discover`` with the same "not present in the
+    SEC ticker file" it was written to avoid. Binding the override onto the
+    instance fixes the lookup for every internal call, because Python resolves
+    ``self.ticker_to_cik`` through the instance dictionary first. A subclass would
+    also work and was rejected for a different reason: it would replace whatever
+    client the command built, and a test that serves the SEC endpoints off disk
+    would find itself bypassed by the one code path that most needs to run
+    offline.
+    """
+    original = client.ticker_to_cik
+    lookup = {t.upper(): int(c) for t, c in pinned.items()}
+
+    def ticker_to_cik(ticker: str) -> int:
+        cik = lookup.get(str(ticker).upper())
+        return cik if cik is not None else original(ticker)
+
+    client.ticker_to_cik = ticker_to_cik
+    return client
+
+
+def parse_targets(raw: str) -> tuple[list[str], dict[str, int]]:
+    """``SPLK,ZEN=1385157,MNDT`` into a ticker list and the CIKs supplied with it.
+
+    A bare ticker resolves the normal way. ``TICKER=CIK`` pins the CIK and skips
+    the lookup, which is the only way to name a target whose delisting took it
+    out of the SEC ticker file.
+    """
+    names: list[str] = []
+    pinned: dict[str, int] = {}
+    for item in raw.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        ticker, sep, cik = item.partition("=")
+        ticker = ticker.strip().upper()
+        if not ticker:
+            raise ConfigError(
+                f"{item!r} has no ticker in front of the '='. Write it as "
+                "TICKER=CIK, for example SPLK=1353283."
+            )
+        if sep:
+            try:
+                pinned[ticker] = int(cik.strip())
+            except ValueError as exc:
+                raise ConfigError(
+                    f"{item!r} does not give a CIK after the '='. A CIK is the "
+                    "integer in the SEC's own URL for the filer, for example "
+                    "SPLK=1353283 from "
+                    "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=SPLK"
+                ) from exc
+        names.append(ticker)
+    return names, pinned
+
+
+# --------------------------------------------------------------------------- #
 # precedents: the command
 # --------------------------------------------------------------------------- #
 
@@ -463,7 +558,12 @@ def _render_sub_vertical_stats(result: PrecedentSet) -> None:
 @app.command()
 def precedents(
     tickers: str = typer.Argument(
-        ..., help="Comma-separated target tickers, e.g. SPLK,ZEN,MNDT,WORK"
+        ...,
+        help=(
+            "Comma-separated target tickers. A completed target is delisted and "
+            "drops out of the SEC ticker file, so name it as TICKER=CIK: e.g. "
+            "SPLK=1353283,ZEN=1463172,MNDT=1370880,WORK=1764925."
+        ),
     ),
     config: Path = _CFG,
     no_cache: bool = _NOCACHE,
@@ -502,6 +602,14 @@ def precedents(
     delisted, so no public source serves its price history and its premium is
     absent rather than zero: real premia over closed deals need
     ``price_source: csv`` in the assumptions with the closes supplied.
+
+    **Naming a target that has been delisted.** The same delisting that takes the
+    price history also takes the ticker out of the SEC's own ticker file, which
+    is what ``ticker_to_cik`` resolves through, so a bare ``SPLK`` cannot be
+    looked up at all. Write ``SPLK=1353283`` and the CIK goes straight to the
+    submissions and companyfacts endpoints, which serve a delisted filer in full.
+    See ``pin_ciks`` for the measurement behind that and for where the real
+    fix belongs.
     """
     try:
         assumptions = Assumptions.load(config)
@@ -511,15 +619,25 @@ def precedents(
             date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
         )
         cache = HttpCache(enabled=not no_cache)
+        names, pinned = parse_targets(tickers)
         client = EdgarClient(cache, knowledge_date=knowledge)
+        if pinned:
+            client = pin_ciks(client, pinned)
         prices = make_price_source(
             assumptions.price_source, cache, assumptions.price_csv_dir
         )
 
-        names = [t.strip().upper() for t in tickers.split(",") if t.strip()]
         if not names:
             console.print("[red]No tickers given.[/red]")
             raise typer.Exit(1)
+        if pinned:
+            console.print(
+                "[dim]CIK supplied on the command line for "
+                + ", ".join(f"{t} ({c})" for t, c in sorted(pinned.items()))
+                + ", so the SEC ticker file was not consulted for them. That file "
+                "lists current registrants only and a completed target is not "
+                "one.[/dim]"
+            )
 
         result = build_precedents(
             names,

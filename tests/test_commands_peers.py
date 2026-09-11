@@ -29,6 +29,7 @@ import json
 import re
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
@@ -36,11 +37,17 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from techval.commands_peers import _tower_ablation, app
+from techval.commands_peers import (
+    _label_sources,
+    _render_thin_evidence,
+    _tower_ablation,
+    app,
+)
 from techval.config import Assumptions
 from techval.errors import NotMeaningfulError
 from techval.ml.encoder import MIN_TRAIN_PAIRS, ablate_towers, build_dataset
 from techval.ml.features import FEATURE_NAMES
+from techval.ml.peer_labels import PeerGroup
 
 FIXTURES = Path(__file__).parent / "fixtures"
 REAL_PANEL = FIXTURES / "warranted" / "observations.json.gz"
@@ -395,6 +402,187 @@ def test_every_baseline_is_printed_on_the_same_queries(warm_run):
     ):
         assert method in warm_run
     assert "Correlation with the popularity order" in warm_run
+
+
+# --------------------------------------------------------------------------- #
+# Label sources: how far outside its training distribution a ranked name sits
+# --------------------------------------------------------------------------- #
+
+
+#: Filler names that pad a group to ``MIN_PLAUSIBLE_PEERS``. A group of two is
+#: refused by ``PeerGroup.count_plausible`` as a parse that found a fragment, so
+#: a test that wrote one would be asserting on a group the fit never saw.
+_PAD = [f"PAD{i}" for i in range(8)]
+
+
+def _group(ticker: str, peers: list[str], *, year: int = 2023, usable: bool = True):
+    return PeerGroup(
+        ticker=ticker,
+        cik=1,
+        accession=f"{year}-{ticker}",
+        filed=date(year, 3, 1),
+        fiscal_year=year - 1 if usable else None,
+        peers=[*peers, *_PAD],
+        confidence=1.0 if usable else 0.0,
+    )
+
+
+def _groups(*groups) -> SimpleNamespace:
+    """A dataset stand-in carrying only what ``_label_sources`` reads."""
+    return SimpleNamespace(groups=list(groups))
+
+
+def test_label_sources_counts_filers_and_not_mentions():
+    """Four mentions from one committee is one source, which is the whole point.
+
+    Procter and Gamble ranks fifth for Disney in the committed fit on four
+    labelled appearances, and all four are Microsoft's proxy across four years.
+    Counting mentions would report four and read as corroboration.
+    """
+    sources = _label_sources(
+        _groups(
+            _group("MSFT", ["PG", "DIS"], year=2021),
+            _group("MSFT", ["PG", "DIS"], year=2022),
+            _group("MSFT", ["PG", "DIS"], year=2023),
+            _group("DIS", ["CMCSA", "NFLX"], year=2023),
+        ),
+        date(2026, 1, 1),
+    )
+    assert sources["PG"] == {"MSFT"}
+    assert sources["DIS"] == {"MSFT", "DIS"}
+    assert sources["CMCSA"] == {"DIS"}
+    # A filer's own group counts as a source for itself and for nobody else.
+    assert sources["MSFT"] == {"MSFT"}
+
+
+def test_label_sources_honours_the_training_cut_and_the_usable_flag():
+    dataset = _groups(
+        _group("MSFT", ["PG"], year=2021),
+        _group("ADI", ["PG"], year=2025),
+        _group("ORCL", ["PG"], year=2022, usable=False),
+    )
+    assert _label_sources(dataset, date(2026, 1, 1))["PG"] == {"MSFT", "ADI"}
+    # The 2025 group is outside an earlier window, and the unusable one never
+    # became a training pair at all, so neither may count as supervision.
+    assert _label_sources(dataset, date(2023, 1, 1))["PG"] == {"MSFT"}
+
+
+def test_a_single_source_candidate_is_named_loudly_and_kept_at_its_rank(capsys):
+    """The row stays where the model put it and carries the reason it is suspect.
+
+    Dropping it would be the worse answer: a reader who cannot see that the model
+    puts a consumer staples company fifth for a media conglomerate has been given
+    a comp set with its most informative fact removed.
+    """
+    ranked = [("CMCSA", 0.9361), ("PG", 0.9161), ("NFLX", 0.9076)]
+    sources = {"CMCSA": {"DIS", "NFLX"}, "PG": {"MSFT"}, "NFLX": {"DIS", "CMCSA", "MSFT"}}
+    _render_thin_evidence(
+        "DIS", ranked, sources, ["CMCSA", "PG", "NFLX", "T"], {"PG": "PROCTER & GAMBLE Co"}
+    )
+    out = _flat(capsys.readouterr().out)
+    assert "OUT OF ITS DEPTH. PG (PROCTER & GAMBLE Co) is ranked 2 of 3 for DIS" in out
+    assert "comes from one filer's proxy (MSFT)" in out
+    assert "printed at its rank rather than dropped" in out
+    # T is in the universe and in no group at all, so two of the four are thin.
+    assert "2 of the 4 companies in the candidate universe" in out
+
+
+def test_a_candidate_no_disclosed_group_mentions_at_all_says_so():
+    ranked = [("XXXX", 0.5)]
+    _render_thin_evidence("DIS", ranked, {}, ["XXXX"], {})
+
+
+def test_a_ranking_every_name_of_which_is_supported_prints_no_banner(capsys):
+    _render_thin_evidence(
+        "DIS",
+        [("CMCSA", 0.9)],
+        {"CMCSA": {"DIS", "NFLX"}},
+        ["CMCSA"],
+        {},
+    )
+    assert capsys.readouterr().out == ""
+
+
+def test_the_ranking_carries_a_label_source_count_for_every_name(warm_run):
+    """The count is a column rather than a footnote, because it qualifies a row."""
+    assert "Label sources" in warm_run
+
+
+# The committed TMT peer artifacts: 173 companies, 220 disclosed groups read from
+# DEF 14A proxies on 2026-09-11. Fitting on them costs about eight seconds, which
+# is why only one test runs against them, and it is the one that has to: the
+# result it pins is the measured cross-sector leak rather than an invented
+# universe's version of it.
+TMT_GROUPS = FIXTURES / "peer_groups_tmt.json"
+TMT_PANEL = FIXTURES / "peer_panel_tmt.json"
+TMT_TEXT = FIXTURES / "peer_item1_tmt.json"
+
+
+@pytest.fixture(scope="module")
+def disney_run(tmp_path_factory) -> str:
+    root = tmp_path_factory.mktemp("tmt")
+    result = runner.invoke(
+        app,
+        [
+            "peers",
+            "DIS",
+            "-c",
+            str(_config(root)),
+            "--groups",
+            str(TMT_GROUPS),
+            "--panel",
+            str(TMT_PANEL),
+            "--text",
+            str(TMT_TEXT),
+            "--no-evaluate",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    return _flat(result.output)
+
+
+def test_procter_and_gamble_above_netflix_for_disney_is_flagged(disney_run):
+    """The finding, on the filings it was found on.
+
+    ``peers DIS`` ranks PROCTER & GAMBLE fifth at 0.9161, above NETFLIX at
+    0.9076. That is a real output of a model fitted on 220 compensation peer
+    groups, and it discredits the other seven rows unless the reader is told
+    something about it. What the reader is told is the measurement: every
+    labelled appearance P&G has in this fit comes from Microsoft's proxy.
+
+    The ranking is not touched. The row is still fifth and still at 0.9161,
+    because the argument for capping or filtering it is an argument for hiding
+    the single most useful thing this page can say about the model's reach.
+    """
+    assert "PROCTER & GAMBLE Co 0.9161 1" in disney_run
+    assert "NETFLIX INC 0.9076 13" in disney_run
+    assert "OUT OF ITS DEPTH. PG (PROCTER & GAMBLE Co) is ranked 5 of 8 for DIS" in disney_run
+    assert "comes from one filer's proxy (MSFT)" in disney_run
+    assert "34 of the 173 companies in the candidate universe" in disney_run
+
+
+def test_disney_is_warm_so_the_cold_start_flag_is_not_the_one_that_catches_this(disney_run):
+    """The brief's hypothesis, checked and wrong in its first half.
+
+    The cold-start signal was the obvious candidate for catching the P&G result
+    and it does not fire: Disney disclosed two peer groups inside the training
+    window and is WARM. The target is inside the distribution and the CANDIDATE
+    is not, which is why the diagnostic had to be per-candidate.
+    """
+    assert "WARM START. DIS disclosed 2 peer group(s)" in disney_run
+    assert "COLD START" not in disney_run
+    assert "6 distinct filer(s) named DIS" in disney_run
+
+
+def test_the_target_gets_its_own_source_count_beside_warm_or_cold(cold_run):
+    """Two different questions, and printing one without the other is half an answer.
+
+    Warm and cold is about whether the target was ever a QUERY. S5C4 was not, and
+    is cold. It is still named as a peer by four filers in its own sector, so the
+    labels do constrain where it sits, which the cold banner alone does not say.
+    """
+    assert re.search(r"\d+ distinct filer\(s\) named S5C4 in a usable disclosed group", cold_run)
+    assert "only the filer of a group was ever a query, while anybody can name anybody" in cold_run
 
 
 def test_the_hand_written_set_is_shown_with_where_the_model_put_each_name(warm_run):
