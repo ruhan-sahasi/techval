@@ -37,10 +37,11 @@ import json
 import os
 import threading
 import time
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable, Iterator, Sequence
 
 import requests
 
@@ -208,8 +209,8 @@ def _d(s: str) -> date:
 
 def _cluster_sightings(
     seen: set[tuple[str, str, str | None, str]],
-) -> list[str]:
-    """Collapse repeated sightings of one split into one effective date each.
+) -> list[tuple[str, str]]:
+    """Collapse repeated sightings of one split into one interval each.
 
     Each sighting is ``(last filing in old units, first filing in new units,
     period start, period end)`` and brackets the split inside the half-open
@@ -222,39 +223,31 @@ def _cluster_sightings(
     closes the moment a sighting starts at or after the earliest new-units
     filing already in it.
 
-    The cluster is dated at that earliest new-units filing, which is the first
-    date on which the new units are known to be on the record.
+    Returns the intersected interval ``(lo, hi)`` per cluster, and returns both
+    ends rather than one because **neither end is the ex date**. The action
+    happened somewhere inside ``(lo, hi]``. A filing landing in between reports
+    whichever basis was current on the day it was made, so a threshold pinned to
+    either end can fall on the wrong side of it, and which end is wrong differs
+    by filer: Palo Alto's three-for-one bracket is eight months wide and dating
+    at ``hi`` misdates three periods, CrowdStrike's four-for-one bracket is a
+    year wide and dating at ``lo`` misdates five. Neither end is a fix, and the
+    choice between them is a trade rather than a repair.
 
-    **The bracket is not always tight, and this is a known limitation.** The
-    true ex date lies somewhere inside ``(lo, hi]`` and neither end is it. Where
-    a filing falls between the two ends it reports whichever basis was current
-    when it was made, and the threshold can be on the wrong side of it. Palo
-    Alto split three for one in September 2022 and the first filing to restate a
-    comparative by three is dated May 2023, eight months later, so the 10-Q
-    filed in November 2022 already reported post-split shares and is multiplied
-    by three a second time. Dating at ``lo`` instead is not a fix but a trade:
-    measured across every splitter in the fixtures it repairs Palo Alto's three
-    affected periods and breaks five of CrowdStrike's, whose own bracket is a
-    year wide. The real fix anchors each period on its own latest filing and
-    reads the restatement ratio off the filer, the way
-    ``techval.ml.warranted.share_basis_factor`` already does across two fact
-    sets, rather than deciding from a date at all.
-
-    Nothing silently consumes a figure this affects: ``share_basis_factor``
-    compares a pinned fact set against a current one, returns a ratio that is
-    not a product of any declared split, and the caller drops the row with the
-    reason attached rather than training on it.
+    ``CompanyFacts._split_factors`` therefore does not choose an end. It narrows
+    this interval first, using every filing whose unit basis can be read off a
+    later restatement of the same period, and only then takes ``hi``. See
+    ``CompanyFacts._basis_by_filing``.
 
     A cluster resting on a single period is discarded. One period moving by
     exactly four could be a typo in one tagged fact; two could not.
     """
-    effective: list[str] = []
+    brackets: list[tuple[str, str]] = []
     cluster: list[tuple[str, str, str | None, str]] = []
     lo = hi = ""
 
     def close() -> None:
         if len({(s, e) for _, _, s, e in cluster}) >= 2:
-            effective.append(hi)
+            brackets.append((lo, hi))
 
     for older, newer, start, end in sorted(seen):
         if cluster:
@@ -268,7 +261,41 @@ def _cluster_sightings(
         lo, hi = nlo, nhi
     if cluster:
         close()
-    return effective
+    return brackets
+
+
+def _suffix_products(factors: Sequence[float]) -> list[float]:
+    """Every cumulative basis a fact set admits, newest basis first.
+
+    ``factors`` are the splits a filer declared, ordered oldest action first.
+    A share count filed at some past date is behind today's basis by the product
+    of every split that has happened *since*, which is always a suffix of that
+    list: a fact set holding a four-for-one and then a ten-for-one admits
+    conversion factors of 1, 10 and 40, and nothing else. Returns
+    ``[f0*f1*...*fn, f1*...*fn, ..., fn, 1.0]``, so index ``j`` is the basis of
+    a filing made before split ``j`` and after split ``j - 1``.
+    """
+    products = [1.0]
+    for factor in reversed(list(factors)):
+        products.append(products[-1] * factor)
+    products.reverse()
+    return products
+
+
+def _snap_index(ratio: float, products: Sequence[float], tolerance: float) -> int | None:
+    """Read a measured ratio as one of ``products``, or refuse it.
+
+    Returns the index of the product the ratio matches, or ``None`` if it
+    matches none of them. The tolerance is relative, so a large product is
+    allowed a proportionally larger absolute error: counts reported in
+    thousands make a genuine six-for-one arrive as 5.998, while an ordinary
+    restatement of 200,000 shares on 578 million arrives as 0.9997 and must not
+    be read as anything. Refusing is the point of the function.
+    """
+    for index, product in enumerate(products):
+        if abs(ratio - product) <= tolerance * product:
+            return index
+    return None
 
 
 def _neg_date(iso: str) -> tuple[int, ...]:
@@ -363,6 +390,8 @@ class CompanyFacts:
         self._gaap: dict[str, Any] = payload.get("facts", {}).get("us-gaap", {})
         self._dei: dict[str, Any] = payload.get("facts", {}).get("dei", {})
         self._splits: list[tuple[date, float]] | None = None
+        self._brackets: list[tuple[str, str, float]] | None = None
+        self._basis: dict[str, float] | None = None
         self.knowledge_date = knowledge_date
 
     # -- raw tag access ---------------------------------------------------- #
@@ -389,17 +418,63 @@ class CompanyFacts:
     # percent; a split moves it by exactly one of these.
     _SPLIT_RATIOS = (2.0, 3.0, 4.0, 5.0, 10.0, 20.0, 1.5, 2.5, 0.5, 0.1, 0.05)
 
-    def _split_factors(self) -> list[tuple[date, float]]:
-        """Detect stock splits from the filings themselves.
+    # The weighted-average share tags, which are the only ones detection reads.
+    # A share count is a large number restated by tenths of a percent at most, so
+    # a split stands out from a restatement by three orders of magnitude. Diluted
+    # earnings per share moves by the same ratio and is tempting for the same
+    # reason, but it is reported to two decimals: a quarterly loss of 17 cents
+    # restated from 19 carries a 12 percent rounding error, which is wider than
+    # some declared ratios are apart. Per-share figures are adjusted, never read.
+    _SHARE_COUNT_TAGS = (
+        "WeightedAverageNumberOfDilutedSharesOutstanding",
+        "WeightedAverageNumberOfSharesOutstandingBasic",
+        "WeightedAverageNumberOfSharesOutstanding",
+    )
 
-        A split makes every historical share count and per-share figure in
-        ``companyfacts`` inconsistent with every later one. Filings after the
-        split restate the comparatives they happen to show, but earlier periods
-        that no later filing repeats keep their pre-split values forever. A
-        trailing twelve months built across that boundary silently mixes units.
-        CrowdStrike split four-for-one in mid-2026 and its fact set shows exactly
-        this: the same quarter carries 249.9mm shares as filed in 2025 and
-        999.6mm as restated in 2026.
+    # How far a measured ratio may sit from a declared split product and still be
+    # read as that product. One percent is wide enough for counts rounded to
+    # thousands, which turn a six-for-one into 5.998 and a three-for-one into
+    # 3.001, and far too tight for an ordinary restatement: the largest across
+    # these filers is 0.9997, which is thirty times inside the band of 1.0 and so
+    # reads as "no change of basis", which is what it is.
+    #
+    # Deliberately the same 0.01 as ``ml.warranted._BASIS_TOLERANCE``, which makes
+    # the same judgement on a ratio between two fact sets. Keeping the two numbers
+    # equal is what lets that function delegate to ``snap_to_declared_splits``
+    # instead of rebuilding the suffix products itself.
+    _BASIS_TOLERANCE = 0.01
+
+    def _share_versions(self) -> Iterator[list[dict]]:
+        """Every fiscal period a weighted-average share tag reports, versions in filing order.
+
+        One period is reported many times: when it is filed, again as the
+        prior-year comparative in each of the next year's reports, again in an
+        amendment. Those repeats are the entire evidence base for both split
+        detection and the basis map, because the ratio between two versions of
+        one period is the only thing in ``companyfacts`` that measures a change
+        of units directly.
+
+        Keyed on the period rather than on the tag, since diluted and basic
+        shares report the same quarter and counting observations would let one
+        period clear a safeguard meant to require two.
+        """
+        for tag in self._SHARE_COUNT_TAGS:
+            found = self._units(tag)
+            if not found:
+                continue
+            groups: dict[tuple[str | None, str], list[dict]] = {}
+            for row in found[1]:
+                if row.get("val") in (None, 0):
+                    continue
+                if not row.get("end") or not row.get("filed"):
+                    continue
+                groups.setdefault((row.get("start"), row["end"]), []).append(row)
+            for versions in groups.values():
+                versions.sort(key=lambda r: r["filed"])
+                yield versions
+
+    def _split_brackets(self) -> list[tuple[str, str, float]]:
+        """Each detected split, as ``(lo, hi, factor)``: the action lies in ``(lo, hi]``.
 
         Detection needs no external data. Where one period carries two filed
         values whose ratio is within half a percent of a ratio a board would
@@ -424,8 +499,179 @@ class CompanyFacts:
         brackets the same date, so their intervals intersect, and two genuinely
         separate splits at the same ratio are years apart and cannot. Sightings
         of one ratio are therefore clustered by intersecting interval, and each
-        cluster is one split dated at the earliest filing that showed the new
-        units.
+        cluster is one split, still carrying both ends of its interval.
+
+        Ordered oldest action first, by the end of the interval and then its
+        start, which is the order ``_suffix_products`` assumes.
+        """
+        if self._brackets is not None:
+            return self._brackets
+
+        # ratio -> sightings of (last filing in old units, first in new units,
+        # the period that moved).
+        sightings: dict[float, set[tuple[str, str, str | None, str]]] = {}
+        for versions in self._share_versions():
+            for older, newer in zip(versions, versions[1:]):
+                ratio = float(newer["val"]) / float(older["val"])
+                for nice in self._SPLIT_RATIOS:
+                    if abs(ratio - nice) < 0.005 * nice:
+                        sightings.setdefault(nice, set()).add(
+                            (
+                                older["filed"],
+                                newer["filed"],
+                                newer.get("start"),
+                                newer["end"],
+                            )
+                        )
+                        break
+
+        out: list[tuple[str, str, float]] = []
+        for factor, seen in sightings.items():
+            out.extend((lo, hi, factor) for lo, hi in _cluster_sightings(seen))
+        self._brackets = sorted(out, key=lambda b: (b[1], b[0]))
+        return self._brackets
+
+    def _basis_by_filing(self) -> dict[str, float]:
+        """What unit each filing date's share counts are quoted in.
+
+        This is the answer to the question a date threshold only guesses at, and
+        it is read off the filer rather than decided. **Every share count in one
+        report is on one basis**, because a financial statement is internally
+        consistent by construction. So the unit does not need to be settled per
+        period at all: settle it once per filing date and every period that
+        filing touches inherits it, including the ones no later report ever
+        repeats.
+
+        The evidence is a ratio. Where two filings both report period P, the
+        ratio of the later value to the earlier one is exactly how far the
+        earlier filing's basis sits behind the later one's, and it needs no ex
+        date and no vendor calendar. Snapped to a product of the splits this
+        filer declared, it is either 1, meaning the two filings share a basis, or
+        a declared product, meaning a split fell between them. A ratio that snaps
+        to nothing is an ordinary restatement and is discarded as evidence.
+
+        Those ratios chain. The newest filing in the fact set is on the newest
+        basis by definition, so it anchors at 1, and each earlier filing takes
+        its basis from a later one it shares a period with. Where several periods
+        link the same filing the votes are counted and the majority wins, since a
+        single mistagged fact should not move a whole report.
+
+        A filing that no later report ever restates gets the date-threshold
+        guess, which is the old behaviour and is sound where it is used: those
+        are the most recent filings in the set, and a split that has not been
+        detected yet cannot be mis-dated against them.
+
+        **This is what closes the Palo Alto gap.** Palo Alto split three for one
+        in September 2022 and no filing restates a comparative by three until May
+        2023, so the interval is eight months wide and the 10-Q of 2022-11-18
+        sits inside it. That 10-Q reports the quarter ended 2022-10-31 at 338.4mm
+        shares, and the 10-Q of 2023-11-17 reports the same quarter at the same
+        338.4mm. The ratio is 1, the later filing is two splits behind today and
+        so is the earlier one, and the November 2022 report is therefore already
+        on the post-split basis. The interval collapses from eight months to two,
+        and the quarter ended 2021-10-31, which that 10-Q is the only report ever
+        to carry, stops being multiplied by three a second time.
+        """
+        if self._basis is not None:
+            return self._basis
+
+        brackets = self._split_brackets()
+        if not brackets:
+            self._basis = {}
+            return self._basis
+        products = _suffix_products([factor for _, _, factor in brackets])
+
+        # filing date -> (a later filing date, how far this one sits behind it)
+        links: dict[str, list[tuple[str, float]]] = defaultdict(list)
+        filings: set[str] = set()
+        for versions in self._share_versions():
+            filings.update(row["filed"] for row in versions)
+            for index, older in enumerate(versions):
+                for newer in versions[index + 1 :]:
+                    if older["filed"] == newer["filed"]:
+                        continue
+                    ratio = float(newer["val"]) / float(older["val"])
+                    at = _snap_index(ratio, products, self._BASIS_TOLERANCE)
+                    if at is not None:
+                        links[older["filed"]].append((newer["filed"], products[at]))
+
+        basis: dict[str, float] = {}
+        for filed in sorted(filings, reverse=True):
+            votes = Counter(
+                step * basis[later]
+                for later, step in links.get(filed, ())
+                if later in basis
+            )
+            if votes:
+                most = max(votes.values())
+                # Ties broken towards the larger basis, which is the reading that
+                # treats a split as having happened rather than not.
+                basis[filed] = max(v for v, n in votes.items() if n == most)
+            else:
+                guess = 1.0
+                for _, hi, factor in brackets:
+                    if filed < hi:
+                        guess *= factor
+                basis[filed] = guess
+        self._basis = basis
+        return basis
+
+    def snap_to_declared_splits(self, ratio: float) -> float | None:
+        """Read a ratio between two share counts as a product of this filer's splits.
+
+        Returns the product, or ``None`` where the ratio is not one: a caller
+        that gets ``None`` has a number no corporate action explains and should
+        refuse the row rather than adjust it.
+
+        Exposed because the same judgement is needed outside the fact set.
+        ``techval.ml.warranted.share_basis_factor`` compares a pinned fact set
+        against a current one and has to decide whether the gap between them is a
+        split or a restatement, which is this decision on different inputs.
+        """
+        products = _suffix_products(
+            [factor for _, _, factor in self._split_brackets()]
+        )
+        at = _snap_index(ratio, products, self._BASIS_TOLERANCE)
+        return None if at is None else products[at]
+
+    def _split_factors(self) -> list[tuple[date, float]]:
+        """Where to place each split on the calendar, and by how much.
+
+        A split makes every historical share count and per-share figure in
+        ``companyfacts`` inconsistent with every later one. Filings after the
+        split restate the comparatives they happen to show, but earlier periods
+        that no later filing repeats keep their pre-split values forever. A
+        trailing twelve months built across that boundary silently mixes units.
+        CrowdStrike split four-for-one in mid-2026 and its fact set shows exactly
+        this: the same quarter carries 249.9mm shares as filed in 2025 and
+        999.6mm as restated in 2026.
+
+        ``_split_brackets`` finds the actions and the interval ``(lo, hi]`` each
+        one lies in. This method turns each interval into the single threshold
+        ``_split_adjust`` needs, and the whole difficulty is that **the interval
+        is wide and neither end of it is the ex date**. Palo Alto's three-for-one
+        is bracketed across eight months, CrowdStrike's four-for-one across a
+        year. Every filing inside such an interval is a coin toss.
+
+        So the interval is narrowed before an end is taken, using
+        ``_basis_by_filing``: every filing whose unit basis can be read off a
+        later restatement is a hard bound on the ex date. A filing still quoting
+        the old units proves the action came after it and lifts ``lo``; a filing
+        already quoting the new units proves it came at or before, and lowers
+        ``hi``. The threshold is then ``hi``, which is now the earliest filing
+        *known* to be on the new basis rather than merely the earliest one
+        observed restating something.
+
+        Measured over the committed fixtures this moves exactly one threshold,
+        Palo Alto's three-for-one, from 2023-05-24 to 2022-11-18, and leaves
+        Nvidia's two, Arista's two and CrowdStrike's one where they were. That is
+        the intended shape: narrowing can only ever tighten an interval, so a
+        filer whose evidence says nothing new keeps the old answer.
+
+        Evidence that contradicts itself, meaning a narrowed interval that has
+        collapsed or inverted, is discarded for that split and the detected
+        ``hi`` is kept. A documented wide interval beats a confidently wrong
+        date.
 
         **A split is a unit, not information, so it is NOT knowledge dated.**
         This is the opposite of how every other fact here is treated and the
@@ -445,57 +691,45 @@ class CompanyFacts:
         if self._splits is not None:
             return self._splits
 
-        # ratio -> sightings of (last filing in old units, first in new units,
-        # the period that moved). Keyed on the period rather than on the
-        # observation because diluted and basic shares report the same quarter,
-        # and counting observations would let one period clear a safeguard
-        # meant to require two.
-        sightings: dict[float, set[tuple[str, str, str | None, str]]] = {}
-        for tag in (
-            "WeightedAverageNumberOfDilutedSharesOutstanding",
-            "WeightedAverageNumberOfSharesOutstandingBasic",
-            "WeightedAverageNumberOfSharesOutstanding",
-        ):
-            found = self._units(tag)
-            if not found:
+        brackets = self._split_brackets()
+        basis = self._basis_by_filing()
+        products = _suffix_products([factor for _, _, factor in brackets])
+
+        los = [lo for lo, _, _ in brackets]
+        his = [hi for _, hi, _ in brackets]
+        for filed in sorted(basis):
+            at = _snap_index(basis[filed], products, self._BASIS_TOLERANCE)
+            if at is None:
                 continue
-            _, rows = found
-            groups: dict[tuple[str | None, str], list[dict]] = {}
-            for r in rows:
-                if r.get("val") in (None, 0) or not r.get("end") or not r.get("filed"):
-                    continue
-                groups.setdefault((r.get("start"), r["end"]), []).append(r)
+            # ``at`` is the number of splits already reflected on this filing, so
+            # splits before it had happened by then and splits from it onwards
+            # had not.
+            for k in range(len(brackets)):
+                if k >= at:
+                    los[k] = max(los[k], filed)
+                else:
+                    his[k] = min(his[k], filed)
 
-            for versions in groups.values():
-                versions.sort(key=lambda r: r["filed"])
-                for older, newer in zip(versions, versions[1:]):
-                    ratio = float(newer["val"]) / float(older["val"])
-                    for nice in self._SPLIT_RATIOS:
-                        if abs(ratio - nice) < 0.005 * nice:
-                            sightings.setdefault(nice, set()).add(
-                                (
-                                    older["filed"],
-                                    newer["filed"],
-                                    newer.get("start"),
-                                    newer["end"],
-                                )
-                            )
-                            break
-
-        out: list[tuple[date, float]] = []
-        for factor, seen in sightings.items():
-            out.extend(
-                (_d(effective), factor) for effective in _cluster_sightings(seen)
-            )
+        out = [
+            (_d(his[k] if los[k] < his[k] else hi), factor)
+            for k, (_, hi, factor) in enumerate(brackets)
+        ]
         self._splits = sorted(out)
         return self._splits
 
     def split_note(self) -> str | None:
+        """One line per split, for the provenance table.
+
+        The date is deliberately worded as a bound rather than an ex date,
+        because that is what it is: the earliest filing this fact set can prove
+        was already on the new basis. The true action is on or before it, and
+        ``companyfacts`` alone cannot say where.
+        """
         splits = self._split_factors()
         if not splits:
             return None
         return "; ".join(
-            f"{f:g}-for-1 share split first reflected in the filing of {d}"
+            f"{f:g}-for-1 share split in effect by the filing of {d}"
             for d, f in splits
         )
 
