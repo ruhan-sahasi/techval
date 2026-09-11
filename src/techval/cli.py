@@ -15,7 +15,7 @@ Four commands:
 from __future__ import annotations
 
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -25,6 +25,13 @@ from rich.table import Table
 from rich.text import Text
 
 from .comps import run_comps
+from .apv import run_apv
+from .backtest import (
+    ForwardPrices,
+    edgar_client_factory,
+    market_factory_from,
+    run_backtest,
+)
 from .dilution import build_share_count
 from .config import Assumptions
 from .dcf import run_dcf, sensitivity_wacc_exit, sensitivity_wacc_growth
@@ -35,6 +42,7 @@ from .financials import build_financials
 from .football import FootballRow, football_field
 from .market import MarketData, make_price_source
 from .merger import run_merger
+from .simulation import run_simulation
 from .wacc import compute_wacc, estimate_beta
 
 app = typer.Typer(
@@ -275,6 +283,81 @@ def _render_purchase_accounting(pa, acq_ticker: str) -> None:
     console.print(t)
     _notes(list(pa.checks), heading="Cross-checks")
     _notes(list(pa.notes))
+
+
+def _render_simulation(sim) -> None:
+    """The distribution, and what it is and is not a probability about."""
+    _rule("Monte Carlo")
+    t = Table(box=None, pad_edge=False)
+    t.add_column("")
+    for c in ("5th", "25th", "Median", "75th", "95th", "Mean", "SD"):
+        t.add_column(c, justify="right")
+    for label, pc, fmt in (
+        ("Value per share", sim.per_share, lambda v: f"{v:,.2f}"),
+        ("Enterprise value", sim.enterprise_value, lambda v: f"{v:,.0f}"),
+    ):
+        t.add_row(label, *[fmt(v) for v in
+                           (pc.p5, pc.p25, pc.p50, pc.p75, pc.p95, pc.mean, pc.sd)])
+    console.print(t)
+    console.print(
+        f"\n  [bold]P(value > {sim.current_price:,.2f} market price)   "
+        f"{sim.prob_above_price:.1%}[/bold]"
+    )
+    console.print(
+        f"  [bold]P(value > 20% above market price)       "
+        f"{sim.prob_upside_20pct:.1%}[/bold]"
+    )
+    console.print(
+        f"\n[dim]{sim.draws:,} draws, seed {sim.seed}, {sim.failed_draws:,} rejected. "
+        "These are probabilities under the ASSUMED distribution, not about the world: "
+        "a tight distribution around a wrong central case is confidently wrong.[/dim]"
+    )
+
+    _rule("Tornado")
+    t = Table(box=None, pad_edge=False)
+    t.add_column("Driver")
+    t.add_column("Low", justify="right")
+    t.add_column("High", justify="right")
+    t.add_column("Price low", justify="right")
+    t.add_column("Price high", justify="right")
+    t.add_column("Swing", justify="right")
+    for d in sim.tornado:
+        t.add_row(d.label, f"{d.low_value:,.3f}", f"{d.high_value:,.3f}",
+                  f"{d.low_price:,.2f}", f"{d.high_price:,.2f}",
+                  Text(f"{d.swing:,.2f}", style="bold"))
+    console.print(t)
+    _notes(list(sim.checks), heading="Cross-checks")
+    _notes(list(sim.notes))
+
+
+def _render_apv(a) -> None:
+    """Unlevered value plus financing side effects, reconciled to the WACC answer."""
+    _rule("Adjusted present value")
+    rows = [
+        ("Unlevered cost of equity", a.unlevered_cost_of_equity),
+        ("Unlevered value", a.unlevered_value),
+        ("+ PV of tax shield, explicit period", a.pv_shield_explicit),
+        ("+ PV of tax shield, terminal", a.pv_shield_terminal),
+        ("Total value (APV)", a.total_value),
+        ("Enterprise value (WACC)", a.wacc_enterprise_value),
+        ("Difference", a.difference),
+    ]
+    t = Table(box=None, pad_edge=False)
+    t.add_column("")
+    t.add_column("", justify="right")
+    for label, v in rows:
+        bold = label.startswith(("Total value", "Difference"))
+        shown = f"{v:.2%}" if "cost of equity" in label.lower() else _money(v)
+        t.add_row(Text(label, style="bold" if bold else ""),
+                  Text(shown, style="bold" if bold else ""))
+    console.print(t)
+    console.print(
+        f"\n[dim]Difference of {a.difference_pct:+.2%} against the WACC answer. "
+        f"Shield discounted at the {a.shield_discount_rate.replace('_', ' ')} "
+        f"({a.shield_rate:.2%}).[/dim]"
+    )
+    _notes(list(a.checks), heading="Reconciliation")
+    _notes(list(a.notes))
 
 
 def _render_bridge(bridge, fin) -> None:
@@ -537,6 +620,27 @@ def value(
                 f"[yellow]The DCF could not be formed and is omitted: {exc}[/yellow]"
             )
 
+        # Both read the DCF that was just built, so a failed DCF takes them with it
+        # rather than being reported against nothing.
+        if d is not None and assumptions.simulation.enabled:
+            try:
+                _render_simulation(
+                    run_simulation(
+                        fin, bridge, w, assumptions,
+                        peer_median_ev_ebitda=peer_median_ev_ebitda,
+                    )
+                )
+            except TechvalError as exc:
+                _rule("Monte Carlo")
+                console.print(f"[yellow]Simulation not run: {exc}[/yellow]")
+
+        if d is not None and assumptions.apv.enabled:
+            try:
+                _render_apv(run_apv(fin, bridge, w, d, assumptions))
+            except TechvalError as exc:
+                _rule("Adjusted present value")
+                console.print(f"[yellow]APV not run: {exc}[/yellow]")
+
         if comps_result is not None:
             _render_comps(comps_result)
 
@@ -738,6 +842,115 @@ def merger(
 
         if getattr(r, "purchase_accounting", None) is not None:
             _render_purchase_accounting(r.purchase_accounting, acq_fin.ticker)
+    except TechvalError as exc:
+        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        raise typer.Exit(1)
+
+
+
+def _quarter_ends(start: date, end: date) -> list[date]:
+    """Calendar quarter ends inside a window, inclusive."""
+    out: list[date] = []
+    y, q = start.year, (start.month - 1) // 3
+    while True:
+        m = q * 3 + 3
+        last = date(y, m, 1)
+        last = date(y + (m == 12), 1 if m == 12 else m + 1, 1) - timedelta(days=1)
+        if last > end:
+            break
+        if last >= start:
+            out.append(last)
+        q += 1
+        if q == 4:
+            q, y = 0, y + 1
+    return out
+
+
+@app.command()
+def backtest(
+    tickers: str = typer.Argument(..., help="Comma-separated tickers, e.g. DDOG,MDB,ZS"),
+    config: Path = _CFG,
+    no_cache: bool = _NOCACHE,
+    start: str = typer.Option(..., "--from", help="First valuation date (YYYY-MM-DD)."),
+    end: str = typer.Option(..., "--to", help="Last valuation date (YYYY-MM-DD)."),
+    horizon: int = typer.Option(252, "--horizon", help="Forward return horizon in calendar days."),
+    dates: str = typer.Option(None, "--dates", help="Explicit comma-separated dates, instead of quarter ends."),
+) -> None:
+    """Value a set of names at past dates and score against realised returns.
+
+    Every valuation is built with a knowledge date, so it sees only filings that
+    existed then and prices that stopped there. Forward prices are read through a
+    separate object that the valuation path never receives, which is what makes
+    the separation structural rather than a matter of discipline.
+    """
+    try:
+        assumptions, _client, _market = _setup(config, no_cache)
+        names = [t.strip().upper() for t in tickers.split(",") if t.strip()]
+        first, last = date.fromisoformat(start), date.fromisoformat(end)
+        when = (
+            [date.fromisoformat(d.strip()) for d in dates.split(",") if d.strip()]
+            if dates
+            else _quarter_ends(first, last)
+        )
+        if not when:
+            console.print("[red]No valuation dates in that window.[/red]")
+            raise typer.Exit(1)
+
+        cache = HttpCache(enabled=not no_cache)
+        source = make_price_source(
+            assumptions.price_source, cache, assumptions.price_csv_dir
+        )
+        result = run_backtest(
+            names,
+            when,
+            assumptions,
+            edgar_client_factory(cache),
+            market_factory_from(source, cache),
+            ForwardPrices(
+                source,
+                start=first - timedelta(days=400),
+                end=last + timedelta(days=horizon + 30),
+            ),
+            horizon_days=horizon,
+        )
+
+        _rule(f"Backtest: {len(names)} names over {len(when)} dates")
+        df = result.to_frame()
+        if not df.empty:
+            console.print(_frame_table(df.head(40), title="Observations", index_label=""))
+
+        console.print()
+        stats = Table(box=None, pad_edge=False)
+        stats.add_column("")
+        stats.add_column("", justify="right")
+        for label, v in (
+            ("Observations valued", result.n_valued),
+            ("Failed", result.n_failed),
+            ("Skipped", result.n_skipped),
+            ("Scored against a forward return", result.n_paired),
+            ("Non-overlapping of those", result.n_independent),
+        ):
+            stats.add_row(label, f"{v:,}")
+        ic = result.spearman_ic
+        stats.add_row(
+            Text("Spearman rank IC", style="bold"),
+            Text("n/a" if ic is None else f"{ic:+.3f}", style="bold"),
+        )
+        hr = result.hit_rate
+        stats.add_row("Hit rate", "n/a" if hr is None else f"{hr:.1%}")
+        console.print(stats)
+
+        if result.quantile_returns is not None and not result.quantile_returns.empty:
+            console.print()
+            console.print(
+                _frame_table(
+                    result.quantile_returns,
+                    title="Forward return by predicted-upside quintile",
+                    index_label="Quintile",
+                )
+            )
+        _notes(list(result.checks), heading="Cross-checks")
+        _notes(list(result.notes))
     except TechvalError as exc:
         console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
         raise typer.Exit(1)
