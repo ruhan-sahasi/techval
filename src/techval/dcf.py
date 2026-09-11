@@ -150,6 +150,7 @@ the model is capitalising growth that destroys value.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -346,6 +347,38 @@ def _fade(start: float, end: float, n: int) -> np.ndarray:
     return np.linspace(start, end, n)
 
 
+def _explicit_path(path: Sequence[float], n: int) -> np.ndarray:
+    """A growth path supplied by the caller instead of faded from assumptions.
+
+    Exists because the fade schedule is the single most important input in this
+    model and the only one that could not be replaced from
+    ``Assumptions``: ``dcf.revenue_growth_start`` and
+    ``dcf.revenue_growth_terminal`` describe a straight line, and a growth path
+    measured on filings is not straight. It is a function argument rather than
+    an assumption entry so that nothing about a run without one changes, and so
+    that a path can only enter a valuation from a caller that went and got one.
+
+    The length must match the projection exactly. Padding a short path with the
+    terminal rate, or truncating a long one, would silently value a different
+    company from the one the path describes.
+    """
+    values = np.asarray(list(path), dtype=float)
+    if values.size != n:
+        raise ConfigError(
+            f"the supplied growth path has {values.size} years and the projection "
+            f"runs {n}. Set dcf.projection_years to {values.size}, or ask the "
+            f"model for a {n}-year path."
+        )
+    if not np.all(np.isfinite(values)):
+        raise ConfigError("the supplied growth path contains a non-finite rate")
+    if np.any(values <= -1.0):
+        raise ConfigError(
+            "a growth rate at or below -100% would take revenue to zero or "
+            "negative, which is a liquidation, not a projection"
+        )
+    return values
+
+
 def _tax_rate(fin: Financials, assumptions: Assumptions) -> tuple[float, str | None]:
     marginal = assumptions.tax.marginal_tax_rate
     if not assumptions.tax.use_effective_rate:
@@ -447,6 +480,8 @@ def project(
     fin: Financials,
     assumptions: Assumptions,
     price: float | None = None,
+    *,
+    growth_path: Sequence[float] | None = None,
 ) -> list[ProjectionYear]:
     """Build the explicit forecast.
 
@@ -460,6 +495,14 @@ def project(
     priced the equity, and without it the share count is held flat and the issued
     column reads zero, which is visible rather than silent. ``run_dcf`` always
     passes the bridge's price, so the valuation path never runs blind.
+
+    ``growth_path`` replaces the straight-line fade from
+    ``dcf.revenue_growth_start`` to ``dcf.revenue_growth_terminal`` with one
+    growth rate per projection year. Left None, which is every existing caller,
+    nothing about this function changes. It is the seam
+    ``techval.ml.forecast`` fits a fade curve into, and it is a function
+    argument rather than an assumption because a measured path has to be
+    measured by somebody, not typed into a file.
     """
     cfg = assumptions.dcf
     if fin.revenue <= 0:
@@ -482,7 +525,11 @@ def project(
         )
     nol_balance = _opening_nol(fin, assumptions)[0] if cfg.nol.track else 0.0
 
-    growth = _fade(cfg.revenue_growth_start, cfg.revenue_growth_terminal, n)
+    growth = (
+        _fade(cfg.revenue_growth_start, cfg.revenue_growth_terminal, n)
+        if growth_path is None
+        else _explicit_path(growth_path, n)
+    )
     margin_start = (
         cfg.ebit_margin_start if cfg.ebit_margin_start is not None else fin.ebit_margin
     )
@@ -727,8 +774,15 @@ def run_dcf(
     wacc_result: "WACCResult",
     assumptions: Assumptions,
     peer_median_ev_ebitda: float | None = None,
+    *,
+    growth_path: Sequence[float] | None = None,
 ) -> DCFResult:
-    """Value the enterprise on both terminal methods and cross-check them."""
+    """Value the enterprise on both terminal methods and cross-check them.
+
+    ``growth_path`` overrides the assumed straight-line revenue fade with one
+    rate per projection year and is recorded in the notes when it is used. See
+    ``project``.
+    """
     cfg = assumptions.dcf
     notes: list[str] = []
     checks: list[str] = []
@@ -799,7 +853,15 @@ def run_dcf(
     if cfg.nol.track:
         notes.append(_opening_nol(fin, assumptions)[1])
 
-    projections = project(fin, assumptions, price=bridge.price)
+    projections = project(fin, assumptions, price=bridge.price, growth_path=growth_path)
+    if growth_path is not None:
+        notes.append(
+            "The revenue growth path was supplied by the caller rather than faded "
+            f"from assumptions: {', '.join(f'{g:.1%}' for g in growth_path)}. "
+            f"dcf.revenue_growth_start of {cfg.revenue_growth_start:.1%} and "
+            f"dcf.revenue_growth_terminal of {cfg.revenue_growth_terminal:.1%} are "
+            "not used. The terminal growth rate still is."
+        )
     n = len(projections)
     fcff = np.array([p.fcff for p in projections])
     factors = discount_factors(n, wacc, cfg.mid_year_convention)

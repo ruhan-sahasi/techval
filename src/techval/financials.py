@@ -187,6 +187,14 @@ class Financials:
 
 _MM = 1e6
 
+# A revenue tag reporting more than ten times another tag's figure for the same
+# window is the total and the other is a component. Ten rather than two: the
+# genuine scope disagreements in the TMT universe, revenue before or after
+# billable expenses at Interpublic, services revenue against total at Starz, run
+# two to five times and picking the larger of those by rule would be a thumb on
+# the scale. See CompanyFacts.resolve_ttm.
+_REVENUE_COMPONENT_GUARD = 10.0
+
 
 def _straight_debt(instant) -> float:
     """Borrowings, split current and non-current, or a combined tag if that is all.
@@ -228,6 +236,7 @@ def build_financials(
         annual_ok=False,
         kind="flow",
         scale=_MM,
+        component_guard=None,
     ):
         val, p = facts.resolve_ttm(
             concept,
@@ -237,6 +246,7 @@ def build_financials(
             required=required,
             default_when_absent=default,
             allow_annual_fallback=annual_ok,
+            component_guard=component_guard,
         )
         prov[concept] = p
         if p.method.startswith("latest filed fiscal year"):
@@ -277,7 +287,17 @@ def build_financials(
         )
     as_of = max(ends)
 
-    revenue = flow("revenue", tags.REVENUE)
+    # Revenue takes the component guard. It is the only concept in this
+    # statement that needs one and the only one where the test means anything:
+    # revenue is strictly positive for every filer this engine values, so an
+    # order-of-magnitude gap between two ladder entries covering the same window
+    # is a scope error rather than a disagreement. Charter tags
+    # RevenueFromContractWithCustomerIncludingAssessedTax at 889mm for fiscal
+    # 2025 against 54,774mm of Revenues, and the ladder ranks the smaller first.
+    # Nothing below the top line gets the guard: EBIT and net income pass
+    # through zero, and a ratio test on a concept that passes through zero fires
+    # at random.
+    revenue = flow("revenue", tags.REVENUE, component_guard=_REVENUE_COMPONENT_GUARD)
     ebit = flow("EBIT", tags.EBIT)
     assert revenue is not None and ebit is not None
 
