@@ -14,18 +14,18 @@ named, and the switch that changes it is given.
 
 US-listed filers reporting under US GAAP to the SEC in XBRL. Money is carried in
 USD millions, share counts in millions of shares, per-share figures in dollars.
-`Decimal` appears only at the reporting boundary; everything internal is float64,
-which is exact enough for a valuation whose largest input is a judgment about the
+`Decimal` appears only at the reporting boundary. Everything internal is float64.
+That is exact enough for a valuation whose largest input is a judgment about the
 equity risk premium.
 
-The engine is deterministic, with one scope worth stating precisely. Filing
-data is cached by request URL under `~/.techval/cache`, and those URLs carry
-only the CIK, so the same ticker against the same cached filings reproduces the
-same fundamentals indefinitely. Price requests embed the request window, whose
-end is the run date, so a market-data run is byte-reproducible on the same day
-and refreshes on the next. To pin a valuation completely, point
-`price_source: csv` at exported price files; that is how the test suite and the
-demo notebook stay identical forever.
+The engine is deterministic, with one scope worth stating precisely. Filing data
+is cached by request URL under `~/.techval/cache`, and those URLs carry only the
+CIK, so the same ticker against the same cached filings reproduces the same
+fundamentals indefinitely. Price requests embed the request window, whose end is
+the run date, so a market-data run is byte-reproducible on the same day and
+refreshes on the next. To pin a valuation completely, point `price_source: csv`
+at exported price files. That is how the test suite and the demo notebook stay
+identical forever.
 
 Nothing is interpolated. When a required figure cannot be sourced, the engine
 raises `MissingDataError` naming the concept, the us-gaap tags it tried in order,
@@ -50,17 +50,17 @@ held a value in early 2025. HubSpot's `ConvertibleLongTermNotesPayable` stops in
 2021. Resolving a balance-sheet concept by "first tag in the fallback list that
 exists" returns a number that is years stale, with nothing on screen to say so.
 
-**Treatment.** Balance-sheet concepts resolve *as of a date*. A tag wins only if
-it carries a fact within 20 days of the balance-sheet date being asked about,
-and an explicit zero does not end the search: a filer can report zero under the
-ladder's first tag while carrying the real balance under a later one, so a
-non-zero balance at the date beats a zero above it, with the provenance saying
-so. When every entry is stale, a concept that must exist raises
-`StaleDataError` listing what was found and when; a concept whose absence
-legitimately means zero (preferred, non-controlling interest) records "only
-stale tags found, read as zero" in its provenance instead of raising.
+So balance-sheet concepts resolve *as of a date*. A tag wins only if it carries a
+fact within 20 days of the balance-sheet date being asked about, and an explicit
+zero does not end the search: a filer can report zero under the ladder's first
+tag while carrying the real balance under a later one, so a non-zero balance at
+the date beats a zero above it, with the provenance saying so. When every entry
+is stale, a concept that must exist raises `StaleDataError` listing what was
+found and when. A concept whose absence legitimately means zero, preferred stock
+and non-controlling interest, records "only stale tags found, read as zero" in
+its provenance and carries on.
 
-This is not hypothetical. Zscaler reports its marketable securities under
+Zscaler reports its marketable securities under
 `DebtSecuritiesAvailableForSaleExcludingAccruedInterestCurrent`, a tag outside
 the obvious list. Before that entry was added, the engine returned zero
 short-term investments and overstated Zscaler's enterprise value by $2.5bn.
@@ -72,9 +72,9 @@ looked in the wrong place. Non-controlling interest and preferred stock are
 absent from most software filers' fact sets because those companies have neither,
 and zero is the correct reading. Revenue is never legitimately absent.
 
-**Treatment.** Only concepts of the first kind carry a default, and when a
-default is used the provenance record says `absent, defaulted` rather than
-showing a sourced figure. Everything else raises.
+Only concepts of the first kind carry a default, and the provenance record then
+reads `absent, defaulted` where a sourced figure would be. Everything else
+raises.
 
 As a backstop against a wrong zero, current assets are tied back to cash,
 short-term investments and receivables. An unexplained residual above 25% of
@@ -90,30 +90,30 @@ exists at all. CrowdStrike files a year-to-date half *and* a discrete Q2, leavin
 Q1 recoverable only by subtraction. "Sum the last four quarterly values" finds
 nothing for either company.
 
-**Treatment.** Period algebra rather than quarter summing.
+The answer is period algebra.
 
 1. Deduplicate facts by period. A period is reported many times: when filed,
    again as a comparative in later filings, again in an amendment, and sometimes
    again in a proxy statement. Two rules pick between them.
 
-   **Form class first.** An audited periodic report (10-K, 10-Q, 20-F and their
+   Form class comes first. An audited periodic report (10-K, 10-Q, 20-F and their
    amendments) beats anything else no matter when it was filed. A proxy
    summarises the financial statements, it does not restate them, and letting a
    DEF 14A override a 10-K because it happened to be filed six weeks later swaps
    an audited figure for a summary of one. CrowdStrike's fiscal 2024 net income
    is 72.2mm in the 10-K and 73.4mm in the proxy.
 
-   **Filing date second.** Within the same class the most recently filed value
+   Filing date comes second. Within the same class the most recently filed value
    wins, because that is the genuine restatement and the number the company now
    stands behind. The same CrowdStrike year read 89.3mm in the 10-K filed in 2024
-   and 72.2mm in the one filed in 2026, and the later figure is the right one.
+   and 72.2mm in the one filed in 2026. The later figure is the right one.
 
    One asymmetry is accepted deliberately: recast statements furnished on Form
    8-K, after a segment change or a discontinued operation, rank below the
    periodic reports, so a recast that exists only in an 8-K is not picked up
    until the next 10-Q restates the comparatives. Ranking 8-K above the audited
-   reports would let every unaudited earnings release override them, which is
-   the worse trade.
+   reports would let every unaudited earnings release override them. That is the
+   worse trade.
 2. Derive every period recoverable by subtraction. Where two reported windows
    share a **start** date, their difference is the tail period. Where they share
    an **end** date, their difference is the head period. Applied repeatedly, this
@@ -134,10 +134,9 @@ Some concepts are simply not there. Where a filer publishes no combined
 depreciation and amortisation line, the ladder tries summing the components, but
 only over periods where every component is tagged, so a partial sum is never
 passed off as a total. CrowdStrike tags amortisation of intangibles and no
-depreciation line at all, so its EBITDA cannot be built from company facts.
-The engine reports that rather than publishing an EBITDA missing its
-depreciation, and the comp table keeps the company with its revenue multiples
-intact and a flag on the one it could not form.
+depreciation line at all. Its EBITDA cannot be built from company facts, so the
+engine says so and prints none, and the comp table keeps the company with its
+revenue multiples intact and a flag on the one it could not form.
 
 ### 2.4 Stock splits
 
@@ -156,115 +155,114 @@ August 2026 10-Q. Mixing restated and unrestated quarters produced a TTM diluted
 share count of 271mm against a true post-split figure of 1,023mm, an error of
 roughly 4x flowing straight into equity value.
 
-**Treatment.** Splits are detected from the filings themselves, with no external
-data. Where one period carries two filed values whose ratio is within 0.5% of a
-ratio a board would actually declare (2, 3, 4, 5, 10, 20 and the common reverse
-ratios), that is a split. Requiring at least two distinct periods to move by the
-identical ratio separates a split from an ordinary restatement, which moves
-numbers by a few percent rather than by exactly four: one period moving by
-exactly four could be a typo in one tagged fact, and two could not.
+Splits are detected from the filings themselves, with no external data. Where one
+period carries two filed values whose ratio is within 0.5% of a ratio a board
+would actually declare (2, 3, 4, 5, 10, 20 and the common reverse ratios), that
+is a split. Requiring at least two distinct periods to move by the identical
+ratio separates a split from an ordinary restatement, which moves numbers by a
+few percent and not by exactly four. One period moving by exactly four could be a
+typo in one tagged fact. Two could not.
 
 Facts filed before the split's effective date are then restated into current
 units: share counts multiplied by the factor, per-share figures divided by it.
 
-**One corporate action gets one threshold.** A split is not restated all at once.
-The first 10-Q after it restates the comparatives that quarter happens to show,
-the next 10-Q restates its own, and the 10-K restates the annual periods, so a
-single four-for-one is detected in three separate filings months apart. Counting
-each detection as its own action multiplies a pre-split fact by four three times.
-Nvidia is the case: two splits, a four-for-one in July 2021 and a ten-for-one in
-June 2024, produce six detections, so a naive count applies 4 cubed times 10
-cubed. Its fiscal 2022 diluted share count came back as 2,535,000mm against a
-true 25,350mm, and its fiscal 2009 second quarter as 35.5 trillion shares.
+One corporate action has to produce one adjustment, and a split is not restated
+all at once. The first 10-Q after it restates the comparatives that quarter
+happens to show, the next 10-Q restates its own, and the 10-K restates the annual
+periods, so a single four-for-one is detected in three separate filings months
+apart. Counting each detection as its own action multiplies a pre-split fact by
+four three times. Nvidia is the case: two splits, a four-for-one in July 2021 and
+a ten-for-one in June 2024, produce six detections, so a naive count applies 4
+cubed times 10 cubed. Its fiscal 2022 diluted share count came back as
+2,535,000mm against a true 25,350mm, and its fiscal 2009 second quarter as 35.5
+trillion shares.
 
-What each sighting actually pins down is an **interval**, not a date. A period
-whose value moves between a filing on A and the next on B says the split took
-effect somewhere in `(A, B]`. Every sighting of one split brackets the same day,
-so their intervals intersect; two real splits at the same ratio are years apart
-and cannot. Sightings of one ratio are therefore clustered by intersecting
-interval, and each cluster is one action dated at the earliest filing that showed
-the new units. Arista is the case that proves the rule has to be more than "same
-ratio, merge": two genuine four-for-one splits three years apart across six
-filings, which a same-ratio merge would fuse into one and leave every Arista
-share count before November 2021 at a quarter of what it should be.
+What each sighting pins down is an **interval**, not a date. A period whose value
+moves between a filing on A and the next on B says the split took effect
+somewhere in `(A, B]`. Every sighting of one split brackets the same day, so
+their intervals intersect; two real splits at the same ratio are years apart and
+cannot. Sightings of one ratio are therefore clustered by intersecting interval,
+and each cluster is one action dated at the earliest filing that showed the new
+units. Arista proves the rule has to be more than "same ratio, merge": two
+genuine four-for-one splits three years apart across six filings. A same-ratio
+merge would fuse them into one and leave every Arista share count before November
+2021 at a quarter of what it should be.
 
-**The first contested judgment: split units are deliberately not knowledge
-dated.** Every other fact in this package is filtered on its filing date and a
-split looks like it should be no different. It is not, and the reason is
-arithmetic rather than principle.
+Split units are deliberately not knowledge dated, and that is the first contested
+judgment here. Every other fact in this package is filtered on its filing date
+and a split looks like it should be no different. It is not, and the reason is
+arithmetic.
 
-**The case for knowledge dating it.** A split that has not been announced has not
+The case for knowledge dating it. A split that has not been announced has not
 happened. A run pinned to March 2022 that reads Nvidia's June 2024 split off the
-2024 filings is reading the future, which is exactly what §11 exists to prevent,
-and the resulting share count is one nobody could have quoted on the day.
+2024 filings is reading the future, exactly what §11 exists to prevent, and the
+resulting share count is one nobody could have quoted on the day.
 
-**The case against, which is the one the code takes.** A price vendor restates its
-*whole* history for a split. Nvidia's close for 31 March 2022 comes back as 27.29
-rather than the 272.86 that actually printed that day. So a share count left on
-the basis of its own day, paired with a price already divided by ten, gives a
-market capitalisation out by a factor of ten. **Both sides of a ratio have to be
-quoted in the same unit. Only the facts have to be point in time.** A split
-carries no information about value either: it multiplies the count and divides the
-price by the same number, and the product is unchanged.
+The case against is the one the code takes. A price vendor restates its *whole*
+history for a split. Nvidia's close for 31 March 2022 comes back as 27.29, not
+the 272.86 that actually printed that day. So a share count left on the basis of
+its own day, paired with a price already divided by ten, gives a market
+capitalisation out by a factor of ten. Both sides of a ratio have to be
+quoted in the same unit. Only the facts have to be point in time. A split carries
+no information about value either: it multiplies the count and divides the price
+by the same number, and the product is unchanged.
 
-That the vendor really does restate its history is not assumed, it is measured off
-the committed close series. Nvidia split four for one in 2021 and ten for one in
-2024, and **the largest single-day move across 2,513 trading days is 1.298.** A
-series left on the basis of each day would carry a close-to-close ratio of 0.25 on
-the 2021 ex date and 0.10 on the 2024 one, because that is what a split does to a
-quoted price. Neither is there. The vendor divided the whole history instead, and
-the share count has to be carried into the same units to meet it.
+That the vendor really does restate its history is measured, not assumed. Nvidia
+split four for one in 2021 and ten for one in 2024, and the largest single-day
+move across 2,513 trading days of the committed close series is 1.298. A series
+left on the basis of each day would carry a close-to-close ratio of 0.25 on the
+2021 ex date and 0.10 on the 2024 one, because that is what a split does to a
+quoted price. Neither is there. The vendor divided the whole history, and the
+share count has to be carried into the same units to meet it.
 
-So detection reads the whole fact set, and a test pins the property in the form
-that matters: the same quarter reads the same however the client is pinned. That
-is what "unit, not information" means in practice.
+So detection reads the whole fact set, and a test pins the property: the same
+quarter reads the same however the client is pinned. That is what "unit, not
+information" means in practice.
 
-**The second contested judgment: dating a split inside its bracket, and the
-residual defect.** The bracket is not always tight. The true ex date lies
-somewhere inside `(lo, hi]`, and **neither end of it is the ex date.** Where a
-filing falls between the two ends it reports whichever basis was current when it
-was made, and the threshold can land on the wrong side of it.
+The second contested judgment is where to date a split inside its bracket, and it
+leaves a defect behind. The bracket is not always tight. The true ex date lies
+somewhere inside `(lo, hi]`, and neither end of it is the ex date. Where a filing
+falls between the two ends it reports whichever basis was current when it was
+made, and the threshold can land on the wrong side of it.
 
 Dating at `hi`, the earliest filing showing new units, is what the code does, and
 Palo Alto is what it costs. Palo Alto split three for one in September 2022 and
-the first filing to restate a comparative by three is dated May 2023, eight months
-later, so the 10-Q filed in November 2022 sits inside the bracket. That 10-Q had
-already reported post-split shares, 292.9mm for the quarter, and gets multiplied
-by three a second time.
+the first filing to restate a comparative by three is dated May 2023, eight
+months later, so the 10-Q filed in November 2022 sits inside the bracket. That
+10-Q had already reported post-split shares, 292.9mm for the quarter, and gets
+multiplied by three a second time.
 
-Dating at `lo` instead is not a fix, it is a trade, and the trade was measured
-rather than argued: across every splitter in the fixtures it **repairs Palo Alto's
-three affected periods and breaks five of CrowdStrike's**, whose own bracket is a
-year wide. There is no date rule that is right for both. The real fix anchors each
-period on its own latest filing and reads the restatement ratio off the filer
-rather than deciding from a date at all, which is what
-`ml.warranted.share_basis_factor` does across two fact sets.
+Dating at `lo` is a trade, not a fix, and I measured it before choosing. Across
+every splitter in the fixtures it repairs Palo Alto's three affected periods and
+breaks five of CrowdStrike's, whose own bracket is a year wide. No date rule is
+right for both. The real fix anchors each period on its own latest filing and
+reads the restatement ratio off the filer instead of deciding from a date at all,
+which is what `ml.warranted.share_basis_factor` does across two fact sets.
 
-**Nothing consumes an affected figure silently, and that is the part that makes the
-defect acceptable.** `share_basis_factor` compares a fact set pinned to a date
-against a current one and takes the ratio between the same fiscal period's diluted
-share count in each. Where the units have been normalised correctly that ratio is
-exactly 1.0. Where they have not, as at Palo Alto, it comes back as a third, which
-is **not a product of any split Palo Alto declared** (3 then 2, admitting 1, 2 and
-6), so it is returned unsnapped with a note saying the price and the share count
-may be on different bases, and the caller drops the row with the reason attached
-rather than training on it. A rounding restatement is separated from a corporate
-action by a two percent tolerance, because share counts are reported to thousands
-and a real ratio was never exactly the split ratio.
+Nothing consumes an affected figure silently. `share_basis_factor` compares a
+fact set pinned to a date against a current one and takes the ratio between the
+same fiscal period's diluted share count in each. Where the units have been
+normalised correctly that ratio is exactly 1.0. Where they have not, as at Palo
+Alto, it comes back as a third. No split Palo Alto ever declared produces that
+(3 then 2, admitting 1, 2 and 6), so the factor is returned unsnapped with a note
+saying the price and the share count may be on different bases, and the caller
+drops the row with the reason attached. A rounding restatement is separated from
+a corporate action by a two percent tolerance, because share counts are reported
+to thousands and a real ratio was never exactly the split ratio.
 
-The cost is a row rather than a market capitalisation that is wrong by three times
-while looking entirely ordinary. That is the same trade §2.2 makes about a wrong
-zero and §7 makes about a not-meaningful multiple.
+The cost is one dropped row. The alternative is a market capitalisation wrong by
+three times that looks entirely ordinary. §2.2 makes the same trade about a wrong
+zero and §7 makes it about a not-meaningful multiple.
 
-**What is still not fixed, and where.** The unit normalisation lives in
+What is still not fixed, and where. The unit normalisation lives in
 `CompanyFacts`, so every consumer of `facts()` gets it. The refusal built on
 `share_basis_factor` lives in `ml.warranted`, where that module builds its panel,
 and has deliberately not been lifted into `ev_bridge`. It belongs there, because
-`backtest.py` has the same exposure on any date inside a bracket. Moving it changes
-the signature of a function the whole engine calls, which is a decision for the
-repository owner rather than one to take inside a model.
+`backtest.py` has the same exposure on any date inside a bracket. Moving it
+changes the signature of a function the whole engine calls, and that is a
+decision for the repository owner, not one to take inside a model.
 
-**Control.** Net income divided by TTM diluted shares must reproduce diluted EPS
+The control: net income divided by TTM diluted shares must reproduce diluted EPS
 summed from the filings. A gap above 10% is reported, because that is precisely
 what mixing units on either side of a corporate action looks like.
 
@@ -275,9 +273,9 @@ its window, not an accumulation. Subtracting a first-quarter average from a
 half-year average is meaningless arithmetic, and summing four quarterly averages
 gives four times the share count.
 
-**Treatment.** Average-type concepts are converted to *integrals* (average times
-days, the sum of the daily share count over the window) before any period algebra
-runs, then divided by total days at the end. The integral is additive, so every
+Average-type concepts are therefore converted to *integrals* (average times days,
+the sum of the daily share count over the window) before any period algebra runs,
+then divided by total days at the end. The integral is additive, so every
 subtraction and tiling rule applies unchanged.
 
 ### 2.6 Dimensioned facts, and the instance document
@@ -298,32 +296,32 @@ concept is absent.
 
 Option counts and exercise prices sit under the award-type and
 exercise-price-range axes. A treasury-stock share count therefore cannot be built
-from `companyfacts` at all, because the facts it needs were never published there.
+from `companyfacts` at all, because the facts it needs were never published
+there.
 
-**Treatment.** The XBRL instance document of the latest periodic filing is
-fetched and parsed into facts that carry their axes: tag, value, unit, period,
-and the member reported along each dimension. The knowledge date is honoured, so
-a point-in-time run reaches the filing that was current then rather than the
-newest one on file. Four handling rules, each of them a real failure in the
-committed fixtures:
+So the XBRL instance document of the latest periodic filing is fetched and parsed
+into facts that carry their axes: tag, value, unit, period, and the member
+reported along each dimension. The knowledge date is honoured, so a point-in-time
+run reaches the filing that was current then and not the newest one on file. Four
+handling rules, each of them a real failure in the committed fixtures:
 
-1. **Matching is on local names, not namespace prefixes.** Instance documents
-   bind different prefixes and different taxonomy versions. A namespace map
-   breaks on the next filer; a local name does not.
-2. **Inline XBRL repeats a fact once for every place it is rendered.** Facts are
+1. Matching is on local names, not namespace prefixes. Instance documents bind
+   different prefixes and different taxonomy versions. A namespace map breaks on
+   the next filer; a local name does not.
+2. Inline XBRL repeats a fact once for every place it is rendered. Facts are
    deduplicated on period and dimensions before anything is summed, or a figure
    that appears twice in the rendered document is counted twice.
-3. **A roll-forward tags its opening balance with the same tag as its closing
-   balance.** Datadog's option table carries 3,474,619 options at a $7.26
-   weighted-average strike and 1,610,360 at $7.83 under one tag, the first being
-   the opening balance six months stale. Only the context date separates them,
-   so the latest instant wins and everything earlier is ignored.
-4. **Tag matching is exact, never a substring.** Zscaler tags its entire
-   antidilutive securities table under `...OptionsOutstandingNumber`, dimensioned
-   by award type, so 8,879,000 restricted stock units, 1,757,000 employee stock
-   purchase plan shares and 997,000 performance shares sit under an options tag
-   beside the 150,000 that are actually options. Option counts are taken
-   undimensioned or by exercise-price band and from nowhere else.
+3. Datadog's option table carries 3,474,619 options at a $7.26 weighted-average
+   strike and 1,610,360 at $7.83 under one tag. A roll-forward tags its opening
+   balance with the same tag as its closing balance, and the first of those two
+   is the opening balance, six months stale. Only the context date separates
+   them, so the latest instant wins and everything earlier is ignored.
+4. Tag matching is exact, never a substring. Zscaler tags its entire antidilutive
+   securities table under `...OptionsOutstandingNumber`, dimensioned by award
+   type, so 8,879,000 restricted stock units, 1,757,000 employee stock purchase
+   plan shares and 997,000 performance shares sit under an options tag beside the
+   150,000 that are actually options. Option counts are taken undimensioned or by
+   exercise-price band and from nowhere else.
 
 Period-end share counts are therefore available, and §4.3 is written around them.
 Trailing diluted weighted-average shares remain the documented fallback, used
@@ -334,34 +332,34 @@ trusted.
 
 Every line item carries a record of the tag that won, the periods used, the forms
 they came from, the filing date, and the method (tiled, derived by subtraction,
-defaulted, annual fallback). `techval fetch <TICKER>` prints the whole table.
-This is the audit trail: any number in the output can be walked back to a filing.
+defaulted, annual fallback). `techval fetch <TICKER>` prints the whole table. Any
+number in the output can be walked back to a filing.
 
 ---
 
 ## 3. Market data
 
-**Prices.** Nasdaq's public quote API, which needs no key and no account and
+Prices come from Nasdaq's public quote API. It needs no key and no account and
 carries roughly three years of daily closes for equities and ETFs. Sources sit
 behind one interface, and a local CSV source exists for offline and fully
 reproducible runs.
 
 This package originally targeted Stooq. Stooq now answers plain HTTP clients with
-a JavaScript proof-of-work challenge rather than CSV. Defeating a bot check the
-operator deliberately erected is not something this package will do, so the Stooq
-source raises an explanatory error pointing at the alternatives.
+a JavaScript proof-of-work challenge instead of CSV. I will not defeat a bot
+check the operator deliberately erected, so the Stooq source raises an
+explanatory error pointing at the alternatives.
 
-**Risk-free rate.** The latest 10-year constant-maturity Treasury yield from the
-Treasury's daily yield curve feed. The ten-year point is the conventional anchor
-for a US equity discount rate: long enough to match the duration of the cash
-flows being discounted, liquid enough that the quote means something. Overridable
-in the assumptions file to pin a run to a fixed date.
+The risk-free rate is the latest 10-year constant-maturity Treasury yield from
+the Treasury's daily yield curve feed. The ten-year point is the conventional
+anchor for a US equity discount rate: long enough to match the duration of the
+cash flows being discounted, liquid enough that the quote means something.
+Overridable in the assumptions file to pin a run to a fixed date.
 
-**Market proxy.** SPY rather than the S&P 500 index itself, because the index is
-not available from a keyless source. The substitution is close to free for beta
-estimation: SPY's return differs from the index return by its dividend
-distributions, and subtracting a roughly constant yield from the market series
-shifts the regression **intercept**, not its slope. It moves alpha, not beta.
+The market proxy is SPY, because the S&P 500 index itself is not available from a
+keyless source. The substitution is close to free for beta estimation. SPY's
+return differs from the index return by its dividend distributions, and
+subtracting a roughly constant yield from the market series shifts the regression
+intercept. It moves alpha, not beta.
 
 ---
 
@@ -375,8 +373,70 @@ EV = equity value
    - cash and equivalents - short-term investments
 ```
 
-Simple to write down. The judgment is entirely in what counts as debt, and two
-items decide it for a technology company.
+Simple to write down. The judgment is entirely in what counts as debt, and
+Verizon shows what it costs to get that wrong.
+
+`techval value VZ` printed an enterprise value of 231,813mm. The right answer is
+375,261mm. Verizon stopped tagging `LongTermDebtNoncurrent` in 2013 and tags
+`LongTermDebtAndCapitalLeaseObligations` instead, which appeared in none of the
+three debt ladders. Every component behaved exactly as written. The stale
+thirteen-year-old value was correctly refused (§2.1), the ladder ran out of
+entries, and a balance-sheet concept with no entry left defaults to zero, because
+for most software filers zero is the truth. The bridge printed equity value less
+cash, and nothing on the page said so. `techval comps VZ` printed a telecom table
+in which Comcast's enterprise value sat below its own market capitalisation.
+
+A data layer that resolves a plausible number is more dangerous than one that
+refuses. A missing revenue line raises and stops the run. A missing debt line
+prints an enterprise value 143bn short and looks entirely ordinary, because zero
+is a legal answer to the question. Arithmetic testing cannot find it either:
+every arithmetic step was correct.
+
+The ladders are now built from measured usage across the 110-name TMT seed
+universe rather than from the concept names that sound right, and three judgments
+inside them are each forced by a named filing.
+
+Pure debt ranks above debt-and-leases. `LongTermDebtAndCapitalLeaseObligations`
+is what Verizon, AT&T, Comcast, Accenture and Warner Bros Discovery tag their
+long-term debt line with, and its definition bundles the finance leases the lease
+ladder would otherwise add a second time. Verizon's own fair-value note settles
+the overlap to the dollar: 158,150mm of debt at 31 December 2025 against
+155,639mm excluding capital leases, a difference of 2,511mm, exactly the 943mm
+current and 1,568mm non-current finance lease liabilities the lease ladders
+resolve separately. Where a lease-inclusive concept wins, the lease is folded
+into the debt row instead of added to it, the row relabels itself, and the note
+names the concepts. Verizon's bridge therefore reads `Debt and finance leases
+165,231.0` with `Finance leases 0.0` beneath it, so a reader can see the zero is
+a suppression and not an absence.
+
+A combined tag replaces the split rather than joining it, and it is consulted
+whenever *either* leg fails. That is the Verizon mechanism precisely: the current
+portion resolved, the long-term portion did not, and the engine printed the
+current portion alone as though it were the whole balance sheet.
+
+A resolved debt figure is then tested against every debt-bearing concept the
+filer reports, live or one reporting cycle stale, and where the ladder falls
+materially short the run refuses. Digital Realty publishes 16,014mm of
+`SeniorNotes` and 842mm of `SecuredDebt` and no total concept of any kind, so a
+single-tag ladder cannot add its stack up without assuming the pieces do not
+overlap. T-Mobile tags its long-term debt under a dimension the `companyfacts`
+API does not return (§2.6). Both stop rather than print a fragment.
+
+What that was worth across the census: 81 filers carry a material debt balance,
+the old ladders reached 72 of them and these reach 80. The one they miss is
+Digital Realty, and it refuses. Microsoft's 66,594mm of finance leases, reported
+only under the combined concept, had been reading as zero.
+
+`tests/test_tags.py` is the guard against it recurring. It holds a committed
+census of which concepts the seed universe still reports, recorded per concept
+and per filer, with tests that fail when a debt ladder names a concept nobody has
+tagged in years and when the ladders stop reaching the filers who publish a debt
+line. The per-filer view is what catches the Verizon shape: every entry in the
+old non-current ladder but two was in live use on the day Verizon's debt read as
+zero, and `LongTermDebtNoncurrent` was being reported by fifty filers that same
+day. The entries had not rotted. The ladder had.
+
+Two further items decide the bridge for a technology company.
 
 ### 4.1 Operating leases and ASC 842
 
@@ -385,11 +445,11 @@ operating income, as a single straight-line rent charge. It is **not** split int
 depreciation and interest the way IFRS 16 requires, so it is not part of the D&A
 that gets added back.
 
-The consequence: **a US filer's EBITDA is already after rent.** Adding the lease
-liability to debt while pairing it with that EBITDA counts the same obligation
-twice, once in the numerator as a claim on the enterprise and again in the
-denominator as a charge that suppressed earnings. The multiple comes out too
-high, and the error scales with how lease-heavy the company is.
+So a US filer's EBITDA is already after rent. Adding the lease liability to debt
+while pairing it with that EBITDA counts the same obligation twice: once in the
+numerator as a claim on the enterprise, again in the denominator as a charge that
+suppressed earnings. The multiple comes out too high, and the error scales with
+how lease-heavy the company is.
 
 Either convention is defensible so long as it is applied consistently:
 
@@ -398,16 +458,16 @@ Either convention is defensible so long as it is applied consistently:
 | Excluding lease liabilities | → | EBITDA (after rent) |
 | Including lease liabilities | → | EBITDAR (before rent) |
 
-**Default: operating leases excluded, EBITDA basis.** That is how a US software
+The default is operating leases excluded, EBITDA basis. That is how a US software
 comp set is normally quoted, and it avoids inventing an interest rate to unwind
 the rent charge.
 
-The engine reports both enterprise values regardless of the setting, and the
-earnings figure that pairs with the chosen one is only reachable through
+The engine reports both enterprise values whatever the setting, and the earnings
+figure that pairs with the chosen one is only reachable through
 `EVBridge.multiple_denominator()`. A mismatch cannot happen by accident. If
 leases are capitalised and the filer does not disclose operating lease cost,
-EBITDAR cannot be formed and the affected multiples are suppressed rather than
-shown on an inconsistent basis.
+EBITDAR cannot be formed and the affected multiples are suppressed, not shown on
+an inconsistent basis.
 
 Finance leases are debt under either convention: their interest and amortisation
 already sit outside EBITDA.
@@ -416,8 +476,8 @@ already sit outside EBITDA.
 
 ASU 2020-06 removed the treasury-stock option and made the if-converted method
 mandatory for convertible instruments. Whenever a convertible is dilutive, its
-**full conversion shares are already inside diluted weighted-average shares
-outstanding.**
+full conversion shares are already inside diluted weighted-average shares
+outstanding.
 
 Equity value computed on that share count therefore already contains the
 converted instrument. Adding the principal to debt as well counts it twice.
@@ -432,8 +492,8 @@ against a conversion price of about $148 with the stock above $200. Counting the
 as debt on top of a diluted share count that already reflects conversion
 overstates enterprise value by close to a billion dollars.
 
-**Default: `auto`.** With a conversion price supplied in the assumptions file the
-engine compares it to the current price and picks the matching treatment,
+The default is `auto`. With a conversion price supplied in the assumptions file
+the engine compares it to the current price and picks the matching treatment,
 recording which and why. Without one it falls back to treating them as debt and
 prints a warning stating exactly how much enterprise value may be overstated. The
 warning is deliberately loud, because the silent version of this error is
@@ -443,19 +503,19 @@ invisible in the output.
 
 Two counts are available and they answer different questions.
 
-**TTM weighted-average diluted shares** is the denominator of reported EPS. It is
-the default, and it is consistent with the earnings figures in every multiple
-built on it. It is also an average over a past window, so a company issuing
-steadily ends that window above its own average, and it reflects the awards
-outstanding across the window rather than the ones outstanding now.
+TTM weighted-average diluted shares is the denominator of reported EPS. It is the
+default, and it is consistent with the earnings figures in every multiple built
+on it. It is also an average over a past window, so a company issuing steadily
+ends that window above its own average, and it reflects the awards outstanding
+across the window and not the ones outstanding now.
 
-**A treasury-stock count at today's price** is what a live model uses for a
+A treasury-stock count at today's price is what a live model uses for a
 point-in-time equity value. `dilution.method: treasury_stock` builds it from the
 filing's own instance document (§2.6). Both counts are reported either way, with
 the difference in shares and in percent, because the size of that difference is
 the point.
 
-**The method, ASC 260.**
+The method is ASC 260.
 
 ```
   shares outstanding, summed across classes
@@ -479,16 +539,16 @@ options struck at $232.89 against a $166.10 close would otherwise subtract 60,31
 shares. An RSU has no strike, so there are no proceeds and no buyback, and each
 unvested unit adds a full share.
 
-**Which price.** ASC 260 runs the test on the average market price over the
-reporting period, because the diluted EPS denominator is itself a period average
-and the numerator and denominator have to describe the same window. This is not
-an EPS calculation. The count is struck at an instant and then multiplied by
-today's price to reach equity value, so today's price is what decides which
-options are in the money. Testing on a trailing average and valuing at spot mixes
-two dates, and in a stock that has run it drops options that are in the money
-right now.
+Which price decides moneyness is its own question. ASC 260 runs the test on the
+average market price over the reporting period, because the diluted EPS
+denominator is itself a period average and the numerator and denominator have to
+describe the same window. This is not an EPS calculation. The count is struck at
+an instant and then multiplied by today's price to reach equity value, so today's
+price is what decides which options are in the money. Testing on a trailing
+average and valuing at spot mixes two dates, and in a stock that has run it drops
+options that are in the money right now.
 
-**Datadog, at the 9 September 2026 close of $225.27:**
+Datadog, at the 9 September 2026 close of $225.27:
 
 | | mm shares |
 |---|---:|
@@ -504,38 +564,36 @@ reasons pulling opposite ways: the weighted average is struck over a past window
 and so falls below the count outstanding today, while it already carries a share
 of the award overhang that the walk above adds back in full.
 
-**Bands, not one average strike.** Where the filer tags options by exercise-price
+Bands beat one average strike. Where the filer tags options by exercise-price
 range, each band is valued on its own terms, because a band is either in the
 money or it is not and averaging across bands loses that. The error from
 averaging runs one way. A single average strike below today's price implies the
 whole grant is in the money; it credits the company with exercise proceeds from
 options nobody would exercise, and those proceeds buy back shares that would
 never be bought. Four million options at $10 and six million at $150 average to
-$94.00, which is in the money against a $100 price: the average nets 0.6mm new
-shares and the bands net 3.6mm, six times as much. A single average strike
-therefore understates dilution whenever any band is out of the money. Datadog
-tags no bands, so its own count uses the single average and the notes say which
-happened.
+$94.00, in the money against a $100 price. The average nets 0.6mm new shares. The
+bands net 3.6mm, six times as much. A single average strike therefore understates
+dilution whenever any band is out of the money. Datadog tags no bands, so its own
+count uses the single average and the notes say which happened.
 
-**The fallback is real, and it is labelled.** The treasury-stock path degrades to
-the weighted average rather than guessing. An instance document that cannot be
-read, no share count tagged, an option count with no strike beside it, an award
-tag that cannot be trusted: each returns the weighted average with a flag naming
-what was missing. A weighted average known to be a weighted average is worth more
-than a treasury-stock count built on an invented strike.
+The treasury-stock path degrades to the weighted average rather than guessing. An
+instance document that cannot be read, no share count tagged, an option count
+with no strike beside it, an award tag that cannot be trusted: each returns the
+weighted average with a flag naming what was missing. A weighted average known to
+be a weighted average is worth more than a treasury-stock count built on an
+invented strike.
 
-**What the treasury-stock method still cannot see.** The limitation moved, it did
-not disappear.
+What the treasury-stock method still cannot see. The limitation moved; it did not
+disappear.
 
 - *Awards tagged only by award type.* Datadog reports 17,099,356 unvested units
   under one member covering restricted stock units, restricted stock and
   performance stock units together. Whatever performance condition sits inside
   that number enters at the count the filer tagged, and the instance document
   offers no way to separate the three. Where a filer tags several award-type
-  members and no combined total they are summed, which is right where the members
+  members and no combined total they are summed. That is right where the members
   are distinct populations and double counts where one member's label spans
-  another's. The members are named in the notes so the footnote can be checked
-  rather than taken on trust.
+  another's. The members are named in the notes so the footnote can be checked.
 - *Employee stock purchase plans.* ESPP shares are not counted. Zscaler's
   1,757,000 of them are tagged only inside the antidilutive table under an
   options tag, which is refused for the reason in §2.6, and Datadog's sit in a
@@ -576,26 +634,26 @@ years, roughly 104 observations. Weekly is the usual compromise: daily returns o
 a mid-cap carry enough non-synchronous trading noise to bias the slope downward,
 and monthly returns leave too few points for a two-year window to say anything.
 
-Two details that matter more than the choice of frequency.
+Two details matter more than the choice of frequency.
 
-**Pairing is by date, never by position.** A peer that listed eighteen months ago
-has fewer weeks than the index. Zipping the two return vectors together pairs its
-first week against the index's first week two years earlier, and the slope that
-comes back is arithmetic performed on unrelated numbers. It looks entirely
-plausible on screen. The regression here joins on the dates the two series
-actually share, and refuses below 30 common observations.
+A peer that listed eighteen months ago has fewer weeks than the index. Zip the
+two return vectors together and its first week pairs against the index's first
+week two years earlier, and the slope that comes back is arithmetic performed on
+unrelated numbers. It looks entirely plausible on screen. So pairing is by date,
+never by position: the regression joins on the dates the two series actually
+share, and refuses below 30 common observations.
 
-**R-squared and the standard error are reported, not hidden.** A beta of 1.42 on
-an R-squared of 0.11 is not a number the market told you with any confidence.
-Datadog's own two-year regression against SPY produces exactly that. The analyst
-needs to see it before deciding whether to lean on the peer beta instead.
+A beta of 1.42 on an R-squared of 0.11 is not a number the market told you with
+any confidence. Datadog's own two-year regression against SPY produces exactly
+that, so both the R-squared and the standard error are reported. The analyst
+needs to see them before deciding whether to lean on the peer beta instead.
 
-**Blume adjustment** (`beta_adjustment: blume`) applies `0.67 * raw + 0.33 * 1.0`,
+The Blume adjustment (`beta_adjustment: blume`) applies `0.67 * raw + 0.33 * 1.0`,
 the Bloomberg convention. The justification is that betas mean-revert toward one
-as companies mature and diversify. Off by default, because the shrinkage is a
-prior rather than a measurement and the raw estimate is the thing actually
-observed. Applied after the OLS and before unlevering, so the leverage adjustment
-operates on the beta the cost of equity will actually use.
+as companies mature and diversify. Off by default: the shrinkage is a prior, and
+the raw estimate is the thing actually observed. Applied after the OLS and before
+unlevering, so the leverage adjustment operates on the beta the cost of equity
+will use.
 
 ### 5.2 Unlevering and relevering
 
@@ -607,18 +665,18 @@ The Hamada relation. The tax term is there because the debt tax shield is itself
 a claim whose risk tracks the debt, so leverage raises equity risk by less than
 gross D/E would suggest.
 
-The peer approach, which is the standard sell-side one: unlever each peer at
-**its own** D/E and tax rate, pool the resulting asset betas, then relever at the
-target's capital structure. The point of the exercise is to strip out
-capital-structure differences before averaging, so that what is being pooled is
-business risk rather than financing policy. How the pooling is done is §5.3.
+The peer approach is the standard sell-side one: unlever each peer at **its own**
+D/E and tax rate, pool the resulting asset betas, then relever at the target's
+capital structure. Stripping out capital-structure differences before averaging
+is the whole point of the exercise, so that what gets pooled is business risk and
+not financing policy. How the pooling is done is §5.3.
 
 D/E uses market equity against book debt, matching the WACC weights.
 
 ### 5.3 Pooling the peer betas: median or Vasicek
 
-**Default: the median**, because one peer with a broken regression, a recent IPO
-or a takeover rumour in the window should not be able to move the answer.
+The default is the median, because one peer with a broken regression, a recent
+IPO or a takeover rumour in the window should not be able to move the answer.
 
 The median and the Blume adjustment share a blind spot, though. Neither looks at
 how well each beta was measured. The median treats a slope estimated on an
@@ -626,7 +684,7 @@ R-squared of 0.11 exactly like one estimated on 0.24, and Blume shrinks every
 slope by the same third whether it came from a tight regression or from a
 scatter.
 
-**Vasicek (1973)** lets the data decide the shrinkage. Each peer's asset beta is
+Vasicek (1973) lets the data decide the shrinkage. Each peer's asset beta is
 pulled toward the cross-sectional mean of the set by a weight that is the ratio
 of the dispersion across peers to that dispersion plus the peer's own sampling
 variance:
@@ -644,19 +702,19 @@ precision, `1 / se^2`. The posterior version, which would add `1 / sigma_cross^2
 to every peer, compresses the weights toward equal and is harder to defend at a
 desk: the number quoted is the one that comes off each regression's own output.
 
-**Applied at the asset beta, with the standard error unlevered alongside it.**
-This is the step that is easy to get wrong. Both operations between the OLS slope
-and the number being pooled are multiplications by constants rather than new
-estimates: Blume multiplies the slope by 0.67, and unlevering divides by
+The shrinkage is applied at the asset beta, with the standard error unlevered
+alongside it, and that is the step that is easy to get wrong. Both operations
+between the OLS slope and the number being pooled are multiplications by
+constants: Blume multiplies the slope by 0.67, and unlevering divides by
 `1 + (1-t) D/E`, which comes off the balance sheet. The standard error rides
 through both on exactly the same scale. Skip the division and a levered peer's
-asset beta is paired with the standard error of its equity beta, which is larger
-by the leverage factor, so its weight comes out too low and it is dragged toward
-the peer mean for no reason except that it carries debt. The shrinkage would then
-be reading capital structure, which is the one thing unlevering exists to remove.
+asset beta is paired with the standard error of its equity beta, larger by the
+leverage factor, so its weight comes out too low and it is dragged toward the
+peer mean for no reason except that it carries debt. The shrinkage would then be
+reading capital structure, the one thing unlevering exists to remove.
 
-**Six software peers against SPY**, weekly returns over two years, each unlevered
-at 0.05x D/E and a 24% tax rate, Datadog relevered at its own 0.01x:
+Six software peers against SPY, weekly returns over two years, each unlevered at
+0.05x D/E and a 24% tax rate, Datadog relevered at its own 0.01x:
 
 | peer | raw beta | s.e. | R2 | asset beta | weight kept | shrunk |
 |---|---:|---:|---:|---:|---:|---:|
@@ -681,22 +739,21 @@ the widest standard error in the set, keeps the least of its own estimate at
 0.36, and comes back from 1.914 to 1.602. The median cannot see that, because the
 median reads only the middle of the sorted list and cannot tell whether the
 estimate sitting there was the tightest regression in the set or the loosest.
-Note also the direction. Shrinkage pulled the highest beta down hard and the
+Note the direction too. Shrinkage pulled the highest beta down hard and the
 pooled figure still came out **above** the median, because the mean of this set
 sits above its middle and the median was ignoring three quarters of the evidence
 about where the centre is.
 
-**The trade.** Vasicek buys information the median throws away, and pays for it
-with the one thing a median is good at. The pooled mean uses every estimate, so
-one genuinely broken regression moves it, and shrinkage narrows a bad estimate's
+The trade. Vasicek buys information the median throws away and pays for it with
+the one thing a median is good at. The pooled mean uses every estimate, so one
+genuinely broken regression moves it, and shrinkage narrows a bad estimate's
 influence without ever removing it, where a median ignores it outright. On a set
 of six that is why the median stays the default. Switch with
 `market.peer_beta_method: vasicek`. A Vasicek request over a degenerate set,
 fewer than three peers, no cross-sectional dispersion, or a standard error that
-is zero or missing, falls back to the median and says so in the notes rather than
-dividing by zero.
+is zero or missing, falls back to the median and says so in the notes.
 
-**Do not stack Blume on top of it.** The two are answers to the same question.
+Do not stack Blume on top of it. The two are answers to the same question.
 Running Blume-adjusted estimates into Vasicek shrinks each peer twice, two thirds
 of the way toward 1.0 by a fixed rule and then toward the peer mean by its own
 precision, which pulls dispersion out of the set beyond what either correction
@@ -707,31 +764,31 @@ intends. The engine says so in the notes whenever it sees both.
 
 Three methods, and the default is not the obvious one.
 
-**`filings`** divides interest expense by total debt at the latest balance
-sheet date. Averaging opening and closing debt would be better, and is what a
-credit analyst would do, but only one balance-sheet instant is normalized here,
-so the period-end balance is what there is. For an issuer that borrowed heavily
-during the year this understates the divisor and overstates the implied rate.
-Either way it is a backward-looking *accounting* yield, not a market one. For a company whose
-borrowings are zero-coupon convertible notes it returns something near 0.5%,
-which is not a rate anyone would lend at. The engine therefore rejects any book
-yield that lands below the risk-free rate and falls through to the synthetic
+`filings` divides interest expense by total debt at the latest balance sheet
+date. Averaging opening and closing debt would be better, and is what a credit
+analyst would do, but only one balance-sheet instant is normalized here, so the
+period-end balance is what there is. For an issuer that borrowed heavily during
+the year this understates the divisor and overstates the implied rate. Either way
+it is a backward-looking *accounting* yield, not a market one. For a company
+whose borrowings are zero-coupon convertible notes it returns something near
+0.5%, which is not a rate anyone would lend at. The engine therefore rejects any
+book yield that lands below the risk-free rate and falls through to the synthetic
 method, saying so in the output.
 
-**`synthetic`** (default) forms interest coverage as EBIT over interest expense,
+`synthetic`, the default, forms interest coverage as EBIT over interest expense,
 maps it to a rating on a Damodaran-style large-cap table, and adds that spread to
 the risk-free rate. Where coverage cannot be formed at all, because EBIT is
 negative or there is debt but no reported interest, the rating is pinned at the
-lowest investment grade rather than the bottom of the table. Entering at the
+lowest investment grade and not at the bottom of the table. Entering at the
 bottom would price a cash-rich, unprofitable software company as a defaulted
 credit at an eighteen-percent spread, which is not what its bonds would trade at.
 
-**A limitation worth stating plainly.** Interest coverage is the wrong risk
+One limitation is worth stating plainly. Interest coverage is the wrong risk
 metric for a net-cash issuer. Datadog holds about $5bn of cash and securities
 against $986mm of zero-coupon converts, and its GAAP EBIT is thin enough that
-coverage reads 1.4x, which maps to a speculative rating. Its actual default risk
-is negligible. The saving grace is that the debt weight is near zero, so the
-number barely reaches the WACC, and the output says as much. For a company with
+coverage reads 1.4x and maps to a speculative rating. Its actual default risk is
+negligible. The saving grace is that the debt weight is near zero, so the number
+barely reaches the WACC, and the output says as much. For a company with
 meaningful debt *and* net cash, override the rate.
 
 ### 5.5 Weights
@@ -756,14 +813,12 @@ listed in the README limitations.
 FCFF = EBIT * (1 - t) + D&A - capex - change in NWC
 ```
 
-**Stock-based compensation is the largest judgment in a software DCF, and the
-build specification for this package got it wrong.** The specification asks for
+Stock-based compensation is the largest judgment in a software DCF, and the build
+specification for this package got it wrong. The specification asks for
 `EBIT * (1-t) + D&A - capex - dNWC - SBC`. GAAP EBIT is *already net of* stock
 compensation, because it is an operating expense on the income statement.
 Subtracting it again charges the same compensation twice. That formula is not
-implemented.
-
-What is implemented is a switch:
+implemented. A switch is:
 
 - **`expense` (default).** Leave SBC inside EBIT. Free cash flow is struck after
   the full cost of compensating employees. The case for this is simply that
@@ -777,22 +832,21 @@ What is implemented is a switch:
   this setting should also be growing the share count.
 
 For Datadog the switch is worth roughly $823mm a year, about 21% of revenue, and
-it moves the valuation by more than any other assumption in the file. That is why
-it is a switch with both arguments written down rather than a default with none.
+it moves the valuation by more than any other assumption in the file. Both
+arguments are written down for that reason.
 
-**Closing that loop: SBC dilution.** The addback argument only works if the
-shares the compensation creates are modelled alongside it. `dcf.sbc_dilution`
-does that and is on by default: every projected year issues
-`SBC dollars / share price` new shares, and the count carried forward grows by
-them. Under expensing it does nothing, because no benefit was taken and so there
-is no cost to charge.
+The addback argument only works if the shares the compensation creates are
+modelled alongside it. `dcf.sbc_dilution` does that and is on by default: every
+projected year issues `SBC dollars / share price` new shares, and the count
+carried forward grows by them. Under expensing it does nothing, because no
+benefit was taken and so there is no cost to charge.
 
 Two judgments sit inside that line, and a finding falls out of it.
 
 The price is held at today's price for the whole forecast. A rising share price
 would issue fewer shares for the same dollars, so a constant price is a choice
-rather than a neutral assumption. Growing the price at the cost of equity would
-make the share count depend on the answer the model is trying to produce, and the
+and not a neutral assumption. Growing the price at the cost of equity would make
+the share count depend on the answer the model is trying to produce, and the
 exercise is to hold an intrinsic value up against the price quoted today. Where
 the model's own value per share is far below that price, as it is across this
 cohort, shares are being issued at a valuation the model does not believe, so the
@@ -805,9 +859,9 @@ as it stands at that date. Against the year-one flows that is too many shares.
 Against the terminal value it is far too few, for the reason below, and the
 second error is much the larger of the two.
 
-**The two camps do not converge.** This is worth stating plainly, because the
-natural expectation is that modelling the shares closes the argument. It does
-not. Datadog at a pinned 10.5% discount rate on the example assumptions:
+The two camps do not converge. The natural expectation is that modelling the
+shares closes the argument. It does not. Datadog at a pinned 10.5% discount rate
+on the example assumptions:
 
 | SBC treatment | value per share |
 |---|---:|
@@ -818,13 +872,12 @@ not. Datadog at a pinned 10.5% discount rate on the example assumptions:
 Modelling the shares closes 13% of the gap. The two camps are still a factor of
 two apart.
 
-The reason is structural rather than a matter of calibration. Five years of
-issuance takes the count from 366.9mm to 394.9mm, cumulative dilution of 7.6%.
-But 71% of the addback's uplift in enterprise value sits in the **terminal
-value**, which capitalises the addback in perpetuity, and no modelled issuance
-funds any of it: the register stops growing at year five while the flow it is
-divided into is grossed up forever. A denominator 7.6% larger cannot pay for a
-perpetuity.
+The reason is structural. Five years of issuance takes the count from 366.9mm to
+394.9mm, cumulative dilution of 7.6%. But 71% of the addback's uplift in
+enterprise value sits in the **terminal value**, which capitalises the addback in
+perpetuity, and no modelled issuance funds any of it: the register stops growing
+at year five while the flow it is divided into is grossed up forever. A
+denominator 7.6% larger cannot pay for a perpetuity.
 
 Two further pressures push the same way at this company. Datadog's SBC runs at a
 fifth of revenue against a GAAP EBIT margin under one percent, so the addback is
@@ -837,23 +890,22 @@ The checks report the cumulative dilution and the terminal year's issuance rate
 beside the terminal growth rate, because that pairing is what the addback camp
 actually has to defend. Datadog's terminal year issues 1.66% of the share count
 in stock compensation, so against 2.50% terminal growth, cash flow per share
-compounds at 0.83% and not at 2.50%.
+compounds at 0.83%.
 
-**Working capital.** NWC is taken as a percentage of revenue, and the year-one
-change is measured against that same percentage applied to TTM revenue, rather
-than against the reported balance. Anchoring on the reported balance would
-introduce a one-time step in year one that was never an operating event. For
-subscription software the percentage is negative, because customers are billed
-ahead of delivery and deferred revenue grows with the business, so growth
-releases cash rather than consuming it.
+Working capital is taken as a percentage of revenue, and the year-one change is
+measured against that same percentage applied to TTM revenue. Anchoring on the
+reported balance would introduce a one-time step in year one that was never an
+operating event. For subscription software the percentage is negative, because
+customers are billed ahead of delivery and deferred revenue grows with the
+business, so growth releases cash.
 
-**Taxes** are `rate * max(EBIT, 0)` by default. A loss year creates a
-carryforward, not a refund, and with the carryforward untracked no cash benefit
-is booked in the loss year and none is taken later. For a company with large
-accumulated losses that understates value, which is what §6.2 is for.
+Taxes are `rate * max(EBIT, 0)` by default. A loss year creates a carryforward,
+not a refund, and with the carryforward untracked no cash benefit is booked in
+the loss year and none is taken later. For a company with large accumulated
+losses that understates value. §6.2 is the fix.
 
-**Revenue growth fades on a straight line from `dcf.revenue_growth_start` to
-`dcf.revenue_growth_terminal`, and nothing about that line is measured.** It is a
+Revenue growth fades on a straight line from `dcf.revenue_growth_start` to
+`dcf.revenue_growth_terminal`, and nothing about that line is measured. It is a
 typed schedule, and it moves the answer more than the discount rate, the margin
 path and the terminal multiple put together. §15.3 measures what growth actually
 does in the filings and finds the typed schedule fades less than half as fast.
@@ -863,16 +915,14 @@ one is byte for byte what it was.
 
 ### 6.2 Net operating losses
 
-Off by default, on with `dcf.nol.track`. On, the tax line becomes a cash tax
-rather than a statutory charge on positive EBIT.
+Off by default, on with `dcf.nol.track`. On, the tax line becomes a cash tax.
 
 A projected loss adds to the carryforward balance and pays nothing. A profitable
 year shelters the lesser of the balance and `nol.annual_limitation_pct` of
 taxable income, and pays tax on the rest. NOPAT is struck on that cash tax, so
-the shield reaches free cash flow in the year it is used rather than being
-asserted in a footnote.
+the shield reaches free cash flow in the year it is used.
 
-**The 80% limitation is the part people forget.** Post-2017 federal losses carry
+The 80% limitation is the part people forget. Post-2017 federal losses carry
 forward indefinitely, but they offset only 80% of taxable income in any one year.
 A company sitting on a decade of accumulated losses still writes a cheque the
 moment it turns profitable, however large the balance. A model that shelters the
@@ -882,15 +932,14 @@ $2,714mm across the explicit period, worth $651mm of cash tax not paid and $460m
 discounted, and still pays cash tax in every one of the five years including the
 first.
 
-**The opening balance.** It comes from the assumptions file where the analyst
-supplies one, and otherwise from `OperatingLossCarryforwards` where the filer
-tags it undimensioned. An analyst reading the tax footnote knows more than the
-tag does, so the assumption wins where both exist. Where neither exists the
-engine raises rather than assuming zero, because the carryforward is commonly
-reported only by jurisdiction and a dimensioned fact does not reach
-`companyfacts` (§2.6).
+The opening balance comes from the assumptions file where the analyst supplies
+one, and otherwise from `OperatingLossCarryforwards` where the filer tags it
+undimensioned. An analyst reading the tax footnote knows more than the tag does,
+so the assumption wins where both exist. Where neither exists the engine raises.
+It does not assume zero: the carryforward is commonly reported only by
+jurisdiction, and a dimensioned fact does not reach `companyfacts` (§2.6).
 
-**What the carryforward model does not do.** Section 382 caps the annual use of a
+What the carryforward model does not do. Section 382 caps the annual use of a
 carryforward after a change of control at roughly the equity value times the
 long-term tax-exempt rate, and it is not modelled, so any deal case here
 overstates the shield. State carryforwards, with their own expiry and
@@ -914,7 +963,7 @@ them is information and disagreement is more. `dcf.terminal.method` picks which
 one drives the headline figures; the Gordon and exit-multiple fields keep their
 own meanings whatever it is set to.
 
-**Gordon growth.**
+Gordon growth.
 
 ```
 TV_N = FCFF_N * (1 + g) / (w - g)
@@ -925,15 +974,15 @@ of year N. Under the mid-year convention those perpetuity flows also arrive
 mid-year, so the terminal value carries a half-year uplift and is discounted at
 `(1 + w)^-(N - 0.5)`.
 
-**Exit multiple.**
+Exit multiple.
 
 ```
 TV_N = terminal EBITDA * multiple
 ```
 
-This is an **observed market price struck at a date**, the end of year N. It is
-not a stream received through the year. It is therefore discounted over whole
-periods, at `(1 + w)^-N`, with **no** mid-year uplift.
+An exit multiple is an observed market price struck at a date, the end of year N.
+It is not a stream received through the year. It is therefore discounted over
+whole periods, at `(1 + w)^-N`, with no mid-year uplift.
 
 Applying the mid-year factor to both is a common error, and it overstates the
 exit-multiple valuation by about half a year of WACC, roughly 5% at a 12%
@@ -944,7 +993,7 @@ Terminal EBITDA is terminal EBIT plus terminal D&A, on the same post-rent
 definition the comps are quoted on, so the exit multiple and the peer median
 describe the same quantity.
 
-**Value driver.**
+Value driver.
 
 ```
 TV_N = NOPAT_{N+1} * (1 - g / ROIC) / (w - g)
@@ -964,14 +1013,14 @@ the Gordon path implies and the two terminal values are the same number.
 With `terminal.terminal_roic` null the return falls back to the WACC and the
 bracket becomes `(1 - g / w)`, the competitive-equilibrium view that growth in
 perpetuity creates exactly nothing. At ROIC equal to WACC the formula collapses
-to `NOPAT / w` for any `g` at all, which is the cleanest statement of that idea
-available: if a business earns its cost of capital and no more, how fast it grows
-does not change what it is worth. A model in which `g` still moves the answer
-under that assumption has a return assumption hidden inside it somewhere.
+to `NOPAT / w` for any `g` at all: if a business earns its cost of capital and no
+more, how fast it grows does not change what it is worth. A model in which `g`
+still moves the answer under that assumption has a return assumption hidden
+inside it somewhere.
 
 It capitalises a stream rather than observing a price at a date, so it takes the
-Gordon timing and not the exit multiple's: the same half-year uplift under the
-mid-year convention, discounted at `(1 + w)^-(N - 0.5)`.
+Gordon timing: the same half-year uplift under the mid-year convention,
+discounted at `(1 + w)^-(N - 0.5)`.
 
 Datadog at a 10.5% discount rate, with the return falling back to the WACC, puts
 the terminal value at $10,548mm against Gordon's $13,605mm, and value per share
@@ -981,14 +1030,14 @@ spends only $28mm in the first perpetuity year, capex plus the working-capital
 change less D&A, while growth of 2.50% at a 10.5% return on $1,108mm of NOPAT
 requires $264mm. That $236mm of extra reinvestment is $2,952mm of terminal value.
 The $106mm left between $13,499mm and the $13,605mm actually reported is the
-shortcut flow, Gordon struck on the final explicit year grown at `g` rather than
-on the steady state, which is a difference of input and not of method.
+shortcut flow, Gordon struck on the final explicit year grown at `g` instead of
+on the steady state. That is a difference of input, not of method.
 
 Read the other way round, those same Gordon assumptions imply a terminal return
 on capital of 100.5%, a perpetual return that assumes no competitor ever arrives.
-That is the check in §6.5 item 4 used as an input rather than as a warning.
+That is the check in §6.5 item 4, read as an input.
 
-**The walk back to equity never subtracts operating leases**, whichever bridge
+The walk back to equity never subtracts operating leases, whichever bridge
 convention is configured. The projected cash flows pay rent in every explicit
 year and in the terminal perpetuity, so the lease obligation is serviced inside
 the DCF; subtracting the liability as well would charge the same lease twice,
@@ -998,23 +1047,22 @@ claim is therefore still outstanding.
 
 ### 6.5 Cross-checks
 
-These are where a DCF is either coherent or is not, and the engine prints them
-rather than leaving them to be noticed.
+This is where a DCF is either coherent or is not. The engine prints four of them.
 
-1. **Implied exit multiple from the Gordon terminal value**, restated onto the
-   exit method's whole-period discount clock, since the two conventions differ
-   by half a year under mid-year discounting and the comparison against a peer
-   multiple has to be like for like. If Gordon implies 7.7x and the peer set
-   trades at 37.3x, the growth and margin assumptions do not support what the
-   market is paying, and one of the two is wrong.
-2. **Implied perpetuity growth from the exit multiple.** Solving the Gordon
-   formula backwards. An exit multiple that implies 9.8% growth in perpetuity
-   against an 11.9% WACC is a multiple no long-run assumption supports.
-3. **Terminal value as a share of enterprise value**, flagged above 75%. Above
-   that line the valuation is a bet on the terminal assumption rather than on
-   the forecast, and the honest response is to extend the explicit period until
-   the business is mature.
-4. **Reinvestment consistency**, the sharpest of the four. In perpetuity,
+1. Implied exit multiple from the Gordon terminal value, restated onto the exit
+   method's whole-period discount clock, since the two conventions differ by half
+   a year under mid-year discounting and the comparison against a peer multiple
+   has to be like for like. If Gordon implies 7.7x and the peer set trades at
+   37.3x, the growth and margin assumptions do not support what the market is
+   paying, and one of the two is wrong.
+2. Implied perpetuity growth from the exit multiple, solving the Gordon formula
+   backwards. An exit multiple that implies 9.8% growth in perpetuity against an
+   11.9% WACC is a multiple no long-run assumption supports.
+3. Terminal value as a share of enterprise value, flagged above 75%. Above that
+   line the valuation is a bet on the terminal assumption rather than on the
+   forecast, and the honest response is to extend the explicit period until the
+   business is mature.
+4. Reinvestment consistency, the sharpest of the four. In perpetuity,
 
    ```
    g = ROIC * reinvestment rate
@@ -1038,9 +1086,8 @@ rather than leaving them to be noticed.
 
    The implied ROIC is then flagged when negative, above 60%, or below the
    WACC. That last case is the interesting one: it means the model is
-   capitalising growth that destroys value. A terminal assumption that survives
-   this check is internally consistent; one that does not is arithmetic with a
-   story attached.
+   capitalising growth that destroys value. A terminal assumption that fails
+   this check is arithmetic with a story attached.
 
 ---
 
@@ -1049,25 +1096,24 @@ rather than leaving them to be noticed.
 Multiples computed: EV/Revenue, EV/Gross Profit, EV/EBITDA, EV/EBIT and P/E, plus
 revenue growth, EBITDA margin and Rule of 40.
 
-**EV/Gross Profit** is included because for software it is the more honest scale
+EV/Gross Profit is in the list because for software it is the more honest scale
 metric. Gross margin varies enormously across infrastructure and application
-names, and EV/Revenue silently rewards a company for reselling low-margin
-compute at scale. Gross profit is closer to the economics being bought.
+names, and EV/Revenue silently rewards a company for reselling low-margin compute
+at scale. Gross profit is closer to the economics being bought.
 
-**Rule of 40** is TTM revenue growth plus TTM EBITDA margin, in points. The free
-cash flow margin variant is more common in growth equity; EBITDA margin is used
-here because it is comparable across the set from filings alone.
+Rule of 40 is TTM revenue growth plus TTM EBITDA margin, in points. The free cash
+flow margin variant is more common in growth equity. EBITDA margin is used here
+because it is comparable across the set from filings alone.
 
-**Not meaningful.** A multiple is suppressed and flagged, never quietly printed,
-when its denominator is negative or when it exceeds a configured cut-off: 100x
-for EV/EBITDA and EV/EBIT, 75x for P/E, which is lower because net income sits
-below interest, tax and every non-operating item and so reaches zero sooner.
-EV/Revenue and EV/Gross Profit carry no ceiling, because their denominators do
-not approach zero the way an earnings line does; a high revenue multiple is a
-statement about the company rather than an artefact of arithmetic. Past
-those lines the ratio is measuring how close the denominator is to zero, not what
-the market pays for the business, and letting it into a percentile drags the
-whole distribution with it.
+A multiple is suppressed and flagged, never quietly printed, when its denominator
+is negative or when it exceeds a configured cut-off: 100x for EV/EBITDA and
+EV/EBIT, 75x for P/E. The P/E line is lower because net income sits below
+interest, tax and every non-operating item and so reaches zero sooner. EV/Revenue
+and EV/Gross Profit carry no ceiling at all. Their denominators do not approach
+zero the way an earnings line does, and a high revenue multiple is a statement
+about the company. Past the cut-offs the ratio is measuring how close the
+denominator is to zero, and letting it into a percentile drags the whole
+distribution with it.
 
 This matters more than it sounds for a GAAP software comp set. Of the six peers
 in the example file, **not one** produces a meaningful GAAP EV/EBITDA, because
@@ -1075,38 +1121,37 @@ GAAP EBITDA margins run between minus twenty and plus two percent. That is a rea
 finding about the cohort, and the correct output is to say so and lean on
 EV/Revenue and EV/Gross Profit, not to print a 3,000x median.
 
-**Peers are never dropped silently.** A peer that fails to build appears in an
+Peers are never dropped silently. A peer that fails to build appears in an
 exclusions list with the reason. A peer whose EBITDA cannot be formed keeps its
 revenue multiples: a company unprofitable this year is still evidence of what the
 market pays for its revenue.
 
-**The `n` row** in the statistics table is as important as the median. A column
-where two of six peers contributed is a quotation from two companies, and the
-table says so. Percentiles use numpy's linear interpolation between order
-statistics; over a small set they are interpolated values, not observed trades.
+The `n` row in the statistics table is as important as the median. A column where
+two of six peers contributed is a quotation from two companies, and the table
+says so. Percentiles use numpy's linear interpolation between order statistics;
+over a small set they are interpolated values, not observed trades.
 
-**Implied range** applies the peer 25th and 75th percentiles to the target's own
+The implied range applies the peer 25th and 75th percentiles to the target's own
 metric, then walks back through the same EV bridge to a price per share, so a
-comps value and a DCF value are reconcilable rather than merely similar. Rows
-where the target's own metric is not positive are suppressed, because there is no
-sense in applying an EV/EBITDA to a negative EBITDA.
+comps value and a DCF value actually reconcile. Rows where the target's own
+metric is not positive are suppressed, because there is no sense in applying an
+EV/EBITDA to a negative EBITDA.
 
-**Who is in the set is the user's judgment, and this whole section is downstream
-of it.** `comps.peers` is a hand-written list, so every percentile above is a
-quotation from companies somebody chose. That has always been the largest unstated
-assumption in a comp table. §15.1 is the attempt to measure it rather than concede
-it, against labels the filers themselves disclosed, and it reports what a learned
-comp set is worth on a name the model has never seen before: NDCG@10 of 0.415,
-which is +0.279 over ranking candidates by how often anyone names them. That is
-better than every alternative tested and it is still not a comp set an analyst
-should take unread.
+Who is in the set is the user's judgment, and this whole section is downstream of
+it. `comps.peers` is a hand-written list, so every percentile above is a
+quotation from companies somebody chose. That has always been the largest
+unstated assumption in a comp table. §15.1 measures it against labels the filers
+themselves disclosed, and reports what a learned comp set is worth on a name the
+model has never seen before: NDCG@10 of 0.415, +0.279 over ranking candidates by
+how often anyone names them. That is better than every alternative
+tested and it is still not a comp set an analyst should take unread.
 
 ### 7.1 Warranted multiples from fundamentals
 
 A percentile band says what the neighbours trade at. It knows nothing about the
 company it is applied to, so it quietly penalises a name growing faster than its
 set and rewards one growing slower. Across software, EV/Revenue is largely
-explained by growth and margin, and that is a testable claim rather than a saying.
+explained by growth and margin, and that is a testable claim, not a saying.
 
 ```
 EV/Revenue_i = a + b1 * revenue growth_i + b2 * EBITDA margin_i + e_i
@@ -1117,54 +1162,53 @@ target's own growth and margin. The output is the multiple the target's
 characteristics warrant, and the residual against what it actually trades at. The
 residual is the number worth arguing about: what the market pays over or under
 what the fundamentals in the regression explain. Off by default
-(`comps.regression.enabled`), and it is a cross-check on the percentile band
-rather than a replacement for it.
+(`comps.regression.enabled`), and it is a cross-check on the percentile band, not
+a replacement for it.
 
-**It refuses rather than overfits, and on a normal comp set it refuses.** Fitting
-two coefficients and an intercept to six points memorises the peer set. The plane
-passes near every name by construction, the R-squared is high, and the warranted
-multiple is a restatement of the inputs. The fit is therefore withheld below
+On a normal comp set it refuses to fit at all. Two coefficients and an intercept
+against six points memorises the peer set: the plane passes near every name by
+construction, the R-squared is high, and the warranted multiple is a restatement
+of the inputs. The fit is therefore withheld below
 `comps.regression.min_observations`, which defaults to eight, below three
 observations per regressor whatever that minimum is set to, and where the design
 matrix is singular because two drivers move together across the set or one does
 not move at all. The example file's six peers fall below the floor and the engine
 declines. On the three-name fixture set only two of the three carry a GAAP EBITDA
 margin at all (§2.3), so the fit has two usable observations against a floor of
-eight; the note says exactly that, names the peer it dropped and why, and points
+eight. The note says exactly that, names the peer it dropped and why, and points
 at `comps.peers` as the fix.
 
-That refusal is the honest output. A ten-name comp set is a cross-section of ten
-points. It can say that the market pays for growth and roughly how much. It
-cannot support a claim that a coefficient differs from zero at any particular
-confidence, and no p-value is printed for that reason.
+A ten-name comp set is a cross-section of ten points. It can say that the market
+pays for growth and roughly how much. It cannot support a claim that a
+coefficient differs from zero at any particular confidence, and no p-value is
+printed for that reason.
 
-**What comes back when it does run.** Coefficients, t-statistics, R-squared and
-adjusted R-squared, the standard error of the fit, the usable observation count,
-the warranted multiple and the residual. The adjusted figure is the one to quote:
-raw R-squared cannot fall when a regressor is added, so on a sample this size it
-rewards spending a degree of freedom whether or not the driver carries
-information. Below ten observations the t-statistics are labelled indicative
-rather than inferential. They are shown so that an unsupported coefficient is
+When it does run it returns the fitted coefficients with their t-statistics, both
+R-squared figures, the standard error of the fit, and the warranted multiple
+beside its residual, all on a stated count of usable observations. The adjusted
+R-squared is the one to quote: the raw figure cannot fall when a regressor is
+added, so on a sample this size it rewards spending a degree of freedom whether
+or not the driver carries information. Below ten observations the t-statistics
+are labelled indicative. They are shown so that an unsupported coefficient is
 visible, not so that a confidence level can be quoted off them.
 
-**Sign checks, not tuning.** Every driver here raises what a dollar of revenue is
-worth. A negative loading on growth or on margin is not a view of the world, it
-is a symptom that one peer with an extreme multiple is carrying the fit, and it
-is flagged as such. A target sitting outside the peer range on any driver is
-flagged too, because the fitted line is then being extrapolated rather than read.
-A warranted multiple that comes out negative is refused outright.
+Every driver here raises what a dollar of revenue is worth. A negative loading on
+growth or on margin is not a view of the world, it is a symptom that one peer
+with an extreme multiple is carrying the fit, and it is flagged as such. A target
+sitting outside the peer range on any driver is flagged too, because the fitted
+line is then being extrapolated. A warranted multiple that comes out negative is
+refused outright.
 
-**Nothing is imputed.** A peer missing the dependent variable or any driver is
+Nothing is imputed. A peer missing the dependent variable or any driver is
 dropped and named. Filling a missing margin with the peer mean would put that
 name on the fitted line by construction and inflate the R-squared with a figure
 nobody reported.
 
-**The same idea, fitted across a panel rather than a comp set, is §15.2.** Two
-thousand company-quarters buy the degrees of freedom this refusal exists to
-protect, and they introduce four traps a ten-name cross-section never meets. That
-section also reports the first measurement of how often the refusal above
-actually fires on real data: on 45% of sub-vertical cross-sections in the TMT
-universe.
+§15.2 fits the same idea across a panel rather than a comp set. Two thousand
+company-quarters buy the degrees of freedom this refusal exists to protect, and
+they introduce four traps a ten-name cross-section never meets. That section also
+reports the first measurement of how often the refusal above actually fires on
+real data: on 45% of sub-vertical cross-sections in the TMT universe.
 
 ---
 
@@ -1187,14 +1231,14 @@ pro forma NI = acquirer NI
 pro forma shares = acquirer diluted shares + shares issued as consideration
 ```
 
-**One-time deal fees are funded in sources and uses but kept out of the earnings
-walk.** A fee paid once at close is not part of the run-rate earnings the market
+One-time deal fees are funded in sources and uses but kept out of the earnings
+walk. A fee paid once at close is not part of the run-rate earnings the market
 capitalises, and including it would make every large deal look dilutive in year
 one for a reason unrelated to whether the businesses fit. Financing fees go the
 other way: they are capitalised and amortised over the life of the facility, so
 their annual charge does belong in the walk.
 
-**Percentage accretion is withheld when the base will not support it.** The
+Percentage accretion is withheld when the base will not support it. The
 convention is to quote accretion as a percentage of standalone EPS, and that
 percentage fails in two directions. A negative base inverts the sign, so a deal
 that improves a loss prints as dilution. A base near zero explodes the ratio:
@@ -1203,7 +1247,7 @@ into minus eight hundred percent, which describes the denominator rather than th
 transaction. Below a ten-cent floor the engine reports cents per share only and
 says why.
 
-**Breakeven synergies are solved, not searched.** With `S` the run-rate pre-tax
+Breakeven synergies are solved, not searched. With `S` the run-rate pre-tax
 synergy, `phi` the phase-in, `t` the tax rate, `N_pf` pro forma shares and `D` the
 sum of after-tax funding charges:
 
@@ -1214,7 +1258,7 @@ S = [EPS_standalone * N_pf - (NI_acq + NI_tgt - D)] / (1 - t) / phi
 
 `N_pf` does not depend on `S`, so this is exact and needs no iteration.
 
-**Contribution analysis** compares each side's share of combined revenue, EBITDA,
+Contribution analysis compares each side's share of combined revenue, EBITDA,
 EBIT and net income against pro forma ownership, to show whether the target's
 owners receive more of the combined company than the earnings they bring.
 Percentages are withheld where either side is negative: dividing by a combined
@@ -1241,8 +1285,7 @@ with depends on the currency:
 Both are computed, blended at the actual mix, and compared against the full
 calculation. Where they disagree the difference is synergies and financing
 charges, which is precisely what the rule leaves out. The rule is undefined when
-either side loses money, and the engine says so rather than printing a negative
-earnings yield.
+either side loses money, and the engine says so.
 
 ### 8.2 Purchase accounting
 
@@ -1255,13 +1298,13 @@ artefact of the transaction and the street quotes cash EPS.
 default. Switched on it builds the opening balance sheet and rolls the combined
 company forward, adding a result rather than restating the year-one screen.
 
-Four pieces of it are where a reviewer should start, because they are the ones
-most often got wrong. Two more describe how the years after close are built.
+Four pieces of it are most often got wrong, and two more describe how the years
+after close are built.
 
-**Goodwill is a plug, and the deferred tax liability makes it bigger.** The
-excess of the equity purchase price over the book equity acquired is allocated
-first to identifiable intangibles, at the configured share, and whatever is left
-is goodwill. A stock deal is tax free to the seller and carries over the seller's
+Goodwill is a plug, and the deferred tax liability makes it bigger. The excess of
+the equity purchase price over the book equity acquired is allocated first to
+identifiable intangibles, at the configured share, and whatever is left is
+goodwill. A stock deal is tax free to the seller and carries over the seller's
 tax basis, so the write-up exists for book and not for tax. That temporary
 difference is a liability assumed at close:
 
@@ -1280,13 +1323,13 @@ intangibles plus goodwill less the DTL is $3,250mm exactly, and nothing else
 balances. Omit the liability and goodwill is short by that $254.4mm, a quarter of
 the write-up, and the opening balance sheet does not reconcile.
 
-**Goodwill is not amortised, intangibles are.** ASC 350 stopped goodwill
-amortisation in 2001 and replaced it with impairment testing, so no part of that
-$1,844.4mm touches EPS until the day it is written down, all at once. The
-identifiable intangibles, acquired technology and customer relationships, are
-amortised over their useful lives and hit EPS every quarter.
+Goodwill is not amortised, intangibles are. ASC 350 stopped goodwill amortisation
+in 2001 and replaced it with impairment testing, so no part of that $1,844.4mm
+touches EPS until the day it is written down, all at once. The identifiable
+intangibles, acquired technology and customer relationships, are amortised over
+their useful lives and hit EPS every quarter.
 
-**That amortisation has no cash tax deduction behind it.** The DTL unwinds as the
+That amortisation has no cash tax deduction behind it. The DTL unwinds as the
 intangible amortises, which produces a deferred tax benefit, so GAAP tax expense
 looks normal and the book charge is the usual `amortisation * (1 - t)`. Cash tax
 is not reduced at all, because there was never any tax basis to amortise. Free
@@ -1294,19 +1337,19 @@ cash flow therefore gets back only `(1 - t)` of the charge and not the whole of
 it. Adding back the full amortisation overstates cash generation by the tax on
 it, and with it how fast the acquisition debt is repaid.
 
-**The deferred revenue haircut destroys revenue outright.** Acquired deferred
-revenue is remeasured at fair value, which is the cost of delivering the service
-plus a normal margin rather than the amount billed. The difference is revenue the
-target would have recognised and the combined company never will. For a
-subscription business carrying a year of billings in deferred revenue that is a
-visible hole in year-one revenue, and it is why SaaS deals look worse in the
-first year than the run rate says they should. The write-down is shown as a memo
-rather than inside the allocation, because a full fair value exercise would add
-it to identifiable net assets and take the same amount back out of goodwill,
-which nets to nothing for EPS. Its earnings effect, which does not net to
-nothing, is charged against year-one revenue.
+The deferred revenue haircut destroys revenue outright. Acquired deferred revenue
+is remeasured at fair value, which is the cost of delivering the service plus a
+normal margin rather than the amount billed. The difference is revenue the target
+would have recognised and the combined company never will. For a subscription
+business carrying a year of billings in deferred revenue that is a visible hole
+in year-one revenue, and it is why SaaS deals look worse in the first year than
+the run rate says they should. The write-down is shown as a memo rather than
+inside the allocation, because a full fair value exercise would add it to
+identifiable net assets and take the same amount back out of goodwill, which nets
+to nothing for EPS. Its earnings effect, which does not net to nothing, is
+charged against year-one revenue.
 
-**The roll-forward and the sweep.** Year one covers the same trailing twelve
+Then the roll-forward and the sweep. Year one covers the same trailing twelve
 months as the screen above, so the two are directly comparable and the gap
 between them is exactly the purchase accounting. Revenue then compounds at
 `dcf.revenue_growth_start`, margins and capital intensity are held where the
@@ -1316,19 +1359,19 @@ charged on what is left. Interest is charged on the balance at the **start** of
 the year: sweeping out of cash the year has not generated yet would credit the
 deal with a repayment before the money arrives.
 
-**Where book equity is understated, and which way that cuts.** `Financials`
-carries the claims a valuation needs rather than a full balance sheet, so book
-equity acquired is assembled from working capital less borrowings, preferred and
-minority interest. Lease liabilities are deliberately not deducted: ASC 842 books
-a right-of-use asset against the liability at inception and the two stay close,
-so subtracting the liability while the matching asset is absent from the object
-would conjure hundreds of millions of goodwill out of an accounting entry.
-Non-current operating assets are missing for the same reason. Book equity is
-therefore understated, and the excess, the write-up and the amortisation are
+Book equity is understated here, and it is worth knowing which way that cuts.
+`Financials` carries the claims a valuation needs rather than a full balance
+sheet, so book equity acquired is assembled from working capital less borrowings,
+preferred and minority interest. Lease liabilities are deliberately not deducted:
+ASC 842 books a right-of-use asset against the liability at inception and the two
+stay close, so subtracting the liability while the matching asset is absent from
+the object would conjure hundreds of millions of goodwill out of an accounting
+entry. Non-current operating assets are missing for the same reason. So book
+equity is understated, and the excess, the write-up and the amortisation are
 overstated, which makes the deal look more dilutive here than a full opening
-balance sheet would make it, not less. A price at or below book equity is treated
-as a bargain purchase under ASC 805, with the difference flagged and kept out of
-the pro forma rather than carried as negative goodwill.
+balance sheet would make it. A price at or below book equity is treated as a
+bargain purchase under ASC 805, with the difference flagged and kept out of the
+pro forma. Nothing is carried as negative goodwill.
 
 ### 8.3 What is still not modelled
 
@@ -1339,10 +1382,10 @@ on the target's carryforwards, which would cut whatever NOL shield a deal case
 claims (§6.2), and no carryforwards at all inside the roll-forward, so a pro
 forma loss books a full tax benefit at the acquirer's marginal rate. No
 retention, integration or restructuring cost beyond the one-time fees in sources
-and uses. No change-of-control repayment of the target's
-borrowings: they are assumed at close on unchanged terms, and where a covenant
-forces repayment instead, that amount has to be added to the acquisition facility
-and the whole walk rerun on the larger balance. No share buyback. No second bid.
+and uses. No change-of-control repayment of the target's borrowings: they are
+assumed at close on unchanged terms, and where a covenant forces repayment
+instead, that amount has to be added to the acquisition facility and the whole
+walk rerun on the larger balance. No share buyback. No second bid.
 
 Left at its default the module stops before all of this, and the year-one screen
 is exactly what it says it is: two sets of trailing twelve month figures, telling
@@ -1362,7 +1405,7 @@ and terminal growth together, revalues the company on every draw, and reports
 percentiles of enterprise value and of value per share alongside the probability
 that value clears the quoted price.
 
-### 9.1 The draw is joint, and that is the whole point
+### 9.1 The draw is joint
 
 The commonest error in DCF Monte Carlo is four independent normals. Independence
 asserts that a company growing twice as fast as expected is no more likely than
@@ -1370,8 +1413,8 @@ average to reach a better terminal margin, and that the market would discount th
 two cases at the same rate. Neither is true of any business anyone has ever
 covered.
 
-The draws come from a multivariate normal with this correlation matrix, which is
-a module-level constant so that a reader can see it and change it:
+The draws come from a multivariate normal with this correlation matrix, a
+module-level constant so that a reader can see it and change it:
 
 ```
                  growth   margin     WACC   term g
@@ -1404,7 +1447,7 @@ the pair that the offending direction loads on, because in practice the failure
 is a transitivity one, two strong correlations of opposite sign forcing a third
 that was entered by hand.
 
-### 9.2 Correlation widens the distribution here, and the common intuition is wrong
+### 9.2 Correlation widens the distribution
 
 Analysts often say that correlating the drivers narrows the answer, on the
 reasoning that independence generates combinations that do not occur. It does
@@ -1438,7 +1481,7 @@ Narrowing would require believing that growth carries its own discount rate with
 it, that `corr(growth, WACC)` is positive, which is the riskier-company,
 higher-beta view. That is a defensible matrix and it is one line to enter. It is
 not the one argued above, and the engine reports the spread the stated signs
-produce rather than the spread the folklore expects.
+produce, not the spread the folklore expects.
 
 ### 9.3 Truncation, not clipping
 
@@ -1458,7 +1501,7 @@ terminal growth to 8.5% with a 1.1 point spread on it and half a point on the
 discount rate, and 498 draws in 10,000 are rejected, which is where the flag
 fires.
 
-### 9.4 What the probabilities are, and what they are not
+### 9.4 What the probabilities mean
 
 `P(value > price)` is the share of surviving draws whose value exceeds the quoted
 price. It is a statement about a model, conditional on four standard deviations
@@ -1501,8 +1544,8 @@ inputs. For Datadog the two agree at a relative gap of zero. A disagreement
 raises rather than prints: if the two paths have diverged, the distribution is
 centred on a number the rest of the engine does not report.
 
-**Limitations left in.** Only year-one revenue growth is shocked, matching the
-assumption the config exposes, so the fade converges on an unshocked terminal
+Three limitations are left in. Only year-one revenue growth is shocked, matching
+the assumption the config exposes, so the fade converges on an unshocked terminal
 revenue growth rate and the spread on the final explicit year is narrower than a
 parallel shift of the whole path would give. The exit-multiple terminal value is
 not simulated, because the exit multiple is not one of the drawn drivers and
@@ -1553,28 +1596,27 @@ It sits below the levered cost of equity by exactly
 
 This is the whole argument, and both camps are genuinely defensible.
 
-**Modigliani-Miller discounts the shield at the cost of debt.** It says the
-shield is exactly as safe as the interest payment that creates it: the company
-either pays the coupon and takes the deduction or it does neither, so the two
-streams carry one risk. That is right when the debt schedule is **fixed in
-dollars**, a term loan amortising on a stated schedule, because then next year's
-interest is known today whatever happens to the enterprise.
+Modigliani-Miller discounts the shield at the cost of debt. It says the shield is
+exactly as safe as the interest payment that creates it: the company either pays
+the coupon and takes the deduction or it does neither, so the two streams carry
+one risk. That is right when the debt schedule is **fixed in dollars**, a term
+loan amortising on a stated schedule, because then next year's interest is known
+today whatever happens to the enterprise.
 
-**Harris-Pringle discounts it at the unlevered cost of equity.** It says the
-shield is as risky as the firm. That is right when debt is **rebalanced** to a
-constant percentage of firm value, because then the debt balance, and with it the
-interest and the shield, moves with the enterprise and inherits its risk.
-**Miles-Ezzell** is the same view with one year of grace: next year's debt is
-already known, so the first year's shield is discounted at the cost of debt and
-everything after it at `Ku`. The difference between Miles-Ezzell and
-Harris-Pringle is one year of one rate on one stream, which is second order
-beside the choice of camp.
+Harris-Pringle discounts it at the unlevered cost of equity. It says the shield
+is as risky as the firm. That is right when debt is **rebalanced** to a constant
+percentage of firm value, because then the debt balance, and with it the interest
+and the shield, moves with the enterprise and inherits its risk. Miles-Ezzell is
+the same view with one year of grace: next year's debt is already known, so the
+first year's shield is discounted at the cost of debt and everything after it at
+`Ku`. The difference between Miles-Ezzell and Harris-Pringle is one year of one
+rate on one stream, which is second order beside the choice of camp.
 
-**A constant-WACC model already assumes constant leverage.** That is what a
-single discount rate applied to every year means: the weights never move, so the
-debt is rebalanced to value in every period. The rate consistent with a WACC DCF
-is therefore the second one, `Ku`. Since the cost of debt normally sits below
-`Ku`, an APV run at the cost of debt comes out systematically **above** the WACC
+A constant-WACC model already assumes constant leverage. That is what a single
+discount rate applied to every year means: the weights never move, so the debt is
+rebalanced to value in every period. The rate consistent with a WACC DCF is
+therefore the second one, `Ku`. Since the cost of debt normally sits below `Ku`,
+an APV run at the cost of debt comes out systematically **above** the WACC
 answer.
 
 That gap is not an error to be tuned away. It is the price of a fixed debt
@@ -1582,17 +1624,17 @@ schedule over a rebalanced one, and a company that really does hold its debt fla
 in dollars while its equity compounds is genuinely worth more than a
 constant-WACC model says.
 
-**Default: `cost_of_debt`, Modigliani-Miller.** It is the textbook APV, and it is
-not the rate that reconciles with a constant WACC, which is the argument above.
-Leaving it as the default puts that gap on the page rather than assuming it away,
-and the checks report what the other camp would give, to the dollar. Set
+The default is `cost_of_debt`, Modigliani-Miller. It is the textbook APV, and by
+the argument above it is not the rate that reconciles with a constant WACC.
+Leaving it as the default puts that gap on the page, and the checks report what
+the other camp would give, to the dollar. Set
 `apv.shield_discount_rate: unlevered_cost_of_equity` when the point of the
 exercise is to reconcile against the WACC rather than to price a fixed schedule.
 Zscaler, on $1,696mm of debt, values the shield at $616mm discounted at a 6.66%
 cost of debt and $335mm discounted at a 10.34% `Ku`, a swing of $281mm against a
 DCF enterprise value of $8,809mm.
 
-### 10.3 The terminal shield, without which the comparison is rigged
+### 10.3 The terminal shield
 
 A WACC DCF capitalises the tax benefit forever, because the rate that discounts
 the terminal value is itself net of it. An APV that shields only the explicit
@@ -1604,40 +1646,38 @@ the $616mm total, 81% of the whole financing side effect, and $228mm of $335mm a
 `Ku`.
 
 That does assume debt grows at `g` in perpetuity while the explicit period held
-it flat, which is an inconsistency inside the schedule rather than a hidden one.
-It is stated in the notes on every run, and it vanishes when `g` is zero.
+it flat. The inconsistency sits inside the schedule, it is stated in the notes on
+every run, and it vanishes when `g` is zero.
 
-### 10.4 The reconciliation, which is the point of the exercise
+### 10.4 The reconciliation
 
 APV and the WACC answer agree when four conditions hold together, and each one
 that fails is reported with the basis points or the dollars it costs.
 
-1. **The shield is discounted at `Ku`, not at `Kd`.** Section 10.2. Zscaler:
-   $281mm.
-2. **The WACC is the one its own asset beta implies under rebalancing**, which is
+1. The shield is discounted at `Ku`, not at `Kd`. Section 10.2. Zscaler: $281mm.
+2. The WACC is the one its own asset beta implies under rebalancing, which is
    `w = Ku - (D/V) * t * Kd`. The WACC build unlevers with Hamada, the fixed-debt
    relation, and relevers with a debt beta of zero, so the WACC handed in is
    normally a few basis points away from that. On a levered filer this is usually
    the largest single term in the difference, and it is a property of the beta
    convention rather than of the APV. Zscaler: 10.24% implied against the 10.27%
    the DCF used, a gap of 3bp.
-3. **The leverage in the WACC weights equals the leverage in the model.** The
-   weights are market debt over market capitalisation; the model's own leverage
-   is debt over the enterprise value the DCF produced. Zscaler's are 5.99% and
-   19.26%, because the DCF values the company well below its market
-   capitalisation. A model that disagrees with the market by that much is
-   discounting at a capital structure it does not believe, and the check says so.
-4. **The mid-year convention is off, or its effect is taken out.** Moving every
-   flow half a year earlier multiplies each valuation by `(1 + r)^0.5` at its own
+3. The leverage in the WACC weights equals the leverage in the model. The weights
+   are market debt over market capitalisation; the model's own leverage is debt
+   over the enterprise value the DCF produced. Zscaler's are 5.99% and 19.26%,
+   because the DCF values the company well below its market capitalisation. A
+   model that disagrees with the market by that much is discounting at a capital
+   structure it does not believe, and the check says so.
+4. The mid-year convention is off, or its effect is taken out. Moving every flow
+   half a year earlier multiplies each valuation by `(1 + r)^0.5` at its own
    rate, and the rates differ, so the identity picks up a factor of
    `((1 + Ku) / (1 + w))^0.5`. `mid_year_wedge` reports that amount exactly, and
    subtracting it restores the identity.
 
 With all four satisfied, on a constructed constant-leverage firm, the two agree
-to the last decimal. On a real filer they do not, and the residual is itemised
-rather than described.
+to the last decimal. On a real filer they do not, and the residual is itemised.
 
-**Where there is no debt there is nothing to reconcile, and that is the test.**
+Where there is no debt there is nothing to reconcile, and that is the test.
 Datadog, with its in-the-money convertibles treated as the equity they are
 (§4.2), carries no debt at all. The shield is zero, `Ku` equals the levered cost
 of equity because the asset beta equals the equity beta, and APV is the WACC DCF
@@ -1646,15 +1686,15 @@ else there would be a bug in the discounting rather than a finding about
 financing. MongoDB, whose only debt is a $26mm finance lease and whose debt
 weight is therefore under a tenth of a percent, differs by 0.06%.
 
-**One honest failure mode.** Debt is held flat at the bridge's current balance
-across the explicit period, and the interest charged on it is the WACC's own
-pre-tax cost of debt rather than the filed interest expense. The rate has to be
-the WACC's `Kd`, or the reconciliation is comparing two different credit views
+One honest failure mode. Debt is held flat at the bridge's current balance across
+the explicit period, and the interest charged on it is the WACC's own pre-tax
+cost of debt rather than the filed interest expense. The rate has to be the
+WACC's `Kd`, or the reconciliation is comparing two different credit views
 instead of two different financing policies. The cost is that a filer whose
 coupon sits far below its synthetic yield, which is the zero-coupon convertible
 signature, gets a modelled shield far larger than the deduction it will actually
 claim. Zscaler's modelled interest of $113mm is 9.6x the $12mm it reports on the
-same debt, and the checks say so rather than leaving it to be found.
+same debt, and the checks say so.
 
 ---
 
@@ -1674,7 +1714,7 @@ Run with full knowledge, the same company shows the twelve months to 30 June
 2026, a $16mm operating profit on $3,967mm. Those are different companies to a
 model, and the second one did not exist on 1 March 2026.
 
-### 11.2 The separation is structural, and it is proved afterwards
+### 11.2 The separation is structural
 
 `knowledge_date` runs through the whole data layer. `CompanyFacts` and the EDGAR
 client discard every fact filed after it, including restatements, later
@@ -1688,16 +1728,15 @@ separate object that the valuation path never receives. There is no route by
 which a valuation can reach a price it should not have seen, because the thing
 holding those prices is not in scope where the valuation runs.
 
-The result is then proved rather than asserted. Every line item carries the
-filing date behind it (§2.7), and the provenance of every observation is walked
-afterwards to confirm that nothing reaching the valuation was filed after its
-date. The test is the filing date, not the period end: a fiscal year ending 31
-December is not knowable on 2 January, it becomes knowable when the 10-K is filed
-in February. A client built without a knowledge date, a cached payload reused
-from a later run, a fixture loaded by the wrong helper: all three pass every
-configuration check and all three are caught here. A leak stops the run rather
-than being recorded against one observation, because it invalidates the result
-rather than costing one row of it.
+The result is then proved, not asserted. Every line item carries the filing date
+behind it (§2.7), and the provenance of every observation is walked afterwards to
+confirm that nothing reaching the valuation was filed after its date. The test is
+the filing date, not the period end: a fiscal year ending 31 December is not
+knowable on 2 January, it becomes knowable when the 10-K is filed in February. A
+client built without a knowledge date, a cached payload reused from a later run,
+a fixture loaded by the wrong helper: all three pass every configuration check
+and all three are caught here. A leak stops the run, because it invalidates the
+result rather than costing one row of it.
 
 ### 11.3 Survivorship bias is present and is not fixed here
 
@@ -1710,12 +1749,11 @@ a sector with as much delisting and acquisition as this one.
 The honest fix is a point-in-time universe: the SEC's `company_tickers.json` as
 it stood at each valuation date, or a delisting-complete vendor file. This
 harness does not have one, and no statistic it produces should be read as though
-it did. The caveat is attached to every result rather than left in the
-documentation. Where a company had not filed by the valuation date, the
-observation is recorded as skipped with the reason attached and never dropped, so
-the count of what was not valued stays visible; a name that fails to parse is
-recorded as failed, which is a different fact about the world and is counted
-separately.
+it did. The caveat is attached to every result. Where a company had not filed by
+the valuation date, the observation is recorded as skipped with the reason
+attached and never dropped, so the count of what was not valued stays visible; a
+name that fails to parse is recorded as failed, which is a different fact about
+the world and is counted separately.
 
 Every fitted model in §15 inherits this, and each one inherits it by a different
 route and in a different direction. §14.4 tabulates the five, with the measured
@@ -1756,28 +1794,28 @@ measures the mechanism, which turns out not to be the one the folklore states:
 overlapping windows alone do not inflate a t-statistic, and overlapping windows
 plus a persistent score do.
 
-**Conventions.** Returns are price returns, entry at the last close on or before
-the valuation date and exit at the first close on or after the horizon, counted
-in calendar days. The price layer carries closes rather than a total-return
-index, so a dividend-paying name's realised figure understates the holding-period
-return by its yield. No name in the technology universe this engine targets pays
-a material one, but the convention is stated rather than assumed. An observation
+Conventions. Returns are price returns, entry at the last close on or before the
+valuation date and exit at the first close on or after the horizon, counted in
+calendar days. The price layer carries closes rather than a total-return index,
+so a dividend-paying name's realised figure understates the holding-period return
+by its yield. No name in the technology universe this engine targets pays a
+material one, but the convention is stated here anyway. An observation
 whose horizon runs past the end of the price series records no return and is
-excluded, rather than being scored over a shorter holding period, which would mix
+excluded, instead of being scored over a shorter holding period, which would mix
 holding periods inside one coefficient. Where the valuation price and the scoring
 entry price disagree by more than half a percent the run flags it: the two feeds
 disagree about what the stock closed at, and the return is being measured from a
 different point than the call was made.
 
-**The risk-free rate.** Without a per-date mapping of the ten-year yield, one
-rate from the assumptions file is applied across the whole sample. That is not
-lookahead, but it is wrong in its own way: the risk-free rate moved several
-hundred basis points across 2023 to 2026, so holding it flat suppresses the part
-of the discount rate that was genuinely different at each date and pushes all the
-variation in measured upside onto the fundamentals. Supplying `risk_free_by_date`
-fixes it, and a missing date in that mapping is an error rather than a quiet
-fallback to the file, because reverting to a different rate for some dates and
-not others would make the sample incomparable with itself.
+One rate covers the risk-free rate across the whole sample, taken from the
+assumptions file, because there is no per-date mapping of the ten-year yield.
+That is not lookahead, but it is wrong in its own way: the risk-free rate moved
+several hundred basis points across 2023 to 2026, so holding it flat suppresses
+the part of the discount rate that was genuinely different at each date and
+pushes all the variation in measured upside onto the fundamentals. Supplying
+`risk_free_by_date` fixes it, and a missing date in that mapping is an error
+rather than a quiet fallback to the file, because reverting to a different rate
+for some dates and not others would make the sample incomparable with itself.
 
 `techval backtest DDOG,MDB,ZS --from 2024-01-01 --to 2025-09-30 --horizon 252`
 runs it over quarter ends, and `--dates` supplies an explicit list instead.
