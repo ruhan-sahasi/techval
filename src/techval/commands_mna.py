@@ -639,6 +639,25 @@ def precedents(
                 "one.[/dim]"
             )
 
+        # A ticker the SEC's current file does not carry is resolved off the
+        # registrant's own cover page, and that is weaker evidence than the
+        # ticker file: it is authoritative for the date it names and silent
+        # about every other one. A reader comparing two rows of this table has
+        # to be able to tell which kind of resolution produced each, so the rung
+        # is printed rather than left inside the client.
+        recovered = []
+        for name in names:
+            if name in pinned:
+                continue
+            try:
+                resolved = client.resolve_ticker(name)
+            except TechvalError:
+                continue
+            if resolved.source == "former-ticker index" and resolved.note:
+                recovered.append(resolved.note)
+        for note in recovered:
+            console.print(f"[dim]{note}[/dim]")
+
         result = build_precedents(
             names,
             client,
