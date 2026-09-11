@@ -583,6 +583,51 @@ class MnaAssumptions(_Base):
     )
 
 
+class WarrantedAssumptions(_Base):
+    """A fitted warranted multiple, and the gap to where the company trades."""
+
+    enabled: bool = False
+    target: Literal["ev_revenue", "ev_gross_profit", "ev_ebitda"] = "ev_revenue"
+    demean_by_date: bool = Field(
+        True,
+        description=(
+            "Remove each date's cross-sectional mean before fitting. Multiples "
+            "re-rate market wide: software traded at 15x revenue in 2021 and 5x in "
+            "2023 on the same fundamentals, because the discount rate moved, not "
+            "the companies. A model fitted across both without this learns to read "
+            "the rate cycle off company characteristics and calls it a valuation."
+        ),
+    )
+    min_train_observations: int = Field(
+        150,
+        description="Below this the residual is noise and the model reports nothing.",
+    )
+
+
+class SignalAssumptions(_Base):
+    """Whether a score predicts anything, tested against forward returns."""
+
+    enabled: bool = False
+    horizon_months: int = Field(12, ge=1, le=36)
+    buckets: int = Field(5, ge=2, le=10)
+    min_names_per_date: int = Field(
+        20,
+        description=(
+            "A rank correlation across eight companies is not a result. Dates with "
+            "fewer names are dropped from the information coefficient series."
+        ),
+    )
+    overlapping_windows: bool = Field(
+        True,
+        description=(
+            "Twelve month returns sampled quarterly share eleven months of their "
+            "path, so the coefficients are autocorrelated and a naive t-statistic "
+            "on them is roughly double what it should be. Left true, the harness "
+            "reports a Newey-West standard error and says so."
+        ),
+    )
+
+
 class MLAssumptions(_Base):
     """Shared settings for everything fitted rather than assumed."""
 
@@ -606,6 +651,8 @@ class MLAssumptions(_Base):
     peers: PeerModelAssumptions = Field(default_factory=PeerModelAssumptions)
     forecast: ForecastAssumptions = Field(default_factory=ForecastAssumptions)
     mna: MnaAssumptions = Field(default_factory=MnaAssumptions)
+    warranted: WarrantedAssumptions = Field(default_factory=WarrantedAssumptions)
+    signals: SignalAssumptions = Field(default_factory=SignalAssumptions)
 
 
 class Assumptions(_Base):
