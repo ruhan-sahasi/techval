@@ -44,6 +44,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from . import tags
 from .config import Assumptions
 from .financials import Financials
 
@@ -77,6 +78,12 @@ class EVBridge:
     convertible_treatment: str
     notes: list[str] = field(default_factory=list)
 
+    # Finance leases the filer tags inside its own debt caption, so they are part
+    # of ``straight_debt`` and are NOT in ``finance_lease``. Reported so the debt
+    # row can say what is inside it.
+    finance_lease_in_straight_debt: float = 0.0
+    debt_basis: str = ""
+
     @property
     def total_debt(self) -> float:
         return (
@@ -109,11 +116,25 @@ class EVBridge:
         return fin.ebit, "EBIT (after operating lease cost, per ASC 842)"
 
     def rows(self) -> list[tuple[str, float]]:
+        """The bridge as line items, each named for what is inside it.
+
+        The debt row changes its own label rather than its value when the filer
+        bundles finance leases into its debt caption. A reader who sees
+        "Straight debt 143,448" beside "Finance leases 0.0" would reasonably
+        conclude Verizon has no finance leases; what is true is that they are in
+        the row above, because the concept the filer tags is called "long-term
+        debt and capital lease obligations" and there is no split to recover.
+        """
+        debt_label = "+ Straight debt"
+        if self.finance_lease_in_straight_debt:
+            debt_label = "+ Debt, finance leases inside"
+        elif "finance leases inside it" in self.debt_basis:
+            debt_label = "+ Debt and finance leases"
         return [
             ("Share price", self.price),
             ("Diluted shares (mm)", self.diluted_shares),
             ("Equity value", self.equity_value),
-            ("+ Straight debt", self.straight_debt),
+            (debt_label, self.straight_debt),
             ("+ Convertible notes", self.convertible_in_debt),
             ("+ Finance leases", self.finance_lease),
             ("+ Operating leases", self.operating_lease_in_debt),
@@ -220,6 +241,24 @@ def build_ev_bridge(
                 "multiples will be suppressed rather than shown inconsistently."
             )
 
+    # The concepts behind the debt figure, but only where they change what the
+    # figure means. A non-current line plus a current line is what the row label
+    # already says, and a note on every company in a comp set trains a reader to
+    # skip the block on the company where it matters, which is the failure the
+    # read-as-zero flags were criticised for. Two cases do change the meaning: a
+    # concept that bundles finance leases into the debt, and a total read off a
+    # single tag because one leg of the balance sheet could not be resolved.
+    from_combined = len(fin.debt_tags) == 1 and fin.debt_tags[0] in tags.DEBT_COMBINED
+    if set(fin.debt_tags) & tags.INCLUDES_FINANCE_LEASES or from_combined:
+        notes.append(f"Debt is read from {fin.debt_basis}.")
+    if fin.finance_lease_inside_debt:
+        notes.append(
+            f"{fin.finance_lease_inside_debt:,.0f}mm of finance lease liabilities "
+            "sits inside that debt figure rather than on the finance lease line, "
+            "because the filer tags the two together. The finance lease row below "
+            "shows only what is tagged separately, so nothing is counted twice."
+        )
+
     shares = fin.shares_for_valuation
 
     # A treasury-stock count is built from outstanding shares and award tables,
@@ -261,6 +300,30 @@ def build_ev_bridge(
     ev_including = core + fin.operating_lease_liability
     enterprise_value = ev_including if capitalize else ev_excluding
 
+    # An enterprise value below the market capitalisation is arithmetic, not an
+    # error: it says the claims ahead of the common are smaller than the liquid
+    # assets behind it. It is also what a debt figure read as zero looks like, so
+    # the bridge states which of the two it is instead of leaving the reader to
+    # guess. Comcast printed an enterprise value below its own market
+    # capitalisation for a quarter of a trillion dollars of reasons, and the
+    # table said nothing at all.
+    if enterprise_value < equity_value:
+        total = (
+            fin.straight_debt
+            + convertible_in_debt
+            + finance_lease
+            + operating_lease_in_debt
+            + fin.preferred
+            + fin.nci
+        )
+        notes.append(
+            f"Enterprise value sits {equity_value - enterprise_value:,.0f}mm below "
+            f"the market capitalisation because cash and short-term investments of "
+            f"{liquid:,.0f}mm exceed the {total:,.0f}mm of debt, preferred and "
+            "minority interest ahead of the common. Read it against the balance "
+            "sheet: a debt figure that failed to resolve looks exactly like this."
+        )
+
     return EVBridge(
         ticker=fin.ticker,
         price=price,
@@ -287,6 +350,8 @@ def build_ev_bridge(
         ),
         convertible_treatment=treatment,
         notes=notes,
+        finance_lease_in_straight_debt=fin.finance_lease_inside_debt,
+        debt_basis=fin.debt_basis,
     )
 
 
