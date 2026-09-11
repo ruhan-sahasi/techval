@@ -64,7 +64,7 @@ import numpy as np
 import pandas as pd
 
 from ..errors import ConfigError, NotMeaningfulError
-from .protocol import EvalResult, spearman
+from .protocol import EvalResult, PairedDelta, spearman
 
 # Mirrors assumptions.ml.walk_forward_folds. A caller holding an Assumptions
 # object should pass its value; either way the number actually used is written
@@ -423,9 +423,14 @@ def evaluate_ranking(
     1 says more than counting hits, and NDCG is built for exactly that.
 
     ``EvalResult.folds`` carries the per-query NDCG rather than per-period fold
-    scores, so ``fold_sd`` is the dispersion across targets. That is the right
-    error bar for this task: one target with an obvious peer set can carry a
-    mean across five, and the standard deviation is where that shows.
+    scores, and the result says so: ``fold_unit`` is ``"query"``, so ``fold_sd``
+    is the dispersion across targets and ``verdict`` reports it as that rather
+    than as fold-to-fold noise. Across-target spread is worth printing because
+    one target with an obvious peer set can carry a mean across five, but it is
+    not an error bar on the lift, since targets differ mostly in ways the model
+    and the baseline share. The error bar on the lift is the per-query paired
+    difference between the two, computed here from the same aligned scores and
+    carried in ``EvalResult.paired``.
 
     With no baseline supplied the comparison is the expected NDCG of a uniform
     random ordering of the same candidate list, computed in closed form rather
@@ -538,6 +543,26 @@ def evaluate_ranking(
         "means the ordering carries no information about comparability."
     )
 
+    # The model and the baseline were scored on identical queries, so the
+    # per-query difference is paired by construction and its own dispersion is
+    # the error bar on the lift. The across-target sd in fold_sd is not: targets
+    # differ mostly in ways both methods share.
+    paired: PairedDelta | None = None
+    differences = np.asarray(scores, dtype=float) - np.asarray(base_scores, dtype=float)
+    if differences.size >= 2:
+        sd_diff = float(np.std(differences, ddof=1))
+        standard_error = sd_diff / float(np.sqrt(differences.size))
+        paired = PairedDelta(
+            mean=float(differences.mean()),
+            sd=sd_diff,
+            standard_error=standard_error,
+            t=float(differences.mean() / standard_error)
+            if standard_error
+            else float("inf"),
+            win_rate=float((differences > 0).mean()),
+            n=int(differences.size),
+        )
+
     return EvalResult(
         metric=f"ndcg@{k}",
         score=float(np.mean(scores)),
@@ -547,6 +572,8 @@ def evaluate_ranking(
         higher_is_better=True,
         folds=scores,
         notes=notes,
+        fold_unit="query",
+        paired=paired,
     )
 
 

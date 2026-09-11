@@ -2138,11 +2138,14 @@ def paired_lift(
     """Per-query difference between the encoder and each baseline, and its dispersion.
 
     The statistic ``EvalResult.fold_sd`` reports for a ranking task is the
-    spread of NDCG ACROSS TARGETS, and ``verdict`` compares the lift to it. That
-    is a deliberately brutal bar and it answers the wrong question. Targets
-    differ enormously in how findable their peers are, so the across-target
-    spread is dominated by variation both methods share, and a lift can be
-    perfectly reliable while sitting well inside it.
+    spread of NDCG ACROSS TARGETS, and the result says so: ``evaluate_ranking``
+    sets ``fold_unit`` to ``"query"``, ``verdict`` reports the spread as
+    across-query dispersion rather than judging the lift against it, and the
+    paired statistic it cites instead is ``EvalResult.paired``, computed there
+    from the same aligned scores. Targets differ enormously in how findable
+    their peers are, so the across-target spread is dominated by variation both
+    methods share, and a lift can be perfectly reliable while sitting well
+    inside it.
 
     The question is whether the encoder beats the baseline ON THE SAME TARGET,
     so the difference is taken query by query and its own mean and standard

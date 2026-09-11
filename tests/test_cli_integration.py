@@ -45,6 +45,7 @@ from techval.config import Assumptions
 from techval.edgar import CompanyFacts, DimensionedFact
 from techval.errors import MissingDataError
 from techval.market import CsvSource
+from techval.merger import run_merger
 
 FIXTURES = Path(__file__).parent / "fixtures"
 PRICES = FIXTURES / "prices"
@@ -669,3 +670,70 @@ def test_the_signal_section_says_what_the_sample_was(tmp_path):
     # And the convention that produced it, so the exclusion is a stated choice
     # rather than a default nobody saw.
     assert "--delisting" in flat
+
+
+# --------------------------------------------------------------------------- #
+# the merger command renders to its last row with purchase accounting on
+# --------------------------------------------------------------------------- #
+
+
+MERGER_BODY = (
+    "merger:\n"
+    "  offer_premium: 0.30\n"
+    "  purchase_accounting:\n"
+    "    enabled: true\n"
+)
+
+
+def run_merger_command(*args: str):
+    result = runner.invoke(C.app, ["merger", "DDOG", "MDB", "--as-of", AS_OF, *args])
+    if result.exception is not None and not isinstance(result.exception, SystemExit):
+        raise result.exception
+    return result
+
+
+def test_merger_with_purchase_accounting_renders_to_the_last_row(tmp_path):
+    """The flag's own section prints rather than dying at the accretion row.
+
+    ``accretion_by_year`` holds (year, dollars, percent or None) tuples, and the
+    renderer iterated them as if they were scalars, so every run with
+    ``merger.purchase_accounting.enabled`` computed a correct model and then
+    crashed formatting the last row of the pro forma table. Nothing in the suite
+    ran the command end to end with the flag on, which is how it survived: this
+    is that test.
+    """
+    result = run_merger_command("-c", str(_config(tmp_path, MERGER_BODY)))
+    assert result.exit_code == 0
+    assert "Purchase accounting: opening balance sheet" in result.output
+    assert "Pro forma" in result.output
+    assert "Accretion / (dilution)" in result.output
+
+
+def test_the_accretion_row_prints_the_dollars_the_model_computed(tmp_path):
+    """The rendered cells are the tuple's per-share dollars, not any other field.
+
+    The section could print SOMETHING and still lie, so the same fixtures are run
+    through ``run_merger`` directly and every per-share figure the model computed
+    is asserted to appear in the rendered row, formatted exactly as ``_money``
+    formats it. The percent half follows the PurchaseAccounting contract: shown
+    where the model quoted one, NM where standalone EPS was too thin to divide by.
+    """
+    config = _config(tmp_path, MERGER_BODY)
+    assumptions, client, market = C._setup(config, True, AS_OF)
+    acq_fin, acq_price, acq_bridge = C._load("DDOG", client, market, assumptions)
+    tgt_fin, tgt_price, tgt_bridge = C._load("MDB", client, market, assumptions)
+    r = run_merger(
+        acq_fin, tgt_fin, acq_bridge, tgt_bridge, acq_price, tgt_price, assumptions
+    )
+    pa = r.purchase_accounting
+    assert pa is not None and pa.accretion_by_year
+
+    result = run_merger_command("-c", str(config))
+    assert result.exit_code == 0
+    flat = "".join(result.output.split())
+    for _, dollars, _ in pa.accretion_by_year:
+        shown = f"({abs(dollars):,.3f})" if dollars < 0 else f"{dollars:,.3f}"
+        assert shown in flat, f"{shown} is missing from the accretion row"
+    for _, _, pct in pa.accretion_by_year:
+        if pct is not None:
+            assert f"{pct:.1%}" in flat, f"{pct:.1%} is missing from the percent row"
