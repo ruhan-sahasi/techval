@@ -74,7 +74,7 @@ from techval.errors import DataSourceError, MissingDataError
 
 # Bumped when the parser changes in a way that would alter a cached result, so a
 # stale cache from an older parser is re-read rather than trusted.
-PARSER_VERSION = 2
+PARSER_VERSION = 4
 
 # Plausibility band for a disclosed compensation peer group. Consultants build
 # these to give a defensible median, which needs enough names to be stable and
@@ -301,6 +301,15 @@ def _core(tokens: Sequence[str]) -> list[str]:
     return out
 
 
+# The Commission's ticker file appends the state of incorporation to a
+# registrant's title, as a slash and a two-letter code, sometimes closed by a
+# second slash: "APPLIED MATERIALS INC /DE", "QUALCOMM INC/DE", "CORNING INC
+# /NY", "CHARTER COMMUNICATIONS, INC. /MO/". It is not part of the name and no
+# proxy ever writes it. Matched at the end of the string only, and only after a
+# slash, so a real name ending in two letters is untouched.
+_STATE_OF_INCORPORATION = re.compile(r"/\s*[A-Za-z]{2}\s*/?\s*$")
+
+
 def normalise_name(raw: str) -> tuple[str, str]:
     """A company name in the two forms every lookup is tried against.
 
@@ -314,7 +323,17 @@ def normalise_name(raw: str) -> tuple[str, str]:
     stripped form alone leaves the discarded suffix word sitting unconsumed in
     the blob for a shorter ticker to match inside.
     """
-    toks = _tokens(raw)
+    # The state-of-incorporation marker is removed before tokenising rather
+    # than added to the suffix list, because "de" and "ny" are ordinary word
+    # fragments and a suffix rule that stripped them would also strip the tail
+    # of a real name. Left in, it is fatal rather than cosmetic: the marker
+    # tokenises into a trailing "de", the suffix stripper stops on it before it
+    # reaches "inc", and the core form of "APPLIED MATERIALS INC /DE" comes out
+    # as "appliedmaterialsincde", which no proxy's "Applied Materials" can ever
+    # meet. Across the live file 291 of 10,407 registrants carry one, and they
+    # account for 121 of the 1,205 peer spans this module could not resolve
+    # over the seed universe, Applied Materials and Qualcomm among them.
+    toks = _tokens(_STATE_OF_INCORPORATION.sub("", raw))
     full = "".join(toks)
     core = "".join(_core(toks))
     # Two characters is the floor, not three, because "F5, Inc." and "F5
@@ -330,12 +349,21 @@ def normalise_name(raw: str) -> tuple[str, str]:
 
 @dataclass(frozen=True)
 class NameCandidate:
-    """One registrant a normalised name could refer to."""
+    """One registrant a normalised name could refer to.
+
+    ``listing_rank`` is the symbol's position in the Commission's own ticker
+    file, which orders a registrant's symbols with the primary listing first.
+    It is what decides between two symbols of one registrant; see
+    ``_pick_symbol`` for why guessing from the symbol itself does not work. The
+    default is a sentinel above any real position, so a candidate built from a
+    former name, which the file does not rank, sorts after every ranked one.
+    """
 
     ticker: str
     cik: int
     title: str
     from_full_form: bool
+    listing_rank: int = 1 << 30
 
 
 class NameIndex(dict):
@@ -390,15 +418,32 @@ class NameIndex(dict):
         return tuple(sorted(out, key=lambda p: (p[1], p[0])))
 
 
-def _pick_share_class(tickers: Sequence[str]) -> str:
-    """One ticker for one registrant that lists several share classes.
+def _pick_symbol(cands: Sequence[NameCandidate]) -> str:
+    """One ticker for one registrant that files under several symbols.
 
     Not a guess about which company is meant: the CIK already settled that.
-    Shortest symbol, then alphabetical, which is stable across SEC file
-    revisions and picks the ordinary class in the cases that occur (GOOG over
-    GOOGL, FOX over FOXA).
+    The question is only which of the registrant's symbols carries the label,
+    and the Commission's own file answers it. ``company_tickers.json`` lists a
+    registrant's symbols with the primary listing first, so the first one is
+    taken and the symbol's own text decides nothing.
+
+    **This replaced a shortest-symbol rule, and the difference is not
+    cosmetic.** "Shortest, then alphabetical" disagrees with the Commission's
+    ordering for 224 of the 1,441 registrants that carry more than one symbol,
+    and the disagreements are not share classes at all. Comcast files its common
+    stock as CMCSA and an exchangeable debenture as CCZ under one CIK, so the
+    shorter symbol won and every proxy naming Comcast produced a label pointing
+    at a debt security. Prudential lost PRU to the preferred PFH and DTE Energy
+    lost DTE to the debenture DTB the same way. The failure is silent twice
+    over: the label still resolves, and the ticker it resolves to is absent from
+    any equity universe it is then matched against, so a major company simply
+    stops appearing as a peer.
+
+    Where no candidate carries a rank, which is the case for a name recovered
+    from a filer's former names, the old rule still decides, because a stable
+    arbitrary answer is better than an unstable one.
     """
-    return sorted(tickers, key=lambda t: (len(t), t))[0]
+    return sorted(cands, key=lambda c: (c.listing_rank, len(c.ticker), c.ticker))[0].ticker
 
 
 def build_name_index(
@@ -435,7 +480,7 @@ def build_name_index(
     by_key: dict[str, dict[str, NameCandidate]] = {}
     tickers: set[str] = set()
 
-    def _add(title: str, ticker: str, cik: int) -> None:
+    def _add(title: str, ticker: str, cik: int, rank: int = 1 << 30) -> None:
         ticker = ticker.upper().strip()
         if not ticker or not title.strip():
             return
@@ -451,11 +496,14 @@ def build_name_index(
             # A ticker reaching one key through both forms counts as the full
             # form, which is the stronger claim on the name.
             if prior is None or (is_full and not prior.from_full_form):
-                slot[ticker] = NameCandidate(ticker, cik, title.strip(), is_full)
+                slot[ticker] = NameCandidate(ticker, cik, title.strip(), is_full, rank)
 
-    for row in payload.values():
+    # The Commission lists a registrant's symbols primary listing first, and
+    # that order is the only evidence in the file about which symbol is the
+    # company's ordinary equity. It is captured here and nowhere else.
+    for rank, row in enumerate(payload.values()):
         try:
-            _add(str(row["title"]), str(row["ticker"]), int(row["cik_str"]))
+            _add(str(row["title"]), str(row["ticker"]), int(row["cik_str"]), rank)
         except (KeyError, TypeError, ValueError):
             # One malformed row in the Commission's file is not a reason to
             # refuse the other ten thousand; it is recorded instead.
@@ -472,14 +520,14 @@ def build_name_index(
         index.candidates[key] = cands
         by_cik = {c.cik for c in cands}
         if len(by_cik) == 1:
-            index[key] = _pick_share_class([c.ticker for c in cands])
+            index[key] = _pick_symbol(cands)
         else:
             # Prefer a candidate that owns the name outright over one that only
             # arrives at it after its suffix is stripped.
             full_only = [c for c in cands if c.from_full_form]
             full_ciks = {c.cik for c in full_only}
             if len(full_ciks) == 1:
-                index[key] = _pick_share_class([c.ticker for c in full_only])
+                index[key] = _pick_symbol(full_only)
             else:
                 index.ambiguous[key] = tuple(sorted(c.ticker for c in cands))
 
@@ -635,13 +683,13 @@ def _resolve_candidates(
         return None, ()
     ciks = {c.cik for c in cands}
     if len(ciks) == 1:
-        return _pick_share_class([c.ticker for c in cands]), ()
+        return _pick_symbol(cands), ()
     preferred = [c for c in cands if c.cik in prefer_ciks]
     if len({c.cik for c in preferred}) == 1:
-        return _pick_share_class([c.ticker for c in preferred]), ()
+        return _pick_symbol(preferred), ()
     full_only = [c for c in cands if c.from_full_form]
     if len({c.cik for c in full_only}) == 1:
-        return _pick_share_class([c.ticker for c in full_only]), ()
+        return _pick_symbol(full_only), ()
     return None, tuple(sorted(c.ticker for c in cands))
 
 
