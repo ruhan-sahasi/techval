@@ -25,6 +25,7 @@ from rich.table import Table
 from rich.text import Text
 
 from .comps import run_comps
+from .dilution import build_share_count
 from .config import Assumptions
 from .dcf import run_dcf, sensitivity_wacc_exit, sensitivity_wacc_growth
 from .edgar import EdgarClient, HttpCache
@@ -203,6 +204,79 @@ def _render_financials(fin) -> None:
     _notes(fin.warnings, heading="Data quality")
 
 
+def _render_share_count(sc) -> None:
+    """The walk from shares outstanding to a fully diluted count."""
+    _rule("Share count")
+    t = Table(box=None, pad_edge=False)
+    t.add_column("")
+    t.add_column("", justify="right")
+    for label, value in sc.rows():
+        bold = label.lower().startswith("fully diluted")
+        t.add_row(Text(label, style="bold" if bold else ""),
+                  Text(f"{value:,.2f}", style="bold" if bold else ""))
+    console.print(t)
+    console.print(f"\n[dim]Method: {sc.method}"
+                  + (f", from {sc.accession}" if sc.accession else "")
+                  + (f" as of {sc.as_of}" if sc.as_of else "") + ".[/dim]")
+    _notes(list(sc.flags), heading="Flags")
+    _notes(list(sc.notes))
+
+
+def _render_regression(fit) -> None:
+    """The multiple the target's own fundamentals warrant, and the residual."""
+    _rule("Warranted multiple from fundamentals")
+    t = Table(box=None, pad_edge=False)
+    t.add_column("")
+    t.add_column("", justify="right")
+    for label, value in fit.rows():
+        low = label.lower()
+        if value is None:
+            shown = "n/a"
+        elif "multiple" in low or "residual" in low:
+            shown = f"{value:,.2f}x"
+        elif "price" in low or "implied ev" in low:
+            shown = _money(value)
+        elif "r-squared" in low:
+            shown = f"{value:.3f}"
+        else:
+            shown = f"{value:,.3f}"
+        bold = "warranted" in low or "residual" in low
+        t.add_row(Text(label, style="bold" if bold else ""),
+                  Text(shown, style="bold" if bold else ""))
+    console.print(t)
+    _notes(list(fit.notes))
+
+
+def _render_purchase_accounting(pa, acq_ticker: str) -> None:
+    """Opening balance sheet and the pro forma years it feeds."""
+    _rule("Purchase accounting: opening balance sheet")
+    console.print(_kv_table(pa.opening.rows(), title="", dp=0))
+
+    _rule("Pro forma")
+    t = Table(box=None, pad_edge=False)
+    t.add_column("")
+    for y in pa.years:
+        t.add_column(f"Year {y.year}", justify="right")
+    rows = [
+        ("Revenue", "revenue", 0), ("EBITDA", "ebitda", 0),
+        ("Intangible amortisation", "intangible_amortisation", 0),
+        ("EBIT", "ebit", 0), ("Interest", "interest", 0),
+        ("Taxes", "taxes", 0), ("Net income", "net_income", 0),
+        ("Diluted shares (mm)", "shares", 1), ("EPS", "eps", 3),
+        ("Debt balance", "debt_balance", 0), ("Debt repaid", "debt_repaid", 0),
+    ]
+    for label, attr, dp in rows:
+        bold = label in ("EPS", "Net income")
+        cells = [Text(_money(getattr(y, attr), dp), style="bold" if bold else "")
+                 for y in pa.years]
+        t.add_row(Text(label, style="bold" if bold else ""), *cells)
+    acc = [Text(_money(a, 3) if a is not None else "NM") for a in pa.accretion_by_year]
+    t.add_row(Text("Accretion / (dilution)", style="bold"), *acc)
+    console.print(t)
+    _notes(list(pa.checks), heading="Cross-checks")
+    _notes(list(pa.notes))
+
+
 def _render_bridge(bridge, fin) -> None:
     _rule("Enterprise value bridge")
     console.print(_kv_table(bridge.rows(), title="", dp=1))
@@ -279,17 +353,30 @@ def _render_dcf(d, fin) -> None:
     summary = [
         ("Enterprise value, Gordon growth", d.enterprise_value_gordon),
         ("Enterprise value, exit multiple", d.enterprise_value_exit),
+        ("Enterprise value, value driver", d.enterprise_value_value_driver),
         ("Equity value, Gordon growth", d.equity_value_gordon),
         ("Equity value, exit multiple", d.equity_value_exit),
+        ("Equity value, value driver", d.equity_value_value_driver),
     ]
     console.print()
     console.print(_kv_table(summary, title="", dp=0))
-    for label, v in (
-        ("Gordon growth", d.per_share_gordon),
-        ("exit multiple", d.per_share_exit),
+
+    # All three terminal methods are always computed. The assumption picks which
+    # one carries the headline, and the reader should see which that was.
+    headline = getattr(d, "headline_method", "gordon")
+    for key, label, v in (
+        ("gordon", "Gordon growth", d.per_share_gordon),
+        ("exit_multiple", "exit multiple", d.per_share_exit),
+        ("value_driver", "value driver", d.per_share_value_driver),
     ):
         shown = f"${v:,.2f}" if v is not None else "not computed"
-        console.print(f"\n  [bold]Implied per share, {label:<14s} {shown}[/bold]")
+        mark = "  <- headline" if key == headline else ""
+        console.print(
+            f"\n  [bold]Implied per share, {label:<14s} {shown}[/bold][dim]{mark}[/dim]"
+        )
+    console.print(
+        f"\n[dim]Per-share figures divide by {d.shares_for_value:,.1f}mm shares.[/dim]"
+    )
     _notes(d.checks, heading="Cross-checks")
     _notes(d.notes)
 
@@ -339,6 +426,9 @@ def _render_comps(result) -> None:
         _frame_table(result.implied, title="Implied value for the target", index_label="")
     )
 
+    if getattr(result, "regression", None) is not None:
+        _render_regression(result.regression)
+
     if result.exclusions:
         console.print("\n[bold yellow]Peers excluded[/bold yellow]")
         for e in result.exclusions:
@@ -373,6 +463,19 @@ def value(
             )
         fin, price, bridge = _load(ticker, client, market, assumptions)
         _render_financials(fin)
+
+        if assumptions.dilution.method == "treasury_stock":
+            try:
+                _render_share_count(
+                    build_share_count(ticker, price, fin, assumptions, client)
+                )
+            except TechvalError as exc:
+                _rule("Share count")
+                console.print(
+                    f"[yellow]Treasury stock count unavailable, falling back to "
+                    f"diluted WASO: {exc}[/yellow]"
+                )
+
         _render_bridge(bridge, fin)
 
         comps_result = None
@@ -632,6 +735,9 @@ def merger(
         )
         _notes(r.checks, heading="Cross-checks")
         _notes(r.accretion.notes + r.notes)
+
+        if getattr(r, "purchase_accounting", None) is not None:
+            _render_purchase_accounting(r.purchase_accounting, acq_fin.ticker)
     except TechvalError as exc:
         console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
         raise typer.Exit(1)
