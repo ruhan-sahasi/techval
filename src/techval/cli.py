@@ -19,7 +19,7 @@ and ``screen`` over the fitted encoder and the warranted multiple; ``fade`` and
 over M&A. They are merged in flat rather than nested behind a group, so the
 invocation is the one each module documents for itself.
 
-Six assumption flags additionally fold those capabilities into the ``value``
+Seven assumption flags additionally fold those capabilities into the ``value``
 report as optional sections. Every one defaults to off and the base report is
 byte-identical without them, which is asserted in tests/test_cli_integration.py
 rather than merely intended.
@@ -48,7 +48,15 @@ from .commands_tmt import app as _tmt_app
 # renderers rather than growing second copies here. A warranted-multiple table
 # printed by the value report and one printed by `techval screen` should not be
 # able to drift apart, and the way to guarantee that is to have one of them.
-from .commands_forecast import _prices_from_csv
+from .commands_forecast import (
+    _horizon_table as _render_fade_baselines,
+    _prices_from_csv,
+    _recorded_panel as _load_fade_panel,
+    _render_curve as _render_fade_curve,
+    _render_paths as _render_fade_paths,
+    _render_valuation as _render_fade_valuation,
+    _truncate_panel as _truncate_fade_panel,
+)
 from .commands_mna import load_dataset as _load_mna_dataset
 from .commands_peers import (
     _bundle as _peer_bundle,
@@ -57,6 +65,7 @@ from .commands_peers import (
 )
 from .commands_tmt import _render_sotp, load_plan as _load_sotp_plan
 from .errors import MissingDataError
+from .ml.forecast import compare_fade, fit_fade
 from .ml.mna import fit_propensity
 from .ml.signals import Score, test_signal
 from .ml.warranted import fit_warranted
@@ -588,7 +597,7 @@ def _render_comps(result) -> None:
 # --------------------------------------------------------------------------- #
 # optional sections of the value report
 #
-# Six assumption flags switch these on and every one defaults to False, so the
+# Seven assumption flags switch these on and every one defaults to False, so the
 # base report is what it has always been unless a user asks for more. That is
 # not politeness about defaults. The premise of this package is that a DCF and a
 # comp table trace to filings, and a fitted model's output does not trace the
@@ -618,18 +627,69 @@ def _ml_root(assumptions, ml_data: Path | None) -> Path:
     return Path(ml_data) if ml_data else _ml_cache_root(assumptions)
 
 
-def _require(paths: list[Path], *, what: str, writer: str) -> None:
-    """Refuse with the missing filename and the command that produces it."""
-    missing = [p for p in paths if not p.exists()]
+# Where each recorded artifact is known to live, under a single ``--ml-data``
+# root, in the order the root is searched.
+#
+# One name per artifact would have been tidier and it does not survive contact
+# with the repository. The recorders do not agree on a layout: the peer
+# artifacts are committed with a ``_tmt`` suffix naming the universe they were
+# recorded over, the warranted panel sits in ``warranted/`` beside its recorder
+# script, the close prices sit in ``signals/``, and the M&A dataset is a
+# directory of its own. The ``~/.techval/ml`` cache, meanwhile, writes the
+# unsuffixed names flat. A single root therefore has to reach two layouts.
+#
+# The alternative was to hardcode one layout and let the other fail, which is
+# what shipped, and it is worse than it sounds. Every refusal below tells the
+# reader that "tests/fixtures carries a committed set". Pointing --ml-data at
+# tests/fixtures then refused three of the four sections, and a hint that names
+# a path which does not work teaches the reader that the feature is broken
+# rather than that they typed the wrong directory. So the candidates are listed
+# here, first hit wins, and a refusal names every place it looked.
+#
+# ``is_file`` rather than ``exists`` because ``~/.techval/ml`` really does hold
+# a ``peer_groups/`` DIRECTORY beside the artifacts, and a directory that
+# happens to share a name is not a panel.
+_ARTIFACTS: dict[str, tuple[str, ...]] = {
+    "peer_groups": ("peer_groups.json", "peer_groups_tmt.json"),
+    "peer_panel": ("peer_panel.json", "peer_panel_tmt.json"),
+    "peer_item1": ("peer_item1.json", "peer_item1_tmt.json"),
+    "warranted_panel": ("observations.json.gz", "warranted/observations.json.gz"),
+    "signal_closes": ("closes.csv.gz", "signals/closes.csv.gz"),
+    "fade_panel": ("fade_companyfacts.json.gz", "fade/fade_companyfacts.json.gz"),
+    "mna_universe": ("mna/universe.json",),
+    "mna_events": ("mna/events.json",),
+    "mna_panel": ("mna/panel.csv.gz",),
+}
+
+
+def _resolve(root: Path, keys: list[str], *, what: str, writer: str) -> list[Path]:
+    """The artifacts under ``root``, or a refusal naming every path tried.
+
+    Refuse rather than invent, and say which file was wanted: the filename is
+    the fix, and a reader who is given it can supply the artifact or point the
+    run somewhere else. A reader who is given "unavailable" can do neither.
+    """
+    found: list[Path] = []
+    missing: list[list[Path]] = []
+    for key in keys:
+        candidates = [root / name for name in _ARTIFACTS[key]]
+        hit = next((p for p in candidates if p.is_file()), None)
+        if hit is None:
+            missing.append(candidates)
+        else:
+            found.append(hit)
     if missing:
         raise MissingDataError(
             what,
             hint=(
                 "missing "
-                + ", ".join(str(p) for p in missing)
+                + "; ".join(
+                    " or ".join(str(p) for p in group) for group in missing
+                )
                 + f". {writer} Point the run at another directory with --ml-data."
             ),
         )
+    return found
 
 
 def _render_optional_sotp(ticker, fin, bridge, assumptions, client, plan_path) -> None:
@@ -700,11 +760,9 @@ def _render_optional_peers(ticker, assumptions, root) -> list[str]:
 
     Returns the model's proposed tickers so a later section can reuse them.
     """
-    groups = root / "peer_groups.json"
-    panel = root / "peer_panel.json"
-    text = root / "peer_item1.json"
-    _require(
-        [groups, panel, text],
+    groups, panel, text = _resolve(
+        root,
+        ["peer_groups", "peer_panel", "peer_item1"],
         what="the fitted peer encoder's training inputs",
         writer=(
             "These are recorded artifacts: an encoder is fitted on several "
@@ -779,10 +837,16 @@ def _render_optional_peers(ticker, assumptions, root) -> list[str]:
 
 
 def _fit_warranted_panel(assumptions, root):
-    """Fit the warranted multiple on the recorded observation panel."""
-    panel_path = root / "observations.json.gz"
-    _require(
-        [panel_path],
+    """Fit the warranted multiple on the recorded observation panel.
+
+    Returns the fitted model, the panel it was fitted on and the path that panel
+    came from, because the section that renders it has to say all three. A
+    residual printed without the panel behind it is a number a reader cannot
+    check, and checking it is the only thing that separates this from an opinion.
+    """
+    (panel_path,) = _resolve(
+        root,
+        ["warranted_panel"],
         what="the warranted-multiple observation panel",
         writer=(
             "The panel is every company in the universe priced at every quarter "
@@ -792,10 +856,11 @@ def _fit_warranted_panel(assumptions, root):
             "is the recorder."
         ),
     )
-    return fit_warranted(_load_observations(panel_path), assumptions)
+    observations = _load_observations(panel_path)
+    return fit_warranted(observations, assumptions), observations, panel_path
 
 
-def _render_optional_warranted(ticker, model) -> None:
+def _render_optional_warranted(ticker, model, observations, panel_path) -> None:
     """The fitted warranted multiple and this company's residual.
 
     The residual is the whole point and it is the easiest number here to
@@ -803,6 +868,14 @@ def _render_optional_warranted(ticker, model) -> None:
     than a bare figure: it carries the within-date standard deviation, whether
     the read was out of sample, and the reminder that a residual is a statement
     about relative pricing and never about value.
+
+    The card underneath it is not decoration either. ``techval screen`` renders
+    this same model with its training window, its walk-forward score and its
+    limitations attached; this section rendered five rows and a sentence, so one
+    model had two disclosure standards and the weaker one was the one sitting
+    inside a valuation. ``ml/__init__`` sets the rule the weaker one broke: an
+    unauditable model has no place beside a valuation whose every other number
+    traces to a filing.
     """
     read = model.warranted(ticker.upper())
     rows = [
@@ -820,6 +893,72 @@ def _render_optional_warranted(ticker, model) -> None:
     console.print(t)
     console.print(f"\n{read.sentence()}")
 
+    _render_model_card(
+        model.card,
+        source=(
+            f"{len(observations.observations):,} observations over "
+            f"{len(observations.dates)} dates and {len(observations.tickers)} "
+            f"companies, from {panel_path}. Demeaned by date: {model.demeaned}."
+        ),
+        # The pooled score in the card is mostly company identity: a feature
+        # vector barely moves in three months and neither does a relative
+        # multiple, so a model fitted on the past is rewarded for recognising a
+        # name. The differenced figure asks whether it predicted the CHANGE, and
+        # it is the size of what is actually being added. Printing the first
+        # without the second is how a screen gets oversold.
+        extra=[
+            ("Differenced against the company's own prior read", model.change_rank_correlation),
+            ("Differenced observations", model.n_changes),
+        ],
+    )
+
+
+def _render_model_card(card, *, source: str, extra=()) -> None:
+    """What a fitted model is, printed beside what it said.
+
+    ``ml/__init__`` sets three rules for the package and the third is that every
+    fitted model carries what it was trained on, when, with what features and how
+    it scored out of sample. A model output printed without that is a number
+    nobody can argue with, which is the same defect as a number nobody can
+    trace, and it is the defect this report had: the warranted residual appeared
+    with no training window, no sample size and no evaluation, while the same
+    model rendered by ``techval screen`` carried all three.
+
+    The rows come from ``ModelCard.rows`` rather than being assembled here, so a
+    card printed inside the valuation and a card printed by a standalone command
+    cannot describe one model two different ways.
+    """
+    t = Table(box=None, pad_edge=False)
+    t.add_column("", no_wrap=True)
+    t.add_column("", justify="right")
+    for label, value in list(card.rows()) + list(extra):
+        t.add_row(str(label), _card_value(value))
+    console.print("\n[bold]The model behind that number[/bold]")
+    console.print(t)
+    console.print(Text(f"  Fitted on {source}", style="dim"))
+    _notes(list(card.limitations), heading="What this model cannot do")
+
+
+def _card_value(value) -> str:
+    """Format a card cell without deciding what it means.
+
+    ``bool`` before ``int`` because a bool IS an int in Python, and a card row
+    reading "Beats baseline 1" would be both true and unreadable.
+    """
+    if value is None:
+        return "n/a"
+    if isinstance(value, bool):
+        return "yes" if value else "NO"
+    if isinstance(value, int):
+        return f"{value:,}"
+    if isinstance(value, float):
+        # No forced sign. A rank correlation prints its own minus when it has
+        # one, and a mean absolute error cannot be negative, so a leading plus
+        # on it would only invite the reader to look for the comparison it is
+        # not making.
+        return f"{value:,.4f}"
+    return str(value)
+
 
 def _render_optional_signal(assumptions, model, root) -> None:
     """Has the score driving that residual ever predicted anything?
@@ -831,9 +970,9 @@ def _render_optional_signal(assumptions, model, root) -> None:
     coefficient is seen: cheap means a negative residual, so the score is negated
     so that a positive coefficient means cheap names earned more.
     """
-    closes = root / "closes.csv.gz"
-    _require(
-        [closes],
+    (closes,) = _resolve(
+        root,
+        ["signal_closes"],
         what="the close price history the signal test scores against",
         writer=(
             "A forward return needs prices that run past the last score date by "
@@ -852,8 +991,35 @@ def _render_optional_signal(assumptions, model, root) -> None:
         label="warranted residual (negated: positive means cheap)",
     )
     console.print(Text(result.verdict(), style="yellow bold"))
+
+    # The verdict alone was what this section printed, and it is the flattering
+    # half. ``test_signal`` also writes a census of how every holding period
+    # ended and a FLAG when none of them ended in an acquisition or a delisting,
+    # which is the survivorship hole the harness was built to expose: a universe
+    # of names that still trade has had its failures removed before the first
+    # coefficient is computed, and every figure in the verdict is biased upward
+    # by the outcomes it cannot see. Measured on the committed panel that FLAG
+    # fires, so what was being suppressed here is not hypothetical.
+    #
+    # Deliberately NOT fixed by handing this call a deals list of its own. The
+    # harness takes ``deals`` and ``delisting_return`` and neither is passed here
+    # or by `techval signal`, so passing one only here would make the value
+    # report and the standalone command disagree about the same model, which is
+    # the drift this file exists to prevent. The census is printed instead, with
+    # the convention in force named, so the reader can see the size of what is
+    # missing rather than being told nothing is.
+    flags = [line for line in result.checks if line.startswith("FLAG:")]
+    census = [line for line in result.checks if "holding periods ran their course" in line]
+    _notes(census + flags, heading="What the sample was")
     console.print(
-        "\n[dim]Sign fixed before the coefficient was seen. Run [bold]techval "
+        "\n[dim]No deal terms and no delisting return were supplied, so a name "
+        "acquired or delisted inside a holding period is excluded rather than "
+        "terminated at what the holder received. Run [bold]techval signal --score "
+        "warranted --delisting shumway_nasdaq[/bold] to see how far the answer "
+        "moves when the failures are priced instead of dropped.[/dim]"
+    )
+    console.print(
+        "[dim]Sign fixed before the coefficient was seen. Run [bold]techval "
         "signal --score warranted[/bold] for the per-date coefficient series, the "
         "bucket table and the overlap correction behind this verdict.[/dim]"
     )
@@ -867,9 +1033,9 @@ def _render_optional_propensity(ticker, assumptions, root) -> None:
     statement, and a probability printed on its own invites a reader to treat it
     as a forecast. Both numbers or neither.
     """
-    dataset = root / "mna"
-    _require(
-        [dataset / "universe.json", dataset / "events.json", dataset / "panel.csv.gz"],
+    _resolve(
+        root,
+        ["mna_universe", "mna_events", "mna_panel"],
         what="the acquisition propensity dataset",
         writer=(
             "The universe has to keep companies after they delist, because a "
@@ -878,6 +1044,7 @@ def _render_optional_propensity(ticker, assumptions, root) -> None:
             "manifest."
         ),
     )
+    dataset = root / "mna"
     panel, universe, events, extras = _load_mna_dataset(dataset)
     when = max(panel.dates)
     result = fit_propensity(
@@ -924,6 +1091,95 @@ def _render_optional_propensity(ticker, assumptions, root) -> None:
             "valuation channel is in this ranking.",
             style="yellow",
         )
+    )
+
+
+def _render_optional_fade(ticker, fin, bridge, wacc_result, assumptions, root) -> None:
+    """The DCF's typed-in growth path against one fitted on filings, both valued.
+
+    This is the most consequential of the optional sections and it was the one
+    with no wiring at all. ``ml.forecast.enabled`` existed, was documented, and
+    reached nothing: a reader who set it got a byte-identical report, so the
+    engine neither refused nor acted, which is the single behaviour the cardinal
+    rule forbids. A switch that announces nothing is worse than a switch that
+    says no.
+
+    What it is worth wiring for is the shape of a DCF. Every other assumption in
+    ``assumptions.dcf`` moves the answer by a few percent; the growth path moves
+    it by multiples, and it is typed in. ``revenue_growth_start: 0.22`` is a
+    judgment about one company with no panel behind it, and the fade model
+    replaces it with a number fitted on what several hundred TMT filers actually
+    did next, out of sample, against three baselines.
+
+    Four valuations are printed rather than two, and that is the point of the
+    section rather than a flourish. A fitted point estimate set beside the
+    assumption it replaces invites the reader to treat the fitted one as the
+    answer; it is the middle of a band tens of growth points wide whose two ends
+    are different companies, so the band is valued as well. The baseline table
+    above it prints the model against persistence, the training mean and the
+    sub-vertical mean at every horizon, because the model card's claim is that
+    the curve ties persistence at one year and beats it at two and three, and a
+    lift quoted without the baseline it was measured against is not a result.
+
+    The renderers are the ones ``techval fade`` uses, imported rather than
+    copied, so the fitted path inside a valuation and the fitted path from the
+    standalone command cannot drift apart.
+    """
+    (panel_path,) = _resolve(
+        root,
+        ["fade_panel"],
+        what="the revenue fade panel",
+        writer=(
+            "The curve is fitted across the whole TMT universe, which is one "
+            "companyfacts call per filer at the SEC fair-access throttle and not "
+            "something a valuation should do on its way past. "
+            "tests/fixtures/fade_companyfacts.json.gz is a recorded blob of those "
+            "payloads, and `techval fade TICKER --panel <file>` reads the same "
+            "shape."
+        ),
+    )
+    symbol = ticker.upper()
+    console.print(
+        f"[dim]Fitting the fade curve on the recorded panel at {panel_path}. The "
+        "whole universe is fitted, not this company alone, because a curve "
+        "estimated on one filer's history is that filer's history.[/dim]"
+    )
+    panel = _load_fade_panel(panel_path, assumptions, None)
+    if assumptions.as_of:
+        # Without this the option would be a lie. The panel builder pins every
+        # FEATURE to the filing date of the report that carried it and stops
+        # there, so a curve fitted on filings through 2026 and handed to a
+        # valuation struck in 2020 knows how the intervening six years went. The
+        # valuation would look excellent and the failure would be silent.
+        panel = _truncate_fade_panel(panel, date.fromisoformat(assumptions.as_of))
+    model = fit_fade(panel, assumptions)
+
+    _render_fade_curve(model, panel)
+    # Includes the point-in-time cut where one was made, which says how many
+    # observations and how many forward labels were removed. A pinned run whose
+    # panel was silently left at full depth would be the worst kind of wrong.
+    _notes(list(panel.notes), heading="Panel")
+    _render_model_card(
+        model.card,
+        source=(
+            f"{len(panel.observations):,} company-years over "
+            f"{len(panel.tickers)} filers, from {panel_path}"
+        ),
+    )
+    _render_fade_baselines(model)
+
+    comparison = compare_fade(
+        fin, bridge, wacc_result, assumptions, model, ticker=symbol
+    )
+    _render_fade_paths(comparison, model, panel, symbol)
+    _render_fade_valuation(comparison)
+    console.print(
+        "\n[dim]The DCF above this section is the 'Assumed fade' row. Nothing in "
+        "it has been replaced: the fitted path is shown beside the typed one and "
+        "the reader chooses. Run [bold]techval fade "
+        f"{symbol}[/bold] for the reversion table, which assumes no functional "
+        "form at all, and for the survivorship measurement, which is the part of "
+        "this model most likely to be wrong in one direction.[/dim]"
     )
 
 
@@ -1009,7 +1265,8 @@ def value(
         help=(
             "Directory holding the recorded model artifacts the optional sections "
             "read. Defaults to ml.cache_dir. Only consulted when one of the ml.* "
-            "flags is on."
+            "flags is on. Both committed layouts are accepted, so --ml-data "
+            "tests/fixtures reaches every section."
         ),
     ),
     sotp_plan: Path = typer.Option(
@@ -1130,6 +1387,24 @@ def value(
                 _rule("Adjusted present value")
                 console.print(f"[yellow]APV not run: {exc}[/yellow]")
 
+        # Where the recorded model artifacts live, resolved once and shared by
+        # every fitted section below. A pure function of the flag and the
+        # assumptions, so computing it before any flag is read costs a default
+        # run nothing.
+        root = _ml_root(assumptions, ml_data)
+
+        # Directly under the DCF, because this is the one optional section that
+        # argues with the DCF rather than standing beside it: it refits the
+        # growth path the projection was built on. It is not gated on ``d``
+        # because it forms its own valuations, and a DCF that could not be made
+        # will refuse again here with the same reason.
+        if assumptions.ml.forecast.enabled:
+            _rule("Growth: the assumed fade against a fitted one")
+            try:
+                _render_optional_fade(ticker, fin, bridge, w, assumptions, root)
+            except TechvalError as exc:
+                console.print(f"[yellow]Fitted growth path not run: {exc}[/yellow]")
+
         # Beside the DCF, not instead of it. The sum of the parts needs only the
         # statements and the bridge, so unlike the simulation and the APV it is
         # not taken down by a DCF that could not be formed.
@@ -1149,12 +1424,10 @@ def value(
         if comps_result is not None:
             _render_comps(comps_result)
 
-        # The fitted sections, each behind its own flag and each defaulting off.
-        # Every one is wrapped, because an optional section is never allowed to
-        # take the valuation down with it: a missing recorded panel should cost a
-        # reader that section and nothing else.
-        root = _ml_root(assumptions, ml_data)
-
+        # The remaining fitted sections, each behind its own flag and each
+        # defaulting off. Every one is wrapped, because an optional section is
+        # never allowed to take the valuation down with it: a missing recorded
+        # panel should cost a reader that section and nothing else.
         proposed_peers: list[str] = []
         if assumptions.ml.peers.enabled:
             _rule("Learned comp set")
@@ -1168,10 +1441,13 @@ def value(
         # ever predicted anything, so fitting the model twice would be wasteful
         # and, worse, would let the two sections disagree.
         warranted_model = None
+        warranted_panel = warranted_path = None
         warranted_error: TechvalError | None = None
         if assumptions.ml.warranted.enabled or assumptions.ml.signals.enabled:
             try:
-                warranted_model = _fit_warranted_panel(assumptions, root)
+                warranted_model, warranted_panel, warranted_path = (
+                    _fit_warranted_panel(assumptions, root)
+                )
             except TechvalError as exc:
                 warranted_error = exc
 
@@ -1183,7 +1459,9 @@ def value(
                 )
             else:
                 try:
-                    _render_optional_warranted(ticker, warranted_model)
+                    _render_optional_warranted(
+                        ticker, warranted_model, warranted_panel, warranted_path
+                    )
                 except TechvalError as exc:
                     console.print(
                         f"[yellow]No warranted read for {ticker.upper()}: {exc}[/yellow]"

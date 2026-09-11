@@ -43,6 +43,7 @@ from techval import cli as C
 from techval import commands_forecast, commands_mna, commands_peers, commands_tmt
 from techval.config import Assumptions
 from techval.edgar import CompanyFacts, DimensionedFact
+from techval.errors import MissingDataError
 from techval.market import CsvSource
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -51,11 +52,20 @@ AS_OF = "2026-09-10"
 
 runner = CliRunner()
 
-# The six flags, each with the heading its section prints. The headings are
+# The seven flags, each with the heading its section prints. The headings are
 # asserted against rendered output rather than against the renderer names,
 # because what a reader sees is the thing that must not change.
+#
+# This map is also the census, and a census is only worth what its enumeration
+# is worth. It listed six while config.py carried seven capability switches, so
+# ml.forecast.enabled reached no valuation, printed neither a heading nor a
+# refusal, and nothing here could notice. A flag that is inert is worse than a
+# flag that refuses, because a reader who sets it concludes the engine agreed.
+# test_the_census_below_covers_every_switch_in_the_config closes that door: it
+# walks the assumptions model rather than this list.
 OPTIONAL_SECTIONS = {
     "tmt.sotp": "Sum of the parts",
+    "ml.forecast.enabled": "Growth: the assumed fade against a fitted one",
     "ml.peers.enabled": "Learned comp set",
     "ml.warranted.enabled": "Warranted multiple",
     "ml.signals.enabled": "Has that residual ever predicted anything?",
@@ -66,12 +76,26 @@ OPTIONAL_SECTIONS = {
 # The renderers the default path is forbidden to touch.
 OPTIONAL_RENDERERS = (
     "_render_optional_sotp",
+    "_render_optional_fade",
     "_render_optional_peers",
     "_fit_warranted_panel",
     "_render_optional_warranted",
     "_render_optional_signal",
     "_render_optional_propensity",
     "_render_optional_precedents",
+)
+
+# Every capability switch in the assumptions model, by dotted path. Written out
+# rather than discovered so that adding a switch to config.py and forgetting to
+# wire it fails here with the name of the switch.
+CAPABILITY_SWITCHES = (
+    "tmt.sotp",
+    "ml.forecast.enabled",
+    "ml.peers.enabled",
+    "ml.warranted.enabled",
+    "ml.signals.enabled",
+    "ml.mna.propensity_enabled",
+    "ml.mna.precedents_enabled",
 )
 
 
@@ -303,11 +327,34 @@ def test_every_optional_flag_defaults_off():
     """The defaults are the contract, so they are asserted directly on the model."""
     a = Assumptions()
     assert a.tmt.sotp is False
+    assert a.ml.forecast.enabled is False
     assert a.ml.peers.enabled is False
     assert a.ml.warranted.enabled is False
     assert a.ml.signals.enabled is False
     assert a.ml.mna.propensity_enabled is False
     assert a.ml.mna.precedents_enabled is False
+
+
+def _switch(assumptions, dotted: str):
+    node = assumptions
+    for part in dotted.split("."):
+        node = getattr(node, part)
+    return node
+
+
+@pytest.mark.parametrize("dotted", CAPABILITY_SWITCHES)
+def test_every_capability_switch_is_covered_by_this_file(dotted):
+    """The census defends only the flags it knows about, so the list is the subject.
+
+    ``ml.forecast.enabled`` was in ``config.py`` and in neither of the maps
+    above, and it reached no valuation: the byte-identity test passed on it
+    because there was nothing to be identical to. Three assertions rather than
+    one, because a switch can go missing from any of the three maps and each
+    omission costs a different guarantee.
+    """
+    assert _switch(Assumptions(), dotted) is False, f"{dotted} does not default off"
+    assert dotted in OPTIONAL_SECTIONS, f"{dotted} has no heading in the census"
+    assert dotted in FLAG_BODIES, f"{dotted} is never switched on by a test"
 
 
 # --------------------------------------------------------------------------- #
@@ -317,6 +364,7 @@ def test_every_optional_flag_defaults_off():
 
 FLAG_BODIES = {
     "tmt.sotp": "tmt:\n  sotp: true\n",
+    "ml.forecast.enabled": "ml:\n  forecast:\n    enabled: true\n",
     "ml.peers.enabled": "ml:\n  peers:\n    enabled: true\n",
     "ml.warranted.enabled": "ml:\n  warranted:\n    enabled: true\n",
     "ml.signals.enabled": "ml:\n  signals:\n    enabled: true\n",
@@ -359,6 +407,7 @@ def test_a_section_that_cannot_run_does_not_take_the_valuation_down(flag, tmp_pa
     "flag,wanted",
     [
         ("ml.peers.enabled", "peer_groups.json"),
+        ("ml.forecast.enabled", "fade_companyfacts.json.gz"),
         ("ml.warranted.enabled", "observations.json.gz"),
         # Signals fits the warranted model to get the residual it scores, so a
         # missing observation panel is what it reports, not a missing price file.
@@ -420,3 +469,203 @@ def test_ml_root_prefers_the_flag_over_the_config(tmp_path):
     a.ml.cache_dir = str(tmp_path / "from-config")
     assert C._ml_root(a, None) == tmp_path / "from-config"
     assert C._ml_root(a, tmp_path / "from-flag") == tmp_path / "from-flag"
+
+
+# --------------------------------------------------------------------------- #
+# --ml-data reaches the committed artifacts
+# --------------------------------------------------------------------------- #
+
+
+def test_every_recorded_artifact_resolves_inside_the_committed_fixture_tree():
+    """One value of ``--ml-data`` has to reach all of them, and it did not.
+
+    The refusals tell a reader that "tests/fixtures carries a committed set".
+    Pointing ``--ml-data`` at tests/fixtures then reached the M&A dataset and
+    nothing else: the peer artifacts are committed with a ``_tmt`` suffix, the
+    warranted panel sits one directory deeper and so do the close prices. A hint
+    that names a path which does not work is worse than no hint at all, because
+    the reader concludes the feature is broken rather than that they pointed at
+    the wrong directory.
+
+    This walks the resolver's own table, so a fixture that is renamed or a
+    candidate list that drifts fails here with the name of the artifact rather
+    than being discovered by somebody running the flagship command.
+    """
+    for key in C._ARTIFACTS:
+        (found,) = C._resolve(
+            FIXTURES, [key], what="a committed artifact", writer=""
+        )
+        assert found.is_file(), f"{key} did not resolve under tests/fixtures"
+
+
+def test_the_cache_layout_is_still_the_first_candidate():
+    """``techval peers`` and ``techval screen`` write flat names into ml.cache_dir.
+
+    Tolerating the fixture tree's layout must not have cost the layout the
+    recorders actually write, so the unsuffixed flat name is asserted to be the
+    one a refusal names first.
+    """
+    for key, candidates in C._ARTIFACTS.items():
+        assert candidates, f"{key} has no candidate path at all"
+        if key.startswith("mna_"):
+            continue
+        assert "/" not in candidates[0], f"{key} does not try the flat cache name first"
+
+
+def test_a_refusal_names_every_place_it_looked(tmp_path):
+    """Both candidates, so a reader with either layout can see which one to fix."""
+    empty = tmp_path / "no-artifacts"
+    empty.mkdir()
+    with pytest.raises(MissingDataError) as exc:
+        C._resolve(empty, ["warranted_panel"], what="the panel", writer="written by x")
+    flat = "".join(str(exc.value).split())
+    assert "observations.json.gz" in flat
+    assert "warranted/observations.json.gz" in flat
+
+
+def test_a_directory_of_the_right_name_is_not_an_artifact(tmp_path):
+    """``~/.techval/ml`` really does hold a peer_groups/ directory beside the files."""
+    root = tmp_path / "root"
+    (root / "peer_groups.json").mkdir(parents=True)
+    with pytest.raises(MissingDataError):
+        C._resolve(root, ["peer_groups"], what="the groups", writer="")
+
+
+# --------------------------------------------------------------------------- #
+# the fitted growth path, which reached nothing at all
+# --------------------------------------------------------------------------- #
+
+
+def _fade_result(tmp_path, extra: str = ""):
+    config = _config(tmp_path, FLAG_BODIES["ml.forecast.enabled"] + extra)
+    return run_value("-c", str(config), "--ml-data", str(FIXTURES))
+
+
+def test_the_fitted_growth_path_reaches_the_valuation(tmp_path):
+    """``ml.forecast.enabled`` was the only switch that reached no valuation.
+
+    Setting it produced a byte-identical report: the engine neither refused nor
+    acted, which is the one behaviour the cardinal rule forbids. This asserts the
+    section renders rather than merely that a heading appeared, by pinning the
+    four cases the comparison exists to print.
+    """
+    result = _fade_result(tmp_path)
+    assert result.exit_code == 0
+    assert OPTIONAL_SECTIONS["ml.forecast.enabled"] in result.output
+    for case in ("Assumed fade", "Fitted fade", "Fitted, low band", "Fitted, high band"):
+        assert case in result.output, f"{case} is missing from the fade section"
+
+
+def test_the_fitted_path_is_shown_beside_the_assumed_one_and_replaces_nothing(tmp_path):
+    """The section is a comparison. A fitted number that quietly replaced the
+    typed one would be the fitted model doing exactly what the flag exists to
+    prevent, so the DCF above is asserted to be untouched: the same headline is
+    still printed and the assumed path is still the one it was struck on."""
+    with_fade = _fade_result(tmp_path)
+    without = run_value("-c", str(_config(tmp_path)))
+    headline = [line for line in without.output.splitlines() if "<- headline" in line]
+    assert headline, "the base report lost its headline"
+    assert headline[0] in with_fade.output
+
+
+def test_the_fade_section_prints_a_band_rather_than_a_point_estimate(tmp_path):
+    """A fitted point estimate beside the assumption it replaces invites a reader
+    to treat it as the answer. It is the middle of a band whose two ends are
+    different companies, so both ends are valued and the note saying what the
+    band is and is not travels with them."""
+    result = _fade_result(tmp_path)
+    assert "What the path is and is not" in result.output
+    assert "the band the fit actually supports runs" in result.output.lower()
+
+
+def test_the_fade_section_prints_the_baselines_at_every_horizon(tmp_path):
+    """The model card's claim is a tie at one year and a win at two and three.
+
+    A lift quoted without the baseline it was measured against is not a result,
+    and at two and three years the baseline that matters stops being persistence
+    and becomes the company's own sub-vertical. Both are asserted, because
+    printing only the one the model beats is the flattering half.
+    """
+    result = _fade_result(tmp_path)
+    assert "Model against the baselines, every horizon" in result.output
+    for column in ("Persistence", "Training mean", "Sub-vertical", "Best baseline"):
+        assert column in result.output
+    assert "Against persistence alone:" in result.output
+
+
+def test_the_fade_section_carries_the_model_card(tmp_path):
+    """A fitted path inside a valuation without its training window is unauditable."""
+    result = _fade_result(tmp_path)
+    flat = " ".join(result.output.split())
+    assert "The model behind that number" in flat
+    assert "Trained through" in flat
+    assert "What this model cannot do" in flat
+
+
+def test_the_fade_section_honours_the_knowledge_date(tmp_path):
+    """Without the cut the option would be a lie.
+
+    The panel builder pins every feature to the filing date of the report that
+    carried it and then stops, so a curve fitted on filings through 2026 and
+    handed to a valuation struck in 2023 would know how the intervening years
+    went. The valuation would look excellent and the failure would be silent.
+    """
+    config = _config(tmp_path, FLAG_BODIES["ml.forecast.enabled"])
+    result = runner.invoke(
+        C.app,
+        ["value", "DDOG", "--as-of", "2024-06-30", "-c", str(config),
+         "--ml-data", str(FIXTURES)],
+    )
+    assert result.exit_code == 0
+    flat = " ".join(result.output.split())
+    # The panel's own note, not the report's point-in-time banner, which is
+    # printed whether or not anything downstream honoured the date.
+    assert "observation(s) filed after 2024-06-30 were removed" in flat
+    assert "forward label(s) that had not been filed by then were detached" in flat
+
+
+# --------------------------------------------------------------------------- #
+# a model output inside a valuation carries its card
+# --------------------------------------------------------------------------- #
+
+
+def test_the_warranted_section_carries_the_model_card(tmp_path):
+    """``techval screen`` printed this model's card and the value report did not.
+
+    One model, two disclosure standards, and the weaker one was the copy sitting
+    inside a valuation. ml/__init__ states the rule it broke: an unauditable
+    model has no place beside a valuation whose every other number traces to a
+    filing.
+    """
+    config = _config(tmp_path, FLAG_BODIES["ml.warranted.enabled"])
+    result = run_value("-c", str(config), "--ml-data", str(FIXTURES))
+    assert result.exit_code == 0
+    flat = " ".join(result.output.split())
+    assert "Trained through" in flat
+    assert "Training observations" in flat
+    assert "observations.json.gz" in "".join(result.output.split())
+    assert "What this model cannot do" in flat
+    # The pooled score is mostly company identity. Printing it without the
+    # differenced figure beside it is how a screen gets oversold.
+    assert "Differenced against the company's own prior read" in flat
+
+
+def test_the_signal_section_says_what_the_sample_was(tmp_path):
+    """The verdict alone was the flattering half.
+
+    ``test_signal`` writes a census of how every holding period ended and flags a
+    sample in which none of them ended in an acquisition or a delisting, which is
+    the survivorship hole the harness exists to expose. The section printed the
+    verdict and dropped the census, so the reader was told the coefficient and
+    not that the failures had been removed before it was computed.
+    """
+    config = _config(tmp_path, FLAG_BODIES["ml.signals.enabled"])
+    result = run_value("-c", str(config), "--ml-data", str(FIXTURES))
+    assert result.exit_code == 0
+    flat = " ".join(result.output.split())
+    assert "holding periods ran their course" in flat
+    assert "FLAG:" in flat
+    assert "biased upward by the outcomes it cannot see" in flat
+    # And the convention that produced it, so the exclusion is a stated choice
+    # rather than a default nobody saw.
+    assert "--delisting" in flat

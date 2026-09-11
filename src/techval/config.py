@@ -9,11 +9,19 @@ undocumented default is indistinguishable from a hardcoded number.
 
 from __future__ import annotations
 
+from datetime import date, datetime
 from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from .errors import ConfigError
 
@@ -546,7 +554,33 @@ class PeerModelAssumptions(_Base):
             "in a 200bn company's comp set however similar the prose."
         ),
     )
-    require_same_sub_vertical: bool = False
+    require_same_sub_vertical: bool = Field(
+        False,
+        description=(
+            "NOT IMPLEMENTED, and it refuses rather than being ignored. The "
+            "encoder gates its candidate list on min_market_cap and "
+            "max_size_ratio and on nothing else; there is no sub-vertical gate "
+            "behind this name. Left as the only field in this file that read as "
+            "a setting and reached no code, it would be a written claim the "
+            "engine does not keep, which is the failure this package is built "
+            "around avoiding."
+        ),
+    )
+
+    @field_validator("require_same_sub_vertical")
+    @classmethod
+    def _refuse_an_unimplemented_gate(cls, value: bool) -> bool:
+        if value:
+            raise ConfigError(
+                "ml.peers.require_same_sub_vertical is not implemented. The "
+                "encoder applies min_market_cap and max_size_ratio to its "
+                "candidate list and no sub-vertical gate, so setting this true "
+                "would change nothing and the ranking would not be what the "
+                "assumptions file says it is. Restrict the ranking by hand from "
+                "the Company column of `techval peers TICKER`, or set "
+                "tmt.sub_vertical to correct a misclassified target."
+            )
+        return value
 
 
 class ForecastAssumptions(_Base):
@@ -622,10 +656,31 @@ class SignalAssumptions(_Base):
         description=(
             "Twelve month returns sampled quarterly share eleven months of their "
             "path, so the coefficients are autocorrelated and a naive t-statistic "
-            "on them is roughly double what it should be. Left true, the harness "
-            "reports a Newey-West standard error and says so."
+            "on them is roughly double what it should be. The harness computes "
+            "the Newey-West standard error unconditionally and prints it beside "
+            "the naive one with the inflation ratio between them, so this is a "
+            "statement of fact about the sampling scheme rather than a switch. "
+            "It refuses if set false, because the correction cannot be turned "
+            "off and a reader who asked for it off should be told so rather than "
+            "left to believe a naive t-statistic is what came back."
         ),
     )
+
+    @field_validator("overlapping_windows")
+    @classmethod
+    def _refuse_to_pretend_the_windows_do_not_overlap(cls, value: bool) -> bool:
+        if not value:
+            raise ConfigError(
+                "ml.signals.overlapping_windows cannot be set false. The windows "
+                "overlap whatever this file says: twelve month returns sampled "
+                "quarterly share eleven months of their path, and the harness "
+                "always reports the Newey-West standard error, the naive one and "
+                "the ratio between them. Setting this false would quietly change "
+                "nothing. If the intent is non-overlapping windows, sample the "
+                "scores annually instead, which changes the data rather than the "
+                "label on it."
+            )
+        return value
 
 
 class MLAssumptions(_Base):
@@ -684,12 +739,51 @@ class Assumptions(_Base):
     price_source: Literal["nasdaq", "stooq", "csv"] = "nasdaq"
     price_csv_dir: str | None = None
 
+    @field_validator("as_of", mode="before")
+    @classmethod
+    def _accept_an_unquoted_date(cls, value):
+        """``as_of: 2026-09-11`` is a date to YAML and a string to everything else.
+
+        YAML 1.1 resolves an unquoted ISO date to a native date object, so the
+        obviously correct line above arrived here as ``datetime.date`` and was
+        rejected for not being a string, on a line a reader would stare at for a
+        while before suspecting the quotes. The rest of the engine wants the ISO
+        text, because that is what it passes to the EDGAR client and prints in
+        the point-in-time banner, so the date is normalised to its own ISO form
+        rather than the field being widened to hold either.
+
+        ``isoformat`` rather than ``str`` so a ``datetime`` written with a time
+        on it loses the time instead of carrying it into a filename.
+        """
+        if isinstance(value, datetime):
+            return value.date().isoformat()
+        if isinstance(value, date):
+            return value.isoformat()
+        return value
+
     @classmethod
     def load(cls, path: str | Path | None) -> "Assumptions":
+        """Read an assumptions file, or the defaults when none is named.
+
+        A rejected field is reported as a ``ConfigError`` rather than allowed out
+        as a ``ValidationError``. Every command in this package catches
+        ``TechvalError`` and prints the reason; a pydantic exception is caught by
+        none of them, so a mistyped key in a YAML file produced a forty line
+        traceback through the pydantic internals with the useful sentence at the
+        bottom. The engine's own rule is that a refusal carries a reason, and a
+        traceback is not a refusal.
+        """
         if path is None:
             return cls()
         p = Path(path)
         if not p.exists():
             raise ConfigError(f"assumptions file not found: {p}")
         raw = yaml.safe_load(p.read_text()) or {}
-        return cls.model_validate(raw)
+        try:
+            return cls.model_validate(raw)
+        except ValidationError as exc:
+            problems = "; ".join(
+                ".".join(str(part) for part in error["loc"]) + ": " + error["msg"]
+                for error in exc.errors()
+            )
+            raise ConfigError(f"{p} was not accepted. {problems}") from exc
