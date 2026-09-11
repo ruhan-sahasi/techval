@@ -40,7 +40,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 
 import requests
 
@@ -616,6 +616,40 @@ class CompanyFacts:
             )
         return sorted(out, key=lambda f: (f.start or f.end, f.end))
 
+    def _largest_covering(
+        self,
+        entries: Sequence[str | tuple[str, ...]],
+        names: Sequence[str],
+        as_of: date,
+        kind: str,
+        incumbent: float,
+        guard: float,
+    ) -> tuple[str, tuple[float, list["Fact"], str], float] | None:
+        """The lower-ranked ladder entry that dwarfs the incumbent, if any.
+
+        Returns the winning name, its trailing-twelve-months resolution and the
+        incumbent it beat. Only a strictly positive incumbent can be beaten: a
+        ratio against zero or a negative measures nothing, and no income
+        statement total this guard applies to is negative.
+        """
+        if incumbent <= 0:
+            return None
+        best: tuple[str, tuple[float, list[Fact], str], float] | None = None
+        for entry, name in zip(entries, names):
+            facts = (
+                [f for f in self.facts(entry) if not f.is_instant]
+                if isinstance(entry, str)
+                else self._composite_series(entry)
+            )
+            if not facts:
+                continue
+            got = trailing_twelve_months(facts, as_of, kind=kind)
+            if got is None or got[0] <= incumbent * guard:
+                continue
+            if best is None or got[0] > best[1][0]:
+                best = (name, got, incumbent)
+        return best
+
     def resolve_ttm(
         self,
         concept: str,
@@ -626,6 +660,7 @@ class CompanyFacts:
         required: bool = True,
         allow_annual_fallback: bool = False,
         default_when_absent: float | None = None,
+        component_guard: float | None = None,
     ) -> tuple[float | None, Provenance]:
         """Resolve a flow concept over the trailing twelve months.
 
@@ -634,12 +669,33 @@ class CompanyFacts:
         balance-sheet concepts -- otherwise the first tag with any history at all
         wins and the concept silently fails. Entries may be a single tag or a
         tuple of tags to be summed.
+
+        ``component_guard`` handles the one failure the ladder cannot: a higher
+        ranked tag that is not the total at all. Set it and every remaining
+        entry is also resolved; where one covers the same window with a value
+        more than this multiple of the winner's, it replaces the winner and the
+        provenance says which tag it beat and by how much. An order of magnitude
+        apart is not a disagreement about scope, it is one of the two being a
+        disaggregation component.
+
+        Charter Communications is the case that earned it. Charter tags
+        ``RevenueFromContractWithCustomerIncludingAssessedTax`` at 889mm for
+        fiscal 2025, the revenue ladder ranks that tag above ``Revenues``, and
+        Charter's actual revenue that year was 54,774mm. Without the guard every
+        Charter multiple this engine prints is 62 times too high, and nothing on
+        the page says so.
+
+        Left None, which is every caller that does not ask for it, nothing about
+        the resolution changes. It is opt-in per concept because the test is a
+        ratio, and a ratio conveys nothing about a concept that legitimately
+        passes through zero: on EBIT or net income an order of magnitude is an
+        ordinary year.
         """
         ladder = list(ladder)
         names = [t if isinstance(t, str) else " + ".join(t) for t in ladder]
         partial: list[str] = []
 
-        for entry, name in zip(ladder, names):
+        for index, (entry, name) in enumerate(zip(ladder, names)):
             facts = (
                 [f for f in self.facts(entry) if not f.is_instant]
                 if isinstance(entry, str)
@@ -650,6 +706,27 @@ class CompanyFacts:
             got = trailing_twelve_months(facts, as_of, kind=kind)
             if got is not None:
                 value, tiles, method = got
+                note = (
+                    "day-weighted average, not a sum" if kind == "average" else None
+                )
+                if component_guard is not None:
+                    swapped = self._largest_covering(
+                        ladder[index + 1 :],
+                        names[index + 1 :],
+                        as_of,
+                        kind,
+                        value,
+                        component_guard,
+                    )
+                    if swapped is not None:
+                        beaten, name = name, swapped[0]
+                        value, tiles, method = swapped[1]
+                        note = (
+                            f"{beaten} also covers this window at "
+                            f"{swapped[2]:,.0f}, more than {component_guard:g} "
+                            "times smaller, so it is a disaggregation component "
+                            f"rather than the total and {name} was taken instead"
+                        )
                 return value, Provenance(
                     concept=concept,
                     tag=name,
@@ -658,9 +735,7 @@ class CompanyFacts:
                     forms=[t.form for t in tiles],
                     filed=str(max(t.filed for t in tiles)),
                     tags_tried=names,
-                    note=(
-                        "day-weighted average, not a sum" if kind == "average" else None
-                    ),
+                    note=note,
                 )
             partial.append(name)
 
