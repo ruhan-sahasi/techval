@@ -75,11 +75,22 @@ sort of quiet substitution this package refuses. Where the series passed in does
 expose a ``volumes`` attribute aligned with ``closes``, it is used and the basis
 says so.
 
-The practical limit is worth stating plainly: no public price source serves
-history for a delisted symbol, and a completed target is delisted by definition.
-Splunk, Mandiant, Zendesk and Slack therefore come back from a live run with
-their multiples intact and no premium at all, flagged rather than filled. Real
-premia over closed deals need ``price_source: csv`` and the closes supplied.
+**A completed target is delisted, and that used to end the run before it
+started.** Every path in here resolves a ticker through
+``EdgarClient.ticker_to_cik``, which read the SEC's current ticker file, and
+that file lists companies that exist today. Splunk, Mandiant, Zendesk, Slack and
+Twitter are absent from it because each of them was bought, so the module whose
+entire subject is completed transactions could reach none of them, and the
+refusal blamed foreign filers. ``techval.former_tickers`` is the fix: a table
+read off those companies' own cover pages, resolved against the knowledge date
+because a symbol is reassigned. Where even that does not carry a name, the CIK
+can be passed where a ticker is expected, as ``CIK0001353283``.
+
+The second limit is real and remains: no public price source serves history for
+a delisted symbol. Splunk, Mandiant, Zendesk and Slack therefore come back from
+a live run with their multiples intact and no premium at all, flagged rather
+than filled. Real premia over closed deals need ``price_source: csv`` and the
+closes supplied.
 
 **The announcement date is not the filing date and is not the signing date.**
 An 8-K reports the date of the event, which is the date the merger agreement was
@@ -185,6 +196,33 @@ DEAL_FORMS: tuple[str, ...] = (
     "SC 14D9/A",
     "S-4",
     "S-4/A",
+)
+
+#: How good each form is as evidence of what the deal was, best first. See
+#: ``find_merger_filings`` for what each rung costs when it is read instead of
+#: the one above it. The tender-offer recommendation sits second because a
+#: tender offer has no proxy at all, so for that route it is the primary
+#: document; the preliminary proxy sits below the definitive one because it is
+#: the same document before the price was final.
+_FORM_RANK: dict[str, int] = {
+    "8-K": 0,
+    "SC 14D9": 1,
+    "SC 14D9/A": 1,
+    "DEFM14A": 2,
+    "DEFM14C": 2,
+    "PREM14A": 3,
+    "PREM14C": 3,
+    "SC 13E3": 4,
+    "SC 13E3/A": 4,
+    "S-4": 5,
+    "S-4/A": 5,
+}
+
+#: Forms that state the consideration as a defined term rather than as a number
+#: in the sentence that grants it. Everything below the tender-offer
+#: recommendation in the ranking above.
+_DEFINED_TERM_FORMS: frozenset[str] = frozenset(
+    form for form, rank in _FORM_RANK.items() if rank >= 2
 )
 
 #: Filed the day a deal is announced, and useless before that. Used only to pull
@@ -583,15 +621,39 @@ _MERGER_AGREEMENT = re.compile(
 # Company, Cisco Systems, Inc., a Delaware corporation" matches with a name of
 # "by and among" and an article of "the", which is how a party list turns into
 # a company called "by and among".
+#
+# The quotation mark excluded from the corporate form is what stops a merger
+# proxy's opening line from doing the same thing one clause further along.
+# LiveRamp's DEFM14A opens "entered into an Agreement and Plan of Merger (as it
+# may be amended or supplemented from time to time, the "Merger Agreement") by
+# and among LiveRamp, MMS USA Holdings, Inc., a Delaware corporation
+# ("Parent")". With any character allowed in the form, the name binds to "as it
+# may be amended or supplemented from time to time", the form runs through the
+# closing quote of the defined term and the whole of the party list, and the
+# label it lands on is "Parent". The acquirer then prints as a sentence of
+# boilerplate wearing a registrant's place in the table. A defined term in
+# quotes ends the corporate form, because a regex that has read through one has
+# left the party it was describing.
 _PARTY_WITH_KIND = re.compile(
     r"(?P<name>[A-Za-z0-9][A-Za-z0-9.,&'\- ]{2,70}?)\s*,\s+"
-    r"(?:an?|the)\s+(?P<kind>[^(]{3,140}?)"
+    r"(?:an?|the)\s+(?P<kind>[^(\"]{3,140}?)"
     r"\(\s*(?P<labels>(?:\"[^\"]{1,60}\"(?:\s*(?:or|and|,)\s*)?)+)\s*\)",
     re.I,
 )
 _PARTY_BARE = re.compile(
     r"(?P<name>[A-Za-z0-9][A-Za-z0-9.,&'\- ]{2,70}?)\s*"
     r"\(\s*\"(?P<label>[^\"]{1,60})\"\s*\)"
+)
+# How a party list introduces its signatories. A fairness opinion talking about
+# the same agreement has none of these.
+_PARTY_LIST_CONNECTIVE = re.compile(
+    r"\bby\s+and\s+among\b|\bby\s+and\s+between\b|\bamong\b|\bwith\s+[A-Z]", re.I
+)
+# The entity whose parent is the buyer. A party that is not a merger sub can
+# also be described as somebody's subsidiary, and that is a statement about the
+# buyer's own ownership rather than about who is buying.
+_SUB_MARKER = re.compile(
+    r"merger\s+sub|purchaser\s+sub|acquisition\s+sub|merger\s+subsidiary", re.I
 )
 _SUBSIDIARY_OF = re.compile(
     r"(?:wholly[\s-]owned|direct|indirect)[^.]{0,60}?subsidiary\s+of\s+"
@@ -716,6 +778,52 @@ def _clean_name(raw: str) -> str:
     return re.sub(r"\s+", " ", name).strip(" ,;:")
 
 
+def _strip_filer_prefix(name: str, filer_tokens: set[str]) -> str:
+    """Drop the filer from the front of a captured run, keeping what follows.
+
+    A party list opens with the target and the party regex reaches leftwards, so
+    the buyer often arrives with the target glued to the front of it:
+    "by and among LiveRamp, MMS USA Holdings, Inc." captures as one run. The
+    filer test downstream asks whether the run mentions the filer and this one
+    does, so the buyer was discarded as the filer and the next party in the
+    list, Publicis Groupe, was reported instead. Publicis is the ultimate parent
+    named for one section of the agreement; the buyer is MMS USA Holdings.
+
+    Only a leading chunk that is ENTIRELY the filer is dropped, so a buyer whose
+    name happens to share a word with the target keeps its own first chunk.
+    """
+    chunks = [c.strip() for c in name.split(",")]
+    while len(chunks) > 1:
+        head = {w for w in _name_key(chunks[0]).split() if len(w) >= 3}
+        if head and head <= filer_tokens:
+            chunks = chunks[1:]
+            continue
+        break
+    return ", ".join(c for c in chunks if c).strip(" ,;:")
+
+
+def _names_a_company(raw: str) -> bool:
+    """Whether a captured run contains a company name at all.
+
+    ``_trim_to_name`` cuts a run back to the name at the end of it and returns
+    nothing when every word in the run is prose. ``_clean_name`` then keeps the
+    raw run, which is right for a name it could not improve and wrong for a run
+    that holds no name: "as it may be amended or supplemented from time to time"
+    comes back unchanged and reads like a registrant. A company name carries at
+    least one capitalised word or a lower-case domain, so a run with neither is
+    the regex having swallowed a clause rather than a party.
+    """
+    if not raw:
+        return False
+    for token in raw.split():
+        word = token.strip(",.;:()\"'&")
+        if not word:
+            continue
+        if word[:1].isupper() or _DOMAIN.match(word.lower()):
+            return True
+    return False
+
+
 def _name_key(name: str) -> str:
     """A company name reduced to what is distinctive about it.
 
@@ -756,14 +864,41 @@ def _agreement_date(text: str) -> date | None:
 
 
 def _parties_sentence(text: str) -> str | None:
-    """The clause that names who signed, bounded at the first operative verb."""
-    m = _MERGER_AGREEMENT.search(text)
-    if not m:
-        return None
-    window = text[m.start() : m.start() + 900]
-    cut = re.search(r"\bpursuant\s+to\s+which\b|\bprovides\s+that\b|\bPursuant\s+to\s+the\s+Merger",
-                    window, re.I)
-    return window[: cut.start()] if cut else window
+    """The clause that names who signed, bounded at the first operative verb.
+
+    An 8-K mentions the merger agreement two or three times and the first
+    mention is the party list. A merger proxy mentions it hundreds of times, and
+    the first mention is whichever section the printer put first. Taking the
+    first match in a 700,000-character proxy is how Silicon Laboratories' DEFM14A
+    hands back a sentence out of Qatalyst's fairness opinion, which names the
+    bank and not the buyer.
+
+    So every mention is scored and the best one wins. A party list has two marks
+    a fairness opinion does not: a connective that introduces a list of
+    signatories, and at least one defined term in quotes, which is how the
+    parties are labelled. Where nothing scores, the first mention is used as
+    before: the extractor downstream finds no candidate in it and reports no
+    acquirer, which is the honest answer for a document that does not contain
+    one.
+    """
+    best: str | None = None
+    best_score = -1
+    for m in _MERGER_AGREEMENT.finditer(text):
+        window = text[m.start() : m.start() + 900]
+        cut = re.search(
+            r"\bpursuant\s+to\s+which\b|\bprovides\s+that\b|\bPursuant\s+to\s+the\s+Merger",
+            window,
+            re.I,
+        )
+        window = window[: cut.start()] if cut else window
+        score = int(bool(_PARTY_LIST_CONNECTIVE.search(window))) + min(
+            len(re.findall(r"\(\s*\"[^\"]{1,60}\"", window)), 3
+        )
+        if score > best_score:
+            best, best_score = window, score
+        if best_score >= 4:
+            break
+    return best
 
 
 def _acquirer_name(text: str, filer_tokens: set[str]) -> tuple[str | None, list[str]]:
@@ -777,25 +912,58 @@ def _acquirer_name(text: str, filer_tokens: set[str]) -> tuple[str | None, list[
     reported, because it is what the agreement says; any other named party is
     listed in the notes, which is where a sponsor such as Hellman and Friedman
     or an ultimate parent such as Publicis Groupe will appear.
+
+    **The buyer is sometimes named only as the subs' parent.** Roku's merger
+    proxy introduces the two merger subs with their labels in front of their
+    corporate form, "Falcon Merger Sub 1, Inc. ("Merger Sub 1"), a Delaware
+    corporation and a direct wholly-owned subsidiary of FOX", and introduces FOX
+    itself with no parenthetical at all, because the document defined it pages
+    earlier. Every party in that list is therefore either discarded as a sub or
+    invisible, and the buyer of a nine-billion-dollar deal comes back as None:
+    no buyer means no stock leg, no offer price and no premium, which is the
+    whole of what a precedent is for. The subs name their parent in the same
+    breath as they identify themselves, so the parent is read out of the party
+    list wherever it appears in it and not only out of a party's corporate form.
     """
     sentence = _parties_sentence(text)
     if sentence is None:
         return None, []
 
     candidates: list[tuple[str, list[str]]] = []
-    parent_refs: list[str] = []
     spans: list[tuple[int, int]] = []
+    # Read from the whole party list rather than from one party's corporate
+    # form, because which party is a sub is stated beside the sub in either
+    # order: Iridium's proxy puts it before the label and Roku's after it.
+    #
+    # Only a MERGER SUB's parent is the buyer, and that qualifier is doing real
+    # work rather than tidiness. LiveRamp's 8-K introduces the buyer as "MMS USA
+    # Holdings, Inc., a Delaware corporation ("Parent") and a wholly owned
+    # subsidiary of Publicis", so the sentence carries two subsidiary clauses
+    # and the first of them is about the buyer's own ownership. Reading that one
+    # as "the buyer is whoever Parent belongs to" reports Publicis Groupe, which
+    # is the ultimate parent this module deliberately puts in the notes rather
+    # than in the Acquirer column.
+    parent_refs = []
+    for m in _SUBSIDIARY_OF.finditer(sentence):
+        if not _SUB_MARKER.search(sentence[max(0, m.start() - 200) : m.start()]):
+            continue
+        ref = _clean_name(m.group("parent"))
+        if not _names_a_company(ref) or _NOT_A_PARTY.search(ref):
+            continue
+        if _filer_tokens(ref) & filer_tokens:
+            continue
+        parent_refs.append(ref)
 
     for m in _PARTY_WITH_KIND.finditer(sentence):
         spans.append(m.span())
-        name = _clean_name(m.group("name"))
+        name = _strip_filer_prefix(_clean_name(m.group("name")), filer_tokens)
         kind = m.group("kind")
         labels = [lab.strip() for lab in re.findall(r"\"([^\"]{1,60})\"", m.group("labels"))]
-        sub = _SUBSIDIARY_OF.search(kind)
-        if sub:
-            parent_refs.append(_clean_name(sub.group("parent")))
+        if _SUBSIDIARY_OF.search(kind):
             continue
         if any(_NOT_A_PARTY.search(lab) for lab in labels):
+            continue
+        if not _names_a_company(name):
             continue
         if _filer_tokens(name) & filer_tokens:
             continue
@@ -806,18 +974,15 @@ def _acquirer_name(text: str, filer_tokens: set[str]) -> tuple[str | None, list[
     for m in _PARTY_BARE.finditer(sentence):
         if any(a <= m.start() < b for a, b in spans):
             continue
-        name = _clean_name(m.group("name"))
+        name = _strip_filer_prefix(_clean_name(m.group("name")), filer_tokens)
         label = m.group("label").strip()
-        if _NOT_A_PARTY.search(label) or not name:
+        if _NOT_A_PARTY.search(label) or not _names_a_company(name):
             continue
         if _filer_tokens(name) & filer_tokens:
             continue
         if any(name == c for c, _ in candidates):
             continue
         candidates.append((name, [label]))
-
-    if not candidates:
-        return None, []
 
     others = [name for name, _ in candidates]
 
@@ -831,7 +996,13 @@ def _acquirer_name(text: str, filer_tokens: set[str]) -> tuple[str | None, list[
         if any(lab.lower() in ("parent", "purchaser", "acquiror", "acquirer", "buyer")
                for lab in labels):
             return name, [o for o in others if o != name]
-    return candidates[0][0], others[1:]
+    if candidates:
+        return candidates[0][0], others[1:]
+    # Nobody in the list introduced themselves, but the subs said whose they
+    # are. That is still the agreement naming the buyer.
+    if parent_refs:
+        return parent_refs[0], [r for r in parent_refs[1:] if r != parent_refs[0]]
+    return None, []
 
 
 #: Prefix on the refusal that means "this was a share class, keep reading".
@@ -1070,13 +1241,43 @@ def find_merger_filings(
     *,
     as_of: date | None = None,
 ) -> list[dict]:
-    """Filings that could carry a merger agreement, newest first.
+    """Filings that could carry a merger agreement, best evidence first.
 
     Returns the raw dictionaries ``EdgarClient.filings`` produces, so the caller
     keeps the accession, the filing date, the form and the primary document.
     The list is a candidate list and nothing more: an 8-K reaches it on its form
     alone, and the Item 1.01 8-Ks a software company files are mostly credit
     agreements and note issuances. ``extract_transaction`` is what decides.
+
+    **Newest first was the wrong order, and it made the live path worse than the
+    tested one.** A merger proxy is filed months after the 8-K that announced
+    the deal, so a strictly newest-first walk reaches the proxy first, and the
+    committed fixtures hold text only for 8-Ks: every test passed on a document
+    no live run would have read. Measured on the same three deals, the proxy is
+    worse in three different ways. Silicon Laboratories' DEFM14A carries no
+    party list the extractor can find at all, so Texas Instruments and $231.00
+    at confidence 0.90 become no buyer, no price and confidence 0.25. Roku's
+    recovers the cash leg and the exchange ratio but not the buyer, so the stock
+    leg cannot be marked and the deal has no offer price and no premium.
+    LiveRamp's named the buyer as "as it may be amended or supplemented from
+    time to time", which printed in the Acquirer column and read like a company.
+
+    So the order is by what the document is, inside the window one sale process
+    occupies, and by date across processes. The 8-K under Item 1.01 is filed
+    within four business days of signing, states the agreement date in words and
+    the consideration as a number, and is thirty kilobytes against a four
+    megabyte proxy. A proxy states the same consideration as a defined term
+    resolved a hundred pages away, and repeats the phrase "Merger Agreement"
+    hundreds of times in sections that are about the fairness opinion rather
+    than the deal. The S-4 is last because it is the BUYER's registration
+    statement, which is the one document most likely to be somebody else's deal:
+    Zendesk's own S-4 to buy Momentive is the case this module was built
+    against.
+
+    A company that has been through two sale processes is still represented by
+    the most recent one, because the window anchors on the newest candidate and
+    only reorders inside it. ``PENDING_WINDOW_DAYS`` is the window: past that,
+    filings belong to an earlier process rather than to this one.
 
     ``as_of`` bounds the lookback window. It defaults to the client's own
     knowledge date where it has one, which keeps a historical run from reaching
@@ -1085,14 +1286,24 @@ def find_merger_filings(
     anchor = as_of or getattr(client, "knowledge_date", None) or date.today()
     since = anchor - timedelta(days=int(365.25 * lookback_years))
     out = client.filings(ticker, forms=DEAL_FORMS, since=since, limit=200)
-    # Newest first, and among documents filed the same day the 8-K first: it is
-    # the contemporaneous primary document, it states the agreement date in
-    # words, and it is thirty kilobytes against a four megabyte proxy.
-    return sorted(
-        out,
-        key=lambda f: (f["filed"], f["form"] == "8-K", f["accession"]),
-        reverse=True,
-    )
+
+    remaining = sorted(out, key=lambda f: (f["filed"], f["accession"]), reverse=True)
+    ordered: list[dict] = []
+    while remaining:
+        edge = remaining[0]["filed"] - timedelta(days=PENDING_WINDOW_DAYS)
+        window = [f for f in remaining if f["filed"] > edge]
+        remaining = remaining[len(window) :]
+        ordered.extend(
+            sorted(
+                window,
+                key=lambda f: (
+                    _FORM_RANK.get(str(f["form"]).upper(), len(_FORM_RANK)),
+                    -f["filed"].toordinal(),
+                    f["accession"],
+                ),
+            )
+        )
+    return ordered
 
 
 def extract_transaction(
@@ -1177,6 +1388,15 @@ def extract_transaction(
             "the document states a merger agreement but no per-share cash amount "
             "or exchange ratio could be read out of its consideration clause"
         )
+        if str(filing.get("form", "")).upper() in _DEFINED_TERM_FORMS:
+            notes.append(
+                "which is the ordinary shape of a merger proxy rather than a "
+                "failure of this filing: it converts each share into the Merger "
+                "Consideration and defines that term a hundred pages away, while "
+                "the announcement 8-K states the number in the same sentence as "
+                "the conversion. find_merger_filings reads the 8-K first for this "
+                "reason, so reaching this document means the 8-K carried nothing"
+            )
 
     offer_price = cash if consideration == "cash" else None
     pct_cash = 1.0 if consideration == "cash" else (0.0 if consideration == "stock" else None)

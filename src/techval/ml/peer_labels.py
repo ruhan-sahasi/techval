@@ -70,7 +70,7 @@ from typing import Any, Iterable, Sequence
 import pandas as pd
 
 from techval.config import Assumptions
-from techval.errors import DataSourceError, MissingDataError
+from techval.errors import ConfigError, DataSourceError, MissingDataError
 
 # Bumped when the parser changes in a way that would alter a cached result, so a
 # stale cache from an older parser is re-read rather than trusted.
@@ -1677,3 +1677,362 @@ def peer_pairs(
 def pairs_to_frame(pairs: Sequence[tuple[str, str, int]]) -> pd.DataFrame:
     """The pair list as a frame, ready to be split by date for walk-forward."""
     return pd.DataFrame(list(pairs), columns=["a", "b", "fiscal_year"])
+
+
+# --------------------------------------------------------------------------- #
+# Building the three artifacts the peer model reads
+#
+# The models in this package consume recorded artifacts: `techval peers` and the
+# value report's peer section both read peer_groups.json, peer_panel.json and
+# peer_item1.json off disk. Until this section existed, nothing in the
+# repository could write them. ``collect_peer_groups`` here,
+# ``features.build_panel`` and ``text.build_corpus`` were each reachable only
+# from their own tests, so the committed fixtures could be read forever and
+# never refreshed, and a reader who wanted to run the model over a different
+# universe had no way in. That is a worse failure than a wrong number: a number
+# can be checked, and a pipeline nobody can run cannot be checked at all.
+#
+#     TECHVAL_SEC_EMAIL=you@example.com python -m techval.ml.peer_labels out/peers
+#
+# It is a build rather than a command because it is a build: a few hundred
+# filers, several proxies and a 10-K each, six panel dates, tens of thousands of
+# SEC requests at the eight-per-second the client throttles itself to. That is
+# tens of minutes on a warm cache and hours on a cold one, which is why the
+# artifacts are recorded and committed rather than rebuilt per run.
+# --------------------------------------------------------------------------- #
+
+
+def most_named_peers(
+    groups: Sequence[PeerGroup],
+    exclude: Iterable[str] = (),
+    minimum: int = 3,
+) -> list[str]:
+    """Companies the filings name often that the seed universe does not carry.
+
+    The candidate universe is where survivorship and coverage live. A universe
+    of the seed alone cannot rank a company that half the sector benchmarks
+    against, and the ranking is then marked wrong for a gap in the candidate
+    list rather than for a failure of the model: that loss lands entirely in
+    recall, and ``encoder.survivorship_report`` is what measures it.
+
+    ``minimum`` is a floor on how many separate filers named the company, so one
+    filer's idiosyncratic choice does not widen the universe by itself.
+    """
+    drop = {str(t).upper() for t in exclude}
+    counts: dict[str, int] = {}
+    for g in groups:
+        if not g.usable:
+            continue
+        for peer in set(g.peers):
+            if peer.upper() in drop:
+                continue
+            counts[peer.upper()] = counts.get(peer.upper(), 0) + 1
+    return sorted(t for t, n in counts.items() if n >= minimum)
+
+
+def _group_record(g: PeerGroup) -> dict:
+    return {
+        "ticker": g.ticker,
+        "cik": g.cik,
+        "accession": g.accession,
+        "filed": None if g.filed is None else g.filed.isoformat(),
+        "fiscal_year": g.fiscal_year,
+        "peers": list(g.peers),
+        "unresolved": list(g.unresolved),
+        "method": g.method,
+        "selection_criteria": g.selection_criteria,
+        "confidence": g.confidence,
+    }
+
+
+def _panel_record(row) -> dict:
+    return {
+        "ticker": row.ticker,
+        "as_of": row.as_of.isoformat(),
+        "knowledge_date": None
+        if row.knowledge_date is None
+        else row.knowledge_date.isoformat(),
+        "values": dict(row.values),
+        "missing": list(row.missing),
+        "statement_date": None
+        if row.statement_date is None
+        else row.statement_date.isoformat(),
+        "error": row.error,
+    }
+
+
+def build_peer_artifacts(
+    tickers: Sequence[str],
+    out_dir: str | Path,
+    dates: Sequence[date],
+    client_factory: Any,
+    *,
+    live_client: Any = None,
+    assumptions: Assumptions | None = None,
+    section_loader: Any = None,
+    proxies_per_ticker: int = 8,
+    also_named_at_least: int | None = 3,
+    item1_chars: int | None = None,
+    progress: Any = None,
+) -> dict[str, Path]:
+    """Write the three files ``techval peers`` reads, from live filings.
+
+    ``client_factory`` takes a date and returns a client pinned to it, the same
+    contract ``features.build_panel`` takes, because a panel spans many dates
+    and one client can only be pinned to one of them. ``live_client`` reads the
+    proxies and defaults to ``client_factory(max(dates))``; the labels are
+    deliberately NOT pinned to the last panel date, because a proxy filed after
+    it is still a dated assertion about an earlier fiscal year and the encoder
+    attaches each group to the newest panel date at or before its own filing.
+
+    ``also_named_at_least`` widens the candidate universe to companies the
+    filings name that the seed does not carry, which is what ``most_named_peers``
+    is for. Pass None to keep the universe exactly as given.
+
+    ``item1_chars`` truncates each business description. It exists because the
+    committed fixture is truncated and the score it produces is not the score an
+    untruncated corpus produces: at 2,500 characters the encoder's NDCG@10 is
+    0.5407 against 0.594 on the full text, and the three text-free baselines are
+    bit-identical across cuts. Whatever is passed here is written into the file
+    header, so a score can always be read beside the corpus that produced it.
+
+    A fourth file, ``peer_survivorship.csv``, is written beside the three: one
+    row per named peer that never entered the candidate universe, which is the
+    number that bounds the encoder's recall. It is produced here because this is
+    the only place that holds the labels and the universe at once.
+
+    Returns the four paths. Nothing is deduplicated, nothing is repaired: a
+    filer whose proxy could not be parsed is written with its reason, a panel row
+    that failed carries its error, and a company with no 10-K at a date is absent
+    from that date's corpus with a note in the corpus rather than an empty
+    document, which would embed as a vector that is similar to nothing.
+    """
+    from . import features as _features
+    from . import text as _text
+
+    say = progress or (lambda _msg: None)
+    root = Path(out_dir)
+    root.mkdir(parents=True, exist_ok=True)
+    universe = [str(t).upper() for t in tickers]
+    panel_dates = sorted(dates)
+    if not panel_dates:
+        raise ConfigError("a peer panel needs at least one date to be built at")
+    reader = live_client if live_client is not None else client_factory(panel_dates[-1])
+
+    say(f"reading proxies for {len(universe)} filers")
+    groups = collect_peer_groups(
+        universe,
+        reader,
+        assumptions=assumptions,
+        proxies_per_ticker=proxies_per_ticker,
+        skip_errors=True,
+        keep_failed=True,
+    )
+    usable = [g for g in groups if g.usable and g.fiscal_year is not None]
+
+    candidates = list(universe)
+    if also_named_at_least is not None:
+        extra = most_named_peers(usable, exclude=universe, minimum=also_named_at_least)
+        say(f"{len(extra)} named peers outside the seed reach the universe")
+        candidates = sorted(set(candidates) | set(extra))
+
+    say(f"building the panel: {len(candidates)} companies over {len(panel_dates)} dates")
+    panel = _features.build_panel(
+        candidates, panel_dates, client_factory, None, assumptions
+    )
+
+    by_date: dict[str, dict] = {}
+    names: dict[str, str] = {}
+    corpus_notes: list[str] = []
+    for when in panel_dates:
+        say(f"reading business descriptions at {when}")
+        corpus = _text.build_corpus(
+            candidates, client_factory(when), section_loader, as_of=when
+        )
+        entry: dict[str, dict] = {}
+        for i, ticker in enumerate(corpus.tickers):
+            document = corpus.documents[i]
+            entry[ticker] = {
+                "item1": document if item1_chars is None else document[:item1_chars],
+                "chars": len(document),
+                "filed": corpus.as_of_by_ticker[ticker].isoformat(),
+                "accession": corpus.source_accessions.get(ticker, ""),
+            }
+        by_date[when.isoformat()] = entry
+        names.update(corpus.entity_names)
+        corpus_notes.extend(corpus.notes)
+
+    stamp = date.today().isoformat()
+    written: dict[str, Path] = {}
+
+    groups_path = root / "peer_groups.json"
+    groups_path.write_text(
+        json.dumps(
+            {
+                "_source": "DEF 14A proxy statements read by "
+                f"techval.ml.peer_labels.collect_peer_groups with "
+                f"proxies_per_ticker={proxies_per_ticker}.",
+                "_retrieved": stamp,
+                "_contents": f"{len(usable)} groups that passed the plausibility "
+                f"band and resolved a fiscal year, of {len(groups)} read.",
+                "groups": [_group_record(g) for g in usable],
+            },
+            indent=1,
+        )
+        + "\n"
+    )
+    written["groups"] = groups_path
+
+    panel_path = root / "peer_panel.json"
+    panel_path.write_text(
+        json.dumps(
+            {
+                "_source": "techval.ml.features.build_panel, each row through a "
+                "client pinned to the row date. No market feed: the keyless quote "
+                "source serves about three years, so an early date has no prices "
+                "at all and a panel carrying market features only at its late "
+                "dates would hand a model a clean proxy for the calendar.",
+                "_retrieved": stamp,
+                "panel_dates": [d.isoformat() for d in panel_dates],
+                "feature_names": list(panel.feature_names),
+                "random_seed": panel.random_seed,
+                "rows": [_panel_record(r) for r in panel.rows],
+                "winsorization": [
+                    {
+                        "as_of": w.as_of.isoformat(),
+                        "feature": w.feature,
+                        "n_observed": w.n_observed,
+                        "applied": w.applied,
+                    }
+                    for w in panel.winsorization
+                ],
+            },
+            indent=1,
+        )
+        + "\n"
+    )
+    written["panel"] = panel_path
+
+    item1_path = root / "peer_item1.json"
+    item1_path.write_text(
+        json.dumps(
+            {
+                "_source": "Item 1 (Business) of the newest 10-K on file at each "
+                "panel date, via techval.ml.text.build_corpus.",
+                "_retrieved": stamp,
+                "_pruning": "the whole section is kept"
+                if item1_chars is None
+                else f"only the first {item1_chars:,} characters of each section "
+                "are kept; chars records the full length. A score measured on a "
+                "truncated corpus is not the score the full text produces.",
+                "_notes": corpus_notes,
+                "by_date": by_date,
+                "entity_names": names,
+            },
+            indent=1,
+        )
+        + "\n"
+    )
+    written["item1"] = item1_path
+
+    # The census that bounds recall, written beside the artifacts because it is
+    # a property of the labels and the universe together and cannot be recovered
+    # from either alone. The import is local: encoder imports this module, and
+    # the census is the one thing here that needs the model layer.
+    from .encoder import survivorship_report
+
+    census = survivorship_report(usable, candidates)
+    census_path = root / "peer_survivorship.csv"
+    census.to_csv(census_path, index=False)
+    written["survivorship"] = census_path
+    if not census.empty:
+        absent = int((~census["in_universe"]).sum())
+        say(
+            f"{absent} named peers never entered the candidate universe. That "
+            f"loss lands in recall and is itemised in {census_path.name}"
+        )
+
+    say(f"wrote {', '.join(str(p) for p in written.values())}")
+    return written
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Build the peer artifacts for the TMT seed universe.
+
+    Deliberately a module entry point rather than a subcommand of ``techval``.
+    The command surface is for things a reader runs while valuing a company, and
+    this is a data build that takes tens of minutes and writes files those
+    commands then read for months.
+    """
+    import argparse
+
+    from ..edgar import EdgarClient
+    from ..tmt.taxonomy import SEED
+
+    parser = argparse.ArgumentParser(
+        prog="python -m techval.ml.peer_labels",
+        description=(
+            "Build peer_groups.json, peer_panel.json and peer_item1.json from "
+            "live SEC filings. These are the three artifacts `techval peers` and "
+            "the value report's peer section read."
+        ),
+    )
+    parser.add_argument("out_dir", help="directory to write the three files into")
+    parser.add_argument(
+        "--dates",
+        default=None,
+        help="comma-separated panel dates. Default: 1 January of each of the "
+        "last six years, which is what the committed fixture carries",
+    )
+    parser.add_argument(
+        "--tickers",
+        default=None,
+        help="comma-separated universe. Default: techval.tmt.taxonomy.SEED",
+    )
+    parser.add_argument("--proxies-per-ticker", type=int, default=8)
+    parser.add_argument(
+        "--also-named-at-least",
+        type=int,
+        default=3,
+        help="widen the universe with peers named by at least this many filers, "
+        "0 to keep the universe exactly as given",
+    )
+    parser.add_argument(
+        "--item1-chars",
+        type=int,
+        default=None,
+        help="truncate each business description. The committed fixture uses "
+        "2500 and scores 0.5407 where the full text scores 0.594",
+    )
+    args = parser.parse_args(list(argv) if argv is not None else None)
+
+    if args.dates:
+        dates = [date.fromisoformat(d.strip()) for d in args.dates.split(",") if d.strip()]
+    else:
+        this_year = date.today().year
+        dates = [date(y, 1, 1) for y in range(this_year - 5, this_year + 1)]
+    universe = (
+        [t.strip().upper() for t in args.tickers.split(",") if t.strip()]
+        if args.tickers
+        else sorted(SEED)
+    )
+
+    assumptions = Assumptions()
+    written = build_peer_artifacts(
+        universe,
+        args.out_dir,
+        dates,
+        lambda when: EdgarClient(knowledge_date=when),
+        assumptions=assumptions,
+        proxies_per_ticker=args.proxies_per_ticker,
+        also_named_at_least=args.also_named_at_least or None,
+        item1_chars=args.item1_chars,
+        progress=lambda msg: print(msg, flush=True),
+    )
+    for name, path in written.items():
+        print(f"{name}: {path} ({path.stat().st_size:,} bytes)")
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover - the build is a live run
+    raise SystemExit(main())

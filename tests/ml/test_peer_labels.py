@@ -23,7 +23,7 @@ import pytest
 
 from techval.config import Assumptions
 from techval.edgar import SEC_TICKERS_URL
-from techval.errors import DataSourceError
+from techval.errors import DataSourceError, MissingDataError
 from techval.ml.peer_labels import (
     MAX_PLAUSIBLE_PEERS,
     MIN_PLAUSIBLE_PEERS,
@@ -914,3 +914,156 @@ def test_groups_to_frame_of_nothing_still_has_its_columns():
         "confidence",
     ]
     assert frame.empty
+
+
+# --------------------------------------------------------------------------- #
+# The build that writes what the commands read
+# --------------------------------------------------------------------------- #
+
+
+class ArtifactClient(FixtureProxyClient):
+    """The proxy fixture client, extended to what a whole artifact build needs.
+
+    ``company_facts`` serves the committed payloads pinned to the panel date, so
+    the panel rows this writes are point in time rather than merely shaped like
+    it. The 10-K path is a stub section loader rather than a committed filing:
+    ``build_corpus``'s own reading of Item 1 is tested in ``test_text.py``, and
+    what is under test here is that the three builders compose into files the
+    commands can read back.
+    """
+
+    def __init__(self, knowledge_date: date | None = None) -> None:
+        super().__init__()
+        self.knowledge_date = knowledge_date
+
+    def company_facts(self, ticker: str):
+        from techval.edgar import CompanyFacts
+
+        path = FIXTURES / f"companyfacts_{ticker.upper()}.json"
+        if not path.exists():
+            raise MissingDataError("companyfacts", ticker=ticker, hint="not a fixture")
+        return CompanyFacts(
+            json.loads(path.read_text()), ticker, knowledge_date=self.knowledge_date
+        )
+
+    def submissions(self, ticker: str) -> dict:
+        return {"formerNames": [], "name": f"{ticker.upper()} Holdings, Inc."}
+
+    def filings(self, ticker, forms=("10-K",), since=None, limit=20) -> list[dict]:
+        if "DEF 14A" in forms:
+            return super().filings(ticker, forms, since, limit)
+        if "10-K" not in forms:
+            return []
+        return [
+            {
+                "accession": f"0000000000-24-{abs(hash(ticker)) % 100000:06d}",
+                "filed": date(2024, 3, 1),
+                "form": "10-K",
+                "document": f"{ticker.lower()}-20231231.htm",
+                "period": "2023-12-31",
+            }
+        ]
+
+
+ARTIFACT_UNIVERSE = ("DDOG", "CRWD", "MDB", "ZS")
+
+
+def test_the_build_writes_the_three_files_the_commands_read(tmp_path):
+    """Nothing in the repository could write these before, which is the finding.
+
+    ``techval peers`` and the value report's peer section both read
+    peer_groups.json, peer_panel.json and peer_item1.json off disk, and the
+    three functions that produce them, ``collect_peer_groups`` here,
+    ``features.build_panel`` and ``text.build_corpus``, were reachable only from
+    their own tests. The committed fixtures could be read forever and never
+    refreshed.
+
+    The contract under test is that the writer and the production readers agree,
+    so the files are read back through ``commands_peers``' own loaders rather
+    than through a copy of them.
+    """
+    from techval.commands_peers import _load_corpora, _load_groups, _load_panel
+    from techval.ml.peer_labels import build_peer_artifacts
+
+    dates = [date(2025, 1, 1), date(2026, 1, 1)]
+    written = build_peer_artifacts(
+        ARTIFACT_UNIVERSE,
+        tmp_path,
+        dates,
+        ArtifactClient,
+        live_client=ArtifactClient(),
+        assumptions=Assumptions(),
+        section_loader=lambda ticker, _client: (
+            f"{ticker} operates a cloud platform. " * 40
+        ),
+        also_named_at_least=None,
+    )
+    assert set(written) == {"groups", "panel", "item1", "survivorship"}
+
+    # The census that bounds recall is written beside the three, because it is
+    # the one number the artifacts cannot be read apart from: a named peer the
+    # universe never held is a recall failure of the candidate list rather than
+    # of the ranker.
+    census = written["survivorship"].read_text().splitlines()
+    assert census[0].split(",")[:3] == ["peer", "times_named", "last_named_fiscal_year"]
+
+    groups = _load_groups(written["groups"])
+    assert groups and all(g.filed is not None and g.fiscal_year for g in groups)
+    assert {g.ticker for g in groups} <= set(ARTIFACT_UNIVERSE)
+
+    panel = _load_panel(written["panel"])
+    assert {r.as_of for r in panel.rows} == set(dates)
+    assert len(panel.rows) == len(ARTIFACT_UNIVERSE) * len(dates)
+    assert any(r.ok for r in panel.rows)
+
+    corpora = _load_corpora(written["item1"])
+    assert set(corpora) == set(dates)
+    for corpus in corpora.values():
+        assert set(corpus.tickers) == set(ARTIFACT_UNIVERSE)
+        assert all(corpus.as_of_by_ticker[t] for t in corpus.tickers)
+
+
+def test_a_row_that_could_not_be_built_is_written_with_its_reason(tmp_path):
+    """A failed row is a fact about the sample, not something to drop.
+
+    The universe here carries a company with no committed fact set, which is
+    what a filer whose tagging the engine cannot resolve looks like from inside
+    a build. It reaches the file with its error, because a panel that silently
+    held one company where two were asked for would understate its own coverage.
+    """
+    from techval.commands_peers import _load_panel
+    from techval.ml.peer_labels import build_peer_artifacts
+
+    written = build_peer_artifacts(
+        ["DDOG", "NOSUCHCO"],
+        tmp_path,
+        [date(2026, 1, 1)],
+        ArtifactClient,
+        live_client=ArtifactClient(),
+        assumptions=Assumptions(),
+        section_loader=lambda ticker, _client: f"{ticker} sells software. " * 40,
+        also_named_at_least=None,
+    )
+    panel = _load_panel(written["panel"])
+    failed = [r for r in panel.rows if not r.ok]
+    assert [r.ticker for r in failed] == ["NOSUCHCO"]
+    assert "companyfacts" in (failed[0].error or "")
+
+
+def test_the_universe_widens_to_the_companies_the_filings_name_often(client, index):
+    """A candidate list that holds only the seed cannot rank what the seed names.
+
+    Datadog's own proxy names seventeen companies and most of them are not in
+    this fixture's four-name universe. A ranking scored against a universe that
+    cannot contain the answer is marked wrong for a gap in the candidate list,
+    which is where survivorship and coverage both live.
+    """
+    from techval.ml.peer_labels import most_named_peers
+
+    groups = collect_peer_groups(UNIVERSE, client, index, assumptions=None, use_cache=False)
+    widened = most_named_peers(groups, exclude=UNIVERSE, minimum=2)
+    assert widened
+    assert not set(widened) & set(UNIVERSE)
+    # Named by one filer only, so it does not widen the universe by itself.
+    once = most_named_peers(groups, exclude=UNIVERSE, minimum=1)
+    assert set(widened) < set(once)
