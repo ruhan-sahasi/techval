@@ -27,7 +27,7 @@ from __future__ import annotations
 import gzip
 import json
 import re
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -38,8 +38,7 @@ from typer.testing import CliRunner
 
 from techval.commands_peers import _tower_ablation, app
 from techval.config import Assumptions
-from techval.errors import NotMeaningfulError
-from techval.ml.encoder import MIN_TRAIN_PAIRS, ablate_towers, build_dataset
+from techval.ml.encoder import MIN_TRAIN_PAIRS, ablation_folds, build_dataset
 from techval.ml.features import FEATURE_NAMES
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -580,20 +579,26 @@ def test_a_run_without_the_ablation_says_the_tower_question_is_unanswered(warm_r
     assert "does not say which trained tower" in warm_run
 
 
-def test_the_ablations_default_folds_cannot_fit_the_real_universe(real_dataset):
-    """Why ``_tower_ablation`` supplies its own folds, pinned as a test.
+def test_the_ablations_default_folds_now_clear_the_training_floor(real_dataset):
+    """The defect this test used to pin is fixed in the module it belonged to.
 
     Cut into equal blocks of dates with no floor on the training window, the
-    earliest walk-forward fold over the committed proxies holds nine disclosed
+    earliest walk-forward fold over the committed proxies held nine disclosed
     pairs, because the first filing season in the window is one filer.
-    ``_train_encoder`` refuses to fit a contrastive model on nine relationships,
-    which is correct, and the refusal takes the whole ablation with it rather
-    than costing one fold. This is a defect in ``encoder.ablate_towers`` and it
-    is recorded here rather than worked around silently.
+    ``_train_encoder`` refused to fit a contrastive model on nine relationships,
+    which was correct, and the refusal took the whole ablation with it rather
+    than costing one fold. ``ablate_towers`` now asks for the same floor
+    ``_tower_ablation`` below asks for, so the default path and the command's
+    path cut the same folds. The fold shape is asserted rather than the
+    ablation run, because the run is exercised in tests/ml/test_encoder.py and
+    costs half a minute.
     """
-    with pytest.raises(NotMeaningfulError) as exc:
-        ablate_towers(real_dataset, Assumptions())
-    assert "too narrow for in-batch negatives" in str(exc.value)
+    folds = ablation_folds(real_dataset, Assumptions())
+    assert len(folds) >= 2
+    pairs = [e.filed for e in real_dataset.examples]
+    for fold in folds:
+        cut = fold.test_start - timedelta(days=fold.embargo_days)
+        assert sum(1 for d in pairs if d < cut) >= MIN_TRAIN_PAIRS
 
 
 def test_the_folds_this_command_supplies_clear_the_training_floor(real_dataset):

@@ -526,6 +526,10 @@ def build_corpus(
     XBRL has existed. Where even that does not reach, the corpus note says the
     window was exhausted rather than claiming the filer never filed.
 
+    ``peer_labels.build_peer_artifacts`` is the production caller: it runs this
+    once per panel date through a client pinned to that date and writes the
+    result as the ``peer_item1.json`` the peer model reads.
+
     ``section_loader`` is the hook for ``nlp/sections.py``, called as
     ``loader(ticker, client)`` and expected to return Item 1 for that ticker
     honouring the same knowledge date. The accession recorded against the

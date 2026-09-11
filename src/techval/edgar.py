@@ -35,16 +35,18 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import threading
 import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, Iterable, Iterator, Sequence
+from typing import Any, Iterable, Iterator, NamedTuple, Sequence
 
 import requests
 
+from . import former_tickers
 from .errors import DataSourceError, MissingDataError, StaleDataError
 
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
@@ -1485,6 +1487,30 @@ def parse_instance(xml_bytes: bytes) -> list[DimensionedFact]:
     return out
 
 
+#: A CIK where a ticker is expected: ``CIK0001353283``, ``CIK1353283``, or the
+#: bare number. The prefixed form is what ``tests/fixtures/mna/universe.json``
+#: keys a departed registrant by, because its ticker was not recoverable when
+#: that fixture was recorded.
+_CIK_FORM = re.compile(r"^(?:CIK[-_ ]?)?0*(\d{1,10})$", re.I)
+
+
+class TickerResolution(NamedTuple):
+    """A resolved CIK and which of the three sources answered.
+
+    ``source`` is on the record because the three are not equally strong. The
+    SEC's current ticker file is authoritative for a company that still trades.
+    An explicit CIK is authoritative full stop, because it is the identifier the
+    SEC's own APIs use. The former-ticker index is evidence from a cover page on
+    a stated date, which is strong for the date it names and silent about every
+    other one, so ``note`` carries what it actually proved.
+    """
+
+    cik: int
+    name: str | None
+    source: str
+    note: str | None
+
+
 class EdgarClient:
     def __init__(
         self, cache: HttpCache | None = None, knowledge_date: date | None = None
@@ -1500,20 +1526,106 @@ class EdgarClient:
         except json.JSONDecodeError as exc:
             raise DataSourceError(f"{url} did not return JSON: {exc}") from exc
 
-    def ticker_to_cik(self, ticker: str) -> int:
+    def resolve_ticker(self, ticker: str) -> TickerResolution:
+        """A ticker to a CIK, through three sources, saying which one answered.
+
+        **The SEC's ticker file lists companies that exist today.** That is the
+        whole of it: 10,407 symbols, none of them SPLK, ZEN, MNDT, WORK or TWTR,
+        because a delisted security's row goes with the security. Resolving
+        through that file alone made every completed acquisition target
+        unreachable, which is the population ``techval precedents`` exists to
+        talk about, and the refusal blamed foreign filers for what was a
+        delisting. The filings never went anywhere: the submissions API is keyed
+        on CIK and a departed registrant keeps its history there.
+
+        The ladder, in order, and each rung says so in ``source``:
+
+        1. **An explicit CIK.** ``CIK0001353283``, ``CIK1353283`` or the bare
+           number. This is the escape hatch that always works, because it is the
+           identifier the SEC's own APIs are keyed on, and it is how the
+           recorded M&A fixtures already key a departed registrant. A symbol
+           this package has never heard of is still reachable this way.
+        2. **The current ticker file**, which is right for every company that
+           still trades and is the only source that needs the network.
+        3. **The former-ticker index** in ``techval.former_tickers``, built from
+           the cover pages of the departed registrants' own last filings.
+
+        **Where the first two disagree, the knowledge date decides.** A symbol
+        is reassigned: ``S`` was Sprint's until January 2020 and is SentinelOne's
+        now, and both tag that letter on their own cover pages. A client pinned
+        to a knowledge date inside the former registrant's filing history
+        resolves to the former registrant and records why; an unpinned client
+        gets today's holder, which is what a live run means by the symbol. This
+        is the one place in the engine where a ticker means two companies, and
+        answering it silently either way would be worse than either answer.
+        """
+        raw = str(ticker).strip()
+        explicit = _CIK_FORM.match(raw)
+        if explicit:
+            return TickerResolution(
+                cik=int(explicit.group(1)), name=None, source="explicit CIK", note=None
+            )
+
+        symbol = raw.upper()
         if self._ticker_map is None:
             payload = self._get_json(SEC_TICKERS_URL)
             self._ticker_map = {
                 v["ticker"].upper(): int(v["cik_str"]) for v in payload.values()
             }
-        cik = self._ticker_map.get(ticker.upper())
-        if cik is None:
-            raise MissingDataError(
-                "CIK",
-                ticker=ticker,
-                hint="not present in the SEC ticker file; the engine covers US filers only",
+        current = self._ticker_map.get(symbol)
+        former = former_tickers.resolve(symbol, self.knowledge_date)
+
+        if (
+            former is not None
+            and self.knowledge_date is not None
+            and self.knowledge_date <= former.through
+            and current != former.cik
+        ):
+            note = (
+                f"{symbol} resolves to {former.name} (CIK {former.cik}) rather than "
+                f"the registrant trading under it today, because the knowledge date "
+                f"{self.knowledge_date} falls inside that filer's own history: it "
+                f"tagged {symbol} on its cover page as late as {former.through}."
             )
-        return cik
+            return TickerResolution(
+                cik=former.cik,
+                name=former.name,
+                source="former-ticker index",
+                note=note,
+            )
+        if current is not None:
+            return TickerResolution(
+                cik=current, name=None, source="SEC ticker file", note=None
+            )
+        if former is not None:
+            return TickerResolution(
+                cik=former.cik,
+                name=former.name,
+                source="former-ticker index",
+                note=(
+                    f"{symbol} is not in the SEC's current ticker file. It last "
+                    f"appeared on {former.name}'s own cover page on "
+                    f"{former.through} (CIK {former.cik}), which is a delisting "
+                    "rather than an absence."
+                ),
+            )
+        raise MissingDataError(
+            "CIK",
+            ticker=ticker,
+            hint=(
+                "absent from the SEC's current ticker file, which lists only "
+                "registrants that still trade, and from the former-ticker index "
+                f"this package carries ({len(former_tickers.FORMER_TICKERS)} "
+                "symbols, the TMT registrants that left between 2019 and 2026). "
+                "Every completed acquisition target is absent from the first by "
+                "construction, so a delisting is the likelier cause than a "
+                "foreign filer. Pass the CIK instead, as CIK0001353283: the "
+                "submissions API is keyed on it and it survives a delisting"
+            ),
+        )
+
+    def ticker_to_cik(self, ticker: str) -> int:
+        return self.resolve_ticker(ticker).cik
 
     def company_facts(self, ticker: str) -> CompanyFacts:
         cik = self.ticker_to_cik(ticker)

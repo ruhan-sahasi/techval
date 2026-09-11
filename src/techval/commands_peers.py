@@ -537,7 +537,10 @@ def _bundle(
             dataset,
             assumptions,
             fit_through=through,
-            evaluation=None if evaluation is None else evaluation.headline,
+            # The whole evaluation rather than its headline, so the warm and
+            # cold halves are saved with the fit and survive to whoever loads
+            # the joblib next. See PeerEncoder.cold_start_note.
+            evaluation=evaluation,
         )
         if use_cache:
             try:

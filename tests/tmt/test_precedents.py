@@ -36,6 +36,7 @@ $160.00 per share", and Zendesk's December 2021 S-4 to buy Momentive.
 
 from __future__ import annotations
 
+import gzip
 import json
 from datetime import date, timedelta
 from pathlib import Path
@@ -124,11 +125,22 @@ class MergerFixtureClient(EdgarClient):
 def load_text(accession: str, *, missing_ok: bool = False) -> str:
     if accession not in _TEXT_CACHE:
         path = FIXTURES / "text" / f"{accession}.txt"
-        if not path.exists():
-            if missing_ok:
-                return ""
+        # The merger proxies are committed gzipped. They are a megabyte of
+        # stripped text each and they are committed whole rather than cut to a
+        # window, because the point of having them is that the document the
+        # test reads is the document a live run reads: an excerpt would extract
+        # differently from the filing it came from, which is the failure these
+        # fixtures exist to pin.
+        packed = path.with_suffix(".txt.gz")
+        if path.exists():
+            _TEXT_CACHE[accession] = path.read_text()
+        elif packed.exists():
+            with gzip.open(packed, "rt") as handle:
+                _TEXT_CACHE[accession] = handle.read()
+        elif missing_ok:
+            return ""
+        else:
             raise AssertionError(f"no committed text for {accession}")
-        _TEXT_CACHE[accession] = path.read_text()
     return _TEXT_CACHE[accession]
 
 
@@ -175,8 +187,29 @@ def test_find_merger_filings_returns_only_deal_forms(merger_client):
     found = P.find_merger_filings("SPLK", merger_client)
     assert found, "Splunk filed a merger proxy and an 8-K inside ten years"
     assert {f["form"] for f in found} <= set(P.DEAL_FORMS)
-    filed = [f["filed"] for f in found]
-    assert filed == sorted(filed, reverse=True), "newest first"
+    # Newest first WITHIN a form class. Across classes the 8-K leads, which is
+    # the property the next test is about.
+    for form in {f["form"] for f in found}:
+        filed = [f["filed"] for f in found if f["form"] == form]
+        assert filed == sorted(filed, reverse=True), f"{form} newest first"
+
+
+def test_the_8k_is_read_before_the_proxy_that_follows_it_by_months(merger_client):
+    """The live path used to reach the proxy first, and the proxy is worse.
+
+    Splunk's merger 8-K was filed on 21 September 2023 and its DEFM14A on
+    30 October 2023, and a strictly newest-first walk reads the proxy first.
+    Every committed fixture holds 8-K text, so the whole suite was exercising a
+    document a live run would not have reached. Both documents are inside one
+    sale process, so the order between them is a question about evidence rather
+    than about recency, and the contemporaneous 8-K is the better evidence.
+    """
+    found = P.find_merger_filings("SPLK", merger_client)
+    forms = [f["form"] for f in found]
+    eight_k = next(i for i, f in enumerate(found) if f["accession"] == "0001104659-23-102594")
+    proxy = next(i for i, form in enumerate(forms) if form in ("DEFM14A", "PREM14A"))
+    assert found[proxy]["filed"] > found[eight_k]["filed"], "the proxy is the later filing"
+    assert eight_k < proxy, "and it is still read second"
 
 
 def test_find_merger_filings_honours_the_lookback(merger_client):
@@ -191,6 +224,108 @@ def test_find_merger_filings_prefers_the_8k_on_a_shared_filing_date(merger_clien
     same_day = [f for f in found if f["filed"] == date(2022, 6, 24)]
     assert len(same_day) > 1, "Zendesk filed an 8-K and proxy material that day"
     assert same_day[0]["form"] == "8-K"
+
+
+# --------------------------------------------------------------------------- #
+# The merger proxies, which are what a live run used to read first
+#
+# Three DEFM14As are committed whole and gzipped beside the 8-Ks. They are here
+# because the tested path and the live path had come apart: every text fixture
+# was an 8-K, and a live run reached the proxy months later and read that
+# instead. Each of these three says something different about what that cost.
+# --------------------------------------------------------------------------- #
+
+SLAB_PROXY = "0001193125-26-128959"
+ROKU_PROXY = "0001193125-26-377700"
+RAMP_PROXY = "0001104659-26-080505"
+
+
+def _read(client, ticker, accession, form, filed):
+    return P.extract_transaction(
+        load_text(accession),
+        ticker,
+        client,
+        {"accession": accession, "form": form, "filed": filed},
+    )
+
+
+def test_the_deal_comes_from_the_8k_even_though_the_proxy_is_newer(
+    merger_client, merger_assumptions
+):
+    """The ordering fix, asserted where it decides a printed number.
+
+    Silicon Laboratories' DEFM14A was filed on 27 March 2026 and the 8-K that
+    announced the deal on 2 February. Both are committed, so this asserts which
+    one the discovery walk actually chooses rather than which one it ought to.
+    """
+    deal, _flags = P._discover(
+        "SLAB", merger_client, merger_assumptions, as_of=MERGER_AS_OF
+    )
+    assert deal is not None
+    assert deal.filing["form"] == "8-K"
+    assert deal.transaction.offer_price == pytest.approx(231.0)
+    assert deal.transaction.acquirer_ticker == "TXN"
+
+
+def test_the_proxy_alone_cannot_price_the_deal_the_8k_prices(merger_client):
+    """What reading the proxy first costs, on the same deal, measured.
+
+    The SLAB proxy names no party list the extractor can find: its only two
+    mentions of the merger agreement are both inside Qatalyst's fairness
+    opinion. Texas Instruments at $231.00 and confidence 0.90 becomes no buyer,
+    no price and confidence 0.25. The refusal is correct and the document is the
+    problem, which is why the fix is to read the 8-K rather than to squeeze this
+    one harder.
+    """
+    proxy = _read(merger_client, "SLAB", SLAB_PROXY, "DEFM14A", date(2026, 3, 27))
+    assert proxy is not None
+    assert proxy.acquirer_name is None
+    assert proxy.offer_price is None
+    assert proxy.confidence == pytest.approx(0.25)
+    assert any("Merger Consideration" in note for note in proxy.notes)
+
+    eight_k = _read(merger_client, "SLAB", "0001193125-26-036712", "8-K", date(2026, 2, 2))
+    assert eight_k.offer_price == pytest.approx(231.0)
+    assert eight_k.confidence == pytest.approx(0.90)
+
+
+def test_a_proxys_boilerplate_is_not_read_as_the_buyer(merger_client):
+    """LiveRamp's proxy used to name the acquirer as a clause of boilerplate.
+
+    "as it may be amended or supplemented from time to time" is the
+    parenthetical that defines the term Merger Agreement, and it printed in the
+    Acquirer column. The buyer is MMS USA Holdings, the bidco, with Publicis
+    Groupe named in the same sentence for one section of the agreement and
+    belonging in the notes rather than in the column.
+    """
+    txn = _read(merger_client, "RAMP", RAMP_PROXY, "DEFM14A", date(2026, 7, 6))
+    assert txn is not None
+    assert txn.acquirer_name == "MMS USA Holdings, Inc."
+    assert "amended or supplemented" not in (txn.acquirer_name or "")
+    assert any("Publicis" in note for note in txn.notes)
+    assert txn.offer_price == pytest.approx(38.5)
+
+
+def test_a_buyer_named_only_as_the_merger_subs_parent_is_still_the_buyer(merger_client):
+    """Roku's proxy introduces FOX with no parenthetical of its own.
+
+    Every party in that list is either a merger sub or unlabelled, so the buyer
+    came back as None, and without a buyer the stock leg cannot be marked: the
+    deal lost its offer price and both premia, which is the whole of what a
+    precedent carries. The subs say whose subsidiaries they are in the same
+    breath, so the buyer is in the sentence after all.
+
+    The proxy and the 8-K now agree on every number, which is the property the
+    fixture exists to pin.
+    """
+    proxy = _read(merger_client, "ROKU", ROKU_PROXY, "DEFM14A", date(2026, 9, 1))
+    eight_k = _read(merger_client, "ROKU", "0001140361-26-025115", "8-K", date(2026, 6, 15))
+    assert proxy is not None and eight_k is not None
+    assert proxy.acquirer_name == "FOX"
+    assert proxy.acquirer_ticker == "FOXA" == eight_k.acquirer_ticker
+    assert proxy.cash_per_share == pytest.approx(eight_k.cash_per_share)
+    assert proxy.exchange_ratio == pytest.approx(eight_k.exchange_ratio)
+    assert proxy.consideration == eight_k.consideration == "mixed"
 
 
 # --------------------------------------------------------------------------- #

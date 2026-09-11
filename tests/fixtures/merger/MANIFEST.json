@@ -212,6 +212,14 @@
    "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup",
    "bytes": 31347
   },
+  "text/0001104659-26-080505.txt.gz": {
+   "source": "https://www.sec.gov/Archives/edgar/data/733269/000110465926080505/tm264528-7_defm14aseq1.htm",
+   "retrieved": "2026-09-11",
+   "what": "LiveRamp's definitive merger proxy, the document a live run reached before the 8-K",
+   "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup, then gzipped. 1,190,375 characters of text",
+   "why": "The three proxies are committed whole rather than cut to a window. An excerpt would extract differently from the filing it came from, and the reason these exist is that the tested path and the live path had come apart: every other text fixture here is an 8-K, while find_merger_filings returned newest first and a live run reached the proxy that follows the 8-K by months. Gzipped because each is around a megabyte of text.",
+   "bytes": 290898
+  },
   "text/0001140361-26-025115.txt": {
    "source": "https://www.sec.gov/Archives/edgar/data/1428439/000114036126025115/ef20076172_8k.htm",
    "retrieved": "2026-09-11",
@@ -241,6 +249,22 @@
    "retrieved": "2026-09-11",
    "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup",
    "bytes": 30017
+  },
+  "text/0001193125-26-128959.txt.gz": {
+   "source": "https://www.sec.gov/Archives/edgar/data/1038074/000119312526128959/d34834ddefm14a.htm",
+   "retrieved": "2026-09-11",
+   "what": "Silicon Laboratories' definitive merger proxy, whose only two mentions of the merger agreement are both inside the fairness opinion",
+   "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup, then gzipped. 697,203 characters of text",
+   "why": "The three proxies are committed whole rather than cut to a window. An excerpt would extract differently from the filing it came from, and the reason these exist is that the tested path and the live path had come apart: every other text fixture here is an 8-K, while find_merger_filings returned newest first and a live run reached the proxy that follows the 8-K by months. Gzipped because each is around a megabyte of text.",
+   "bytes": 171453
+  },
+  "text/0001193125-26-377700.txt.gz": {
+   "source": "https://www.sec.gov/Archives/edgar/data/1428439/000119312526377700/d413482ddefm14a.htm",
+   "retrieved": "2026-09-11",
+   "what": "Roku's definitive merger proxy, which introduces the buyer only as the merger subs' parent",
+   "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup, then gzipped. 1,783,760 characters of text",
+   "why": "The three proxies are committed whole rather than cut to a window. An excerpt would extract differently from the filing it came from, and the reason these exist is that the tested path and the live path had come apart: every other text fixture here is an 8-K, while find_merger_filings returned newest first and a live run reached the proxy that follows the 8-K by months. Gzipped because each is around a megabyte of text.",
+   "bytes": 405711
   }
  }
 }
