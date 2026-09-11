@@ -1,0 +1,3008 @@
+{
+ "_note": "EA, FI, JNPR, CFLT, IPG, FYBR and USM were requested and are absent from the SEC company_tickers.json file on the retrieval date, so they carry no payload here. They are left out on purpose: the taxonomy tests use them as the tickers that cannot resolve. FI is the subtlest of them, because Fiserv is very much still listed and the SEC file simply still carries it under its pre-2023 symbol FISV.",
+ "_pruning": "Each payload is reduced to cik, name, sic, sicDescription and the filing rows the point-in-time admission test reads. From filings.recent only four rows survive: the earliest submission in the window, the earliest 10-K, the earliest 10-Q and the most recent submission, each with its form, which is everything the earliest-periodic-report rule needs and nothing else. filings.files keeps each older shard's filingFrom and filingTo, which is where a long-lived filer's history before the recent window lives.",
+ "_retrieved": "2026-09-11",
+ "_source": "https://data.sec.gov/submissions/CIK##########.json",
+ "companies": {
+  "AAPL": {
+   "cik": "0000320193",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-01-26",
+      "filingTo": "2015-07-22"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2015-07-24",
+      "2015-10-28",
+      "2016-01-27",
+      "2026-09-10"
+     ],
+     "form": [
+      "424B2",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "Apple Inc.",
+   "sic": "3571",
+   "sicDescription": "Electronic Computers"
+  },
+  "ABNB": {
+   "cik": "0001559720",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2012-10-24",
+      "filingTo": "2023-04-29"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2023-05-01",
+      "2023-05-09",
+      "2024-02-16",
+      "2026-09-03"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Airbnb, Inc.",
+   "sic": "7340",
+   "sicDescription": "Services-To Dwellings & Other Buildings"
+  },
+  "ACN": {
+   "cik": "0001467373",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2016-02-05",
+      "filingTo": "2023-05-06"
+     },
+     {
+      "filingFrom": "2009-09-01",
+      "filingTo": "2016-02-03"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2023-05-08",
+      "2023-06-22",
+      "2023-10-12",
+      "2026-09-08"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Accenture plc",
+   "sic": "7389",
+   "sicDescription": "Services-Business Services, NEC"
+  },
+  "ADBE": {
+   "cik": "0000796343",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-02-14",
+      "filingTo": "2018-04-11"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2018-04-13",
+      "2018-06-27",
+      "2019-01-25",
+      "2026-09-10"
+     ],
+     "form": [
+      "3",
+      "10-Q",
+      "10-K",
+      "8-K"
+     ]
+    }
+   },
+   "name": "ADOBE INC.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "ADI": {
+   "cik": "0000006281",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-02-07",
+      "filingTo": "2018-10-16"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2018-10-18",
+      "2018-11-27",
+      "2019-02-20",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "ANALOG DEVICES INC",
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices"
+  },
+  "ADSK": {
+   "cik": "0000769397",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-02-08",
+      "filingTo": "2015-06-10"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2015-06-12",
+      "2015-08-31",
+      "2016-03-23",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "8-K"
+     ]
+    }
+   },
+   "name": "Autodesk, Inc.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "AMAT": {
+   "cik": "0000006951",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-01-06",
+      "filingTo": "2013-03-04"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2013-03-06",
+      "2013-05-23",
+      "2013-12-04",
+      "2026-09-10"
+     ],
+     "form": [
+      "3",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "APPLIED MATERIALS INC /DE",
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices"
+  },
+  "AMD": {
+   "cik": "0000002488",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2003-08-05",
+      "filingTo": "2017-11-19"
+     },
+     {
+      "filingFrom": "1994-01-27",
+      "filingTo": "2003-08-03"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-11-21",
+      "2018-02-27",
+      "2018-05-03",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "144"
+     ]
+    }
+   },
+   "name": "ADVANCED MICRO DEVICES INC",
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices"
+  },
+  "AMT": {
+   "cik": "0001053507",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1998-02-10",
+      "filingTo": "2017-04-17"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-04-19",
+      "2017-04-27",
+      "2018-02-28",
+      "2026-09-10"
+     ],
+     "form": [
+      "DEF 14A",
+      "10-Q",
+      "10-K",
+      "424B2"
+     ]
+    }
+   },
+   "name": "AMERICAN TOWER CORP /MA/",
+   "sic": "6798",
+   "sicDescription": "Real Estate Investment Trusts"
+  },
+  "AMZN": {
+   "cik": "0001018724",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1999-12-30",
+      "filingTo": "2020-09-12"
+     },
+     {
+      "filingFrom": "1997-03-24",
+      "filingTo": "1999-12-28"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-09-14",
+      "2020-10-30",
+      "2021-02-03",
+      "2026-09-09"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "FWP"
+     ]
+    }
+   },
+   "name": "AMAZON COM INC",
+   "sic": "5961",
+   "sicDescription": "Retail-Catalog & Mail-Order Houses"
+  },
+  "ANET": {
+   "cik": "0001596532",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2014-01-31",
+      "filingTo": "2022-02-22"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2022-02-24",
+      "2022-05-03",
+      "2023-02-14",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Arista Networks, Inc.",
+   "sic": "3576",
+   "sicDescription": "Computer Communications Equipment"
+  },
+  "APP": {
+   "cik": "0001751008",
+   "filings": {
+    "files": [],
+    "recent": {
+     "filingDate": [
+      "2018-08-24",
+      "2021-05-14",
+      "2022-03-11",
+      "2026-08-21"
+     ],
+     "form": [
+      "D",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "AppLovin Corp",
+   "sic": "7370",
+   "sicDescription": "Services-Computer Programming, Data Processing, Etc."
+  },
+  "AVGO": {
+   "cik": "0001730168",
+   "filings": {
+    "files": [],
+    "recent": {
+     "filingDate": [
+      "2018-02-06",
+      "2018-06-14",
+      "2018-12-21",
+      "2026-09-10"
+     ],
+     "form": [
+      "S-4",
+      "10-Q",
+      "10-K",
+      "S-4"
+     ]
+    }
+   },
+   "name": "Broadcom Inc.",
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices"
+  },
+  "BKNG": {
+   "cik": "0001075531",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1998-12-23",
+      "filingTo": "2014-11-02"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2014-11-04",
+      "2015-02-19",
+      "2026-09-02"
+     ],
+     "form": [
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Booking Holdings Inc.",
+   "sic": "4700",
+   "sicDescription": "Transportation Services"
+  },
+  "CCI": {
+   "cik": "0001051470",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1998-01-08",
+      "filingTo": "2016-02-21"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2016-02-23",
+      "2016-05-09",
+      "2017-02-22",
+      "2026-08-10"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "CROWN CASTLE INC.",
+   "sic": "6798",
+   "sicDescription": "Real Estate Investment Trusts"
+  },
+  "CDNS": {
+   "cik": "0000813672",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-02-08",
+      "filingTo": "2019-09-08"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2019-09-10",
+      "2019-10-21",
+      "2020-02-24",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "144"
+     ]
+    }
+   },
+   "name": "CADENCE DESIGN SYSTEMS INC",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "CHTR": {
+   "cik": "0001091667",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1999-07-28",
+      "filingTo": "2018-04-24"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2018-04-26",
+      "2018-04-27",
+      "2019-01-31",
+      "2026-09-03"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "CHARTER COMMUNICATIONS, INC. /MO/",
+   "sic": "4841",
+   "sicDescription": "Cable & Other Pay Television Services"
+  },
+  "CMCSA": {
+   "cik": "0001166691",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2006-11-21",
+      "filingTo": "2018-04-23"
+     },
+     {
+      "filingFrom": "2002-02-11",
+      "filingTo": "2006-11-19"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2018-04-25",
+      "2019-01-31",
+      "2026-09-03"
+     ],
+     "form": [
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "COMCAST CORP",
+   "sic": "4841",
+   "sicDescription": "Cable & Other Pay Television Services"
+  },
+  "CRM": {
+   "cik": "0001108524",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2018-12-06",
+      "filingTo": "2023-08-13"
+     },
+     {
+      "filingFrom": "2014-08-26",
+      "filingTo": "2018-12-04"
+     },
+     {
+      "filingFrom": "2008-06-20",
+      "filingTo": "2014-08-24"
+     },
+     {
+      "filingFrom": "2006-02-22",
+      "filingTo": "2008-06-18"
+     },
+     {
+      "filingFrom": "2003-12-18",
+      "filingTo": "2006-02-20"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2023-08-15",
+      "2023-08-31",
+      "2024-03-06",
+      "2026-09-04"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "8-K"
+     ]
+    }
+   },
+   "name": "Salesforce, Inc.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "CRWD": {
+   "cik": "0001535527",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2011-12-02",
+      "filingTo": "2020-09-22"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-09-24",
+      "2020-12-03",
+      "2021-03-18",
+      "2026-09-09"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "CrowdStrike Holdings, Inc.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "CSCO": {
+   "cik": "0000858877",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2003-11-13",
+      "filingTo": "2020-05-16"
+     },
+     {
+      "filingFrom": "1995-02-13",
+      "filingTo": "2003-11-11"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-05-18",
+      "2020-09-03",
+      "2026-09-09"
+     ],
+     "form": [
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "CISCO SYSTEMS, INC.",
+   "sic": "3576",
+   "sicDescription": "Computer Communications Equipment"
+  },
+  "CTSH": {
+   "cik": "0001058290",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2012-12-31",
+      "filingTo": "2021-09-06"
+     },
+     {
+      "filingFrom": "1998-04-09",
+      "filingTo": "2012-12-29"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2021-09-08",
+      "2021-10-28",
+      "2022-02-16",
+      "2026-09-04"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "COGNIZANT TECHNOLOGY SOLUTIONS CORP",
+   "sic": "7371",
+   "sicDescription": "Services-Computer Programming Services"
+  },
+  "DASH": {
+   "cik": "0001792789",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2020-02-13",
+      "filingTo": "2022-04-18"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2022-04-20",
+      "2022-05-06",
+      "2023-02-27",
+      "2026-09-09"
+     ],
+     "form": [
+      "425",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "DoorDash, Inc.",
+   "sic": "7389",
+   "sicDescription": "Services-Business Services, NEC"
+  },
+  "DDOG": {
+   "cik": "0001561550",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2012-11-20",
+      "filingTo": "2023-04-04"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2023-04-06",
+      "2023-05-05",
+      "2024-02-23",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Datadog, Inc.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "DELL": {
+   "cik": "0001571996",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2013-07-24",
+      "filingTo": "2023-07-10"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2023-07-12",
+      "2023-09-12",
+      "2024-03-25",
+      "2026-09-10"
+     ],
+     "form": [
+      "144",
+      "10-Q",
+      "10-K",
+      "FWP"
+     ]
+    }
+   },
+   "name": "Dell Technologies Inc.",
+   "sic": "3571",
+   "sicDescription": "Electronic Computers"
+  },
+  "DIS": {
+   "cik": "0001744489",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2018-06-25",
+      "filingTo": "2020-01-01"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-01-03",
+      "2020-02-04",
+      "2020-11-25",
+      "2026-09-03"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Walt Disney Co",
+   "sic": "7990",
+   "sicDescription": "Services-Miscellaneous Amusement & Recreation"
+  },
+  "DLR": {
+   "cik": "0001297996",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2004-08-02",
+      "filingTo": "2017-08-27"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-08-29",
+      "2017-11-09",
+      "2018-03-01",
+      "2026-08-31"
+     ],
+     "form": [
+      "425",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "DIGITAL REALTY TRUST, INC.",
+   "sic": "6798",
+   "sicDescription": "Real Estate Investment Trusts"
+  },
+  "DOCU": {
+   "cik": "0001261333",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2003-08-25",
+      "filingTo": "2019-02-09"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2019-02-11",
+      "2019-03-26",
+      "2019-06-07",
+      "2026-09-10"
+     ],
+     "form": [
+      "3",
+      "10-K",
+      "10-Q",
+      "144"
+     ]
+    }
+   },
+   "name": "DOCUSIGN, INC.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "DXC": {
+   "cik": "0001688568",
+   "filings": {
+    "files": [],
+    "recent": {
+     "filingDate": [
+      "2016-11-02",
+      "2017-03-31",
+      "2018-05-29",
+      "2026-08-18"
+     ],
+     "form": [
+      "10-12G",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "DXC Technology Co",
+   "sic": "7374",
+   "sicDescription": "Services-Computer Processing & Data Preparation"
+  },
+  "EBAY": {
+   "cik": "0001065088",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2005-05-17",
+      "filingTo": "2020-05-03"
+     },
+     {
+      "filingFrom": "1998-07-15",
+      "filingTo": "2005-05-15"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-05-05",
+      "2020-07-29",
+      "2021-02-04",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "EBAY INC",
+   "sic": "7389",
+   "sicDescription": "Services-Business Services, NEC"
+  },
+  "EPAM": {
+   "cik": "0001352010",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2006-01-31",
+      "filingTo": "2014-03-31"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2014-04-02",
+      "2014-05-07",
+      "2015-03-02",
+      "2026-09-03"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "EPAM Systems, Inc.",
+   "sic": "7371",
+   "sicDescription": "Services-Computer Programming Services"
+  },
+  "EQIX": {
+   "cik": "0001101239",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2001-02-14",
+      "filingTo": "2020-02-26"
+     },
+     {
+      "filingFrom": "1999-12-29",
+      "filingTo": "2001-02-12"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-02-28",
+      "2020-05-07",
+      "2021-02-19",
+      "2026-09-08"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "EQUINIX INC",
+   "sic": "6798",
+   "sicDescription": "Real Estate Investment Trusts"
+  },
+  "EXPE": {
+   "cik": "0001324424",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2005-04-25",
+      "filingTo": "2017-02-12"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-02-14",
+      "2017-04-28",
+      "2018-02-09",
+      "2026-08-25"
+     ],
+     "form": [
+      "SC 13G",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Expedia Group, Inc.",
+   "sic": "4700",
+   "sicDescription": "Transportation Services"
+  },
+  "FIS": {
+   "cik": "0001136893",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2001-04-03",
+      "filingTo": "2017-06-03"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-06-05",
+      "2017-08-03",
+      "2018-02-22",
+      "2026-08-25"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Fidelity National Information Services, Inc.",
+   "sic": "7389",
+   "sicDescription": "Services-Business Services, NEC"
+  },
+  "FOX": {
+   "cik": "0001754301",
+   "filings": {
+    "files": [],
+    "recent": {
+     "filingDate": [
+      "2018-10-09",
+      "2019-03-18",
+      "2019-08-09",
+      "2026-09-10"
+     ],
+     "form": [
+      "DRS",
+      "10-Q",
+      "10-K",
+      "425"
+     ]
+    }
+   },
+   "name": "Fox Corp",
+   "sic": "4833",
+   "sicDescription": "Television Broadcasting Stations"
+  },
+  "FTNT": {
+   "cik": "0001262039",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2003-08-29",
+      "filingTo": "2017-11-05"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-11-07",
+      "2018-02-26",
+      "2018-05-08",
+      "2026-08-13"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "Fortinet, Inc.",
+   "sic": "3577",
+   "sicDescription": "Computer Peripheral Equipment, NEC"
+  },
+  "G": {
+   "cik": "0001398659",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2007-05-11",
+      "filingTo": "2013-05-07"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2013-05-09",
+      "2013-05-10",
+      "2014-02-28",
+      "2026-09-08"
+     ],
+     "form": [
+      "3",
+      "10-Q",
+      "10-K",
+      "8-K"
+     ]
+    }
+   },
+   "name": "Genpact LTD",
+   "sic": "8742",
+   "sicDescription": "Services-Management Consulting Services"
+  },
+  "GOOGL": {
+   "cik": "0001652044",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2015-10-02",
+      "filingTo": "2023-06-27"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2023-06-29",
+      "2023-07-26",
+      "2024-01-31",
+      "2026-09-03"
+     ],
+     "form": [
+      "144",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Alphabet Inc.",
+   "sic": "7370",
+   "sicDescription": "Services-Computer Programming, Data Processing, Etc."
+  },
+  "GPN": {
+   "cik": "0001123360",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2000-09-08",
+      "filingTo": "2016-07-26"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2016-07-28",
+      "2016-10-05",
+      "2026-08-11"
+     ],
+     "form": [
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "GLOBAL PAYMENTS INC",
+   "sic": "7389",
+   "sicDescription": "Services-Business Services, NEC"
+  },
+  "HPE": {
+   "cik": "0001645590",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2015-07-01",
+      "filingTo": "2019-06-30"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2019-07-02",
+      "2019-08-30",
+      "2019-12-13",
+      "2026-09-03"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "10-Q"
+     ]
+    }
+   },
+   "name": "Hewlett Packard Enterprise Co",
+   "sic": "3570",
+   "sicDescription": "Computer & office Equipment"
+  },
+  "HPQ": {
+   "cik": "0000047217",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2002-04-01",
+      "filingTo": "2016-11-12"
+     },
+     {
+      "filingFrom": "1994-01-21",
+      "filingTo": "2002-03-30"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2016-11-14",
+      "2016-12-15",
+      "2017-03-02",
+      "2026-09-02"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "HP INC",
+   "sic": "3570",
+   "sicDescription": "Computer & office Equipment"
+  },
+  "HUBS": {
+   "cik": "0001404655",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2007-06-25",
+      "filingTo": "2018-04-30"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2018-05-02",
+      "2018-05-10",
+      "2019-02-12",
+      "2026-09-02"
+     ],
+     "form": [
+      "3",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "HUBSPOT INC",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "IBM": {
+   "cik": "0000051143",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2012-07-02",
+      "filingTo": "2020-01-14"
+     },
+     {
+      "filingFrom": "2006-11-16",
+      "filingTo": "2012-06-30"
+     },
+     {
+      "filingFrom": "2003-10-01",
+      "filingTo": "2006-11-14"
+     },
+     {
+      "filingFrom": "1994-03-10",
+      "filingTo": "2003-09-29"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-01-16",
+      "2020-02-25",
+      "2020-04-28",
+      "2026-08-28"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "INTERNATIONAL BUSINESS MACHINES CORP",
+   "sic": "3570",
+   "sicDescription": "Computer & office Equipment"
+  },
+  "INTC": {
+   "cik": "0000050863",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2007-04-23",
+      "filingTo": "2019-02-27"
+     },
+     {
+      "filingFrom": "1994-02-10",
+      "filingTo": "2007-04-21"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2019-03-01",
+      "2019-04-26",
+      "2020-01-24",
+      "2026-08-28"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "N-PX"
+     ]
+    }
+   },
+   "name": "INTEL CORP",
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices"
+  },
+  "INTU": {
+   "cik": "0000896878",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1996-02-12",
+      "filingTo": "2020-08-23"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-08-25",
+      "2020-08-31",
+      "2020-11-19",
+      "2026-09-09"
+     ],
+     "form": [
+      "8-K",
+      "10-K",
+      "10-Q",
+      "S-8 POS"
+     ]
+    }
+   },
+   "name": "INTUIT INC.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "JKHY": {
+   "cik": "0000779152",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1995-02-09",
+      "filingTo": "2007-07-09"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2007-07-11",
+      "2007-08-30",
+      "2007-11-08",
+      "2026-09-01"
+     ],
+     "form": [
+      "8-K",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "JACK HENRY & ASSOCIATES INC",
+   "sic": "7373",
+   "sicDescription": "Services-Computer Integrated Systems Design"
+  },
+  "KLAC": {
+   "cik": "0000319201",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-01-06",
+      "filingTo": "2017-04-26"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-04-28",
+      "2017-08-04",
+      "2026-08-14"
+     ],
+     "form": [
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "KLA CORP",
+   "sic": "3827",
+   "sicDescription": "Optical Instruments & Lenses"
+  },
+  "LRCX": {
+   "cik": "0000707549",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-05-06",
+      "filingTo": "2015-02-18"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2015-02-20",
+      "2015-04-30",
+      "2015-08-13",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "LAM RESEARCH CORP",
+   "sic": "3559",
+   "sicDescription": "Special Industry Machinery, NEC"
+  },
+  "LUMN": {
+   "cik": "0000018926",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-01-06",
+      "filingTo": "2015-08-31"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2015-09-02",
+      "2015-11-05",
+      "2016-02-25",
+      "2026-08-06"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Lumen Technologies, Inc.",
+   "sic": "4813",
+   "sicDescription": "Telephone Communications (No Radiotelephone)"
+  },
+  "LYV": {
+   "cik": "0001335258",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2005-08-10",
+      "filingTo": "2012-10-10"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2012-10-12",
+      "2012-11-05",
+      "2013-02-26",
+      "2026-08-25"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Live Nation Entertainment, Inc.",
+   "sic": "7900",
+   "sicDescription": "Services-Amusement & Recreation Services"
+  },
+  "MA": {
+   "cik": "0001141391",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2001-06-06",
+      "filingTo": "2019-03-02"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2019-03-04",
+      "2019-04-30",
+      "2020-02-14",
+      "2026-09-03"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Mastercard Inc",
+   "sic": "7389",
+   "sicDescription": "Services-Business Services, NEC"
+  },
+  "MCHP": {
+   "cik": "0000827054",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2004-10-25",
+      "filingTo": "2019-02-11"
+     },
+     {
+      "filingFrom": "1994-09-12",
+      "filingTo": "2004-10-23"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2019-02-13",
+      "2019-05-30",
+      "2019-08-07",
+      "2026-09-02"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "MICROCHIP TECHNOLOGY INC",
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices"
+  },
+  "MDB": {
+   "cik": "0001441816",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2008-07-31",
+      "filingTo": "2019-04-01"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2019-04-03",
+      "2019-06-07",
+      "2020-03-27",
+      "2026-09-01"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "8-K"
+     ]
+    }
+   },
+   "name": "MongoDB, Inc.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "META": {
+   "cik": "0001326801",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2017-04-26",
+      "filingTo": "2024-06-08"
+     },
+     {
+      "filingFrom": "2005-05-06",
+      "filingTo": "2017-04-24"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2024-06-10",
+      "2024-08-01",
+      "2025-01-30",
+      "2026-09-10"
+     ],
+     "form": [
+      "144",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Meta Platforms, Inc.",
+   "sic": "7370",
+   "sicDescription": "Services-Computer Programming, Data Processing, Etc."
+  },
+  "MRVL": {
+   "cik": "0001835632",
+   "filings": {
+    "files": [],
+    "recent": {
+     "filingDate": [
+      "2020-12-22",
+      "2021-06-09",
+      "2022-03-10",
+      "2026-09-02"
+     ],
+     "form": [
+      "S-4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Marvell Technology, Inc.",
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices"
+  },
+  "MSFT": {
+   "cik": "0000789019",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2008-07-24",
+      "filingTo": "2020-06-10"
+     },
+     {
+      "filingFrom": "1994-02-14",
+      "filingTo": "2008-07-22"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-06-12",
+      "2020-07-30",
+      "2020-10-27",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "MICROSOFT CORP",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "MSI": {
+   "cik": "0000068505",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-02-09",
+      "filingTo": "2017-05-02"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-05-04",
+      "2017-05-05",
+      "2018-02-16",
+      "2026-09-09"
+     ],
+     "form": [
+      "8-K",
+      "10-Q",
+      "10-K",
+      "8-K"
+     ]
+    }
+   },
+   "name": "Motorola Solutions, Inc.",
+   "sic": "3663",
+   "sicDescription": "Radio & Tv Broadcasting & Communications Equipment"
+  },
+  "MU": {
+   "cik": "0000723125",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-01-06",
+      "filingTo": "2017-07-12"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-07-14",
+      "2017-10-26",
+      "2017-12-20",
+      "2026-08-28"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "MICRON TECHNOLOGY INC",
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices"
+  },
+  "NET": {
+   "cik": "0001477333",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2009-11-23",
+      "filingTo": "2021-02-23"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2021-02-25",
+      "2021-05-07",
+      "2026-09-08"
+     ],
+     "form": [
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "Cloudflare, Inc.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "NFLX": {
+   "cik": "0001065280",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2016-03-24",
+      "filingTo": "2023-06-07"
+     },
+     {
+      "filingFrom": "2008-09-03",
+      "filingTo": "2016-03-22"
+     },
+     {
+      "filingFrom": "2000-04-18",
+      "filingTo": "2008-09-01"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2023-06-09",
+      "2023-07-21",
+      "2024-01-26",
+      "2026-09-10"
+     ],
+     "form": [
+      "144",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "NETFLIX INC",
+   "sic": "7841",
+   "sicDescription": "Services-Video Tape Rental"
+  },
+  "NOW": {
+   "cik": "0001373715",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2006-08-22",
+      "filingTo": "2022-11-13"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2022-11-15",
+      "2023-01-31",
+      "2023-04-27",
+      "2026-09-01"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "ServiceNow, Inc.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "NTAP": {
+   "cik": "0001002047",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1996-07-25",
+      "filingTo": "2016-03-28"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2016-03-30",
+      "2016-06-22",
+      "2016-09-02",
+      "2026-09-10"
+     ],
+     "form": [
+      "8-K",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "NetApp, Inc.",
+   "sic": "3572",
+   "sicDescription": "Computer Storage Devices"
+  },
+  "NVDA": {
+   "cik": "0001045810",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1998-03-06",
+      "filingTo": "2020-07-04"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-07-06",
+      "2020-08-19",
+      "2021-02-26",
+      "2026-09-08"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "NVIDIA CORP",
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices"
+  },
+  "NXPI": {
+   "cik": "0001413447",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2007-09-26",
+      "filingTo": "2012-06-02"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2012-06-04",
+      "2019-10-29",
+      "2020-02-27",
+      "2026-09-02"
+     ],
+     "form": [
+      "UPLOAD",
+      "10-Q",
+      "10-K",
+      "8-K"
+     ]
+    }
+   },
+   "name": "NXP Semiconductors N.V.",
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices"
+  },
+  "NXST": {
+   "cik": "0001142417",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2001-06-13",
+      "filingTo": "2020-06-02"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-06-04",
+      "2020-08-06",
+      "2021-03-01",
+      "2026-08-24"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "NEXSTAR MEDIA GROUP, INC.",
+   "sic": "4833",
+   "sicDescription": "Television Broadcasting Stations"
+  },
+  "NYT": {
+   "cik": "0000071691",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-02-04",
+      "filingTo": "2017-04-19"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-04-21",
+      "2017-05-03",
+      "2018-02-27",
+      "2026-09-09"
+     ],
+     "form": [
+      "3",
+      "10-Q",
+      "10-K",
+      "8-K"
+     ]
+    }
+   },
+   "name": "NEW YORK TIMES CO",
+   "sic": "2711",
+   "sicDescription": "Newspapers: Publishing or  Publishing & Printing"
+  },
+  "OKTA": {
+   "cik": "0001660134",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2016-12-20",
+      "filingTo": "2017-09-09"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-09-11",
+      "2017-12-07",
+      "2018-03-12",
+      "2026-09-09"
+     ],
+     "form": [
+      "SC 13G",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Okta, Inc.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "OMC": {
+   "cik": "0000029989",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-02-09",
+      "filingTo": "2016-01-18"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2016-01-20",
+      "2016-02-09",
+      "2016-05-10",
+      "2026-08-26"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "OMNICOM GROUP INC.",
+   "sic": "7311",
+   "sicDescription": "Services-Advertising Agencies"
+  },
+  "ON": {
+   "cik": "0001097864",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1999-11-05",
+      "filingTo": "2016-08-08"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2016-08-10",
+      "2016-11-07",
+      "2017-02-28",
+      "2026-08-21"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "S-4"
+     ]
+    }
+   },
+   "name": "ON SEMICONDUCTOR CORP",
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices"
+  },
+  "ORCL": {
+   "cik": "0001341439",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2005-10-19",
+      "filingTo": "2016-03-14"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2016-03-16",
+      "2016-03-18",
+      "2016-06-22",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "8-K"
+     ]
+    }
+   },
+   "name": "ORACLE CORP",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "PANW": {
+   "cik": "0001327567",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2005-05-16",
+      "filingTo": "2019-07-20"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2019-07-22",
+      "2019-09-09",
+      "2019-11-26",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "S-8"
+     ]
+    }
+   },
+   "name": "Palo Alto Networks Inc",
+   "sic": "3577",
+   "sicDescription": "Computer Peripheral Equipment, NEC"
+  },
+  "PINS": {
+   "cik": "0001506293",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2010-12-02",
+      "filingTo": "2020-04-05"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-04-07",
+      "2020-05-06",
+      "2021-02-05",
+      "2026-09-09"
+     ],
+     "form": [
+      "8-K",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "PINTEREST, INC.",
+   "sic": "7370",
+   "sicDescription": "Services-Computer Programming, Data Processing, Etc."
+  },
+  "PLTK": {
+   "cik": "0001828016",
+   "filings": {
+    "files": [],
+    "recent": {
+     "filingDate": [
+      "2020-10-16",
+      "2021-02-26",
+      "2021-05-11",
+      "2026-08-19"
+     ],
+     "form": [
+      "DRS",
+      "10-K",
+      "10-Q",
+      "8-K"
+     ]
+    }
+   },
+   "name": "Playtika Holding Corp.",
+   "sic": "7374",
+   "sicDescription": "Services-Computer Processing & Data Preparation"
+  },
+  "PLTR": {
+   "cik": "0001321655",
+   "filings": {
+    "files": [],
+    "recent": {
+     "filingDate": [
+      "2005-03-22",
+      "2020-11-13",
+      "2021-02-26",
+      "2026-09-03"
+     ],
+     "form": [
+      "REGDEX",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Palantir Technologies Inc.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "PSKY": {
+   "cik": "0002041610",
+   "filings": {
+    "files": [],
+    "recent": {
+     "filingDate": [
+      "2024-11-04",
+      "2025-05-14",
+      "2026-02-25",
+      "2026-09-04"
+     ],
+     "form": [
+      "S-4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Paramount Skydance Corp",
+   "sic": "4833",
+   "sicDescription": "Television Broadcasting Stations"
+  },
+  "PYPL": {
+   "cik": "0001633917",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2015-02-25",
+      "filingTo": "2017-03-22"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-03-24",
+      "2017-04-27",
+      "2018-02-07",
+      "2026-09-08"
+     ],
+     "form": [
+      "8-K",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "PayPal Holdings, Inc.",
+   "sic": "7389",
+   "sicDescription": "Services-Business Services, NEC"
+  },
+  "QCOM": {
+   "cik": "0000804328",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2009-07-17",
+      "filingTo": "2018-06-11"
+     },
+     {
+      "filingFrom": "2003-01-03",
+      "filingTo": "2009-07-15"
+     },
+     {
+      "filingFrom": "1995-02-08",
+      "filingTo": "2003-01-01"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2018-06-13",
+      "2018-07-25",
+      "2018-11-07",
+      "2026-09-08"
+     ],
+     "form": [
+      "8-K",
+      "10-Q",
+      "10-K",
+      "8-K"
+     ]
+    }
+   },
+   "name": "QUALCOMM INC/DE",
+   "sic": "3663",
+   "sicDescription": "Radio & Tv Broadcasting & Communications Equipment"
+  },
+  "RBLX": {
+   "cik": "0001315098",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2005-01-19",
+      "filingTo": "2022-09-11"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2022-09-13",
+      "2022-11-09",
+      "2023-02-28",
+      "2026-09-09"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Roblox Corp",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "ROKU": {
+   "cik": "0001428439",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2008-02-26",
+      "filingTo": "2019-04-15"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2019-04-17",
+      "2019-05-10",
+      "2020-03-02",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "425"
+     ]
+    }
+   },
+   "name": "ROKU, INC",
+   "sic": "4841",
+   "sicDescription": "Cable & Other Pay Television Services"
+  },
+  "SBAC": {
+   "cik": "0001034054",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1998-04-15",
+      "filingTo": "2014-03-11"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2014-03-13",
+      "2014-05-09",
+      "2015-03-02",
+      "2026-08-19"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "SBA COMMUNICATIONS CORP",
+   "sic": "6798",
+   "sicDescription": "Real Estate Investment Trusts"
+  },
+  "SHOP": {
+   "cik": "0001594805",
+   "filings": {
+    "files": [],
+    "recent": {
+     "filingDate": [
+      "2014-01-10",
+      "2025-02-11",
+      "2025-05-08",
+      "2026-09-04"
+     ],
+     "form": [
+      "D",
+      "10-K",
+      "10-Q",
+      "144"
+     ]
+    }
+   },
+   "name": "SHOPIFY INC.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "SMCI": {
+   "cik": "0001375365",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2006-11-02",
+      "filingTo": "2016-11-19"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2016-11-21",
+      "2017-02-07",
+      "2019-05-17",
+      "2026-09-08"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Super Micro Computer, Inc.",
+   "sic": "3571",
+   "sicDescription": "Electronic Computers"
+  },
+  "SNAP": {
+   "cik": "0001564408",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2013-02-12",
+      "filingTo": "2018-11-18"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2018-11-20",
+      "2019-02-06",
+      "2019-04-24",
+      "2026-09-09"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "144"
+     ]
+    }
+   },
+   "name": "Snap Inc",
+   "sic": "7370",
+   "sicDescription": "Services-Computer Programming, Data Processing, Etc."
+  },
+  "SNOW": {
+   "cik": "0001640147",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2017-04-11",
+      "filingTo": "2022-03-09"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2022-03-11",
+      "2022-03-30",
+      "2022-06-03",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "Snowflake Inc.",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "SNPS": {
+   "cik": "0000883241",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1994-01-31",
+      "filingTo": "2015-07-05"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2015-07-07",
+      "2015-08-24",
+      "2015-12-14",
+      "2026-09-02"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "SYNOPSYS INC",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "STX": {
+   "cik": "0001137789",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2001-04-20",
+      "filingTo": "2018-10-20"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2018-10-22",
+      "2018-11-02",
+      "2019-08-02",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "144"
+     ]
+    }
+   },
+   "name": "Seagate Technology Holdings plc",
+   "sic": "3572",
+   "sicDescription": "Computer Storage Devices"
+  },
+  "T": {
+   "cik": "0000732717",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2015-06-29",
+      "filingTo": "2022-05-31"
+     },
+     {
+      "filingFrom": "2009-10-02",
+      "filingTo": "2015-06-27"
+     },
+     {
+      "filingFrom": "2004-05-04",
+      "filingTo": "2009-09-30"
+     },
+     {
+      "filingFrom": "1994-02-14",
+      "filingTo": "2004-05-02"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2022-06-02",
+      "2022-08-04",
+      "2023-02-13",
+      "2026-09-09"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "8-K"
+     ]
+    }
+   },
+   "name": "AT&T INC.",
+   "sic": "4813",
+   "sicDescription": "Telephone Communications (No Radiotelephone)"
+  },
+  "TEAM": {
+   "cik": "0001650372",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2015-08-21",
+      "filingTo": "2024-09-22"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2024-09-24",
+      "2024-11-01",
+      "2025-08-15",
+      "2026-08-31"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Atlassian Corp",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "TMUS": {
+   "cik": "0001283699",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2007-03-07",
+      "filingTo": "2020-02-23"
+     },
+     {
+      "filingFrom": "2004-03-23",
+      "filingTo": "2007-03-05"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-02-25",
+      "2020-05-06",
+      "2021-02-23",
+      "2026-09-10"
+     ],
+     "form": [
+      "425",
+      "10-Q",
+      "10-K",
+      "144"
+     ]
+    }
+   },
+   "name": "T-Mobile US, Inc.",
+   "sic": "4812",
+   "sicDescription": "Radiotelephone Communications"
+  },
+  "TOST": {
+   "cik": "0001650164",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2015-08-06",
+      "filingTo": "2022-02-12"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2022-02-14",
+      "2022-03-01",
+      "2022-05-13",
+      "2026-09-04"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "Toast, Inc.",
+   "sic": "7374",
+   "sicDescription": "Services-Computer Processing & Data Preparation"
+  },
+  "TTD": {
+   "cik": "0001671933",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2016-04-22",
+      "filingTo": "2017-05-17"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-05-19",
+      "2017-08-11",
+      "2018-02-28",
+      "2026-09-08"
+     ],
+     "form": [
+      "S-1",
+      "10-Q",
+      "10-K",
+      "PRE 14A"
+     ]
+    }
+   },
+   "name": "Trade Desk, Inc.",
+   "sic": "7370",
+   "sicDescription": "Services-Computer Programming, Data Processing, Etc."
+  },
+  "TTWO": {
+   "cik": "0000946581",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1997-06-16",
+      "filingTo": "2015-01-27"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2015-01-28",
+      "2015-02-06",
+      "2015-05-22",
+      "2026-09-04"
+     ],
+     "form": [
+      "CT ORDER",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "TAKE TWO INTERACTIVE SOFTWARE INC",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "TXN": {
+   "cik": "0000097476",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2002-02-14",
+      "filingTo": "2017-01-28"
+     },
+     {
+      "filingFrom": "1994-01-10",
+      "filingTo": "2002-02-12"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2017-01-30",
+      "2017-02-23",
+      "2017-05-03",
+      "2026-08-31"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "TEXAS INSTRUMENTS INC",
+   "sic": "3674",
+   "sicDescription": "Semiconductors & Related Devices"
+  },
+  "UBER": {
+   "cik": "0001543151",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2012-02-27",
+      "filingTo": "2020-08-05"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-08-07",
+      "2021-03-01",
+      "2026-09-10"
+     ],
+     "form": [
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Uber Technologies, Inc",
+   "sic": "7389",
+   "sicDescription": "Services-Business Services, NEC"
+  },
+  "UNIT": {
+   "cik": "0002020795",
+   "filings": {
+    "files": [],
+    "recent": {
+     "filingDate": [
+      "2024-05-03",
+      "2025-03-24",
+      "2025-05-09",
+      "2026-08-21"
+     ],
+     "form": [
+      "425",
+      "10-K",
+      "10-Q",
+      "8-K"
+     ]
+    }
+   },
+   "name": "Uniti Group Inc.",
+   "sic": "4813",
+   "sicDescription": "Telephone Communications (No Radiotelephone)"
+  },
+  "V": {
+   "cik": "0001403161",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2007-06-22",
+      "filingTo": "2015-01-27"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2015-01-29",
+      "2015-11-20",
+      "2026-09-10"
+     ],
+     "form": [
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "VISA INC.",
+   "sic": "7389",
+   "sicDescription": "Services-Business Services, NEC"
+  },
+  "VEEV": {
+   "cik": "0001393052",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2007-03-07",
+      "filingTo": "2019-09-28"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2019-09-30",
+      "2019-12-05",
+      "2020-03-30",
+      "2026-09-09"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "144"
+     ]
+    }
+   },
+   "name": "VEEVA SYSTEMS INC",
+   "sic": "7372",
+   "sicDescription": "Services-Prepackaged Software"
+  },
+  "VZ": {
+   "cik": "0000732712",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2018-11-05",
+      "filingTo": "2023-11-20"
+     },
+     {
+      "filingFrom": "2013-10-17",
+      "filingTo": "2018-11-03"
+     },
+     {
+      "filingFrom": "2009-03-10",
+      "filingTo": "2013-10-15"
+     },
+     {
+      "filingFrom": "2005-02-17",
+      "filingTo": "2009-03-08"
+     },
+     {
+      "filingFrom": "1994-01-21",
+      "filingTo": "2005-02-15"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2023-11-22",
+      "2024-02-09",
+      "2024-04-25",
+      "2026-09-09"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "VERIZON COMMUNICATIONS INC",
+   "sic": "4813",
+   "sicDescription": "Telephone Communications (No Radiotelephone)"
+  },
+  "WBD": {
+   "cik": "0001437107",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2008-06-11",
+      "filingTo": "2020-02-26"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-02-28",
+      "2020-05-06",
+      "2021-02-22",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "Warner Bros. Discovery, Inc.",
+   "sic": "4841",
+   "sicDescription": "Cable & Other Pay Television Services"
+  },
+  "WDAY": {
+   "cik": "0001327811",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2005-05-17",
+      "filingTo": "2019-03-20"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2019-03-22",
+      "2019-05-30",
+      "2020-03-03",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-Q",
+      "10-K",
+      "144"
+     ]
+    }
+   },
+   "name": "Workday, Inc.",
+   "sic": "7374",
+   "sicDescription": "Services-Computer Processing & Data Preparation"
+  },
+  "WDC": {
+   "cik": "0000106040",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2000-11-22",
+      "filingTo": "2018-10-23"
+     },
+     {
+      "filingFrom": "1994-01-05",
+      "filingTo": "2000-11-20"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2018-10-25",
+      "2018-11-06",
+      "2019-08-27",
+      "2026-09-08"
+     ],
+     "form": [
+      "8-K",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "WESTERN DIGITAL CORP",
+   "sic": "3572",
+   "sicDescription": "Computer Storage Devices"
+  },
+  "WMG": {
+   "cik": "0001319161",
+   "filings": {
+    "files": [],
+    "recent": {
+     "filingDate": [
+      "2005-03-11",
+      "2005-06-13",
+      "2005-12-01",
+      "2026-09-04"
+     ],
+     "form": [
+      "S-1",
+      "10-Q",
+      "10-K",
+      "8-K"
+     ]
+    }
+   },
+   "name": "Warner Music Group Corp.",
+   "sic": "7900",
+   "sicDescription": "Services-Amusement & Recreation Services"
+  },
+  "ZBRA": {
+   "cik": "0000877212",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "1995-02-13",
+      "filingTo": "2015-06-08"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2015-06-10",
+      "2015-08-13",
+      "2016-02-29",
+      "2026-08-11"
+     ],
+     "form": [
+      "3",
+      "10-Q",
+      "10-K",
+      "4"
+     ]
+    }
+   },
+   "name": "ZEBRA TECHNOLOGIES CORP",
+   "sic": "3560",
+   "sicDescription": "General Industrial Machinery & Equipment"
+  },
+  "ZM": {
+   "cik": "0001585521",
+   "filings": {
+    "files": [
+     {
+      "filingFrom": "2013-09-04",
+      "filingTo": "2020-02-04"
+     }
+    ],
+    "recent": {
+     "filingDate": [
+      "2020-02-06",
+      "2020-03-20",
+      "2020-06-05",
+      "2026-09-10"
+     ],
+     "form": [
+      "4",
+      "10-K",
+      "10-Q",
+      "4"
+     ]
+    }
+   },
+   "name": "Zoom Communications, Inc.",
+   "sic": "7370",
+   "sicDescription": "Services-Computer Programming, Data Processing, Etc."
+  },
+  "ZS": {
+   "cik": "0001713683",
+   "filings": {
+    "files": [],
+    "recent": {
+     "filingDate": [
+      "2017-08-25",
+      "2018-06-07",
+      "2018-09-13",
+      "2026-09-03"
+     ],
+     "form": [
+      "DRS",
+      "10-Q",
+      "10-K",
+      "S-8"
+     ]
+    }
+   },
+   "name": "Zscaler, Inc.",
+   "sic": "7371",
+   "sicDescription": "Services-Computer Programming Services"
+  }
+ }
+}
