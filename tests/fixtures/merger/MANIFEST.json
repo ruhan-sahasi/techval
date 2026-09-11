@@ -1,0 +1,246 @@
+{
+ "retrieved": "2026-09-11",
+ "note": "Every file here was pulled from SEC EDGAR or the Nasdaq daily quote endpoint on the date above and pruned as each entry records. The filing text is the primary document with its markup stripped by techval.edgar.strip_markup and is otherwise verbatim, punctuation included, because a fixture edited to suit a house style is no longer evidence of what the filer wrote.",
+ "files": {
+  "company_tickers.json": {
+   "source": "https://www.sec.gov/files/company_tickers.json",
+   "retrieved": "2026-09-11",
+   "pruned": "reduced from 10,407 tickers to the 15 the merger tests resolve",
+   "bytes": 1470
+  },
+  "companyfacts_IRDM.json": {
+   "source": "https://data.sec.gov/api/xbrl/companyfacts/CIK0001418819.json",
+   "retrieved": "2026-09-11",
+   "pruned": "us-gaap reduced to the tags in techval.tags; every fact with a period ending before 2023-05-06 or filed after 2027-04-25 dropped, and every row key techval does not read dropped. Facts filed after the deal announcement are deliberately kept so that knowledge dating has something to exclude.",
+   "tags": 35,
+   "bytes": 69986
+  },
+  "companyfacts_MNDT.json": {
+   "source": "https://data.sec.gov/api/xbrl/companyfacts/CIK0001370880.json",
+   "retrieved": "2026-09-11",
+   "pruned": "us-gaap reduced to the tags in techval.tags; every fact with a period ending before 2019-01-13 or filed after 2023-01-02 dropped, and every row key techval does not read dropped. Facts filed after the deal announcement are deliberately kept so that knowledge dating has something to exclude.",
+   "tags": 40,
+   "bytes": 95201
+  },
+  "companyfacts_PAYO.json": {
+   "source": "https://data.sec.gov/api/xbrl/companyfacts/CIK0001845815.json",
+   "retrieved": "2026-09-11",
+   "pruned": "us-gaap reduced to the tags in techval.tags; every fact with a period ending before 2023-04-22 or filed after 2027-04-11 dropped, and every row key techval does not read dropped. Facts filed after the deal announcement are deliberately kept so that knowledge dating has something to exclude.",
+   "tags": 29,
+   "bytes": 68691
+  },
+  "companyfacts_RAMP.json": {
+   "source": "https://data.sec.gov/api/xbrl/companyfacts/CIK0000733269.json",
+   "retrieved": "2026-09-11",
+   "pruned": "us-gaap reduced to the tags in techval.tags; every fact with a period ending before 2023-03-25 or filed after 2027-03-14 dropped, and every row key techval does not read dropped. Facts filed after the deal announcement are deliberately kept so that knowledge dating has something to exclude.",
+   "tags": 32,
+   "bytes": 80308
+  },
+  "companyfacts_ROKU.json": {
+   "source": "https://data.sec.gov/api/xbrl/companyfacts/CIK0001428439.json",
+   "retrieved": "2026-09-11",
+   "pruned": "us-gaap reduced to the tags in techval.tags; every fact with a period ending before 2023-04-22 or filed after 2027-04-11 dropped, and every row key techval does not read dropped. Facts filed after the deal announcement are deliberately kept so that knowledge dating has something to exclude.",
+   "tags": 35,
+   "bytes": 86228
+  },
+  "companyfacts_SLAB.json": {
+   "source": "https://data.sec.gov/api/xbrl/companyfacts/CIK0001038074.json",
+   "retrieved": "2026-09-11",
+   "pruned": "us-gaap reduced to the tags in techval.tags; every fact with a period ending before 2022-12-12 or filed after 2026-12-01 dropped, and every row key techval does not read dropped. Facts filed after the deal announcement are deliberately kept so that knowledge dating has something to exclude.",
+   "tags": 36,
+   "bytes": 84396
+  },
+  "companyfacts_SPLK.json": {
+   "source": "https://data.sec.gov/api/xbrl/companyfacts/CIK0001353283.json",
+   "retrieved": "2026-09-11",
+   "pruned": "us-gaap reduced to the tags in techval.tags; every fact with a period ending before 2020-07-28 or filed after 2024-07-17 dropped, and every row key techval does not read dropped. Facts filed after the deal announcement are deliberately kept so that knowledge dating has something to exclude.",
+   "tags": 37,
+   "bytes": 92052
+  },
+  "companyfacts_WORK.json": {
+   "source": "https://data.sec.gov/api/xbrl/companyfacts/CIK0001764925.json",
+   "retrieved": "2026-09-11",
+   "pruned": "us-gaap reduced to the tags in techval.tags; every fact with a period ending before 2017-10-08 or filed after 2021-09-27 dropped, and every row key techval does not read dropped. Facts filed after the deal announcement are deliberately kept so that knowledge dating has something to exclude.",
+   "tags": 40,
+   "bytes": 62428
+  },
+  "companyfacts_ZEN.json": {
+   "source": "https://data.sec.gov/api/xbrl/companyfacts/CIK0001463172.json",
+   "retrieved": "2026-09-11",
+   "pruned": "us-gaap reduced to the tags in techval.tags; every fact with a period ending before 2019-05-01 or filed after 2023-04-20 dropped, and every row key techval does not read dropped. Facts filed after the deal announcement are deliberately kept so that knowledge dating has something to exclude.",
+   "tags": 37,
+   "bytes": 90933
+  },
+  "prices/CRM.csv": {
+   "source": "api.nasdaq.com daily historical closes",
+   "retrieved": "2026-09-11",
+   "pruned": "closes between 2020-09-01 and 2021-01-15 only",
+   "rows": 95
+  },
+  "prices/FOXA.csv": {
+   "source": "api.nasdaq.com daily historical closes",
+   "retrieved": "2026-09-11",
+   "pruned": "closes between 2026-04-01 and 2026-07-15 only",
+   "rows": 72
+  },
+  "prices/IRDM.csv": {
+   "source": "api.nasdaq.com daily historical closes",
+   "retrieved": "2026-09-11",
+   "pruned": "closes between 2026-01-25 and 2026-07-31 only",
+   "rows": 130
+  },
+  "prices/PAYO.csv": {
+   "source": "api.nasdaq.com daily historical closes",
+   "retrieved": "2026-09-11",
+   "pruned": "closes between 2026-01-15 and 2026-07-15 only",
+   "rows": 124
+  },
+  "prices/RAMP.csv": {
+   "source": "api.nasdaq.com daily historical closes",
+   "retrieved": "2026-09-11",
+   "pruned": "closes between 2025-12-15 and 2026-06-15 only",
+   "rows": 125
+  },
+  "prices/ROKU.csv": {
+   "source": "api.nasdaq.com daily historical closes",
+   "retrieved": "2026-09-11",
+   "pruned": "closes between 2026-01-15 and 2026-07-15 only",
+   "rows": 124
+  },
+  "prices/SLAB.csv": {
+   "source": "api.nasdaq.com daily historical closes",
+   "retrieved": "2026-09-11",
+   "pruned": "closes between 2025-09-01 and 2026-03-01 only",
+   "rows": 124
+  },
+  "submissions_IRDM.json": {
+   "source": "https://data.sec.gov/submissions/CIK0001418819.json",
+   "retrieved": "2026-09-11",
+   "pruned": "filings.recent reduced to the forms the precedent finder reads and to filing dates between 2022-08-29 and 2029-07-03; every other key dropped",
+   "rows": 89,
+   "bytes": 10550
+  },
+  "submissions_MNDT.json": {
+   "source": "https://data.sec.gov/submissions/CIK0001370880.json",
+   "retrieved": "2026-09-11",
+   "pruned": "filings.recent reduced to the forms the precedent finder reads and to filing dates between 2018-05-08 and 2025-03-12; every other key dropped",
+   "rows": 80,
+   "bytes": 9873
+  },
+  "submissions_PAYO.json": {
+   "source": "https://data.sec.gov/submissions/CIK0001845815.json",
+   "retrieved": "2026-09-11",
+   "pruned": "filings.recent reduced to the forms the precedent finder reads and to filing dates between 2022-08-15 and 2029-06-19; every other key dropped",
+   "rows": 70,
+   "bytes": 8539
+  },
+  "submissions_RAMP.json": {
+   "source": "https://data.sec.gov/submissions/CIK0000733269.json",
+   "retrieved": "2026-09-11",
+   "pruned": "filings.recent reduced to the forms the precedent finder reads and to filing dates between 2022-07-18 and 2029-05-22; every other key dropped",
+   "rows": 83,
+   "bytes": 10074
+  },
+  "submissions_ROKU.json": {
+   "source": "https://data.sec.gov/submissions/CIK0001428439.json",
+   "retrieved": "2026-09-11",
+   "pruned": "filings.recent reduced to the forms the precedent finder reads and to filing dates between 2022-08-15 and 2029-06-19; every other key dropped",
+   "rows": 81,
+   "bytes": 9417
+  },
+  "submissions_SLAB.json": {
+   "source": "https://data.sec.gov/submissions/CIK0001038074.json",
+   "retrieved": "2026-09-11",
+   "pruned": "filings.recent reduced to the forms the precedent finder reads and to filing dates between 2022-04-06 and 2029-02-08; every other key dropped",
+   "rows": 88,
+   "bytes": 10307
+  },
+  "submissions_SPLK.json": {
+   "source": "https://data.sec.gov/submissions/CIK0001353283.json",
+   "retrieved": "2026-09-11",
+   "pruned": "filings.recent reduced to the forms the precedent finder reads and to filing dates between 2019-11-21 and 2026-09-25; every other key dropped",
+   "rows": 90,
+   "bytes": 10889
+  },
+  "submissions_WORK.json": {
+   "source": "https://data.sec.gov/submissions/CIK0001764925.json",
+   "retrieved": "2026-09-11",
+   "pruned": "filings.recent reduced to the forms the precedent finder reads and to filing dates between 2017-01-31 and 2023-12-06; every other key dropped",
+   "rows": 82,
+   "bytes": 9151
+  },
+  "submissions_ZEN.json": {
+   "source": "https://data.sec.gov/submissions/CIK0001463172.json",
+   "retrieved": "2026-09-11",
+   "pruned": "filings.recent reduced to the forms the precedent finder reads and to filing dates between 2018-08-24 and 2025-06-28; every other key dropped",
+   "rows": 113,
+   "bytes": 13118
+  },
+  "text/0000950103-26-008945.txt": {
+   "source": "https://www.sec.gov/Archives/edgar/data/1845815/000095010326008945/dp248400_8k.htm",
+   "retrieved": "2026-09-11",
+   "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup",
+   "bytes": 29244
+  },
+  "text/0001104659-21-084180.txt": {
+   "source": "https://www.sec.gov/Archives/edgar/data/1353283/000110465921084180/tm2120275d1_8k.htm",
+   "retrieved": "2026-09-11",
+   "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup",
+   "bytes": 13421
+  },
+  "text/0001104659-22-031786.txt": {
+   "source": "https://www.sec.gov/Archives/edgar/data/1370880/000110465922031786/tm228582d1_8k.htm",
+   "retrieved": "2026-09-11",
+   "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup",
+   "bytes": 21242
+  },
+  "text/0001104659-23-102594.txt": {
+   "source": "https://www.sec.gov/Archives/edgar/data/1353283/000110465923102594/tm2326347d1_8k.htm",
+   "retrieved": "2026-09-11",
+   "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup",
+   "bytes": 28524
+  },
+  "text/0001104659-26-062908.txt": {
+   "source": "https://www.sec.gov/Archives/edgar/data/733269/000110465926062908/tm2614904d1_8k.htm",
+   "retrieved": "2026-09-11",
+   "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup",
+   "bytes": 30204
+  },
+  "text/0001104659-26-078482.txt": {
+   "source": "https://www.sec.gov/Archives/edgar/data/1418819/000110465926078482/tm2619278d1_8k.htm",
+   "retrieved": "2026-09-11",
+   "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup",
+   "bytes": 31347
+  },
+  "text/0001140361-26-025115.txt": {
+   "source": "https://www.sec.gov/Archives/edgar/data/1428439/000114036126025115/ef20076172_8k.htm",
+   "retrieved": "2026-09-11",
+   "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup",
+   "bytes": 39818
+  },
+  "text/0001193125-20-307385.txt": {
+   "source": "https://www.sec.gov/Archives/edgar/data/1764925/000119312520307385/d59995d8k.htm",
+   "retrieved": "2026-09-11",
+   "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup",
+   "bytes": 26009
+  },
+  "text/0001193125-21-349135.txt": {
+   "source": "https://www.sec.gov/Archives/edgar/data/1463172/000119312521349135/d258655ds4.htm",
+   "retrieved": "2026-09-11",
+   "pruned": "characters 0:60000 of the stripped primary document",
+   "bytes": 60758
+  },
+  "text/0001193125-22-181655.txt": {
+   "source": "https://www.sec.gov/Archives/edgar/data/1463172/000119312522181655/d841167d8k.htm",
+   "retrieved": "2026-09-11",
+   "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup",
+   "bytes": 23251
+  },
+  "text/0001193125-26-036712.txt": {
+   "source": "https://www.sec.gov/Archives/edgar/data/1038074/000119312526036712/d62897d8k.htm",
+   "retrieved": "2026-09-11",
+   "pruned": "complete primary document, markup stripped by techval.edgar.strip_markup",
+   "bytes": 30017
+  }
+ }
+}

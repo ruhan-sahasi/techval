@@ -1,0 +1,1972 @@
+S-4
+1
+d258655ds4.htm
+S-4
+
+
+S-4
+
+
+Table of Contents
+
+
+
+As filed with the Securities and Exchange Commission on December 6, 2021
+Registration No. 333-
+
+UNITED STATES
+SECURITIES AND EXCHANGE COMMISSION
+Washington, D.C. 20549
+
+Form S-4
+REGISTRATION STATEMENT
+UNDER THE
+SECURITIES ACT OF 1933
+ZENDESK, INC. (Exact name
+of registrant as specified in its charter)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Delaware
+(State or other jurisdiction of
+incorporation or organization)
+
+7372
+(Primary Standard Industrial
+Classification Code Number)
+
+26-4411091
+(I.R.S. Employer
+Identification Number)
+989 Market Street
+San Francisco, California 94103
+(415) 418-7506
+(Address, including zip code, and telephone number, including area code, of registrant’s principal executive offices)
+
+Shanti Ariker General
+Counsel and Corporate Secretary 989 Market Street
+San Francisco, California 94103
+(415) 418-7506
+(Name, address, including zip code, and telephone number, including area code, of agent for service)
+
+Copies to:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Keith Flaum
+Christopher R. Moore
+Tiffany Posil Hogan Lovells
+US LLP 4085 Campbell Avenue, Suite 100
+Menlo Park, California 94025
+(650) 463-4000
+
+Lora D. Blum
+Chief Legal Officer and Secretary
+Momentive Global Inc. One
+Curiosity Way San Mateo, California 94403
+(650) 543-8400
+
+Katherine A. Martin
+Martin W. Korman Douglas K.
+Schnell Remi Korenblit
+Wilson Sonsini Goodrich & Rosati
+Professional Corporation
+650 Page Mill Road Palo
+Alto, California 94304 (650) 493-9300
+
+Approximate date of commencement of proposed sale of the securities to the public: As soon as practicable after this registration statement is declared
+effective and upon completion of the merger described in the enclosed document. If the securities being registered on this Form are
+being offered in connection with the formation of a holding company and there is compliance with General Instruction G, check the following box. ☐
+If this Form is filed to register additional securities for an offering pursuant to Rule 462(b) under the Securities Act of 1933, as amended
+(the “Securities Act”), check the following box and list the Securities Act registration statement number of the earlier effective registration statement for the same offering. ☐
+If this Form is a post-effective amendment filed pursuant to Rule 462(d) under the Securities Act, check the following box and list the
+Securities Act registration statement number of the earlier effective registration statement for the same offering. ☐
+Indicate by check mark whether the registrant is a large accelerated filer, an accelerated filer, a
+non-accelerated filer, a smaller reporting company, or an emerging growth company. See the definitions of “large accelerated filer,” “accelerated filer,” “smaller reporting
+company,” and “emerging growth company” in Rule 12b-2 of the Exchange Act.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Large accelerated filer
+
+☒
+
+Accelerated filer
+
+☐
+
+
+
+
+
+
+Non-accelerated filer
+
+☐
+
+Smaller report company
+
+☐
+
+
+
+
+
+
+
+
+
+
+Emerging growth company
+
+☐
+If an emerging growth company, indicate by check mark if the registrant has elected not to use the extended
+transition period for complying with any new or revised financial accounting standards provided pursuant to Section 7(a)(2)(B) of the Securities Act. ☐
+If applicable, place an X in the box to designate the appropriate rule provision relied upon in conducting this transaction:
+Exchange Act Rule 13e-4(i) (Cross Border Issuer Tender Offer) ☐
+Exchange Act Rule 14d-1(d) (Cross Border Third-Party Tender Offer) ☐
+
+CALCULATION OF REGISTRATION FEE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Title of Each Class ofSecurities to Be Registered
+
+Amount
+to Be Registered(1)
+
+Proposed
+MaximumOffering PricePer Share
+
+Proposed
+Maximum
+AggregateOffering Price(2)
+
+Amount ofRegistration Fee(3)
+
+Common Stock, par value $0.01 per share
+
+40,547,130
+
+N/A
+
+$3,482,547,872.475
+
+$322,832.19
+
+
+
+
+
+
+
+(1)
+Represents the maximum number of shares of Zendesk, Inc. (“Zendesk”) common stock, par value $0.01 per
+share (“Zendesk common stock”), estimated to be issuable or subject to stock-based awards that may be assumed by the registrant upon the completion of the merger of Milky Way Acquisition Corp., a wholly owned subsidiary of Zendesk
+(“Merger Sub”), with and into Momentive Global Inc. (“Momentive”), with Momentive as the surviving corporation, described in the joint proxy statement/prospectus contained herein. The number of shares of Zendesk common stock
+being registered is based on (a) the sum of (i) 150,317,110 shares of common stock, par value $0.00001 per share, of Momentive (“Momentive common stock”) issued and outstanding as of December 1, 2021, (ii) 29,667,353 shares of
+Momentive common stock underlying Momentive equity awards that are outstanding as of December 1, 2021, or estimated to be granted prior to completion of the merger and (iii) 225,000 shares of Momentive common stock, the maximum number of shares
+of Momentive common stock estimated to be issuable under Momentive’s 2018 Employee Stock Purchase Plan after December 1, 2021 and prior to the completion of the merger multiplied by (b) the exchange ratio of 0.225 of a share of
+Zendesk common stock for each share of Momentive common stock.
+
+
+(2)
+Calculated pursuant to Rules 457(c) and 457(f)(1) promulgated under the Securities Act, and solely for the
+purpose of calculating the registration fee. The proposed maximum aggregate offering price of the securities being registered was calculated based on the product of (i) $19.325, the average of the high and low prices for shares of Momentive common
+stock as reported on the Nasdaq Global Select Market on December 3, 2021, multiplied by (ii) 180,209,463 (which represents the estimated maximum number of shares of Momentive common stock that may be exchanged in the merger, as described
+in footnote (1) above).
+
+
+(3)
+Calculated pursuant to Section 6(b) of the Securities Act at a rate equal to $92.70 per $1,000,000 of the
+proposed maximum aggregate offering price.
+The registrant hereby amends
+this registration statement on such date or dates as may be necessary to delay its effective date until the registrant shall file a further amendment which specifically states that this registration statement shall thereafter become effective in
+accordance with Section 8(a) of the Securities Act or until the registration statement shall become effective on such date as the U.S. Securities and Exchange Commission, acting pursuant to said section 8(a), may determine.
+
+
+
+
+
+
+
+Table of Contents
+
+
+
+The information in the accompanying joint proxy statement/prospectus is not complete
+and may be changed. A registration statement relating to the securities described in the accompanying joint proxy statement/prospectus has been filed with the U.S. Securities and Exchange Commission. These securities may not be issued or sold until
+the registration statement filed with the U.S. Securities and Exchange Commission is effective. The accompanying joint proxy statement/prospectus does not constitute an offer to sell or the solicitation of offers to buy these securities in any
+jurisdiction where the offer or sale is not permitted. PRELIMINARY—SUBJECT TO COMPLETION, DATED DECEMBER 6, 2021
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+MERGER PROPOSAL—YOUR VOTE IS VERY IMPORTANT
+Dear Zendesk Stockholders and Momentive Stockholders: On
+October 28, 2021, Zendesk, Inc., which is referred to as “Zendesk,” Milky Way Acquisition Corp., a wholly owned subsidiary of Zendesk, which is referred to as “Merger Sub,” and Momentive Global Inc., which is referred to as
+“Momentive,” entered into an Agreement and Plan of Merger, as it may be amended from time to time, which is referred to as the “merger agreement,” that provides for the acquisition of Momentive by Zendesk. Upon the terms and
+subject to the conditions set forth in the merger agreement, Zendesk will acquire Momentive through a merger of Merger Sub with and into Momentive, which is referred to as the “merger,” with Momentive continuing as the surviving
+corporation and as a wholly owned subsidiary of Zendesk. Subject to the terms and conditions of the merger agreement, at the effective time of the merger,
+each outstanding share of common stock, par value $0.00001 per share, of Momentive, which is referred to as “Momentive common stock,” (subject to certain exceptions set forth in the merger agreement) will be converted into the right to
+receive 0.225, which number is referred to as the “exchange ratio,” of a share of common stock, par value $0.01 per share, of Zendesk, which is referred to as “Zendesk common stock,” with a cash payment (without interest and less
+any applicable withholding taxes) for any fractional shares of Zendesk common stock resulting from the calculation. Zendesk stockholders will continue to own their existing shares of Zendesk common stock.
+The exchange ratio is fixed and will not be adjusted for changes in the market price of either Zendesk common stock or Momentive common stock prior to the
+effective time of the merger. As a result, the number of shares of Zendesk common stock that Momentive stockholders will receive as consideration in the merger is fixed and will not change. However, the market value of the consideration payable to
+Momentive stockholders in the merger will fluctuate with the market price of Zendesk common stock. Zendesk common stock is traded on the New York Stock Exchange, which is referred to as “NYSE,” under the symbol “ZEN.” Momentive
+common stock is traded on the Nasdaq Global Select Market under the symbol “MNTV.” Based on the closing price of Zendesk common stock on NYSE of
+$ on , the latest practicable
+trading day prior to the date of the accompanying joint proxy statement/prospectus, the implied value of the consideration payable to Momentive stockholders in the merger was approximately
+$ per share of Momentive common stock. Based on the number of shares of Zendesk
+common stock and Momentive common stock outstanding on , the latest practicable date prior to the date of the accompanying joint
+proxy statement/prospectus, it is expected that Zendesk will issue approximately million shares of Zendesk common stock in the merger and, upon completion of the merger, the
+current Zendesk stockholders are expected to own approximately % of the outstanding shares of Zendesk common stock and former Momentive stockholders are expected to own approximately % of the outstanding
+shares of Zendesk common stock. Zendesk and Momentive will each hold a special meeting of their respective stockholders to vote on the proposals necessary
+to complete the merger. Such special meetings are referred to as the “Zendesk special meeting” and the “Momentive special meeting,” respectively. We encourage you to obtain current quotes for both Zendesk common stock and
+Momentive common stock before voting at the Zendesk special meeting or the Momentive special meeting. At the Zendesk special meeting, Zendesk stockholders
+will be asked to consider and vote on (i) a proposal to approve the issuance of shares of Zendesk common stock to Momentive stockholders in connection with the merger, which proposal is referred to as the “Zendesk share issuance
+proposal,” and (ii) a proposal to approve the adjournment of the Zendesk special meeting, if necessary or appropriate, to solicit additional proxies if there are insufficient votes at the time of the Zendesk special meeting to approve the
+Zendesk share issuance proposal. The Zendesk board of directors unanimously recommends that Zendesk stockholders vote “FOR” each of the proposals to be considered at the Zendesk special meeting.
+At the Momentive special meeting, Momentive stockholders will be asked to consider and vote on (i) a proposal to adopt the merger agreement, which
+proposal is referred to as the “Momentive merger proposal,” (ii) a proposal to approve, on a non-binding advisory basis, the compensation that may be paid or become payable to
+Momentive named executive officers that is based on or otherwise relates to the transactions contemplated by the merger agreement, and (iii) a proposal to approve the adjournment of the Momentive special meeting, if necessary or appropriate, to
+solicit additional proxies if there are insufficient votes at the time of the Momentive special meeting to approve the Momentive merger proposal. The Momentive board of directors unanimously recommends that Momentive stockholders vote
+“FOR” each of the proposals to be considered at the Momentive special meeting. We cannot complete the merger unless the Zendesk share
+issuance proposal is approved by Zendesk stockholders and the Momentive merger proposal is approved by Momentive stockholders. Your vote on these matters is very important, regardless of the number of shares you own. Whether or not you plan
+to virtually attend your company’s respective special meeting, please vote by proxy over the internet or telephone using the instructions included with the accompanying proxy card, or promptly complete your proxy card and return it in the
+enclosed postage-paid envelope, in order to authorize the individuals named on your proxy card to vote your shares at the applicable special meeting.
+The accompanying joint proxy
+statement/prospectus provides you with important information about Zendesk, Momentive, the merger, the merger agreement and the special meetings. We encourage you to read the entire document carefully, in particular the information under “Risk
+Factors” beginning on page 34 for a discussion of material risks relevant to the merger.
+
+
+
+
+
+Table of Contents
+
+
+
+We look forward to the successful completion of the merger.
+Sincerely,
+
+
+
+
+
+
+
+
+
+
+
+
+Mikkel Svane
+Chair of the Board of Directors and Chief Executive Officer
+Zendesk, Inc.
+
+Zander Lurie Chief Executive Officer and
+Director Momentive Global Inc.
+Neither the U.S. Securities and Exchange Commission nor any state securities commission has approved or disapproved of the
+Zendesk common stock to be issued in connection with the merger or passed upon the adequacy or accuracy of the accompanying joint proxy statement/prospectus. Any representation to the contrary is a criminal offense.
+The accompanying joint proxy statement/prospectus is
+dated , 2022 and is first being mailed to Zendesk stockholders and Momentive stockholders on or
+about , 2022.
+
+
+
+
+
+Table of Contents
+
+
+
+
+
+
+
+Zendesk, Inc.
+989 Market Street San Francisco,
+California 94103 (415) 418-7506
+NOTICE OF SPECIAL MEETING OF STOCKHOLDERS
+TO BE HELD ON , 2022
+Notice is hereby given that Zendesk, Inc., which is referred to as “Zendesk,” will hold a special meeting of its stockholders, which is
+referred to as the “Zendesk special meeting,” virtually via live webcast on , 2022, beginning
+at , Pacific Time. Zendesk stockholders will be able to virtually attend and vote
+at the Zendesk special meeting by visiting www.virtualshareholdermeeting.com/ZEN2022SM, which is referred to as the “Zendesk special meeting website.”
+The Zendesk special meeting will be held for the purpose of Zendesk stockholders considering and voting on the following proposals:
+
+
+
+
+1.
+to approve the issuance of shares of Zendesk common stock to the stockholders of Momentive Global Inc., which
+is referred to as “Momentive,” in connection with the merger contemplated by the Agreement and Plan of Merger, dated October 28, 2021, as it may be amended from time to time, which is referred to as the “merger agreement,”
+by and among Zendesk, Milky Way Acquisition Corp., a wholly owned subsidiary of Zendesk, and Momentive, which issuance is referred to as the “share issuance” and which proposal is referred to as the “Zendesk share issuance
+proposal”; and
+
+
+
+2.
+to approve the adjournment of the Zendesk special meeting, if necessary or appropriate, to solicit additional
+proxies if there are insufficient votes at the time of the Zendesk special meeting to approve the Zendesk share issuance proposal, which proposal is referred to as the “Zendesk adjournment proposal.”
+These proposals are described in more detail in the accompanying joint proxy statement/prospectus, which you should read carefully and in its entirety before
+you vote. A copy of the merger agreement is attached as Annex A to the accompanying joint proxy statement/prospectus. Only Zendesk stockholders of
+record at the close of business on , the record date for the Zendesk special meeting, which is referred to as the “Zendesk
+record date,” are entitled to notice of and to vote at the Zendesk special meeting and any adjournments or postponements thereof. The Zendesk board
+of directors has unanimously determined that the merger and the share issuance, on the terms and subject to the conditions set forth in the merger agreement, are advisable and fair to, and in the best interests of, Zendesk and its stockholders, and
+has approved the merger agreement and the transactions contemplated thereby, including the merger and the share issuance. Accordingly, the Zendesk board of directors unanimously recommends that Zendesk stockholders vote:
+
+
+
+
+•
+
+“FOR” the Zendesk share issuance proposal; and
+
+
+
+
+•
+
+“FOR” the Zendesk adjournment proposal.
+Your vote is very important, regardless of the number of shares of Zendesk common stock you own. The parties cannot complete the merger unless the
+Zendesk share issuance proposal is approved by Zendesk stockholders. Assuming a quorum is present at the Zendesk special meeting, approval of the Zendesk share issuance proposal requires the affirmative vote of a majority of votes cast on the
+Zendesk share issuance proposal.
+
+
+
+
+
+Table of Contents
+
+
+
+Whether or not you plan to virtually attend the Zendesk special meeting, please vote by proxy over the
+internet or telephone using the instructions included with the accompanying proxy card, or promptly complete your proxy card and return it in the enclosed postage-paid envelope, in order to authorize the individuals named on your proxy card to vote
+your shares of Zendesk common stock at the Zendesk special meeting. If you hold your shares through a broker, bank or other nominee in “street name” (instead of as a registered holder) please follow the instructions on the voting
+instruction form provided by your bank, broker or nominee to vote your shares. The list of Zendesk stockholders entitled to vote at the Zendesk special meeting will be available at Zendesk’s headquarters during regular business hours for
+examination by any Zendesk stockholder for any purpose germane to the Zendesk special meeting for a period of at least ten days prior to the Zendesk special meeting. The stockholder list will also be available for examination during the Zendesk
+special meeting via the Zendesk special meeting website. PLEASE VOTE AS PROMPTLY AS POSSIBLE, WHETHER OR NOT YOU PLAN TO ATTEND THE ZENDESK SPECIAL
+MEETING, VIA THE ZENDESK SPECIAL MEETING WEBSITE. IF YOU LATER DESIRE TO REVOKE OR CHANGE YOUR PROXY FOR ANY REASON, YOU MAY DO SO IN THE MANNER DESCRIBED IN THE ACCOMPANYING JOINT PROXY STATEMENT/PROSPECTUS. FOR FURTHER INFORMATION CONCERNING THE
+PROPOSALS BEING VOTED UPON, THE MERGER AGREEMENT, THE MERGER, USE OF THE PROXY AND OTHER RELATED MATTERS, YOU ARE URGED TO READ THE ACCOMPANYING JOINT PROXY STATEMENT/PROSPECTUS.
+By Order of the Board of Directors, Mikkel Svane
+Chair of the Board of Directors and Chief Executive Officer
+Zendesk, Inc. San Francisco, California
+
+
+
+
+
+Table of Contents
+
+
+
+
+
+
+
+Momentive Global Inc.
+One Curiosity Way San
+Mateo, California 94403 (650) 543-8400
+NOTICE OF SPECIAL MEETING OF STOCKHOLDERS
+TO BE HELD ON , 2022
+Notice is hereby given that Momentive Global Inc., which is referred to as “Momentive,” will hold a special meeting of its stockholders,
+which is referred to as the “Momentive special meeting,” virtually via live webcast on , 2022, beginning
+at , Pacific Time. You will be able to virtually attend
+and vote at the Momentive special meeting by visiting www.virtualshareholdermeeting.com/MNTV2022SM, which is referred to as the “Momentive special meeting website.”
+The Momentive special meeting will be held for the purpose of Momentive stockholders considering and voting on the following proposals:
+
+
+
+
+1.
+to adopt the Agreement and Plan of Merger, dated October 28, 2021, as it may be amended from time to time,
+which is referred to as the “merger agreement,” among Zendesk, Inc., which is referred to as “Zendesk,” Milky Way Acquisition Corp., a wholly owned subsidiary of Zendesk, which is referred to as “Merger Sub,” and
+Momentive, which proposal is referred to as the “Momentive merger proposal”;
+
+
+
+2.
+to approve, on a non-binding advisory basis, the compensation that may
+be paid or become payable to Momentive named executive officers that is based on or otherwise relates to the transactions contemplated by the merger agreement, which proposal is referred to as the “Momentive compensation proposal”; and
+
+
+
+
+3.
+to approve the adjournment of the Momentive special meeting, if necessary or appropriate, to solicit additional
+proxies if there are insufficient votes at the time of the Momentive special meeting to approve the Momentive merger proposal, which proposal is referred to as the “Momentive adjournment proposal.”
+These proposals are described in more detail in the accompanying joint proxy statement/prospectus, which you should read carefully and in its entirety before
+you vote. A copy of the merger agreement is attached as Annex A to the accompanying joint proxy statement/prospectus. Only Momentive stockholders
+of record at the close of business on , the record date for the Momentive special meeting, which is referred to as the “Momentive record date,”
+are entitled to notice of and to vote at the Momentive special meeting and any adjournments or postponements thereof. The Momentive board of directors
+has unanimously determined and believes that the merger agreement and the merger of Merger Sub with and into Momentive, which is referred to as the “merger,” are advisable and fair to, and in the best interests of, Momentive and its
+stockholders, and approved the merger agreement and the transactions contemplated thereby, including the merger in accordance with the requirements of the General Corporation Law of the State of Delaware. Accordingly, the Momentive board of
+directors unanimously recommends that Momentive stockholders vote:
+
+
+
+•
+
+“FOR” the Momentive merger proposal;
+
+
+
+
+•
+
+“FOR” the Momentive compensation proposal; and
+
+
+
+
+•
+
+“FOR” the Momentive adjournment proposal.
+
+
+
+
+
+Table of Contents
+
+
+
+Your vote is very important, regardless of the number of shares of Momentive common stock you own.
+The parties cannot complete the transactions contemplated by the merger agreement, including the merger, without approval of the Momentive merger proposal. Approval of the Momentive merger proposal requires the affirmative vote of the holders of a
+majority of the shares of Momentive common stock outstanding at the close of business on the Momentive record date. Whether or not you plan to virtually
+attend the Momentive special meeting, please vote by proxy over the internet or telephone using the instructions included with the accompanying proxy card, or promptly complete your proxy card and return it in the enclosed postage-paid envelope, in
+order to authorize the individuals named on your proxy card to vote your shares of Momentive common stock at the Momentive special meeting. If you hold your shares through a broker, bank or other nominee in “street name” (instead of as a
+registered holder) please follow the instructions on the voting instruction form provided by your bank, broker or nominee to vote your shares. The list of Momentive stockholders entitled to vote at the Momentive special meeting will be available at
+Momentive’s headquarters during ordinary business hours for examination by any Momentive stockholder for any purpose germane to the Momentive special meeting for a period of at least ten days prior to the Momentive special meeting. The
+stockholder list will also be available for examination during the Momentive special meeting via the Momentive special meeting website. PLEASE VOTE AS
+PROMPTLY AS POSSIBLE, WHETHER OR NOT YOU PLAN TO ATTEND THE MOMENTIVE SPECIAL MEETING VIA THE MOMENTIVE SPECIAL MEETING WEBSITE. IF YOU LATER DESIRE TO REVOKE OR CHANGE YOUR PROXY FOR ANY REASON, YOU MAY DO SO IN THE MANNER DESCRIBED IN THE JOINT
+PROXY STATEMENT/PROSPECTUS. FOR FURTHER INFORMATION CONCERNING THE PROPOSALS BEING VOTED UPON, THE MERGER AGREEMENT, THE MERGER, USE OF THE PROXY AND OTHER RELATED MATTERS, YOU ARE URGED TO READ THE JOINT PROXY STATEMENT/PROSPECTUS.
+By Order of the Board of Directors,
+
+
+
+
+
+
+
+
+
+
+
+
+David. A. Ebersman
+
+Zander Lurie
+
+Chair of the Board of Directors
+
+Chief Executive Officer and Director
+
+Momentive Global Inc.
+
+Momentive Global Inc.
+San Mateo, California
+
+
+
+
+
+Table of Contents
+
+
+
+REFERENCES TO ADDITIONAL INFORMATION
+The accompanying joint proxy statement/prospectus incorporates important business and financial information about Zendesk, Inc. (“Zendesk”) and
+Momentive Global Inc. (“Momentive”) from other documents that Zendesk and Momentive have filed with the U.S. Securities and Exchange Commission (“SEC”) and that are not contained in and are instead incorporated by reference in
+the accompanying joint proxy statement/prospectus. For a list of documents incorporated by reference in the accompanying joint proxy statement/prospectus, see “Where You Can Find More Information.” This information is available for you,
+without charge, to review through the SEC’s website at www.sec.gov. You may request a copy of the accompanying joint proxy statement/prospectus, any
+of the documents incorporated by reference in the accompanying joint proxy statement/prospectus or other information filed with the SEC by Zendesk or Momentive, without charge, by written or telephonic request directed to the appropriate company at
+the following contacts:
+
+
+
+
+
+
+
+
+
+
+
+
+For Zendesk stockholders:
+
+For Momentive stockholders:
+
+
+
+
+Zendesk, Inc.
+Attention: Shanti Ariker, Corporate Secretary
+secretary@zendesk.com
+(415) 418-7506
+
+Momentive Global Inc.
+Attention: Secretary
+One Curiosity Way
+San Mateo, California 94403
+(650) 543-8400
+In order for you to receive timely delivery of the documents in advance of the special meeting of Zendesk stockholders to
+be held on , 2022, which is referred to as the “Zendesk special meeting,” or the special meeting of Momentive
+stockholders to be held on , 2022, which is referred to as the “Momentive special meeting,” as applicable, you must
+request the information no later than , 2022.
+If you have any questions about the Zendesk special meeting or the Momentive special meeting, or need to obtain proxy cards or other information, please
+contact the applicable company’s proxy solicitor at the following contacts:
+
+
+
+
+
+
+
+
+
+
+
+
+For Zendesk stockholders:
+
+For Momentive stockholders:
+
+
+
+
+
+MacKenzie Partners, Inc.
+1407 Broadway, 27th Floor
+New York, New York 10018
+(800) 322-2885
+proxy@mackenziepartners.com
+
+
+
+
+
+Innisfree M&A Incorporated
+501 Madison Avenue, 20th Floor New
+York, New York 10022 Shareholders may call toll free: (877) 825-8772
+Banks and Brokers may call collect: (212) 750-5833
+The contents of the websites of the SEC, Zendesk, Momentive or any other entity are not incorporated in the accompanying
+joint proxy statement/prospectus. The information about how you can obtain certain documents that are incorporated by reference in the accompanying joint proxy statement/prospectus at these websites is being provided only for your
+convenience.
+i
+
+
+
+
+
+
+Table of Contents
+
+
+
+ABOUT THIS JOINT PROXY STATEMENT/PROSPECTUS
+This joint proxy statement/prospectus, which forms part of a registration statement on Form S-4 filed with
+the SEC by Zendesk (Registration No. 333- ), constitutes a prospectus of Zendesk under Section 5 of the Securities Act with respect to the
+shares of Zendesk common stock to be issued to Momentive stockholders pursuant to the Agreement and Plan of Merger, dated October 28, 2021, as it may be amended from time to time, by and among Zendesk, Milky Way Acquisition Corp., a wholly
+owned subsidiary of Zendesk (“Merger Sub”), and Momentive, which is referred to as the “merger agreement.” This document also constitutes a proxy statement of each of Zendesk and Momentive under Section 14(a) of the Exchange
+Act. This joint proxy statement/prospectus also constitutes a notice of meeting with respect to each of the Zendesk special meeting and the Momentive special meeting.
+Zendesk has supplied all information contained or incorporated by reference in this joint proxy statement/prospectus relating to Zendesk and Merger Sub, and
+Momentive has supplied all such information relating to Momentive. Zendesk and Momentive have both contributed to such information relating to the merger.
+You should rely only on the information contained or incorporated by reference in this joint proxy statement/prospectus. Zendesk and Momentive have not
+authorized anyone to provide you with information that is different from that contained or incorporated by reference in this joint proxy statement/prospectus. This joint proxy statement/prospectus is
+dated , and you should not assume that the information contained in this joint proxy statement/prospectus is accurate as of any
+date other than such date unless otherwise specifically provided herein. Further, you should not assume that the information incorporated by reference in
+this joint proxy statement/prospectus is accurate as of any date other than the date of the incorporated document. Neither the mailing of this joint proxy statement/prospectus to Zendesk stockholders or Momentive stockholders nor the issuance by
+Zendesk of shares of Zendesk common stock pursuant to the merger agreement will create any implication to the contrary. This joint proxy
+statement/prospectus does not constitute an offer to sell, or a solicitation of an offer to buy, any securities, or the solicitation of a proxy, in any jurisdiction to or from any person to whom it is unlawful to make any such offer or solicitation
+in such jurisdiction. Unless otherwise indicated or the context otherwise requires, when used in this joint proxy statement/prospectus:
+
+
+
+
+•
+
+“Allen & Company” refers to Allen & Company LLC, a financial advisor to Momentive in
+connection with the merger;
+
+
+
+•
+
+“Code” refers to the Internal Revenue Code of 1986, as amended;
+
+
+
+
+•
+
+“combined company” refers to Zendesk immediately following the completion of the merger and the other
+transactions contemplated by the merger agreement;
+
+
+
+•
+
+“DGCL” refers to the General Corporation Law of the State of Delaware;
+
+
+
+
+•
+
+“effective time” refers to the date and time when the merger becomes effective under the DGCL, which
+will be the date and time at which the certificate of merger with respect to the merger is filed with the Secretary of State of the State of Delaware, or such later date and time as may be mutually agreed to by Zendesk and Momentive and specified in
+the certificate of merger;
+
+
+
+•
+
+“end date” refers to July 28, 2022, the date on which, subject to certain limitations in the
+merger agreement, the merger agreement may be terminated and the merger abandoned by either Zendesk or Momentive;
+
+
+
+•
+
+“Exchange Act” refers to the Securities Exchange Act of 1934, as amended;
+
+
+
+
+•
+
+“exchange ratio” refers to 0.225, which reflects the number of shares of Zendesk common stock that
+Momentive stockholders will be entitled to receive in the merger for each share of Momentive common
+ii
+
+
+
+
+
+
+Table of Contents
+
+
+
+
+
+
+
+
+stock held immediately prior to the effective time pursuant to, and in accordance with, the terms of the merger agreement;
+
+
+
+
+•
+
+“GAAP” refers to U.S. generally accepted accounting principles;
+
+
+
+
+•
+
+“Goldman Sachs” refers to Goldman Sachs & Co. LLC, financial advisor to Zendesk in connection
+with the merger;
+
+
+
+•
+
+“HSR Act” refers to the Hart-Scott-Rodino Antitrust Improvements Act of 1976, as amended;
+
+
+
+
+•
+
+“J.P. Morgan” refers to J.P. Morgan Securities LLC, a financial advisor to Momentive in connection with
+the merger;
+
+
+
+•
+
+“merger agreement” refers to the Agreement and Plan of Merger, dated as of October 28, 2021, as it
+may be amended from time to time, by and among Zendesk, Merger Sub and Momentive;
+
+
+
+•
+
+“merger consideration” refers to (a) 0.225 of a share of Zendesk common stock, (b) any cash in
+lieu of fractional shares of Zendesk common stock that a holder of Momentive common stock is entitled to receive pursuant to the merger agreement, and (c) any dividends or other distributions that a holder of Momentive common stock is entitled
+to receive pursuant to the merger agreement, collectively, which each share of Momentive common stock that is outstanding immediately prior to the effective time (other than shares of Momentive common stock held, directly or indirectly, by Momentive
+or Zendesk, any of their respective wholly owned subsidiaries, or held in Momentive’s treasury) will be converted into the right to receive pursuant to, and in accordance with, the terms of the merger agreement;
+
+
+
+
+•
+
+“Merger Sub” refers to Milky Way Acquisition Corp., a Delaware corporation and wholly owned subsidiary
+of Zendesk, formed for the purpose of effecting the merger as described in this joint proxy statement/prospectus;
+
+
+
+•
+
+“merger” refers to the merger of Merger Sub with and into Momentive;
+
+
+
+
+•
+
+“Momentive” refers to Momentive Global Inc., a Delaware corporation;
+
+
+
+
+•
+
+“Momentive adjournment proposal” refers to the proposal for Momentive stockholders to approve the
+adjournment of the Momentive special meeting, if necessary or appropriate, to solicit additional proxies if there are insufficient votes at the time of the Momentive special meeting to approve the Momentive merger proposal;
+
+
+
+
+•
+
+“Momentive board of directors” refers to the board of directors of Momentive;
+
+
+
+
+•
+
+“Momentive bylaws” refers to the Fourth Amended and Restated Bylaws of Momentive adopted on
+June 15, 2021;
+
+
+
+•
+
+“Momentive charter” refers to the Fourth Amended and Restated Certificate of Incorporation of SVMK
+Inc., dated as of September 28, 2018, as amended by the Certificate of Amendment to the Amended and Restated Certificate of Incorporation of SVMK Inc., dated as of June 14, 2021.
+
+
+
+
+•
+
+“Momentive common stock” refers to the common stock, par value $0.00001 per share, of Momentive;
+
+
+
+
+•
+
+“Momentive compensation proposal” refers to the proposal for Momentive stockholders to approve, on a non-binding advisory basis, the compensation that may be paid or become payable to Momentive named executive officers that is based on or otherwise relates to the transactions contemplated by the merger
+agreement;
+
+
+
+•
+
+“Momentive merger proposal” refers to the proposal for Momentive stockholders to adopt the merger
+agreement;
+
+
+
+•
+
+“Momentive record date” refers
+to ;
+
+
+
+•
+
+“Momentive special meeting” refers to the special meeting of Momentive stockholders to consider and
+vote upon the Momentive merger proposal, the Momentive compensation proposal and the Momentive adjournment proposal;
+iii
+
+
+
+
+
+
+Table of Contents
+
+
+
+
+
+
+
+•
+
+“Momentive stockholders” refers to holders of Momentive common stock;
+
+
+
+
+•
+
+“Nasdaq” refers to the Nasdaq Global Select Market;
+
+
+
+
+•
+
+“NYSE” refers to the New York Stock Exchange;
+
+
+
+
+•
+
+“SEC” refers to the U.S. Securities and Exchange Commission;
+
+
+
+
+•
+
+“Securities Act” refers to the Securities Act of 1933, as amended;
+
+
+
+
+•
+
+“share issuance” refers to the issuance of shares of Zendesk common stock to Momentive stockholders in
+connection with the merger;
+
+
+
+•
+
+“Zendesk” refers to Zendesk, Inc., a Delaware corporation;
+
+
+
+
+•
+
+“Zendesk adjournment proposal” refers to the proposal for Zendesk stockholders to approve the
+adjournment of the Zendesk special meeting, if necessary or appropriate, to solicit additional proxies if there are insufficient votes at the time of the Zendesk special meeting to approve the Zendesk share issuance proposal;
+
+
+
+
+•
+
+“Zendesk board of directors” refers to the board of directors of Zendesk;
+
+
+
+
+•
+
+“Zendesk bylaws” refers to the Second Amended and Restated Bylaws of Zendesk adopted on July 27,
+2021;
+
+
+
+•
+
+“Zendesk charter” refers to the Amended and Restated Certificate of Incorporation of Zendesk, dated as
+of May 20, 2014;
+
+
+
+•
+
+“Zendesk common stock” refers to the common stock, par value $0.01 per share, of Zendesk;
+
+
+
+
+•
+
+“Zendesk record date” refers
+to ;
+
+
+
+•
+
+“Zendesk share issuance proposal” refers to the proposal for Zendesk stockholders to approve the
+issuance of shares of Zendesk common stock to Momentive stockholders in connection with the merger;
+
+
+
+•
+
+“Zendesk special meeting” refers to the special meeting of Zendesk stockholders to consider and vote
+upon the Zendesk share issuance proposal and the Zendesk adjournment proposal; and
+
+
+
+•
+
+“Zendesk stockholders” refers to holders of Zendesk common stock.
+iv
+
+
+
+
+
+
+Table of Contents
+
+
+
+TABLE OF CONTENTS
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Page
+
+
+
+
+SUMMARY
+
+
+13
+
+
+The Parties to the Merger
+
+
+13
+
+
+The Merger and the Merger Agreement
+
+
+13
+
+
+Merger Consideration
+
+
+14
+
+
+Treatment of Momentive Equity Awards
+
+
+14
+
+
+Zendesk’s Reasons for the Merger and Recommendation of the Zendesk Board
+of Directors
+
+
+15
+
+
+Momentive’s Reasons for the Merger and Recommendation of the Momentive Board
+of Directors
+
+
+15
+
+
+Opinion of Zendesk’s Financial Advisor
+
+
+15
+
+
+Opinions of Momentive’s Financial Advisors
+
+
+16
+
+
+The Zendesk Special Meeting
+
+
+17
+
+
+The Momentive Special Meeting
+
+
+18
+
+
+Interests of Zendesk Directors and Executive Officers in the
+Merger
+
+
+19
+
+
+Interests of Momentive Directors and Executive Officers in the
+Merger
+
+
+19
+
+
+Certain Beneficial Owners of Zendesk Common Stock
+
+
+20
+
+
+Certain Beneficial Owners of Momentive Common Stock
+
+
+20
+
+
+Regulatory Approvals and Related Matters
+
+
+20
+
+
+No Appraisal Rights
+
+
+21
+
+
+Conditions to the Completion of the Merger
+
+
+21
+
+
+No Solicitation or Discussions By Momentive
+
+
+21
+
+
+Momentive Recommendation Change
+
+
+23
+
+
+Zendesk Recommendation Change
+
+
+24
+
+
+Termination of the Merger Agreement
+
+
+25
+
+
+Termination Fees
+
+
+26
+
+
+Voting Agreements
+
+
+27
+
+
+U.S. Federal Income Tax Consequences of the Merger
+
+
+27
+
+
+Comparison of Stockholders’ Rights
+
+
+28
+
+
+Listing of Zendesk Common Stock; Delisting and Deregistration of Momentive Common
+Stock
+
+
+28
+
+
+SELECTED UNAUDITED PRO FORMA CONDENSED COMBINED FINANCIAL
+INFORMATION
+
+
+29
+
+
+COMPARATIVE HISTORICAL AND UNAUDITED PRO FORMA PER SHARE DATA
+
+
+
+30
+
+
+COMPARATIVE PER SHARE MARKET PRICE AND DIVIDEND INFORMATION
+
+
+31
+
+
+CAUTIONARY STATEMENT REGARDING FORWARD-LOOKING STATEMENTS
+
+
+32
+
+
+RISK FACTORS
+
+
+34
+
+
+Risks Relating to the Merger
+
+
+34
+
+
+Risks Relating to the Combined Company
+
+
+41
+
+
+THE PARTIES TO THE MERGER
+
+
+49
+
+
+THE ZENDESK SPECIAL MEETING
+
+
+50
+
+
+ZENDESK PROPOSAL 1: APPROVAL OF THE SHARE ISSUANCE
+
+
+56
+
+
+ZENDESK PROPOSAL 2: ADJOURNMENT OF THE ZENDESK SPECIAL
+MEETING
+
+
+57
+
+
+THE MOMENTIVE SPECIAL MEETING
+
+
+58
+
+
+MOMENTIVE PROPOSAL 1: ADOPTION OF THE MERGER AGREEMENT
+
+
+65
+
+
+MOMENTIVE PROPOSAL 2: ADVISORY NON-BINDING
+VOTE ON MERGER-RELATED COMPENSATION FOR NAMED EXECUTIVE OFFICERS
+
+
+66
+
+
+MOMENTIVE PROPOSAL 3: ADJOURNMENT OF THE MOMENTIVE SPECIAL
+MEETING
+
+
+67
+
+
+THE MERGER
+
+
+68
+
+
+General
+
+
+68
+
+
+Merger Consideration
+
+
+68
+
+
+Background of the Merger
+
+
+68
+
+
+Zendesk’s Reasons for the Merger and Recommendation of the Zendesk Board
+of Directors
+
+
+86
+
+v
+
+
+
+
+
+
+Table of Contents
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Page
+
+
+
+
+Momentive’s Reasons for the Merger and Recommendation of the Momentive Board
+of Directors
+
+
+91
+
+
+Opinion of Zendesk’s Financial Advisor
+
+
+95
+
+
+Opinions of Momentive’s Financial Advisors
+
+
+105
+
+
+Zendesk Unaudited Financial Projections
+
+
+121
+
+
+Momentive Unaudited Financial Projections
+
+
+125
+
+
+Closing and Effective Time of the Merger
+
+
+128
+
+
+Regulatory Approvals and Related Matters
+
+
+128
+
+
+U.S. Federal Securities Law Consequences
+
+
+129
+
+
+Accounting Treatment
+
+
+129
+
+
+Exchange of Momentive Certificates
+
+
+129
+
+
+Delisting and Listing
+
+
+130
+
+
+THE MERGER AGREEMENT
+
+
+131
+
+
+The Merger
+
+
+131
+
+
+Effective Time and Completion of the Merger
+
+
+131
+
+
+Merger Consideration
+
+
+132
+
+
+Fractional Shares
+
+
+132
+
+
+Exchange Agent
+
+
+133
+
+
+Exchange of Momentive Certificates
+
+
+133
+
+
+Treatment of Momentive Equity Awards
+
+
+134
+
+
+Representations and Warranties
+
+
+135
+
+
+Interim Operations of Zendesk and Momentive
+
+
+138
+
+
+No Solicitation or Discussions by Momentive
+
+
+142
+
+
+No Solicitation or Discussions by Zendesk
+
+
+146
+
+
+Stockholder Meetings; Board Recommendations
+
+
+148
+
+
+Employee Matters
+
+
+155
+
+
+Indemnification and Insurance
+
+
+156
+
+
+Regulatory Approvals and Related Matters
+
+
+156
+
+
+Delisting and Listing
+
+
+157
+
+
+Momentive Credit Agreement
+
+
+158
+
+
+Other Covenants
+
+
+158
+
+
+Conditions to the Completion of the Merger
+
+
+158
+
+
+Termination of the Merger Agreement
+
+
+161
+
+
+Effect of Termination
+
+
+163
+
+
+Transaction Expenses and Termination Fees
+
+
+164
+
+
+Enforcement; Remedies
+
+
+165
+
+
+Amendment
+
+
+166
+
+
+Waiver
+
+
+166
+
+
+Third-Party Beneficiaries
+
+
+166
+
+
+Governing Law
+
+
+167
+
+
+VOTING AGREEMENTS
+
+
+168
+
+
+Voting
+
+
+168
+
+
+Restrictions on Inconsistent Arrangements and Transfers
+
+
+168
+
+
+Termination
+
+
+168
+
+
+UNAUDITED PRO FORMA CONDENSED COMBINED FINANCIAL STATEMENTS
+
+
+170
+
+
+INTERESTS OF ZENDESK DIRECTORS AND EXECUTIVE OFFICERS IN THE
+MERGER
+
+
+182
+
+
+INTERESTS OF MOMENTIVE DIRECTORS AND EXECUTIVE OFFICERS IN THE
+MERGER
+
+
+183
+
+
+U.S. FEDERAL INCOME TAX CONSEQUENCES OF THE MERGER
+
+
+192
+
+
+COMPARISON OF STOCKHOLDERS’ RIGHTS
+
+
+196
+
+
+NO APPRAISAL RIGHTS
+
+
+205
+
+
+LEGAL MATTERS
+
+
+206
+
+
+EXPERTS
+
+
+206
+
+vi
+
+
+
+
+
+
+Table of Contents
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Page
+
+
+
+
+CERTAIN BENEFICIAL OWNERS OF ZENDESK COMMON STOCK
+
+
+207
+
+
+CERTAIN BENEFICIAL OWNERS OF MOMENTIVE COMMON STOCK
+
+
+210
+
+
+STOCKHOLDER PROPOSALS
+
+
+214
+
+
+HOUSEHOLDING OF PROXY MATERIALS
+
+
+214
+
+
+WHERE YOU CAN FIND MORE INFORMATION
+
+
+216
+
+
+ANNEX A—Agreement and Plan of Merger, dated October 28, 2021
+
+
+A-1
+
+
+ANNEX B—Opinion of Goldman Sachs & Co. LLC
+
+
+B-1
+
+
+ANNEX C—Opinion of Allen & Company LLC
+
+
+C-1
+
+
+ANNEX D—Opinion of J.P. Morgan Securities LLC
+
+
+D-1
+
+
+ANNEX E-1—Voting Agreement, dated as of October 28, 2021 (Ryan Nabil Finley)
+
+
+E-1-1
+
+
+ANNEX E-2—Voting Agreement, dated
+as of October 28, 2021 (Sheryl K Sandberg Revocable Trust Dated 9/3/2004)
+
+
+E-2-1
+
+
+ANNEX E-3—Voting Agreement, dated
+as of October 28, 2021 (SM Profits, LLC)
+
+
+E-3-1
+
+
+ANNEX E-4—Voting Agreement, dated
+as of October 28, 2021 (Alexander Joseph Lurie)
+
+
+E-4-1
+
+
+ANNEX E-5—Voting Agreement, dated
+as of October 28, 2021 (Eliza and Larry Becker Family 2018 Irrevocable Trust Dated May 31, 2018)
+
+
+E-5-1
+
+
+ANNEX E-6—Voting Agreement, dated
+as of October 28, 2021 (Jason and Jennifer Lurie Family 2018 Irrevocable Trust Dated May 31, 2018)
+
+
+E-6-1
+
+
+ANNEX E-7—Voting Agreement, dated
+as of October 28, 2021 (Scott and Caitlin Vogelsong Family 2018 Irrevocable Trust Dated May 31, 2018)
+
+
+E-7-1
+
+
+vii
+
+
+
+
+
+
+Table of Contents
+
+
+
+QUESTIONS AND ANSWERS
+The following questions and answers briefly address some questions that you, as a Zendesk stockholder or Momentive stockholder, may have regarding the
+merger and the other matters being considered at the Zendesk special meeting or the Momentive special meeting, as applicable. You are urged to carefully read this joint proxy statement/prospectus and the other documents referred to in this joint
+proxy statement/prospectus in their entirety because this section may not provide all the information that is important to you regarding these matters. See “Summary” for a summary of important information regarding the merger agreement,
+the merger and the related transactions. Additional important information is contained in the annexes to, and the documents incorporated by reference in, this joint proxy statement/prospectus. You may obtain the information incorporated by reference
+in this joint proxy statement/prospectus, without charge, by following the instructions in the section titled “Where You Can Find More Information.”
+Why am I receiving this joint proxy statement/prospectus?
+You are receiving this joint proxy statement/prospectus because Zendesk and Momentive have entered into the merger agreement, which provides for the
+acquisition of Momentive by Zendesk through a merger of Merger Sub with and into Momentive, with Momentive continuing as the surviving corporation in the merger and as a wholly owned subsidiary of Zendesk. The merger agreement, which governs the
+terms and conditions of the merger, is attached as Annex A hereto. Your vote is required in connection with the merger. Zendesk and
+Momentive are sending these materials to their respective stockholders to help them decide how to vote their shares with respect to the share issuance, in the case of Zendesk, the adoption of the merger agreement, in the case of Momentive, and other
+important matters. What matters am I being asked to vote on?
+In order to complete the merger, among other things:
+
+
+
+•
+
+Zendesk stockholders must approve the Zendesk share issuance proposal; and
+
+
+
+
+•
+
+Momentive stockholders must approve the Momentive merger proposal.
+Zendesk: Zendesk is holding the Zendesk special meeting to obtain approval of the Zendesk share issuance proposal. At the Zendesk special meeting,
+Zendesk stockholders will also be asked to consider and vote on the Zendesk adjournment proposal. Momentive: Momentive is holding the Momentive
+special meeting to obtain approval of the Momentive merger proposal. At the Momentive special meeting, Momentive stockholders will also be asked to consider and vote on the Momentive compensation proposal and the Momentive adjournment proposal.
+Does my vote matter? Yes, your vote is very important,
+regardless of the number of shares that you own. The merger cannot be completed unless the Zendesk share issuance proposal is approved by Zendesk stockholders and the Momentive merger proposal is approved by Momentive stockholders.
+The approval of the Zendesk adjournment proposal, the Momentive compensation proposal and the Momentive adjournment proposal are not required to complete the
+merger. When and where will each of the special meetings take place?
+Zendesk: The Zendesk special meeting will be held virtually via live webcast
+on , 2022, beginning at , Pacific Time. There will not be a
+physical meeting location. In light of continuing public health and
+1
+
+
+
+
+
+
+Table of Contents
+
+
+
+
+travel concerns arising from the coronavirus (COVID-19) outbreak, Zendesk believes hosting a virtual meeting helps ensure the health and safety of its
+stockholders, the Zendesk board of directors and Zendesk management. Additionally, the virtual nature of the Zendesk special meeting is generally designed to enable participation of and access by more of Zendesk stockholders while decreasing the
+cost of conducting the Zendesk special meeting. Zendesk stockholders will be able to virtually attend and vote at the Zendesk special meeting by visiting www.virtualshareholdermeeting.com/ZEN2022SM, which is referred to as the “Zendesk special
+meeting website.” In order to virtually attend and vote at the Zendesk special meeting, you will need the 16-digit control number located on your proxy card.
+Momentive: The Momentive special meeting will be held virtually via live webcast
+on , 2022, beginning at , Pacific Time. There will not be a
+physical meeting location. In light of continuing public health and travel concerns arising from the coronavirus (COVID-19) outbreak, Momentive believes hosting a virtual meeting helps ensure the health and safety of its stockholders, the Momentive
+board of directors and Momentive management. Momentive stockholders will be able to virtually attend and vote at the Momentive special meeting by visiting www.virtualshareholdermeeting.com/MNTV2022SM, which is referred to as the “Momentive
+special meeting website.” In order to virtually attend and vote at the Momentive special meeting, you will need the 16-digit control number located on your proxy card.
+Even if you plan to virtually attend your respective company’s special meeting, Zendesk and Momentive recommend that you vote by proxy in advance as
+described below so that your vote will be counted if you later decide not to or become unable to virtually attend the applicable special meeting. If you
+hold your shares in “street name,” you may virtually attend and vote at your respective company’s special meeting only if you obtain a specific control number from your bank, broker or other nominee giving you the right to vote such
+shares. What will Momentive stockholders receive for their shares of Momentive common stock if the merger is completed?
+If the merger is completed, each share of Momentive common stock outstanding as of immediately prior to the effective time will be converted into the right to
+receive 0.225 of a share of Zendesk common stock and a cash payment (without interest and less any applicable withholding taxes) for any fractional shares of Zendesk common stock resulting from such calculation.
+Because Zendesk will issue a fixed number of shares of Zendesk common stock in exchange for each share of Momentive common stock, the value of the merger
+consideration that Momentive stockholders will receive in the merger will depend on the market price of shares of Zendesk common stock at the time the merger is completed. The market price of shares of Zendesk common stock that Momentive
+stockholders receive at the time the merger is completed could be greater than, less than or the same as the market price of shares of Zendesk common stock on the date of this joint proxy statement/prospectus or on the date of the Zendesk special
+meeting and the Momentive special meeting. Accordingly, you should obtain current market quotations for Zendesk common stock and Momentive common stock before deciding how to vote on the Zendesk share issuance proposal and the Momentive merger
+proposal, as applicable. Zendesk common stock is traded on the NYSE and Momentive common stock is traded on Nasdaq, under the symbols “ZEN” and “MNTV,” respectively. Shares of Zendesk common stock will continue trading on the
+NYSE under the symbol “ZEN” after completion of the merger. For more information regarding the merger consideration to be received by Momentive stockholders if the merger is completed, see the section titled “The Merger
+Agreement—Merger Consideration.” How does the Zendesk board of directors recommend that I vote at the Zendesk special meeting?
+The Zendesk board of directors unanimously recommends that you vote “FOR” the Zendesk share issuance proposal and “FOR” the
+Zendesk adjournment proposal. Other than with respect to continued service for, employment by and the right to continued indemnification by the combined
+company, as of the date of this joint proxy statement/prospectus, Zendesk directors and executive
+2
+
+
+
+
+
+
+Table of Contents
+
+
+
+
+officers do not have interests in the merger that are different from, or in addition to, the interests of other Zendesk stockholders generally. See the section titled “Interests of
+Zendesk Directors and Executive Officers in the Merger.” How does the Momentive board of directors recommend that I vote at the Momentive
+special meeting? The Momentive board of directors unanimously recommends that you vote “FOR” the Momentive merger proposal,
+“FOR” the Momentive compensation proposal and “FOR” the Momentive adjournment proposal. In considering the
+recommendations of the Momentive board of directors, Momentive stockholders should be aware that Momentive directors and executive officers have interests in the merger that are different from, or in addition to, their interests as Momentive
+stockholders generally. These interests may include, among others, the payment of severance benefits and acceleration of outstanding Momentive equity awards upon certain terminations of employment or service, and the combined company’s
+agreement to indemnify Momentive directors and executive officers against certain claims and liabilities. For a more complete description of these interests, see the section titled “Interests of Momentive Directors and Executive Officers in
+the Merger.” Who is entitled to vote at each special meeting?
+Zendesk All holders of record of shares of Zendesk common
+stock who held shares at the close of business on , the Zendesk record date, are entitled to receive notice of, and to vote at, the Zendesk special
+meeting. Virtual attendance at the Zendesk special meeting via the Zendesk special meeting website is not required to vote. See below and the section titled “The Zendesk Special Meeting—Methods of Voting” for instructions on
+how to vote without virtually attending the Zendesk special meeting. Momentive
+All holders of record of shares of Momentive common stock who held shares at the close of business
+on , the Momentive record date, are entitled to receive notice of, and to vote at, the Momentive special meeting. Virtual attendance at the Momentive
+special meeting via the Momentive special meeting website is not required to vote. See below and the section titled “The Momentive Special Meeting—Methods of Voting” for instructions on how to vote without virtually attending
+the Momentive special meeting. What is a proxy? A
+proxy is a stockholder’s legal designation of another person to vote shares owned by such stockholder on their behalf. If you are a stockholder of record, you can vote by proxy over the internet, by telephone or by mail by following the
+instructions provided in the enclosed proxy card. If you hold shares beneficially in “street name,” you should follow the voting instructions provided by your bank, broker or other nominee.
+How many votes do I have at each special meeting?
+Zendesk Each Zendesk stockholder is entitled to one vote
+on each proposal for each share of Zendesk common stock held of record at the close of business on the Zendesk record date. At the close of business on the Zendesk record date, there
+were shares of Zendesk common stock outstanding.
+Momentive Each Momentive stockholder is entitled to one
+vote on each proposal for each share of Momentive common stock held of record at the close of business on the Momentive record date. At the close of business on the Momentive record date, there
+were shares of Momentive common stock outstanding.
+3
+
+
+
+
+
+
+Table of Contents
+
+
+
+What constitutes a quorum for each special meeting?
+A quorum is the minimum number of shares required to be represented, either through virtual attendance or through representation by proxy, to hold a valid
+meeting. Zendesk The holders of a majority of the
+issued and outstanding shares of Zendesk common stock entitled to vote at the Zendesk special meeting must be present in person or represented by proxy in order to constitute a quorum for the transaction of business at the Zendesk special meeting.
+Virtual attendance at the Zendesk special meeting will constitute presence in person for the purpose of determining the presence of a quorum for the transaction of business at the Zendesk special meeting. Abstentions will count as votes present and
+entitled to vote for the purpose of determining the presence of a quorum for the transaction of business at the Zendesk special meeting. Since all of the proposals currently expected to be voted on at the Zendesk special meeting are considered non-routine matters, shares held in “street name” through a bank, broker or other nominee will not be counted as present for the purpose of determining the existence of a quorum if such bank, broker or
+nominee does not have instructions to vote on any such proposals. Momentive
+The holders of a majority of the issued and outstanding shares of Momentive common stock entitled to vote at the Momentive special meeting must be present in
+person or represented by proxy in order to constitute a quorum for the transaction of business at the Momentive special meeting. Virtual attendance at the Momentive special meeting will constitute presence in person for the purpose of determining
+the presence of a quorum for the transaction of business at the Momentive special meeting. Abstentions will count as votes present and entitled to vote for the purpose of determining the presence of a quorum for the transaction of business at the
+Momentive special meeting. Since all of the proposals currently expected to be voted on at the Momentive special meeting are considered non-routine matters, shares held in “street name” through a
+bank, broker or other nominee will not be counted as present for the purpose of determining the existence of a quorum if such bank, broker or nominee does not have instructions to vote on any such proposals.
+What happens if the merger is not completed? If the
+Zendesk share issuance proposal is not approved by Zendesk stockholders, if the Momentive merger proposal is not approved by Momentive stockholders or if the merger is not completed for any other reason, Momentive stockholders will not receive the
+merger consideration or any other consideration in connection with the merger, and their shares of Momentive common stock will remain outstanding. If the
+merger is not completed, Momentive will remain an independent public company, the Momentive common stock will continue to be listed and traded on Nasdaq under the symbol “MNTV” and Zendesk will not complete the share issuance contemplated
+by the merger agreement, regardless of whether the Zendesk share issuance proposal has been approved by Zendesk stockholders. If the merger agreement is
+terminated under specified circumstances, Zendesk or Momentive may be required to pay the other a termination fee of $150 million. See the section titled “The Merger Agreement—Termination Fees.”
+How can I vote my shares at my respective special meeting?
+Zendesk Shares held directly in your name as a Zendesk
+stockholder of record may be voted at the Zendesk special meeting via the Zendesk special meeting website at www.virtualshareholdermeeting.com/ZEN2022SM. You will
+4
+
+
+
+
+
+
+Table of Contents
+
+
+
+
+need the 16-digit control number included on your proxy card in order to access and vote via the Zendesk special meeting website as described in
+the section titled “The Zendesk Special Meeting—Virtually Attending the Zendesk Special Meeting.” Shares held in “street
+name” may be voted at the Zendesk special meeting via the Zendesk special meeting website only if you obtain a specific control number and follow the instructions provided by your bank, broker or other nominee. See the section titled
+“The Zendesk Special Meeting—Virtually Attending the Zendesk Special Meeting.” Momentive
+Shares held directly in your name as a Momentive stockholder of record may be voted at the Momentive special meeting via the Momentive special meeting website
+at www.virtualshareholdermeeting.com/MNTV2022SM. You will need the 16-digit control number included on your proxy card in order to access and vote via the Momentive special meeting website as described in the
+section titled “The Momentive Special Meeting—Virtually Attending the Momentive Special Meeting.” Shares held in “street
+name” may be voted at the Momentive special meeting at the Momentive special meeting website only if you obtain a specific control number and follow the instructions provided by your bank, broker or other nominee. See the section titled
+“The Momentive Special Meeting—Virtually Attending the Momentive Special Meeting.” Even if you plan to virtually attend your
+respective company’s special meeting via the applicable special meeting website, Zendesk and Momentive recommend that you vote by proxy in advance as described below so that your vote will be counted if you later decide not to or become unable
+to virtually attend the respective special meeting. For additional information on virtually attending the special meetings, see the sections titled
+“The Zendesk Special Meeting” and “The Momentive Special Meeting.” How can I vote my shares without virtually
+attending my company’s special meeting? Whether you hold your shares directly as a stockholder of record of Zendesk or Momentive or beneficially
+in “street name,” you may direct your vote by proxy without virtually attending the Zendesk or Mom

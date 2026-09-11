@@ -1,0 +1,654 @@
+0001370880
+false
+--12-31
+
+
+
+
+
+
+
+0001370880
+
+
+2022-03-07
+2022-03-07
+
+
+
+iso4217:USD
+
+
+xbrli:shares
+
+
+
+
+iso4217:USD
+
+
+xbrli:shares
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+UNITED STATES
+
+SECURITIES AND EXCHANGE COMMISSION
+
+Washington, D.C. 20549
+
+
+
+
+
+
+
+
+
+FORM 8-K
+
+
+
+
+
+
+
+
+
+
+
+CURRENT REPORT
+
+Pursuant to Section 13 OR 15(d) of
+
+The Securities Exchange Act of 1934
+
+
+
+Date of Report (Date of earliest event reported):
+March 7, 2022
+
+
+
+
+
+
+
+
+
+Mandiant, Inc.
+
+(Exact name of registrant as specified in its
+charter)
+
+
+
+
+
+
+
+
+
+
+
+Delaware
+
+001-36067
+
+20-1548921
+
+(State or other jurisdiction
+of incorporation)
+
+(Commission
+File Number)
+
+(IRS Employer
+Identification No.)
+
+
+
+11951 Freedom Drive, 6th Floor
+
+Reston, VA 20190
+
+(Address of principal executive offices, including
+zip code)
+
+
+
+(703) 935-1700
+
+(Registrant’s telephone number, including
+area code)
+
+
+
+Not Applicable
+
+(Former name or former address, if changed since
+last report.)
+
+
+
+
+
+
+
+
+
+Check the appropriate box below if the Form 8-K filing is intended
+to simultaneously satisfy the filing obligation of the registrant under any of the following provisions (see General Instruction A.2.
+below):
+
+
+
+
+
+¨
+Written communications pursuant to Rule 425 under the Securities Act (17 CFR 230.425)
+
+
+
+
+x
+Soliciting material pursuant to Rule 14a-12 under the Exchange Act (17 CFR 240.14a-12)
+
+
+
+
+¨
+Pre-commencement communications pursuant to Rule 14d-2(b) under the Exchange Act (17 CFR 240.14d-2(b))
+
+
+
+
+¨
+Pre-commencement communications pursuant to Rule 13e-4(c) under the Exchange Act (17 CFR 240.13e-4(c))
+
+
+
+
+Securities registered pursuant to Section 12(b) of the Act:
+
+
+
+
+
+
+
+Title of each class
+
+Trading Symbol(s)
+
+Name of each exchange on which registered
+
+
+Common Stock, par value
+$0.0001 per share
+
+MNDT
+
+The NASDAQ Global Select Market
+
+
+
+
+
+
+
+Indicate by check mark whether the registrant is an emerging growth
+company as defined in Rule 405 of the Securities Act of 1933 (§230.405 of this chapter) or Rule 12b-2 of the Securities Exchange
+Act of 1934 (§240.12b-2 of this chapter).
+
+
+
+Emerging growth company ¨
+
+
+
+If an emerging growth company, indicate by check mark if the registrant
+has elected not to use the extended transition period for complying with any new or revised financial accounting standards provided pursuant
+to Section 13(a) of the Exchange Act. ¨
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Item 1.01.Entry into a Material Definitive Agreement.
+
+
+
+Merger Agreement
+
+
+
+On March 7, 2022, Mandiant, Inc.
+(“Mandiant”) entered into an Agreement and Plan of Merger (the “Merger Agreement”) with Google LLC, a
+Delaware limited liability company (“Parent”), and Dupin Inc., a Delaware corporation and wholly owned subsidiary of
+Parent (“Merger Sub”). The Merger Agreement provides that, subject to the terms and conditions set forth in the Merger
+Agreement, Merger Sub will merge with and into Mandiant (the “Merger”), with Mandiant surviving the Merger and becoming
+a wholly owned subsidiary of Parent (the “Surviving Corporation”).
+
+
+
+Mandiant’s Board of Directors (the
+“Board”) unanimously (1) determined that the transactions contemplated by the Merger Agreement, including the Merger,
+are in the best interests of Mandiant and its stockholders; and (2) approved the Merger Agreement and the transactions contemplated
+by the Merger Agreement (including the Mandiant Voting Agreements (as defined below)). The Board also unanimously resolved to recommend
+that Mandiant’s stockholders vote to adopt and approve the Merger Agreement and the Merger.
+
+
+
+Under the Merger Agreement, at the effective time
+of the Merger, each issued and outstanding share of Mandiant’s common stock, except as provided in the Merger Agreement, will be
+converted into the right to receive $23.00 in cash, without interest (the “Per Share Price”). Following the Merger, each issued
+and outstanding share of Mandiant’s common stock will no longer be outstanding and will automatically be canceled and cease to exist.
+
+
+
+At or immediately prior to the effective time of
+the Merger, Mandiant’s equity-based awards will be treated in the following manner:
+
+
+
+
+•Each vested restricted stock unit award that is outstanding immediately prior to the effective time of the Merger will be cancelled and
+converted into a right to receive an amount in cash, without interest, equal to the product obtained by multiplying (1) the amount of
+the Per Share Price (less the exercise or purchase price per share, if any, attributable to such equity-based award) by (2) the total
+number of shares of Mandiant’s common stock subject to such equity-based award.
+
+
+
+
+
+•Each unvested restricted stock unit award that is outstanding immediately prior to the effective time of the Merger will be cancelled
+and converted into a right to receive an amount in cash, without interest, equal to the product obtained by multiplying (1) the amount
+of the Per Share Price by (2) the total number of shares of Mandiant’s common stock subject to such equity-based award (except that,
+with respect to any such equity-based award that, immediately prior to the effective time of the Merger, remains subject to performance
+vesting conditions, the performance metrics of such award will be deemed achieved at the maximum level of achievement of the award’s
+performance metrics). Such cash amount will, subject to the holder’s continued service with Parent and its affiliates (including
+Mandiant) through the applicable vesting dates, vest and be payable in accordance with the existing service-based vesting schedule of
+such equity-based award).
+
+
+
+At or immediately prior to the effective time of
+the Merger, Mandiant’s stock options will be treated in the following manner:
+
+
+
+
+•Each stock option that is outstanding and unexercised immediately prior to the effective time of the Merger will accelerate vesting in
+full and be cancelled and converted into a right to receive an amount in cash, without interest, equal to the product obtained by multiplying
+(1) the amount of the Per Share Price (less the exercise price per share attributable to such stock option) by (2) the total number of
+shares of Mandiant’s common stock issuable upon exercise in full of such option.
+
+
+
+
+•Any stock option, whether vested or unvested, for which the exercise price per share attributable to such stock option is equal to or
+greater than the Per Share Price will be canceled without any cash payment being made in respect thereof.
+
+
+
+
+
+
+
+
+
+
+
+
+Consummation of the Merger is subject to the
+satisfaction or waiver of customary closing conditions, including: (1) approval of the Merger Agreement by the holders of
+Mandiant’s common stock and convertible preferred stock (on an as-converted to common stock basis), voting together as a
+single class; (2) the expiration or termination of the waiting period under the United States Hart-Scott-Rodino Antitrust
+Improvements Act of 1976, as amended, and clearance under the antitrust and foreign investment laws of certain non-United States
+jurisdictions; and (3) the absence of any law or order restraining, enjoining or otherwise
+prohibiting the Merger or the conversion of the convertible preferred stock into common stock in connection with the Merger
+(the “Transactions”) or any governmental authority requiring or imposing certain remedial
+actions.
+
+
+
+Mandiant made customary representations, warranties
+and covenants for the benefit of Parent and Merger Sub in the Merger Agreement. Each of Parent and Merger Sub also made customary representations,
+warranties and covenants for the benefit of Mandiant in the Merger Agreement.
+
+
+
+Upon the execution of the Merger Agreement,
+Mandiant became subject to customary “no-shop” restrictions on its ability (and the ability of its
+subsidiaries and representatives), except as permitted by the Merger Agreement, to (1) solicit, initiate, propose or induce the
+making, submission or announcement of, or knowingly encourage, facilitate or assist any alternative acquisition proposals from third
+parties; or (2) provide nonpublic information to, or participate in discussions or negotiations with, third parties regarding
+alternative acquisition proposals.
+
+
+
+The Merger Agreement contains certain
+termination rights for Mandiant and Parent. Upon termination of the Merger Agreement under specified circumstances, Mandiant will be
+required to pay Parent a termination fee of $197,000,000. Specifically, this termination fee is payable by Mandiant to Parent if the
+Merger Agreement is terminated by (1) (a) Parent or Mandiant upon the non-occurrence of the effective time of the Merger by the
+Termination Date (as defined below), (b) Parent or Mandiant upon the failure to obtain the Requisite Stockholder Approval (as
+defined in the Merger Agreement) at the Company Stockholder Meeting (as defined in the Merger Agreement), or (c) Parent, if Mandiant
+has breached or failed to perform any of its obligations under the Merger Agreement and such breach or failure would result in the
+failure of a closing condition, if in
+the case of each of the foregoing clauses (a) through (c), following the execution of the Merger Agreement, an Acquisition Proposal
+(as defined in the Merger Agreement) has been publicly announced or disclosed to the Board and not withdrawn and within one year of such termination,
+Mandiant consummates an Acquisition Transaction (as defined in the Merger Agreement) or enters into an agreement for an Acquisition
+Transaction that is subsequently consummated (or is terminated but a subsequent Acquisition Transaction is then consummated), (2)
+Parent upon (a) the Board’s determination to change its recommendation with respect to the Merger, (b) Mandiant’s entry
+into an Alternative Acquisition Agreement (as defined in the Merger Agreement), or (c) Mandiant’s material and willful breach
+of its “no-shop” restrictions or covenants relating to the Company Stockholder Meeting, or (3) Mandiant if, prior to
+receiving the Requisite Stockholder Approval, Mandiant receives a Superior Proposal (as defined in the Merger Agreement) and the
+Board authorizes, and Mandiant enters into, a definitive Alternative Acquisition Agreement for the Acquisition Transaction
+contemplated by such Superior Proposal.
+
+
+
+Conversely, upon termination of the Merger
+Agreement under certain other specified circumstances, Parent will be required to pay Mandiant a termination fee, the amount of
+which varies based on the date on which a termination notice is delivered. Specifically, this termination fee is payable by Parent
+to Mandiant if the Merger Agreement is terminated (1) by Parent or Mandiant upon the non-occurrence of the effective time of the
+Merger by the Termination Date if (a) at least one of the closing conditions requiring (i) the receipt of certain antitrust and
+foreign investment clearances, (ii) the absence of any law, injunction or order preventing, materially restraining or materially
+impairing the Transactions (to the extent relating to antitrust and foreign investment laws) or (iii) the absence of any antitrust
+or foreign investment law (or of any order under such law) imposing certain remedial actions in connection with the Transactions
+(clauses (i), (ii) and (iii), the “Clearance Conditions”) has not been satisfied or waived; (b) such non-satisfaction is
+not primarily caused by a material breach by Mandiant of the Merger Agreement; and (c) all other conditions to the obligations of
+Parent and Merger Sub under the Merger Agreement have been satisfied or waived (or, in the case of those conditions that by their
+terms are to be satisfied at the closing, such conditions are capable of being satisfied if the closing were to occur); or (2) by
+Parent or Mandiant if all of the other conditions of Parent and Merger Sub to closing have been satisfied or waived but (a) (i) a
+law, injunction or order preventing, materially restraining or materially impairing the Transactions; or (b) with respect to Parent
+only, any antitrust or foreign investment law (or any order under such a law) that imposes certain remedial actions in connection
+with the Transactions, in each case, has become final and non-appealable (and a material breach by Mandiant is not the primary cause
+of such law, injunction or order becoming final and non-appealable or failing to be removed or such remedy action being imposed).
+The amount of the termination fee will be (1) $328,000,000 if the relevant termination notice is delivered on or prior to 11:59
+p.m., Pacific Time, on March 7, 2023, (2) $394,000,000 if the relevant termination notice is delivered after 11:59 p.m., Pacific
+Time, on March 7, 2023 but on or prior to 11:59 p.m., Pacific Time, on June 7, 2023 and (3) $460,000,000 if the relevant termination
+notice is delivered after 11:59 p.m., Pacific Time, on June 7, 2023.
+
+
+
+Either Mandiant or Parent may terminate the Merger
+Agreement if the Merger is not consummated by 11:59 p.m., Pacific Time, on March 7, 2023 (the “Termination Date”), except
+that (a) if as of the Termination Date, any of the Clearance Conditions have not been satisfied, then the Termination Date shall automatically
+be extended (without any action required by any party) to 11:59 p.m., Pacific Time, on June 7, 2023; and (b) if as of 11:59 p.m., Pacific
+Time, on June 7, 2023, any of the Clearance Conditions have not been satisfied, then the Termination Date shall automatically be extended
+(without any action required by any party) to 11:59 p.m., Pacific Time, on September 7, 2023.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+The Merger Agreement contains representations and
+warranties by each of Parent, Merger Sub and Mandiant. These representations and warranties were made solely for the benefit of the parties
+to the Merger Agreement and:
+
+
+
+
+•should not be treated as categorical statements of fact, but rather as a way of allocating the risk to one of the parties if those
+statements prove to be inaccurate;
+
+
+
+
+•may have been qualified in the Merger Agreement by disclosures that were made to the other party in connection with the negotiation
+of the Merger Agreement;
+
+
+
+
+•may apply contractual standards of “materiality” that are different from “materiality” under applicable securities
+laws; and
+
+
+
+
+•were made only as of the date of the Merger Agreement or such other date or dates as may be specified in the Merger Agreement.
+
+
+
+The foregoing description of the Merger Agreement
+is qualified in its entirety by reference to the full text of the Merger Agreement, a copy of which is filed as Exhibit 2.1 and is
+incorporated by reference.
+
+
+
+Voting Agreements
+
+
+
+In connection with the
+Merger Agreement, on March 7, 2022, Mandiant’s chief executive officer and each of the holders of Mandiant’s preferred
+stock, solely in their respective capacities as stockholders of Mandiant, entered into Voting and Support Agreements or Conversion, Voting
+and Support Agreements with Parent and Mandiant (the “Mandiant Voting Agreements”) pursuant to which each such
+stockholder agreed, among other things, (1) during the term of its Mandiant Voting Agreement and subject to certain exceptions as set
+forth therein, to vote the shares of Mandiant’s common stock and convertible preferred stock held by it (a) in favor of the
+adoption of the Merger Agreement and the approval of the Merger and the other transactions contemplated thereby, (b) against any
+alternative acquisition proposal, and (c) against any other action or agreement that is intended, or would reasonably be likely
+to materially impede or materially delay the Merger or the transactions contemplated by the Merger Agreement; and (2) in the case of
+a holder of Mandiant’s convertible preferred stock, to take all steps necessary to convert all of such stockholder’s shares
+of Mandiant’s preferred stock into shares of common stock, including delivering to Mandiant a conversion notice in respect of their
+convertible preferred stock concurrently with the execution and delivery of the Mandiant Voting Agreements. The stockholders subject
+to the Mandiant Voting Agreements have agreed to vote shares beneficially owned by them representing in the aggregate approximately 10.6%
+of the outstanding shares of Mandiant’s common stock on an as-converted basis as of March 7, 2022. The Mandiant Voting Agreements
+terminate upon the earliest to occur of (1) the termination of the Merger Agreement in accordance with its terms, (2) the effective
+time of the Merger, (3) the entry into amendments or modifications to, or waivers of Mandiant’s rights under, the Merger Agreement
+that decrease the amount of, or change the composition of, the merger consideration, extend the Termination Date (except as contemplated
+by the Merger Agreement) or that modify Article II or Article VII of the Merger Agreement in a manner that is adverse to Mandiant’s
+stockholders without the prior written consent of the stockholders party to the Mandiant Voting Agreements.
+
+
+
+The foregoing description of
+the Mandiant Voting Agreements does not purport to be complete and is qualified in its entirety by the full text of the Mandiant Voting
+Agreements. The Mandiant Voting Agreement signed by Mandiant’s chief executive officer is filed as Exhibit 10.1, the Mandiant
+Voting Agreement signed by Blackstone Delta Lower Holdings DE L.P. and BTO FD Delta Holdings DE L.P. is
+filed as Exhibit 10.2, the Mandiant Voting Agreement signed by ClearSky Security Fund I LLC and ClearSky Power & Technology
+Fund II LLC is filed as Exhibit 10.3, and each are incorporated by reference. The
+Mandiant Voting Agreements have been attached to provide investors with information regarding their terms. They are not intended to provide
+any other factual information about Mandiant or the stockholders party thereto. Moreover, the representations and warranties in the Mandiant
+Voting Agreements were used for the purpose of allocating risk among the parties rather than establishing matters of fact. Accordingly,
+the representations and warranties in the Mandiant Voting Agreements should not be relied on as characterizations of the actual state of
+facts about Mandiant or the stockholders party thereto.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Item 5.03.
+Amendments to Articles of Incorporation or Bylaws; Change in Fiscal Year.
+
+
+
+
+
+On March 7, 2022,
+the Board approved an amendment to Mandiant’s bylaws to add a new Article XI to Mandiant’s bylaws,
+providing that (1) the Court of Chancery of the State of Delaware will be the sole and exclusive forum for (a) any derivative
+action or proceeding brought on behalf of Mandiant; (b) any action asserting a claim of breach of a fiduciary duty owed by any director,
+officer or other employee of Mandiant to Mandiant or its stockholders; (c) any action asserting a claim against Mandiant arising
+pursuant to any provision of the Delaware General Corporation Law, Mandiant’s certificate of incorporation or Mandiant’s bylaws;
+or (d) any action asserting a claim against Mandiant governed by the internal affairs doctrine; and (2) unless Mandiant consents
+in writing to the selection of an alternative forum, the federal district courts of the United States of America will be the sole
+and exclusive forum for the resolution of any complaint asserting a cause of action under the Securities Act of 1933, as amended, and the
+Securities Exchange Act of 1934, as amended.
+
+
+
+The foregoing summary
+of the amendment to Mandiant’s bylaws does not purport to be complete and is qualified in its entirety by reference to the full
+text of such amendment, a copy of which is filed as Exhibit 3.1 and incorporated by reference.
+
+
+
+
+
+Item 8.01.
+Other Items.
+
+
+
+
+
+On March 8, 2022, Mandiant issued a
+press release announcing entry into the Merger Agreement. A copy of the press release is included as Exhibit 99.1 and is
+incorporated by reference.
+
+
+
+
+Item 9.01.Financial Statements and Exhibits.
+
+
+
+(d) Exhibits
+
+
+
+
+
+Exhibit No.
+Description
+
+
+
+
+2.1
+Agreement and Plan of
+Merger, dated March 7, 2022, between Google LLC, Dupin Inc. and Mandiant, Inc.*
+
+3.1
+Amendment to Mandiant, Inc. Amended and Restated Bylaws
+
+10.1
+Mandiant Voting
+Agreement with Kevin R. Mandia
+
+10.2
+Mandiant Voting
+Agreement with Blackstone Delta Lower Holdings DE L.P. and BTO FD Delta Holdings DE L.P.
+
+10.3
+Mandiant Voting
+Agreement with ClearSky Security Fund I LLC and ClearSky Power & Technology Fund II LLC
+
+99.1
+Press Release of Mandiant, Inc., dated March 8, 2022
+
+104
+Cover Page Interactive Data File (embedded within the Inline XBRL document)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* Schedules and exhibits omitted pursuant to Item
+601(b)(2) of Regulation S-K. Mandiant will furnish supplementally a copy of any omitted schedule or exhibit to the Securities and
+Exchange Commission upon request. Mandiant may request confidential treatment pursuant to Rule 24b-2 of the Securities Exchange Act
+of 1934, as amended, for any schedules or exhibits so furnished.
+
+
+
+
+
+
+
+
+
+
+
+
+SIGNATURE
+
+
+
+Pursuant to the requirements of the Securities
+Exchange Act of 1934, the registrant has duly caused this report to be signed on its behalf by the undersigned, hereunto duly authorized.
+
+
+
+
+
+
+Mandiant, Inc.
+
+
+
+
+
+
+
+Date: March 9, 2022
+By:
+/s/ Richard
+Meamber
+
+
+
+Name:
+Richard
+Meamber
+
+
+
+Title:
+SVP, General Counsel and Secretary
