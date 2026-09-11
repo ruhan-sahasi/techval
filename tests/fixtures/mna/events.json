@@ -1,0 +1,858 @@
+[
+{
+"ticker": "CIK1094739",
+"announced": "2018-11-09",
+"completed": true,
+"name": "FINISAR CORP",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK726513",
+"announced": "2018-12-03",
+"completed": true,
+"name": "TRIBUNE MEDIA CO",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1016125",
+"announced": "2019-02-04",
+"completed": true,
+"name": "ULTIMATE SOFTWARE GROUP INC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK867374",
+"announced": "2019-04-15",
+"completed": true,
+"name": "ELECTRONICS FOR IMAGING INC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1487101",
+"announced": "2019-04-22",
+"completed": true,
+"name": "KEYW HOLDING CORP",
+"acquirer": "Jacobs Engineering Group Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1608249",
+"announced": "2019-05-08",
+"completed": true,
+"name": "Zayo Group Holdings, Inc.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK791915",
+"announced": "2019-06-03",
+"completed": true,
+"name": "CYPRESS SEMICONDUCTOR CORP /DE/",
+"acquirer": null,
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1303652",
+"announced": "2019-06-10",
+"completed": true,
+"name": "Tableau Software Inc",
+"acquirer": "salesforce.com, inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1453814",
+"announced": "2019-06-13",
+"completed": true,
+"name": "Medidata Solutions, Inc.",
+"acquirer": "Americas Corp.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1651235",
+"announced": "2019-07-09",
+"completed": true,
+"name": "Acacia Communications, Inc.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1637913",
+"announced": "2019-07-12",
+"completed": true,
+"name": "Milacron Holdings Corp.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1019737",
+"announced": "2019-08-02",
+"completed": true,
+"name": "NAVIGANT CONSULTING INC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1635718",
+"announced": "2019-08-05",
+"completed": true,
+"name": "Gannett Media Corp.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1339947",
+"announced": "2019-08-13",
+"completed": true,
+"name": "Viacom Inc.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK925645",
+"announced": "2019-10-28",
+"completed": true,
+"name": "CENTRAL EUROPEAN MEDIA ENTERPRISES LTD",
+"acquirer": "TV Bidco B.V.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1447599",
+"announced": "2019-11-01",
+"completed": true,
+"name": "FITBIT, INC.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK887730",
+"announced": "2019-11-12",
+"completed": true,
+"name": "KEMET CORP",
+"acquirer": "Yageo Corporation",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1420302",
+"announced": "2019-12-17",
+"completed": true,
+"name": "LogMeIn, Inc.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1575189",
+"announced": "2019-12-20",
+"completed": true,
+"name": "Match Group Holdings II, LLC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1574135",
+"announced": "2019-12-27",
+"completed": true,
+"name": "Pivotal Software, Inc.",
+"acquirer": "mended, supplemented or otherwise modified in accordance with its terms",
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK859163",
+"announced": "2020-02-21",
+"completed": true,
+"name": "AVX Corp",
+"acquirer": "Kyocera Corporation",
+"source_form": "8-K"
+},
+{
+"ticker": "XRX",
+"announced": "2020-03-06",
+"completed": true,
+"name": "Xerox Holdings Corp",
+"acquirer": null,
+"source_form": "S-4/A"
+},
+{
+"ticker": "FUBO",
+"announced": "2020-03-23",
+"completed": false,
+"name": "FuboTV Inc.",
+"acquirer": "Facebank Group, Inc.",
+"source_form": "S-4/A"
+},
+{
+"ticker": "CIK743316",
+"announced": "2020-07-13",
+"completed": true,
+"name": "MAXIM INTEGRATED PRODUCTS INC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1207074",
+"announced": "2020-09-09",
+"completed": true,
+"name": "VIRTUSA CORP",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK743988",
+"announced": "2020-10-27",
+"completed": true,
+"name": "XILINX INC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1237746",
+"announced": "2020-11-02",
+"completed": true,
+"name": "Endurance International Group Holdings, Inc.",
+"acquirer": "of Clearlake Capital Group, L.P.",
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1598014",
+"announced": "2020-11-30",
+"completed": true,
+"name": "IHS Markit Ltd.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1764925",
+"announced": "2020-12-01",
+"completed": true,
+"name": "Slack Technologies, Inc.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1286225",
+"announced": "2020-12-21",
+"completed": true,
+"name": "RealPage, Inc.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "VSAT",
+"announced": "2020-12-21",
+"completed": false,
+"name": "VIASAT INC",
+"acquirer": null,
+"source_form": "S-4/A"
+},
+{
+"ticker": "DOYU",
+"announced": "2021-01-29",
+"completed": false,
+"name": "DouYu International Holdings Ltd",
+"acquirer": null,
+"source_form": "SC 13E3/A"
+},
+{
+"ticker": "CIK1366246",
+"announced": "2021-02-08",
+"completed": true,
+"name": "GLU MOBILE INC",
+"acquirer": null,
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1593195",
+"announced": "2021-02-17",
+"completed": true,
+"name": "Tribune Publishing Co",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1469372",
+"announced": "2021-03-26",
+"completed": true,
+"name": "MSG NETWORKS INC.",
+"acquirer": "Madison Square Garden Entertainment Corp.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1002517",
+"announced": "2021-04-12",
+"completed": true,
+"name": "Nuance Communications, Inc.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK65011",
+"announced": "2021-05-03",
+"completed": true,
+"name": "Hawkeye Acquisition, Inc.",
+"acquirer": null,
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1535379",
+"announced": "2021-06-01",
+"completed": true,
+"name": "Cloudera, Inc.",
+"acquirer": "Sky Parent Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1401680",
+"announced": "2021-08-06",
+"completed": true,
+"name": "Cornerstone OnDemand Inc",
+"acquirer": "Sunshine Software Holdings, Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1772757",
+"announced": "2021-08-09",
+"completed": true,
+"name": "DraftKings Holdings Inc.",
+"acquirer": null,
+"source_form": "DEFM14C"
+},
+{
+"ticker": "CIK1272830",
+"announced": "2021-11-22",
+"completed": true,
+"name": "VONAGE HOLDINGS CORP",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1102934",
+"announced": "2021-12-15",
+"completed": true,
+"name": "CMC Materials, Inc.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "SKIL",
+"announced": "2021-12-22",
+"completed": true,
+"name": "Skillsoft Corp.",
+"acquirer": "Ryzac, Inc.",
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK718877",
+"announced": "2022-01-18",
+"completed": true,
+"name": "Activision Blizzard, Inc.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK804753",
+"announced": "2022-01-19",
+"completed": true,
+"name": "CERNER Corp",
+"acquirer": null,
+"source_form": "SC 14D9"
+},
+{
+"ticker": "CIK877890",
+"announced": "2022-01-31",
+"completed": true,
+"name": "CITRIX SYSTEMS INC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1370880",
+"announced": "2022-03-08",
+"completed": true,
+"name": "Mandiant, Inc.",
+"acquirer": "as it may be amended from time to time",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1540755",
+"announced": "2022-03-21",
+"completed": true,
+"name": "Anaplan, Inc.",
+"acquirer": "Alpine Parent, LLC",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK914025",
+"announced": "2022-03-28",
+"completed": true,
+"name": "PLANTRONICS INC /CA/",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1724570",
+"announced": "2022-04-11",
+"completed": true,
+"name": "DATTO HOLDING CORP.",
+"acquirer": null,
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1418091",
+"announced": "2022-04-25",
+"completed": true,
+"name": "TWITTER, INC.",
+"acquirer": "X Holdings I, Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1627014",
+"announced": "2022-05-04",
+"completed": true,
+"name": "Black Knight, Inc.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1710583",
+"announced": "2022-05-11",
+"completed": true,
+"name": "Switch, Inc.",
+"acquirer": null,
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1820201",
+"announced": "2022-05-11",
+"completed": true,
+"name": "Redbox Entertainment Inc.",
+"acquirer": "Redwood Intermediate LLC",
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1124610",
+"announced": "2022-05-26",
+"completed": true,
+"name": "VMWARE LLC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1348036",
+"announced": "2022-08-08",
+"completed": true,
+"name": "AVALARA, INC.",
+"acquirer": null,
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1385867",
+"announced": "2022-12-12",
+"completed": true,
+"name": "Coupa Software Inc",
+"acquirer": "of the Company",
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1121142",
+"announced": "2022-12-16",
+"completed": true,
+"name": "Maxar Technologies Inc.",
+"acquirer": "Galileo Parent, Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1751143",
+"announced": "2023-01-31",
+"completed": true,
+"name": "ATLAS TECHNICAL CONSULTANTS, INC.",
+"acquirer": "GI Apple Midco LLC",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1827075",
+"announced": "2023-03-14",
+"completed": true,
+"name": "CVENT HOLDING CORP.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK935494",
+"announced": "2023-04-12",
+"completed": true,
+"name": "NATIONAL INSTRUMENTS CORP",
+"acquirer": "Emerson Electric Co.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1448056",
+"announced": "2023-07-31",
+"completed": true,
+"name": "NEW RELIC, INC.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1353283",
+"announced": "2023-09-21",
+"completed": true,
+"name": "SPLUNK INC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1001082",
+"announced": "2023-10-02",
+"completed": true,
+"name": "DISH Network CORP",
+"acquirer": null,
+"source_form": "DEFM14C"
+},
+{
+"ticker": "CIK1304421",
+"announced": "2023-10-16",
+"completed": true,
+"name": "Consolidated Communications Holdings, Inc.",
+"acquirer": "Condor Holdings LLC",
+"source_form": "DEFM14A"
+},
+{
+"ticker": "SIRI",
+"announced": "2023-12-12",
+"completed": true,
+"name": "SIRIUS XM HOLDINGS INC.",
+"acquirer": null,
+"source_form": "DEFM14C"
+},
+{
+"ticker": "CIK1689923",
+"announced": "2023-12-18",
+"completed": true,
+"name": "Alteryx, Inc.",
+"acquirer": "Azurite Intermediate Holdings, Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1043604",
+"announced": "2024-01-10",
+"completed": true,
+"name": "JUNIPER NETWORKS INC",
+"acquirer": "Hewlett Packard Enterprise Company",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1013462",
+"announced": "2024-01-16",
+"completed": true,
+"name": "ANSYS INC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1835591",
+"announced": "2024-02-20",
+"completed": true,
+"name": "Vizio Holding Corp.",
+"acquirer": "Walmart Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1766363",
+"announced": "2024-04-02",
+"completed": true,
+"name": "Endeavor Group Holdings, Inc.",
+"acquirer": null,
+"source_form": "DEFM14C"
+},
+{
+"ticker": "CIK1856430",
+"announced": "2024-04-15",
+"completed": true,
+"name": "Snap One Holdings Corp.",
+"acquirer": "Resideo Technologies, Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1720671",
+"announced": "2024-04-25",
+"completed": true,
+"name": "HashiCorp, Inc.",
+"acquirer": "International Business Machines Corporation",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1085869",
+"announced": "2024-05-06",
+"completed": true,
+"name": "PERFICIENT INC",
+"acquirer": "Plano HoldCo, Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1496963",
+"announced": "2024-05-13",
+"completed": true,
+"name": "Squarespace, Inc.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1835681",
+"announced": "2024-06-07",
+"completed": true,
+"name": "POWERSCHOOL HOLDINGS, INC.",
+"acquirer": null,
+"source_form": "DEFM14C"
+},
+{
+"ticker": "CIK1138639",
+"announced": "2024-06-28",
+"completed": true,
+"name": "Infinera Corp",
+"acquirer": "7 percent premium to the trailing 180-day volume weighted average price",
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1841804",
+"announced": "2024-07-25",
+"completed": true,
+"name": "INSTRUCTURE HOLDINGS, INC.",
+"acquirer": "Icon Parent Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1866550",
+"announced": "2024-08-05",
+"completed": true,
+"name": "Thoughtworks Holding, Inc.",
+"acquirer": "Tasmania Midco, LLC",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK20520",
+"announced": "2024-09-05",
+"completed": true,
+"name": "Frontier Communications Parent, Inc.",
+"acquirer": "of the Company",
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1468666",
+"announced": "2024-10-21",
+"completed": true,
+"name": "SecureWorks Corp",
+"acquirer": "Sophos Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1701732",
+"announced": "2024-10-30",
+"completed": true,
+"name": "Altair Engineering Inc.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1366561",
+"announced": "2024-11-04",
+"completed": true,
+"name": "SMARTSHEET INC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK51644",
+"announced": "2024-12-09",
+"completed": true,
+"name": "INTERPUBLIC GROUP OF COMPANIES, INC.",
+"acquirer": "Omnicom Group Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "GEN",
+"announced": "2024-12-10",
+"completed": false,
+"name": "Gen Digital Inc.",
+"acquirer": "MoneyLion Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1839439",
+"announced": "2025-01-07",
+"completed": true,
+"name": "PAYCOR HCM, INC.",
+"acquirer": "Paychex, Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CHTR",
+"announced": "2025-01-17",
+"completed": false,
+"name": "CHARTER COMMUNICATIONS, INC. /MO/",
+"acquirer": null,
+"source_form": "S-4/A"
+},
+{
+"ticker": "LBRDK",
+"announced": "2025-01-22",
+"completed": true,
+"name": "Liberty Broadband Corp",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1739942",
+"announced": "2025-02-07",
+"completed": true,
+"name": "SolarWinds Corp",
+"acquirer": "Starlight Parent, LLC",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1868778",
+"announced": "2025-05-27",
+"completed": true,
+"name": "Informatica Inc.",
+"acquirer": "Salesforce, Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1701051",
+"announced": "2025-08-11",
+"completed": true,
+"name": "WideOpenWest, Inc.",
+"acquirer": "Bandit Parent, LP",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1725057",
+"announced": "2025-08-20",
+"completed": true,
+"name": "Dayforce, Inc.",
+"acquirer": "Dawn Bidco, LLC",
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1166388",
+"announced": "2025-08-25",
+"completed": true,
+"name": "VERINT SYSTEMS INC",
+"acquirer": "as it may be amended from time to time",
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1842718",
+"announced": "2025-09-24",
+"completed": true,
+"name": "INTEGRAL AD SCIENCE HOLDING CORP.",
+"acquirer": "Igloo Group Parent, Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "EA",
+"announced": "2025-09-29",
+"completed": true,
+"name": "ELECTRONIC ARTS INC.",
+"acquirer": "as it may be amended, supplemented or modified from time to time",
+"source_form": "DEFM14A"
+},
+{
+"ticker": "VECO",
+"announced": "2025-10-01",
+"completed": false,
+"name": "VEECO INSTRUMENTS INC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK39899",
+"announced": "2025-10-10",
+"completed": true,
+"name": "TEGNA INC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "QRVO",
+"announced": "2025-10-28",
+"completed": false,
+"name": "Qorvo, Inc.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1721947",
+"announced": "2025-10-29",
+"completed": true,
+"name": "Jamf Holding Corp.",
+"acquirer": "Jawbreaker Parent, Inc.",
+"source_form": "8-K"
+},
+{
+"ticker": "CIK1699838",
+"announced": "2025-12-08",
+"completed": true,
+"name": "Confluent, Inc.",
+"acquirer": "International Business Machines Corporation",
+"source_form": "8-K"
+},
+{
+"ticker": "CWAN",
+"announced": "2025-12-22",
+"completed": true,
+"name": "Clearwater Analytics Holdings, Inc.",
+"acquirer": "GT Silver BidCo, Inc.",
+"source_form": "DEFM14A"
+},
+{
+"ticker": "CIK1889956",
+"announced": "2026-01-06",
+"completed": true,
+"name": "OneStream, Inc.",
+"acquirer": null,
+"source_form": "8-K"
+},
+{
+"ticker": "SLAB",
+"announced": "2026-02-04",
+"completed": false,
+"name": "SILICON LABORATORIES INC.",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "LPSN",
+"announced": "2026-04-21",
+"completed": true,
+"name": "LIVEPERSON INC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "ROKU",
+"announced": "2026-06-15",
+"completed": false,
+"name": "ROKU, INC",
+"acquirer": null,
+"source_form": "DEFM14A"
+},
+{
+"ticker": "IRDM",
+"announced": "2026-06-29",
+"completed": false,
+"name": "Iridium Communications Inc.",
+"acquirer": "Rocket Lab Corporation",
+"source_form": "DEFM14A"
+},
+{
+"ticker": "VREX",
+"announced": "2026-08-10",
+"completed": false,
+"name": "Varex Imaging Corp",
+"acquirer": null,
+"source_form": "PREM14A"
+}
+]

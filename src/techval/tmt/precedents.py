@@ -162,10 +162,25 @@ PENDING_WINDOW_DAYS = 540
 #: Forms that can carry a merger agreement. DEFA14A and 425 are deliberately not
 #: here: both are also used for routine annual meeting material, so neither
 #: establishes a deal. They are read only once a deal is established, to date it.
+#:
+#: The 14C information statements are on this list for a reason worth stating. A
+#: merger proxy is a DEFM14A only where the shareholders are asked to vote. Where
+#: a holder with the votes has already approved the merger by written consent, no
+#: solicitation happens, Regulation 14C applies instead, and the company files a
+#: PREM14C and a DEFM14C and never files a proxy at all. That is the ordinary
+#: route for a company with a founder or a sponsor in control, so a form list
+#: without it does not miss deals at random: it misses controlled companies as a
+#: class. PowerSchool, Instructure, Thoughtworks and Informatica were all sold
+#: this way. Schedule 13E-3 is the going-private schedule Rule 13e-3 requires
+#: whenever an affiliate is on the buy side, and it is here for the same reason.
 DEAL_FORMS: tuple[str, ...] = (
     "8-K",
     "DEFM14A",
     "PREM14A",
+    "DEFM14C",
+    "PREM14C",
+    "SC 13E3",
+    "SC 13E3/A",
     "SC 14D9",
     "SC 14D9/A",
     "S-4",
@@ -819,13 +834,43 @@ def _acquirer_name(text: str, filer_tokens: set[str]) -> tuple[str | None, list[
     return candidates[0][0], others[1:]
 
 
+#: Prefix on the refusal that means "this was a share class, keep reading".
+_CLASS_MARKER = "[share class] "
+
+
+#: Words that describe a class of stock rather than name a company. "Class B
+#: Common Stock" is a share class, not a registrant, and reading it as one is
+#: what made dual-class targets invisible. See ``_target_side``.
+_SHARE_CLASS_WORDS = frozenset(
+    {
+        "class", "common", "capital", "stock", "shares", "share", "series",
+        "preferred", "ordinary", "voting", "nonvoting", "par", "value",
+    }
+)
+
+
 def _target_side(pre: str, filer_tokens: set[str]) -> tuple[bool, str]:
-    """Is it the filer's own stock being converted, or somebody else's.
+    """Is it the filer's own stock being converted, somebody else's, or a class.
 
     The test reads the security clause, the words immediately after "share of",
     and asks whose stock it describes. A filer that names itself or says "the
     Company" is the target. A filer that names another company there is the
     acquirer, and its document is not a precedent about itself.
+
+    The third answer is the one that matters and it was missing. A dual-class
+    filer writes "each share of Class B Common Stock", and the regex that looks
+    for a capitalised name after "of" reads "Class B Common Stock" and reports a
+    company called Class B. That is not another registrant, it is a share class,
+    and the difference decides whether a controlled company can be read at all:
+    PowerSchool's information statement converts Class B in one clause and Class
+    A into $22.80 of cash in another, and treating the first as somebody else's
+    deal discards the second unseen. The caller is told which of the two
+    refusals this is, because they mean opposite things about whether to keep
+    reading: a share class means look further in the same document, and a
+    company name means stop.
+
+    Returns ``(is_filer, reason)`` where a reason beginning with the share-class
+    marker is the "keep reading" case.
     """
     m = re.search(r"\bshares?\s+of\b", pre, re.I)
     clause = pre[m.start() : m.start() + 170] if m else pre[:170]
@@ -838,8 +883,23 @@ def _target_side(pre: str, filer_tokens: set[str]) -> tuple[bool, str]:
     other = re.search(r"\bof\s+(?P<who>[A-Z][A-Za-z0-9.&'\-]*(?:\s+[A-Z][A-Za-z0-9.&'\-]*){0,3})",
                       clause)
     if other:
+        who = _clean_name(other.group("who"))
+        # Single letters are the class designator itself, the A and the B of
+        # "Class A Common Stock", and say nothing about whose stock it is.
+        # Leaving them in was the whole of the dual-class failure, because it
+        # made every class descriptor fail the subset test below and read as a
+        # company name.
+        words = {
+            w for w in re.sub(r"[^A-Za-z ]", " ", who).lower().split() if len(w) > 1
+        }
+        if words and words <= _SHARE_CLASS_WORDS:
+            return False, (
+                f"{_CLASS_MARKER}the clause converts {who}, which is a class of "
+                "stock and not another registrant, so whose deal this is remains "
+                "undecided and the rest of the document is still worth reading"
+            )
         return False, (
-            f"the converted security belongs to {_clean_name(other.group('who'))}, not to "
+            f"the converted security belongs to {who}, not to "
             "the filer, so this document is the acquirer's side of somebody else's deal"
         )
     return False, "the converted security could not be tied to the filer"
@@ -852,6 +912,24 @@ def _consideration_clause(text: str, filer_tokens: set[str]) -> tuple[str, str] 
     Award clauses are rejected on the noun the sentence is about: "each option
     to purchase shares of Common Stock" converts an option, not a share, and it
     pays the merger consideration rather than setting it.
+
+    A clause naming another registrant ends the search: that document is that
+    company's deal and nothing later in it changes the fact. A clause naming a
+    share class does not, and the difference is the whole of the dual-class fix.
+    PowerSchool's information statement for the Bain take-private converts Class
+    B Common Stock in one clause and Class A Common Stock into $22.80 of cash in
+    another, and the Class B clause comes first. Treating "Class B Common Stock"
+    as a company called Class B stops the scan and loses a real transaction, and
+    it does so for a whole population rather than at random: every dual-class
+    filer has a clause like it, because the class the public holds is never the
+    only class, and a dual-class filer is disproportionately the founder or
+    sponsor controlled company that gets taken private.
+
+    Keeping the two refusals apart is what stops the fix from costing precision
+    somewhere else. Continuing past a named company would let Zendesk's S-4 to
+    buy Momentive become a precedent in which Zendesk was acquired, and the same
+    for every other acquirer-side registration statement, because a later clause
+    in those documents does convert the filer's own shares.
     """
     for pattern in (_CONVERTED, _EXCHANGED):
         for m in pattern.finditer(text):
@@ -865,6 +943,8 @@ def _consideration_clause(text: str, filer_tokens: set[str]) -> tuple[str, str] 
                 continue
             ok, why = _target_side(pre, filer_tokens)
             if not ok:
+                if why.startswith(_CLASS_MARKER):
+                    continue
                 return None, why
             return m.group("post"), why
     return None
