@@ -270,3 +270,106 @@ def test_waso_path_never_adds_conversion_shares(ddog, assumptions, market):
 
     b = build_ev_bridge(ddog, price, assumptions)
     assert b.diluted_shares == pytest.approx(ddog.diluted_shares)
+
+
+# --------------------------------------------------------------------------- #
+# a debt figure that carries finance leases inside it
+#
+# Verizon's balance sheet has one line for long-term debt and no line for
+# finance leases, because the concept it tags is "long-term debt AND capital
+# lease obligations". Everything below is about saying so on the page rather
+# than presenting a debt row and a zero lease row and letting the reader draw
+# the obvious wrong conclusion.
+#
+# Priced at 49.97, the Nasdaq close for 2026-09-11, passed in rather than read
+# from a fixture so the bridge arithmetic is the only thing under test.
+# --------------------------------------------------------------------------- #
+
+VZ_CLOSE = 49.97
+
+
+def test_the_debt_row_names_what_is_inside_it(vz, assumptions):
+    """"Straight debt 165,231" beside "Finance leases 0.0" reads as a company
+    with no finance leases. What is true is that they are in the row above."""
+    b = build_ev_bridge(vz, VZ_CLOSE, assumptions)
+    labels = dict(b.rows())
+
+    assert "+ Debt and finance leases" in labels
+    assert "+ Straight debt" not in labels
+    assert labels["+ Debt and finance leases"] == pytest.approx(165_231.0)
+
+
+def test_the_bridge_states_the_concepts_the_debt_came_from(vz, assumptions):
+    """The engine's rule is that a number nobody can trace does not get printed.
+
+    A debt figure is the line item most likely to be silently wrong, so the
+    bridge names the two concepts it was built out of.
+    """
+    b = build_ev_bridge(vz, VZ_CLOSE, assumptions)
+    note = " ".join(b.notes)
+    assert "LongTermDebtAndCapitalLeaseObligations" in note
+    assert "LongTermDebtCurrent" in note
+
+
+def test_the_telecom_enterprise_value_reconciles_to_the_balance_sheet(vz, assumptions):
+    """The whole finding, in one assertion.
+
+    4,212.65mm diluted shares at 49.97 is 210,506mm of equity value. Verizon's
+    Q2 2026 balance sheet carries 143,448mm of long-term debt, 21,783mm maturing
+    within one year, 1,752mm of cash and 1,276mm of non-controlling interest, so
+    net debt is 164,755mm and enterprise value is 375,261mm. The engine printed
+    231,813mm before this ladder was rewritten, because it resolved the 21,783mm
+    and nothing else.
+    """
+    b = build_ev_bridge(vz, VZ_CLOSE, assumptions)
+
+    assert b.equity_value == pytest.approx(210_506.0, rel=1e-4)
+    assert b.net_debt == pytest.approx(164_755.0, rel=1e-4)
+    assert b.enterprise_value == pytest.approx(375_261.0, rel=1e-4)
+    assert b.enterprise_value > b.equity_value
+
+
+def test_a_net_cash_bridge_says_why_it_is_below_the_market_capitalisation(
+    ddog, ddog_bridge
+):
+    """An enterprise value below market cap is arithmetic, and is also what a
+    debt figure read as zero looks like. The bridge says which.
+
+    Comcast's peer row printed an enterprise value 7.7 billion dollars below its
+    own market capitalisation and said nothing at all, and the reason was
+    90 billion dollars of debt under a concept no ladder carried.
+    """
+    assert ddog_bridge.enterprise_value < ddog_bridge.equity_value
+    note = " ".join(ddog_bridge.notes)
+    assert "below" in note and "market capitalisation" in note
+    assert "a debt figure that failed to resolve looks exactly like this" in note
+
+
+def test_a_bridge_with_net_debt_carries_no_net_cash_note(vz, assumptions):
+    """The note has to stay off the company it does not apply to."""
+    b = build_ev_bridge(vz, VZ_CLOSE, assumptions)
+    assert not [n for n in b.notes if "market capitalisation" in n]
+
+
+def test_a_lease_inside_debt_is_never_added_on_the_lease_row(vz, assumptions):
+    """The identity the bridge is tested on cannot be made to close twice.
+
+    Whatever the lease convention, the finance lease row carries only what the
+    filer tags separately, so switching the convention can move operating leases
+    and can never move the same finance lease in twice.
+    """
+    for capitalize in (False, True):
+        assumptions.leases.capitalize_operating_leases = capitalize
+        b = build_ev_bridge(vz, VZ_CLOSE, assumptions)
+        assert b.finance_lease == pytest.approx(vz.finance_lease_liability)
+        assert b.enterprise_value == pytest.approx(
+            b.equity_value
+            + b.straight_debt
+            + b.convertible_in_debt
+            + b.finance_lease
+            + b.operating_lease_in_debt
+            + b.preferred
+            + b.nci
+            - b.cash
+            - b.short_term_investments
+        )
