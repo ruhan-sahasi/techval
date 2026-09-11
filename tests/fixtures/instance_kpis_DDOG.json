@@ -1,0 +1,654 @@
+{
+ "_source": "SEC EDGAR XBRL instance document",
+ "_ticker": "DDOG",
+ "_accession": "0001628280-26-054458",
+ "_filed": "2026-08-06",
+ "_retrieved": "2026-09-11",
+ "_note": "Pruned from the filing's own XBRL instance document to the facts techval.tmt.kpis could plausibly match, keeping every fact, dimensioned or not, whose element name contains any of: recurring, retention, remainingperformance, customer, subscriber, arpu, churn, billing, content, additions, number, amortization, revenue, shares. That filter is wider than the module's concept ladders on purpose. The near misses it sweeps in (NumberOfCustomerCategories, NumberOfSegmentManagers, RevenueRemainingPerformanceObligationPercentage, the contract liability balances) are the point: the tests use them to prove the anchored patterns exclude what a substring search would take. Values, units, contexts and dimensions are exactly as filed; nothing is rescaled or recomputed.",
+ "facts": [
+  {
+   "tag": "ContractWithCustomerLiabilityCurrent",
+   "value": 1193646000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2025-12-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityCurrent",
+   "value": 1286690000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityNoncurrent",
+   "value": 68711000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2025-12-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityNoncurrent",
+   "value": 50860000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityRevenueRecognized",
+   "value": 704900000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityRevenueRecognized",
+   "value": 435700000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityRevenueRecognized",
+   "value": 907800000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "ContractWithCustomerLiabilityRevenueRecognized",
+   "value": 617300000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "FiniteLivedIntangibleAssetsAmortizationExpenseNextTwelveMonths",
+   "value": 9413000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "FiniteLivedIntangibleAssetsAmortizationExpenseRemainderOfFiscalYear",
+   "value": 4967000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "FiniteLivedIntangibleAssetsAmortizationExpenseYearThree",
+   "value": 2179000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "FiniteLivedIntangibleAssetsAmortizationExpenseYearTwo",
+   "value": 6598000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "IncreaseDecreaseInContractWithCustomerLiability",
+   "value": 7235000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "IncreaseDecreaseInContractWithCustomerLiability",
+   "value": 75127000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "NumberOfCommonStockClasses",
+   "value": 2.0,
+   "unit": "class",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "NumberOfVotingRightsEntitledToStockholdersForEachShare",
+   "value": 1.0,
+   "unit": "vote",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassAMember"
+   }
+  },
+  {
+   "tag": "NumberOfVotingRightsEntitledToStockholdersForEachShare",
+   "value": 10.0,
+   "unit": "vote",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassBMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 1588313000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 1120504000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:StatementGeographicalAxis": "srt:NorthAmericaMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 467809000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:StatementGeographicalAxis": "ddog:InternationalMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 1588313000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 1068100000.0,
+   "unit": "USD",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:StatementGeographicalAxis": "country:US"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 826760000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 586689000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:StatementGeographicalAxis": "srt:NorthAmericaMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 240071000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:StatementGeographicalAxis": "ddog:InternationalMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 826760000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 559600000.0,
+   "unit": "USD",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "srt:StatementGeographicalAxis": "country:US"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 2127880000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 1548591000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:StatementGeographicalAxis": "srt:NorthAmericaMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 579289000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:StatementGeographicalAxis": "ddog:InternationalMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 2127880000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 1482800000.0,
+   "unit": "USD",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:StatementGeographicalAxis": "country:US"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 1121454000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 824658000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:StatementGeographicalAxis": "srt:NorthAmericaMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 296796000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:StatementGeographicalAxis": "ddog:InternationalMember"
+   }
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 1121454000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueFromContractWithCustomerExcludingAssessedTax",
+   "value": 790100000.0,
+   "unit": "USD",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "srt:StatementGeographicalAxis": "country:US"
+   }
+  },
+  {
+   "tag": "RevenueRemainingPerformanceObligation",
+   "value": 3461200000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2025-12-31",
+   "dimensions": {}
+  },
+  {
+   "tag": "RevenueRemainingPerformanceObligation",
+   "value": 3471400000.0,
+   "unit": "USD",
+   "start": null,
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 361289000.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 361289000.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassAMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 25661000.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassBMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 358725000.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 358725000.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassAMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 25785000.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassBMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 368271000.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 368271000.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassAMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 24834000.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassBMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 371023000.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 371023000.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassAMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfDilutedSharesOutstanding",
+   "value": 24934000.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassBMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 344650000.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 318989000.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassAMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 25661000.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassBMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 318989000.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassAMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 25661000.0,
+   "unit": "shares",
+   "start": "2025-01-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassBMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 346185000.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 320400000.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassAMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 25785000.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassBMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 320400000.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassAMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 25785000.0,
+   "unit": "shares",
+   "start": "2025-04-01",
+   "end": "2025-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassBMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 354771000.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 329937000.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassAMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 24834000.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassBMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 329937000.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassAMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 24834000.0,
+   "unit": "shares",
+   "start": "2026-01-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassBMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 356253000.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {}
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 331319000.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassAMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 24934000.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassBMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 331319000.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassAMember"
+   }
+  },
+  {
+   "tag": "WeightedAverageNumberOfSharesOutstandingBasic",
+   "value": 24934000.0,
+   "unit": "shares",
+   "start": "2026-04-01",
+   "end": "2026-06-30",
+   "dimensions": {
+    "us-gaap:StatementClassOfStockAxis": "us-gaap:CommonClassBMember"
+   }
+  }
+ ]
+}
