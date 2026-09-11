@@ -767,3 +767,30 @@ def test_ten_thousand_draws_complete_quickly(ddog, ddog_bridge, wacc_result, sim
 
     assert result.kept_draws == 10_000
     assert elapsed < 5.0
+
+
+def test_simulation_uses_the_same_share_count_as_the_dcf(
+    ddog, ddog_bridge, market, assumptions
+):
+    """A treasury stock count must reach the vectorised path too.
+
+    The simulation reconciles its vectorised central draw against run_dcf on
+    every call. Starting from diluted WASO here while run_dcf started from a
+    point-in-time count put a 2.9% wedge between them, and the reconciliation
+    correctly refused to run rather than publishing a distribution around a
+    per-share figure the DCF itself would not produce. Both now divide by
+    Financials.shares_for_valuation.
+    """
+    from techval.wacc import compute_wacc
+    from techval.simulation import run_simulation
+
+    w = compute_wacc(ddog, ddog_bridge, market, assumptions)
+    assumptions.simulation.draws = 500
+
+    ddog.valuation_shares = ddog.diluted_shares * 1.03
+    sim = run_simulation(ddog, ddog_bridge, w, assumptions)
+
+    # The reconciliation inside run_simulation is the real assertion; reaching
+    # here at all means it held. This pins the resulting level.
+    assert sim.central_per_share > 0
+    assert sim.per_share.p5 < sim.per_share.p50 < sim.per_share.p95

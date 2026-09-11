@@ -635,7 +635,11 @@ def _prepare(
         n=cfg.projection_years,
         mid_year=cfg.mid_year_convention,
         revenue0=fin.revenue,
-        shares0=fin.diluted_shares,
+        # The same count the DCF and the bridge divide by. Starting from
+        # diluted WASO here while run_dcf started from a treasury stock count
+        # put a 2.9% wedge between the two, which the reconciliation below
+        # correctly refused to run through.
+        shares0=fin.shares_for_valuation,
         margin_start=margin_start,
         growth_terminal=cfg.revenue_growth_terminal,
         margin_terminal=cfg.ebit_margin_terminal,

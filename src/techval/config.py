@@ -366,9 +366,13 @@ class DCFAssumptions(_Base):
         description=(
             "Only bites under sbc_treatment: addback. Grows the share count each year "
             "by the stock compensation issued divided by the share price, which is the "
-            "other half of that treatment. Adding the cash back while holding the "
+            "other half of that treatment: adding the cash back while holding the "
             "denominator flat counts the benefit of paying in equity and ignores its "
-            "cost, and the two camps very nearly converge once both halves are modelled."
+            "cost. It does NOT reconcile the two camps. Modelling the dilution closes "
+            "only about an eighth of the gap, because the addback lands mostly in the "
+            "terminal value, which capitalises it in perpetuity, while a five year "
+            "projection issues shares against just five years of it. See "
+            "docs/methodology.md; the number is reported in the DCF checks."
         ),
     )
     nol: NOLAssumptions = Field(default_factory=NOLAssumptions)
