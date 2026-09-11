@@ -567,6 +567,100 @@ def test_a_fit_below_the_pair_floor_is_refused_rather_than_produced(synthetic):
         fit_peer_encoder(thin, Assumptions())
 
 
+@pytest.fixture(scope="module")
+def fitted_with_a_cold_company(synthetic) -> tuple[PeerEncoder, str]:
+    """A fit from which one company's own groups were withheld.
+
+    Every company in the invented universe files a proxy of its own, so nothing
+    in it is a cold start until one is made. The withheld company stays in the
+    panel, in the corpus and in other filers' peer lists, which is exactly the
+    cold-start shape: rankable, never a query.
+    """
+    cold = _synthetic_ticker(3, 5)
+    dataset = build_dataset(
+        [g for g in synthetic.groups if g.ticker != cold],
+        synthetic.panel,
+        synthetic.corpora,
+    )
+    encoder = fit_peer_encoder(
+        dataset, Assumptions(), dim=12, hidden=(16,), text_dim=16, epochs=6, patience=6
+    )
+    return encoder, cold
+
+
+def test_a_fitted_encoder_knows_which_companies_it_was_never_a_query_for(
+    fitted_with_a_cold_company,
+):
+    """The caveat has to survive the fit, not be recomputed by whoever prints it.
+
+    A model that can rank a company it has never been trained on and say nothing
+    about that is the one unauditable thing in this package. The warm and cold
+    scores are the largest single caveat the encoder carries.
+    """
+    encoder, cold = fitted_with_a_cold_company
+    assert cold in encoder.tickers
+    assert encoder.is_cold_start(cold) is True
+    assert encoder.is_cold_start(_synthetic_ticker(3, 0)) is False
+    assert "COLD START" in encoder.cold_start_note(cold)
+    assert "WARM START" in encoder.cold_start_note(_synthetic_ticker(3, 0))
+
+
+def test_the_training_window_is_a_filing_cut_and_not_the_embedding_date(
+    fitted_with_a_cold_company, synthetic
+):
+    """The two dates on a fitted model mean different things and are months apart.
+
+    Pairs are selected on the date a proxy was FILED and the universe is then
+    embedded at the newest PANEL date, which is earlier. Asking ``fit_date``
+    whether a company was warm calls it cold when its proxy landed between the
+    two, and that is the only kind of company where the answer changes anything.
+    """
+    encoder, _cold = fitted_with_a_cold_company
+    assert encoder.trained_through == max(
+        g.filed for g in synthetic.groups if g.ticker != _synthetic_ticker(3, 5)
+    )
+    assert encoder.fit_date < encoder.trained_through
+    assert encoder.card.trained_through == encoder.trained_through
+
+
+def test_the_cold_start_record_survives_a_save_and_a_reload(
+    fitted_with_a_cold_company, ml_assumptions
+):
+    encoder, cold = fitted_with_a_cold_company
+    reloaded = load_peer_encoder(encoder.save(cache_path(ml_assumptions)))
+    assert reloaded.trained_through == encoder.trained_through
+    assert reloaded.trained_filers == encoder.trained_filers
+    assert reloaded.is_cold_start(cold) is True
+
+
+def test_a_fit_saved_before_the_record_existed_says_it_cannot_answer(
+    fitted_with_a_cold_company, ml_assumptions, tmp_path
+):
+    """Schema 1 is read rather than refused, and refuses only the question it cannot answer.
+
+    Nothing in a schema 1 file means anything different; it is missing the
+    training window and the filers that were queries in it. Answering "cold" for
+    every company would be a claim rather than a refusal, so the loader says
+    what it does not know and puts it in the model's notes.
+    """
+    import joblib
+
+    encoder, cold = fitted_with_a_cold_company
+    path = encoder.save(cache_path(ml_assumptions))
+    payload = joblib.load(path)
+    payload["schema"] = 1
+    for key in ("trained_through", "trained_filers", "warm", "cold"):
+        payload.pop(key)
+    old = tmp_path / "schema1.joblib"
+    joblib.dump(payload, old)
+
+    reloaded = load_peer_encoder(old)
+    assert reloaded.neighbours(cold, 4, apply_size_gate=False)
+    assert reloaded.is_cold_start(cold) is None
+    assert "cannot be recovered from this fit" in reloaded.cold_start_note(cold)
+    assert any("schema 1" in note for note in reloaded.notes)
+
+
 def test_the_model_card_records_what_it_could_not_do(fitted):
     card = fitted.card
     assert card.n_train > 0
@@ -699,6 +793,36 @@ def test_the_ablation_reports_the_full_model_and_one_row_per_tower(synthetic, ev
     assert frame["n_test"].min() > 0
     # Damage is signed so positive means the tower was doing work.
     assert frame.loc[frame["group"] == "all features", "damage"].iloc[0] == 0.0
+
+
+def test_the_ablation_cuts_its_own_folds_deep_enough_to_fit_on_real_proxies(real):
+    """The default fold path, which is the one no test used to take.
+
+    ``ablate_towers`` cut its folds on the rows of its own pair frame, where
+    five sampled negatives ride along with every disclosed pair, and asked
+    ``walk_forward_folds`` for its generic floor of thirty observations. Thirty
+    rows is five disclosed pairs. On the committed proxies that gave fold 0 a
+    training window of 46 rows holding 9 disclosed pairs, ``_train_encoder``
+    refused it as too narrow for in-batch negatives, and the refusal killed the
+    whole ablation rather than one fold: at two, three and five folds alike,
+    because proxies arrive in a season and the first season in the window is one
+    filer. The only test that existed passed ``folds=`` and never reached it.
+
+    The settings are small because the property under test is the fold cut, not
+    the score.
+    """
+    frame = ablate_towers(
+        real,
+        Assumptions(),
+        n_folds=2,
+        dim=12,
+        hidden=(16,),
+        text_dim=16,
+        epochs=4,
+        patience=2,
+    )
+    assert set(frame["group"]) == {"all features", "without fundamentals", "without text"}
+    assert frame["n_test"].min() > 0
 
 
 def test_survivorship_lists_the_named_peers_the_universe_never_held():

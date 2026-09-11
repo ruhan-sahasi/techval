@@ -1,0 +1,1362 @@
+{
+ "_recorded": "2026-09-11",
+ "_source": "SEC EDGAR submissions API and the primary document of each registrant's last periodic report",
+ "_how": "tests/fixtures/former_tickers/record.py, whose docstring carries the method and its limits",
+ "_seeds": 105,
+ "_shape": "entries maps a symbol to the registrants proven to have traded under it, oldest proof first. 'through' is the filing date of the document the symbol was read from and is the only date the entry asserts anything about.",
+ "entries": {
+  "ACIA": [
+   {
+    "cik": 1651235,
+    "name": "Acacia Communications, Inc.",
+    "since": "2016-08-11",
+    "since_is_a_bound": false,
+    "through": "2021-03-01",
+    "form": "10-K",
+    "accession": "0001651235-21-000044",
+    "document": "acia-20201231.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "ALTR": [
+   {
+    "cik": 1701732,
+    "name": "Altair Engineering Inc.",
+    "since": "2020-05-07",
+    "since_is_a_bound": true,
+    "through": "2025-02-20",
+    "form": "10-K",
+    "accession": "0000950170-25-024197",
+    "document": "altr-20241231.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "ANSS": [
+   {
+    "cik": 1013462,
+    "name": "ANSYS INC",
+    "since": "2014-02-27",
+    "since_is_a_bound": true,
+    "through": "2025-04-30",
+    "form": "10-Q",
+    "accession": "0001013462-25-000017",
+    "document": "anss-20250331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "ATCX": [
+   {
+    "cik": 1751143,
+    "name": "ATLAS TECHNICAL CONSULTANTS, INC.",
+    "since": "2019-03-26",
+    "since_is_a_bound": false,
+    "through": "2023-03-15",
+    "form": "10-K",
+    "accession": "0001213900-23-020359",
+    "document": "f10k2022_atlastechnical.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "ATVI": [
+   {
+    "cik": 718877,
+    "name": "Activision Blizzard, Inc.",
+    "since": "2012-05-09",
+    "since_is_a_bound": true,
+    "through": "2023-07-31",
+    "form": "10-Q",
+    "accession": "0001628280-23-026269",
+    "document": "atvi-20230630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "AVLR": [
+   {
+    "cik": 1348036,
+    "name": "AVALARA, INC.",
+    "since": "2018-08-10",
+    "since_is_a_bound": false,
+    "through": "2022-08-09",
+    "form": "10-Q",
+    "accession": "0001564590-22-028526",
+    "document": "avlr-10q_20220630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "AVX": [
+   {
+    "cik": 859163,
+    "name": "AVX Corp",
+    "since": "2015-02-05",
+    "since_is_a_bound": true,
+    "through": "2020-02-05",
+    "form": "10-Q",
+    "accession": "0001437749-20-001770",
+    "document": "avx20191231_10q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "AYX": [
+   {
+    "cik": 1689923,
+    "name": "Alteryx, Inc.",
+    "since": "2017-05-11",
+    "since_is_a_bound": false,
+    "through": "2024-02-06",
+    "form": "10-K",
+    "accession": "0001689923-24-000006",
+    "document": "ayx-20231231.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "AZPN": [
+   {
+    "cik": 929940,
+    "name": "ASPENTECH Corp",
+    "since": "2010-09-02",
+    "since_is_a_bound": true,
+    "through": "2022-04-27",
+    "form": "10-Q",
+    "accession": "0000929940-22-000029",
+    "document": "azpn-20220331.htm",
+    "read_from": "dei:TradingSymbol"
+   },
+   {
+    "cik": 1897982,
+    "name": "Aspen Technology, Inc.",
+    "since": "2022-05-16",
+    "since_is_a_bound": false,
+    "through": "2025-02-04",
+    "form": "10-Q",
+    "accession": "0001897982-25-000010",
+    "document": "azpn-20241231.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "BKI": [
+   {
+    "cik": 1627014,
+    "name": "Black Knight, Inc.",
+    "since": "2015-08-04",
+    "since_is_a_bound": false,
+    "through": "2023-08-03",
+    "form": "10-Q",
+    "accession": "0001558370-23-013080",
+    "document": "bki-20230630x10q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "CCMP": [
+   {
+    "cik": 1102934,
+    "name": "CMC Materials, Inc.",
+    "since": "2013-02-08",
+    "since_is_a_bound": true,
+    "through": "2022-05-05",
+    "form": "10-Q",
+    "accession": "0001102934-22-000013",
+    "document": "ccmp-20220331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "CERN": [
+   {
+    "cik": 804753,
+    "name": "CERNER Corp",
+    "since": "2011-04-29",
+    "since_is_a_bound": true,
+    "through": "2022-05-03",
+    "form": "10-Q",
+    "accession": "0000804753-22-000024",
+    "document": "cern-20220331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "CETV": [
+   {
+    "cik": 925645,
+    "name": "CENTRAL EUROPEAN MEDIA ENTERPRISES LTD",
+    "since": "2005-05-10",
+    "since_is_a_bound": true,
+    "through": "2020-07-21",
+    "form": "10-Q",
+    "accession": "0000925645-20-000036",
+    "document": "cetv10-qq22020.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "CLDR": [
+   {
+    "cik": 1535379,
+    "name": "Cloudera, Inc.",
+    "since": "2017-06-09",
+    "since_is_a_bound": false,
+    "through": "2021-09-02",
+    "form": "10-Q",
+    "accession": "0001628280-21-018015",
+    "document": "cldr-20210731.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "CNSL": [
+   {
+    "cik": 1304421,
+    "name": "Consolidated Communications Holdings, Inc.",
+    "since": "2007-08-09",
+    "since_is_a_bound": true,
+    "through": "2024-11-05",
+    "form": "10-Q",
+    "accession": "0001558370-24-014370",
+    "document": "cnsl-20240930x10q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "COUP": [
+   {
+    "cik": 1385867,
+    "name": "Coupa Software Inc",
+    "since": "2016-12-09",
+    "since_is_a_bound": false,
+    "through": "2022-12-12",
+    "form": "10-Q",
+    "accession": "0001385867-22-000047",
+    "document": "coup-20221031.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "CSOD": [
+   {
+    "cik": 1401680,
+    "name": "Cornerstone OnDemand Inc",
+    "since": "2011-05-13",
+    "since_is_a_bound": true,
+    "through": "2021-08-06",
+    "form": "10-Q",
+    "accession": "0001401680-21-000031",
+    "document": "csod-20210630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "CTXS": [
+   {
+    "cik": 877890,
+    "name": "CITRIX SYSTEMS INC",
+    "since": "2016-11-04",
+    "since_is_a_bound": true,
+    "through": "2022-07-26",
+    "form": "10-Q",
+    "accession": "0000877890-22-000079",
+    "document": "ctxs-20220630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "CVT": [
+   {
+    "cik": 1827075,
+    "name": "CVENT HOLDING CORP.",
+    "since": "2021-03-31",
+    "since_is_a_bound": false,
+    "through": "2023-05-05",
+    "form": "10-Q",
+    "accession": "0000950170-23-018379",
+    "document": "cvt-20230331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "CY": [
+   {
+    "cik": 791915,
+    "name": "CYPRESS SEMICONDUCTOR CORP /DE/",
+    "since": "2011-02-25",
+    "since_is_a_bound": true,
+    "through": "2020-02-21",
+    "form": "10-K",
+    "accession": "0000791915-20-000006",
+    "document": "cy-12292019x10xk.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "CYXT": [
+   {
+    "cik": 1794905,
+    "name": "Cyxtera Technologies, Inc.",
+    "since": "2020-11-16",
+    "since_is_a_bound": false,
+    "through": "2023-05-05",
+    "form": "10-Q",
+    "accession": "0001794905-23-000048",
+    "document": "cyxt-20230331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "DATA": [
+   {
+    "cik": 1303652,
+    "name": "Tableau Software Inc",
+    "since": "2013-08-09",
+    "since_is_a_bound": false,
+    "through": "2019-07-31",
+    "form": "10-Q",
+    "accession": "0001303652-19-000025",
+    "document": "a10qq22019.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "DKNG": [
+   {
+    "cik": 1772757,
+    "name": "DraftKings Holdings Inc.",
+    "since": "2019-08-12",
+    "since_is_a_bound": false,
+    "through": "2022-02-18",
+    "form": "10-K",
+    "accession": "0001772757-22-000007",
+    "document": "deac-20211231.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "EBIX": [
+   {
+    "cik": 814549,
+    "name": "EBIX INC",
+    "since": "2002-11-13",
+    "since_is_a_bound": true,
+    "through": "2023-11-14",
+    "form": "10-Q",
+    "accession": "0001628280-23-038965",
+    "document": "ebix-20230930.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "EDR": [
+   {
+    "cik": 1766363,
+    "name": "Endeavor Group Holdings, Inc.",
+    "since": "2021-06-02",
+    "since_is_a_bound": false,
+    "through": "2025-02-27",
+    "form": "10-K",
+    "accession": "0000950170-25-028394",
+    "document": "edr-20241231.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "EIGI": [
+   {
+    "cik": 1237746,
+    "name": "Endurance International Group Holdings, Inc.",
+    "since": "2013-12-06",
+    "since_is_a_bound": false,
+    "through": "2020-11-09",
+    "form": "10-Q",
+    "accession": "0001628280-20-016088",
+    "document": "eigi-20200930.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "ENT": [
+   {
+    "cik": 1512077,
+    "name": "Global Eagle Entertainment Inc.",
+    "since": "2011-06-27",
+    "since_is_a_bound": false,
+    "through": "2020-08-14",
+    "form": "10-Q",
+    "accession": "0001512077-20-000016",
+    "document": "ent-20200630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "EVRI": [
+   {
+    "cik": 1318568,
+    "name": "Everi Holdings Inc.",
+    "since": "2015-03-16",
+    "since_is_a_bound": true,
+    "through": "2025-05-12",
+    "form": "10-Q",
+    "accession": "0001318568-25-000047",
+    "document": "evri-20250331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "FIT": [
+   {
+    "cik": 1447599,
+    "name": "FITBIT, INC.",
+    "since": "2015-08-07",
+    "since_is_a_bound": false,
+    "through": "2020-11-04",
+    "form": "10-Q",
+    "accession": "0001447599-20-000063",
+    "document": "fit-20201003.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "FUN": [
+   {
+    "cik": 811532,
+    "name": "CEDAR FAIR L P",
+    "since": "2011-11-04",
+    "since_is_a_bound": true,
+    "through": "2024-05-09",
+    "form": "10-Q",
+    "accession": "0000811532-24-000079",
+    "document": "fun-20240331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "GCI": [
+   {
+    "cik": 1635718,
+    "name": "Gannett Media Corp.",
+    "since": "2015-08-06",
+    "since_is_a_bound": false,
+    "through": "2019-11-05",
+    "form": "10-Q",
+    "accession": "0001635718-19-000028",
+    "document": "gci-20190930x10q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "GLIBA": [
+   {
+    "cik": 808461,
+    "name": "GRIZZLY MERGER SUB 1, LLC",
+    "since": "2011-08-09",
+    "since_is_a_bound": true,
+    "through": "2020-11-05",
+    "form": "10-Q",
+    "accession": "0001558370-20-012900",
+    "document": "gliba-20200930x10q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "GLIBP": [
+   {
+    "cik": 808461,
+    "name": "GRIZZLY MERGER SUB 1, LLC",
+    "since": "2011-08-09",
+    "since_is_a_bound": true,
+    "through": "2020-11-05",
+    "form": "10-Q",
+    "accession": "0001558370-20-012900",
+    "document": "gliba-20200930x10q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "GLUU": [
+   {
+    "cik": 1366246,
+    "name": "GLU MOBILE INC",
+    "since": "2008-11-14",
+    "since_is_a_bound": true,
+    "through": "2021-02-26",
+    "form": "10-K",
+    "accession": "0001558370-21-002009",
+    "document": "gluu-20201231x10k.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "GTT": [
+   {
+    "cik": 1315255,
+    "name": "GTT Communications, Inc.",
+    "since": "2012-03-27",
+    "since_is_a_bound": true,
+    "through": "2020-05-08",
+    "form": "10-Q",
+    "accession": "0001315255-20-000060",
+    "document": "gtlt-20200331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "HCP": [
+   {
+    "cik": 1720671,
+    "name": "HashiCorp, Inc.",
+    "since": "2022-03-25",
+    "since_is_a_bound": false,
+    "through": "2024-12-05",
+    "form": "10-Q",
+    "accession": "0001720671-24-000023",
+    "document": "hcp-20241031.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "INFN": [
+   {
+    "cik": 1138639,
+    "name": "Infinera Corp",
+    "since": "2014-08-01",
+    "since_is_a_bound": true,
+    "through": "2025-02-28",
+    "form": "10-K",
+    "accession": "0001138639-25-000035",
+    "document": "infn-20241228.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "INFO": [
+   {
+    "cik": 1598014,
+    "name": "IHS Markit Ltd.",
+    "since": "2015-03-10",
+    "since_is_a_bound": false,
+    "through": "2022-01-24",
+    "form": "10-K",
+    "accession": "0001598014-22-000011",
+    "document": "info-20211130.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "INST": [
+   {
+    "cik": 1841804,
+    "name": "INSTRUCTURE HOLDINGS, INC.",
+    "since": "2021-08-18",
+    "since_is_a_bound": false,
+    "through": "2024-11-08",
+    "form": "10-Q",
+    "accession": "0000950170-24-124075",
+    "document": "inst-20240930.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "IPHI": [
+   {
+    "cik": 1160958,
+    "name": "INPHI Corp",
+    "since": "2011-03-07",
+    "since_is_a_bound": true,
+    "through": "2021-02-25",
+    "form": "10-K",
+    "accession": "0001437749-21-004113",
+    "document": "iphi20201231_10k.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "JNPR": [
+   {
+    "cik": 1043604,
+    "name": "JUNIPER NETWORKS INC",
+    "since": "2015-05-08",
+    "since_is_a_bound": true,
+    "through": "2025-05-09",
+    "form": "10-Q",
+    "accession": "0001043604-25-000065",
+    "document": "jnpr-20250331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "KEM": [
+   {
+    "cik": 887730,
+    "name": "KEMET CORP",
+    "since": "2009-08-10",
+    "since_is_a_bound": true,
+    "through": "2020-05-28",
+    "form": "10-K",
+    "accession": "0000887730-20-000032",
+    "document": "fy2020q4form10-k.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "KEYW": [
+   {
+    "cik": 1487101,
+    "name": "KEYW HOLDING CORP",
+    "since": "2010-11-10",
+    "since_is_a_bound": false,
+    "through": "2019-05-07",
+    "form": "10-Q",
+    "accession": "0001487101-19-000022",
+    "document": "keyw201933110q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "LOGM": [
+   {
+    "cik": 1420302,
+    "name": "LogMeIn, Inc.",
+    "since": "2010-10-28",
+    "since_is_a_bound": true,
+    "through": "2020-07-29",
+    "form": "10-Q",
+    "accession": "0001564590-20-034298",
+    "document": "logm-10q_20200630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "MAXR": [
+   {
+    "cik": 1121142,
+    "name": "Maxar Technologies Inc.",
+    "since": "2018-03-29",
+    "since_is_a_bound": false,
+    "through": "2023-05-03",
+    "form": "10-Q",
+    "accession": "0001558370-23-007734",
+    "document": "maxr-20230331x10q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "MCFE": [
+   {
+    "cik": 1783317,
+    "name": "McAfee Corp.",
+    "since": "2020-11-19",
+    "since_is_a_bound": false,
+    "through": "2022-02-23",
+    "form": "10-K",
+    "accession": "0000950170-22-001804",
+    "document": "mcfe-20211225.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "MCRN": [
+   {
+    "cik": 1637913,
+    "name": "Milacron Holdings Corp.",
+    "since": "2015-08-11",
+    "since_is_a_bound": false,
+    "through": "2019-11-12",
+    "form": "10-Q",
+    "accession": "0001628280-19-013982",
+    "document": "mcrn9301910q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "MDP": [
+   {
+    "cik": 65011,
+    "name": "Hawkeye Acquisition, Inc.",
+    "since": "2010-04-28",
+    "since_is_a_bound": true,
+    "through": "2021-11-12",
+    "form": "10-Q",
+    "accession": "0000065011-21-000115",
+    "document": "mdp-20210930.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "MDSO": [
+   {
+    "cik": 1453814,
+    "name": "Medidata Solutions, Inc.",
+    "since": "2009-08-14",
+    "since_is_a_bound": false,
+    "through": "2019-08-06",
+    "form": "10-Q",
+    "accession": "0001453814-19-000139",
+    "document": "mdso-630201910q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "MNDT": [
+   {
+    "cik": 1370880,
+    "name": "Mandiant, Inc.",
+    "since": "2013-11-14",
+    "since_is_a_bound": false,
+    "through": "2022-08-04",
+    "form": "10-Q",
+    "accession": "0001370880-22-000033",
+    "document": "mndt-20220630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "MSGN": [
+   {
+    "cik": 1469372,
+    "name": "MSG NETWORKS INC.",
+    "since": "2010-03-18",
+    "since_is_a_bound": false,
+    "through": "2021-05-07",
+    "form": "10-Q",
+    "accession": "0001469372-21-000007",
+    "document": "msgn-20210331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "MSP": [
+   {
+    "cik": 1724570,
+    "name": "DATTO HOLDING CORP.",
+    "since": "2020-11-23",
+    "since_is_a_bound": false,
+    "through": "2022-05-09",
+    "form": "10-Q",
+    "accession": "0001724570-22-000028",
+    "document": "msp-20220331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "MTCH": [
+   {
+    "cik": 1575189,
+    "name": "Match Group Holdings II, LLC",
+    "since": "2016-03-28",
+    "since_is_a_bound": false,
+    "through": "2020-05-08",
+    "form": "10-Q",
+    "accession": "0001575189-20-000049",
+    "document": "mtch-20200331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "MXIM": [
+   {
+    "cik": 743316,
+    "name": "MAXIM INTEGRATED PRODUCTS INC",
+    "since": "2014-08-18",
+    "since_is_a_bound": true,
+    "through": "2021-08-20",
+    "form": "10-K",
+    "accession": "0000743316-21-000025",
+    "document": "mxim-20210626.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "NATI": [
+   {
+    "cik": 935494,
+    "name": "NATIONAL INSTRUMENTS CORP",
+    "since": "2013-05-02",
+    "since_is_a_bound": true,
+    "through": "2023-07-28",
+    "form": "10-Q",
+    "accession": "0000935494-23-000069",
+    "document": "nati-20230630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "NCI": [
+   {
+    "cik": 1019737,
+    "name": "NAVIGANT CONSULTING INC",
+    "since": "1999-08-16",
+    "since_is_a_bound": true,
+    "through": "2019-08-02",
+    "form": "10-Q",
+    "accession": "0001564590-19-028387",
+    "document": "nci-10q_20190630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "NEWR": [
+   {
+    "cik": 1448056,
+    "name": "NEW RELIC, INC.",
+    "since": "2016-05-26",
+    "since_is_a_bound": true,
+    "through": "2023-10-27",
+    "form": "10-Q",
+    "accession": "0001448056-23-000053",
+    "document": "newr-20230930.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "NUAN": [
+   {
+    "cik": 1002517,
+    "name": "Nuance Communications, Inc.",
+    "since": "2013-08-08",
+    "since_is_a_bound": true,
+    "through": "2022-02-07",
+    "form": "10-Q",
+    "accession": "0001002517-22-000017",
+    "document": "nuan-20211231.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "NXGN": [
+   {
+    "cik": 708818,
+    "name": "NEXTGEN HEALTHCARE, INC.",
+    "since": "2008-11-05",
+    "since_is_a_bound": true,
+    "through": "2023-10-24",
+    "form": "10-Q",
+    "accession": "0000950170-23-054878",
+    "document": "nxgn-20230930.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "PARA": [
+   {
+    "cik": 813828,
+    "name": "Paramount Global",
+    "since": "2018-08-02",
+    "since_is_a_bound": true,
+    "through": "2025-07-31",
+    "form": "10-Q",
+    "accession": "0000813828-25-000023",
+    "document": "para-20250630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "PARAA": [
+   {
+    "cik": 813828,
+    "name": "Paramount Global",
+    "since": "2018-08-02",
+    "since_is_a_bound": true,
+    "through": "2025-07-31",
+    "form": "10-Q",
+    "accession": "0000813828-25-000023",
+    "document": "para-20250630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "PLAN": [
+   {
+    "cik": 1540755,
+    "name": "Anaplan, Inc.",
+    "since": "2018-12-10",
+    "since_is_a_bound": false,
+    "through": "2022-06-02",
+    "form": "10-Q",
+    "accession": "0001540755-22-000040",
+    "document": "plan-20220430.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "POLY": [
+   {
+    "cik": 914025,
+    "name": "PLANTRONICS INC /CA/",
+    "since": "2012-05-25",
+    "since_is_a_bound": true,
+    "through": "2022-08-11",
+    "form": "10-Q",
+    "accession": "0000914025-22-000060",
+    "document": "poly-20220702.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "PRFT": [
+   {
+    "cik": 1085869,
+    "name": "PERFICIENT INC",
+    "since": "2007-03-05",
+    "since_is_a_bound": true,
+    "through": "2024-08-08",
+    "form": "10-Q",
+    "accession": "0001085869-24-000110",
+    "document": "prft-20240630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "PVTL": [
+   {
+    "cik": 1574135,
+    "name": "Pivotal Software, Inc.",
+    "since": "2018-06-14",
+    "since_is_a_bound": false,
+    "through": "2019-12-06",
+    "form": "10-Q",
+    "accession": "0001574135-19-000021",
+    "document": "pvtl-20191101q3.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "PWSC": [
+   {
+    "cik": 1835681,
+    "name": "POWERSCHOOL HOLDINGS, INC.",
+    "since": "2021-09-09",
+    "since_is_a_bound": false,
+    "through": "2024-08-09",
+    "form": "10-Q",
+    "accession": "0001835681-24-000100",
+    "document": "pwsc-20240630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "PYCR": [
+   {
+    "cik": 1839439,
+    "name": "PAYCOR HCM, INC.",
+    "since": "2021-09-02",
+    "since_is_a_bound": false,
+    "through": "2025-02-06",
+    "form": "10-Q",
+    "accession": "0001839439-25-000020",
+    "document": "pycr-20241231.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "RBT": [
+   {
+    "cik": 1862068,
+    "name": "Rubicon Technologies, Inc.",
+    "since": "2021-11-29",
+    "since_is_a_bound": false,
+    "through": "2024-11-22",
+    "form": "10-Q",
+    "accession": "0001829126-24-007780",
+    "document": "rubicontech_10q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "RDBX": [
+   {
+    "cik": 1820201,
+    "name": "Redbox Entertainment Inc.",
+    "since": "2021-01-08",
+    "since_is_a_bound": false,
+    "through": "2022-08-12",
+    "form": "10-Q",
+    "accession": "0001558370-22-013534",
+    "document": "rdbx-20220630x10q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "RDBXW": [
+   {
+    "cik": 1820201,
+    "name": "Redbox Entertainment Inc.",
+    "since": "2021-01-08",
+    "since_is_a_bound": false,
+    "through": "2022-08-12",
+    "form": "10-Q",
+    "accession": "0001558370-22-013534",
+    "document": "rdbx-20220630x10q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "RHT": [
+   {
+    "cik": 1087423,
+    "name": "RED HAT INC",
+    "since": "2011-04-29",
+    "since_is_a_bound": true,
+    "through": "2019-04-24",
+    "form": "10-K",
+    "accession": "0001087423-19-000012",
+    "document": "rht-10kq4fy19.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "RP": [
+   {
+    "cik": 1286225,
+    "name": "RealPage, Inc.",
+    "since": "2013-08-06",
+    "since_is_a_bound": true,
+    "through": "2021-03-01",
+    "form": "10-K",
+    "accession": "0001286225-21-000007",
+    "document": "rp-20201231.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "S": [
+   {
+    "cik": 101830,
+    "name": "SPRINT LLC",
+    "since": "2013-08-05",
+    "since_is_a_bound": true,
+    "through": "2020-01-27",
+    "form": "10-Q",
+    "accession": "0000101830-20-000008",
+    "document": "sprintcorp12-31x1910xq.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "SCWX": [
+   {
+    "cik": 1468666,
+    "name": "SecureWorks Corp",
+    "since": "2016-06-01",
+    "since_is_a_bound": false,
+    "through": "2024-12-04",
+    "form": "10-Q",
+    "accession": "0001468666-24-000050",
+    "document": "scwx-20241101.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "SIX": [
+   {
+    "cik": 701374,
+    "name": "Six Flags Entertainment Corp/OLD",
+    "since": "2011-08-08",
+    "since_is_a_bound": true,
+    "through": "2024-05-09",
+    "form": "10-Q",
+    "accession": "0000701374-24-000029",
+    "document": "six-20240331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "SMAR": [
+   {
+    "cik": 1366561,
+    "name": "SMARTSHEET INC",
+    "since": "2019-04-01",
+    "since_is_a_bound": true,
+    "through": "2024-12-05",
+    "form": "10-Q",
+    "accession": "0001366561-24-000222",
+    "document": "smar-20241031.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "SNPO": [
+   {
+    "cik": 1856430,
+    "name": "Snap One Holdings Corp.",
+    "since": "2021-08-27",
+    "since_is_a_bound": false,
+    "through": "2024-05-08",
+    "form": "10-Q",
+    "accession": "0001856430-24-000025",
+    "document": "snpo-20240329.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "SPLK": [
+   {
+    "cik": 1353283,
+    "name": "SPLUNK INC",
+    "since": "2014-12-10",
+    "since_is_a_bound": true,
+    "through": "2023-11-28",
+    "form": "10-Q",
+    "accession": "0001353283-23-000043",
+    "document": "splk-20231031.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "SPWR": [
+   {
+    "cik": 867773,
+    "name": "SUNPOWER CORP",
+    "since": "2013-08-02",
+    "since_is_a_bound": true,
+    "through": "2023-12-18",
+    "form": "10-Q",
+    "accession": "0000867773-23-000130",
+    "document": "spwr-20231001.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "SQSP": [
+   {
+    "cik": 1496963,
+    "name": "Squarespace, Inc.",
+    "since": "2021-08-09",
+    "since_is_a_bound": false,
+    "through": "2024-08-02",
+    "form": "10-Q",
+    "accession": "0001496963-24-000072",
+    "document": "sqsp-20240630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "SWCH": [
+   {
+    "cik": 1710583,
+    "name": "Switch, Inc.",
+    "since": "2017-11-14",
+    "since_is_a_bound": false,
+    "through": "2022-11-09",
+    "form": "10-Q",
+    "accession": "0001710583-22-000046",
+    "document": "swch-20220930.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "SWI": [
+   {
+    "cik": 1739942,
+    "name": "SolarWinds Corp",
+    "since": "2018-11-27",
+    "since_is_a_bound": false,
+    "through": "2025-02-19",
+    "form": "10-K",
+    "accession": "0001739942-25-000013",
+    "document": "swi-20241231.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "SYKE": [
+   {
+    "cik": 1010612,
+    "name": "SYKES ENTERPRISES INC",
+    "since": "2013-11-05",
+    "since_is_a_bound": true,
+    "through": "2021-08-09",
+    "form": "10-Q",
+    "accession": "0001564590-21-042611",
+    "document": "syke-10q_20210630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "TPCO": [
+   {
+    "cik": 1593195,
+    "name": "Tribune Publishing Co",
+    "since": "2014-08-21",
+    "since_is_a_bound": false,
+    "through": "2021-05-06",
+    "form": "10-Q",
+    "accession": "0001593195-21-000039",
+    "document": "tpco-20210328.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "TRCO": [
+   {
+    "cik": 726513,
+    "name": "TRIBUNE MEDIA CO",
+    "since": "2004-07-30",
+    "since_is_a_bound": true,
+    "through": "2019-08-09",
+    "form": "10-Q",
+    "accession": "0000726513-19-000020",
+    "document": "a10-qq22019.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "TWKS": [
+   {
+    "cik": 1866550,
+    "name": "Thoughtworks Holding, Inc.",
+    "since": "2021-11-15",
+    "since_is_a_bound": false,
+    "through": "2024-11-12",
+    "form": "10-Q",
+    "accession": "0001866550-24-000060",
+    "document": "twks-20240930.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "TWOU": [
+   {
+    "cik": 1459417,
+    "name": "2U, LLC",
+    "since": "2014-05-12",
+    "since_is_a_bound": false,
+    "through": "2024-08-09",
+    "form": "10-Q",
+    "accession": "0001459417-24-000054",
+    "document": "twou-20240630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "TWTR": [
+   {
+    "cik": 1418091,
+    "name": "TWITTER, INC.",
+    "since": "2015-11-06",
+    "since_is_a_bound": true,
+    "through": "2022-07-26",
+    "form": "10-Q",
+    "accession": "0001418091-22-000147",
+    "document": "twtr-20220630.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "VG": [
+   {
+    "cik": 1272830,
+    "name": "VONAGE HOLDINGS CORP",
+    "since": "2014-02-13",
+    "since_is_a_bound": true,
+    "through": "2022-05-05",
+    "form": "10-Q",
+    "accession": "0001272830-22-000083",
+    "document": "vg-20220331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "VIA": [
+   {
+    "cik": 1339947,
+    "name": "Viacom Inc.",
+    "since": "2012-02-02",
+    "since_is_a_bound": true,
+    "through": "2019-11-14",
+    "form": "10-K",
+    "accession": "0001339947-19-000043",
+    "document": "via2019093010k.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "VIAB": [
+   {
+    "cik": 1339947,
+    "name": "Viacom Inc.",
+    "since": "2012-02-02",
+    "since_is_a_bound": true,
+    "through": "2019-11-14",
+    "form": "10-K",
+    "accession": "0001339947-19-000043",
+    "document": "via2019093010k.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "VMW": [
+   {
+    "cik": 1124610,
+    "name": "VMWARE LLC",
+    "since": "2015-08-05",
+    "since_is_a_bound": true,
+    "through": "2023-09-07",
+    "form": "10-Q",
+    "accession": "0001124610-23-000064",
+    "document": "vmw-20230804.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "VRTU": [
+   {
+    "cik": 1207074,
+    "name": "VIRTUSA CORP",
+    "since": "2011-08-03",
+    "since_is_a_bound": true,
+    "through": "2021-02-09",
+    "form": "10-Q",
+    "accession": "0001558370-21-000815",
+    "document": "vrtu-20201231x10q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "VZIO": [
+   {
+    "cik": 1835591,
+    "name": "Vizio Holding Corp.",
+    "since": "2021-05-12",
+    "since_is_a_bound": false,
+    "through": "2024-11-06",
+    "form": "10-Q",
+    "accession": "0001835591-24-000089",
+    "document": "vzio-20240930.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "WORK": [
+   {
+    "cik": 1764925,
+    "name": "Slack Technologies, Inc.",
+    "since": "2019-09-05",
+    "since_is_a_bound": false,
+    "through": "2021-06-03",
+    "form": "10-Q",
+    "accession": "0001764925-21-000096",
+    "document": "work-20210430.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "WWE": [
+   {
+    "cik": 1091907,
+    "name": "WORLD WRESTLING ENTERTAINMENT, LLC",
+    "since": "2013-08-02",
+    "since_is_a_bound": true,
+    "through": "2023-08-02",
+    "form": "10-Q",
+    "accession": "0001091907-23-000058",
+    "document": "wwe-20230630x10q.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "XLNX": [
+   {
+    "cik": 743988,
+    "name": "XILINX INC",
+    "since": "2011-11-08",
+    "since_is_a_bound": true,
+    "through": "2022-01-27",
+    "form": "10-Q",
+    "accession": "0000743988-22-000008",
+    "document": "xlnx-20220101.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "XM": [
+   {
+    "cik": 1747748,
+    "name": "Qualtrics International Inc.",
+    "since": "2021-03-09",
+    "since_is_a_bound": false,
+    "through": "2023-05-02",
+    "form": "10-Q",
+    "accession": "0001628280-23-014712",
+    "document": "xm-20230331.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "ZAYO": [
+   {
+    "cik": 1608249,
+    "name": "Zayo Group Holdings, Inc.",
+    "since": "2014-11-10",
+    "since_is_a_bound": false,
+    "through": "2020-02-04",
+    "form": "10-Q",
+    "accession": "0001558370-20-000495",
+    "document": "zayo-20191231x10qa334d5.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ],
+  "ZEN": [
+   {
+    "cik": 1463172,
+    "name": "Zendesk, Inc.",
+    "since": "2019-02-14",
+    "since_is_a_bound": true,
+    "through": "2022-10-28",
+    "form": "10-Q",
+    "accession": "0001463172-22-000326",
+    "document": "zen-20220930.htm",
+    "read_from": "dei:TradingSymbol"
+   }
+  ]
+ },
+ "unresolved": [
+  {
+   "cik": 867374,
+   "name": "ELECTRONICS FOR IMAGING INC",
+   "why": "no trading symbol on the cover page of the last three periodic reports (newest 10-Q 2019-05-07)"
+  },
+  {
+   "cik": 1016125,
+   "name": "ULTIMATE SOFTWARE GROUP INC",
+   "why": "no trading symbol on the cover page of the last three periodic reports (newest 10-Q 2019-05-01)"
+  },
+  {
+   "cik": 1039101,
+   "name": "L3 TECHNOLOGIES, INC.",
+   "why": "no trading symbol on the cover page of the last three periodic reports (newest 10-Q 2019-05-01)"
+  },
+  {
+   "cik": 1056087,
+   "name": "MCCLATCHY CO",
+   "why": "no trading symbol on the cover page of the last three periodic reports (newest 10-Q 2020-08-17)"
+  },
+  {
+   "cik": 1067837,
+   "name": "AUDACY, INC.",
+   "why": "no trading symbol on the cover page of the last three periodic reports (newest 10-Q 2024-08-09)"
+  },
+  {
+   "cik": 1094739,
+   "name": "FINISAR CORP",
+   "why": "no trading symbol on the cover page of the last three periodic reports (newest 10-Q 2019-09-04)"
+  },
+  {
+   "cik": 1282266,
+   "name": "WINDSTREAM HOLDINGS, INC.",
+   "why": "no trading symbol on the cover page of the last three periodic reports (newest 10-Q 2020-07-30)"
+  },
+  {
+   "cik": 1308161,
+   "name": "TWENTY-FIRST CENTURY FOX, INC.",
+   "why": "no trading symbol on the cover page of the last three periodic reports (newest 10-Q 2019-02-06)"
+  }
+ ]
+}

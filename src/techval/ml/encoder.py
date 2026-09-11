@@ -94,8 +94,9 @@ acquired is correlated with being a good peer, because a company gets bought
 for looking like the companies around it. ``survivorship_report`` counts the
 named peers that never enter the universe and, given ``tmt.precedents.deal_events``,
 separates the ones that left through an acquisition from the ones that were
-never in scope. The measured cost is in the pull request and it is larger than
-it looks, because it lands entirely in recall.
+never in scope. ``python -m techval.ml.peer_labels`` writes that census beside
+the artifacts as ``peer_survivorship.csv``. The measured cost is in the pull
+request and it is larger than it looks, because it lands entirely in recall.
 
 ---
 
@@ -162,6 +163,7 @@ __all__ = [
     "fit_peer_encoder",
     "evaluate_peer_encoder",
     "ablate_towers",
+    "ablation_folds",
     "popularity_ranking",
     "popularity_collapse",
     "paired_lift",
@@ -378,8 +380,11 @@ def build_dataset(
         notes.append(
             f"{dropped['peer not in the candidate universe']} named peers never "
             "entered the candidate universe. They stay in the relevance set, so "
-            "the loss lands in recall where it belongs; see survivorship_report "
-            "for how many of them left through an acquisition."
+            "the loss lands in recall where it belongs. The itemised census is "
+            "peer_survivorship.csv, written beside the artifacts by "
+            "`python -m techval.ml.peer_labels`; which of them left through an "
+            "acquisition needs deal_events over the same names, which is a live "
+            "run."
         )
 
     return PeerDataset(
@@ -970,6 +975,25 @@ class PeerEncoder:
     ``card.evaluation.verdict()`` is the sentence to read first: when the model
     lost to its baseline it says so in those words and the right answer is to
     use the baseline.
+
+    **Two dates, and they are not interchangeable.** ``fit_date`` is the PANEL
+    date the universe was embedded at. ``trained_through`` is the last FILING
+    date whose disclosed pairs were allowed into the fit. They are usually
+    months apart, because a proxy filed in June is read against a March panel,
+    and the difference decides a real question: whether this company was a query
+    the model has already been fitted toward. Asking ``fit_date`` labels a
+    company cold whose proxy landed between the two, which is exactly the
+    company where the answer matters. ``is_cold_start`` asks the right one.
+
+    **The cold-start caveat travels with the model.** ``trained_filers`` is the
+    set of companies that were a QUERY in the training window, and ``warm`` and
+    ``cold`` are the two halves of the walk-forward score where the evaluation
+    that produced them was handed in. Without them a saved fit can rank a
+    company it has never been trained on and say nothing about it, which is the
+    single largest caveat this model carries: on the committed universe the gap
+    is NDCG@10 of 0.37 cold against 0.63 warm. Being named as somebody else's
+    peer does not make a company warm, because only the filer of a group was
+    ever a query.
     """
 
     tickers: list[str]
@@ -985,6 +1009,54 @@ class PeerEncoder:
     card: ModelCard
     assumptions_peers: dict[str, Any] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
+    trained_through: date | None = None
+    trained_filers: tuple[str, ...] = ()
+    warm: EvalResult | None = None
+    cold: EvalResult | None = None
+
+    def is_cold_start(self, ticker: str) -> bool | None:
+        """Was this company a query the fit had already seen, or is it new.
+
+        ``None`` where the model cannot say: a fit saved before the trained
+        filers were recorded knows the answer no better than the reader does,
+        and answering "cold" for every company would be a claim rather than a
+        refusal. ``cold_start_note`` turns any of the three answers into a
+        sentence.
+        """
+        if not self.trained_filers:
+            return None
+        return str(ticker).upper() not in set(self.trained_filers)
+
+    def cold_start_note(self, ticker: str) -> str:
+        """The caveat as one sentence, with the two scores where they are known."""
+        state = self.is_cold_start(ticker)
+        scores = ""
+        if self.warm is not None and self.cold is not None:
+            scores = (
+                f" On this fit the encoder scores {self.cold.score:.4f} on the "
+                f"{self.cold.n_observations} cold queries against "
+                f"{self.warm.score:.4f} on the {self.warm.n_observations} warm ones."
+            )
+        if state is None:
+            return (
+                f"Whether {str(ticker).upper()} was warm or cold in the training "
+                "window cannot be recovered from this fit: it carries no record of "
+                "which filers were queries. Refit, or read the split from the "
+                "dataset the fit was built from." + scores
+            )
+        if state:
+            return (
+                f"COLD START. {str(ticker).upper()} disclosed no peer group inside "
+                f"the training window, which closed {self.trained_through}, so the "
+                "ranking below is the model generalising rather than recalling."
+                + scores
+            )
+        return (
+            f"WARM START. {str(ticker).upper()} disclosed a peer group inside the "
+            f"training window, which closed {self.trained_through}, so the model was "
+            "fitted toward this company's own answer and agreement with it is partly "
+            "recall rather than judgment." + scores
+        )
 
     def _index(self, ticker: str) -> int:
         try:
@@ -1080,13 +1152,30 @@ class PeerEncoder:
         )
 
     def rows(self) -> list[tuple[str, Any]]:
-        return [
+        out: list[tuple[str, Any]] = [
             ("Companies", len(self.tickers)),
             ("Embedding width", int(self.embeddings.shape[1])),
             ("Text weight", self.text_weight),
-            ("Fitted through", str(self.fit_date)),
+            ("Universe embedded at", str(self.fit_date)),
+            (
+                "Trained on filings through",
+                "not recorded" if self.trained_through is None else str(self.trained_through),
+            ),
+            (
+                "Filers that were a training query",
+                len(self.trained_filers) if self.trained_filers else "not recorded",
+            ),
             ("Parameters", self.encoder.n_parameters if self.encoder else 0),
         ]
+        if self.warm is not None and self.cold is not None:
+            out.append(
+                (
+                    "Warm against cold NDCG",
+                    f"{self.warm.score:.4f} on {self.warm.n_observations} against "
+                    f"{self.cold.score:.4f} on {self.cold.n_observations}",
+                )
+            )
+        return out
 
     # -- persistence ------------------------------------------------------- #
 
@@ -1102,10 +1191,14 @@ class PeerEncoder:
         target = Path(path)
         target.parent.mkdir(parents=True, exist_ok=True)
         payload = {
-            "schema": 1,
+            "schema": 2,
             "tickers": self.tickers,
             "embeddings": self.embeddings,
             "fit_date": self.fit_date,
+            "trained_through": self.trained_through,
+            "trained_filers": list(self.trained_filers),
+            "warm": self.warm,
+            "cold": self.cold,
             "text_weight": self.text_weight,
             "dim": self.dim,
             "mu": self.mu,
@@ -1153,16 +1246,32 @@ def load_peer_encoder(path: str | Path) -> PeerEncoder:
     would be a second place for the architecture to drift out of step with the
     weights. ``encoder`` is None on a loaded model and its parameter count lives
     on the card.
+
+    Schema 1 files are read rather than refused, because nothing in them means
+    anything different: schema 2 only ADDS the training window, the filers that
+    were queries in it and the warm and cold halves of the score. What a schema
+    1 file cannot do is answer ``is_cold_start``, and it says so in its notes
+    instead of answering it wrongly.
     """
     import joblib
 
     payload = joblib.load(Path(path))
-    if payload.get("schema") != 1:
+    schema = payload.get("schema")
+    if schema not in (1, 2):
         raise ConfigError(
             f"{path} was written by a different version of this module "
-            f"(schema {payload.get('schema')!r} against 1). Refit rather than "
+            f"(schema {schema!r} against 1 or 2). Refit rather than "
             "reading weights whose meaning has changed"
         )
+    stale = (
+        [
+            f"{path} was saved at schema 1, which carried no record of which "
+            "filers were training queries, so this model cannot say whether a "
+            "company is a cold start. Refit to recover the caveat."
+        ]
+        if schema == 1
+        else []
+    )
     return PeerEncoder(
         tickers=list(payload["tickers"]),
         embeddings=np.asarray(payload["embeddings"], dtype=float),
@@ -1176,7 +1285,11 @@ def load_peer_encoder(path: str | Path) -> PeerEncoder:
         log_market_cap=dict(payload["log_market_cap"]),
         card=payload["card"],
         assumptions_peers=dict(payload.get("assumptions_peers", {})),
-        notes=list(payload.get("notes", [])) + [f"loaded from {path}"],
+        notes=list(payload.get("notes", [])) + [f"loaded from {path}"] + stale,
+        trained_through=payload.get("trained_through"),
+        trained_filers=tuple(payload.get("trained_filers") or ()),
+        warm=payload.get("warm"),
+        cold=payload.get("cold"),
     )
 
 
@@ -1204,7 +1317,7 @@ def fit_peer_encoder(
     validation_share: float = 0.15,
     min_df: int = 2,
     max_df: float = 0.85,
-    evaluation: EvalResult | None = None,
+    evaluation: EvalResult | PeerEvaluation | None = None,
 ) -> PeerEncoder:
     """Fit both towers on every pair disclosed on or before ``fit_through``.
 
@@ -1225,6 +1338,14 @@ def fit_peer_encoder(
     ``text_weight`` defaults to ``assumptions.ml.peers.text_weight``. Zero fits
     the fundamentals tower alone and one fits the text tower alone, which is
     what ``ablate_towers`` uses to say which tower carries the signal.
+
+    ``evaluation`` takes either the headline ``EvalResult`` or the whole
+    ``PeerEvaluation``. Hand it the whole thing: the warm and cold halves are
+    the largest caveat the model carries, and a fit that keeps only the headline
+    can be saved, loaded and asked to rank a company it has never been trained
+    on with nothing to say about it. The filers that were queries in the
+    training window are recorded either way, because the fit knows them without
+    being told.
     """
     if not dataset.examples:
         raise ConfigError("the dataset holds no labelled pairs, so there is nothing to fit")
@@ -1272,6 +1393,20 @@ def fit_peer_encoder(
     )
 
     log_cap = _log_sizes(dataset.panel, embed_date)
+    # Warm and cold are properties of the FILING window, so the set is cut at
+    # `cut` and not at `embed_date`. Only the filer of a group was ever a query,
+    # so being named as somebody else's peer does not put a company in here.
+    trained_filers = tuple(
+        sorted(
+            {
+                g.ticker.upper()
+                for g in dataset.groups
+                if g.filed is not None and g.filed <= cut
+            }
+        )
+    )
+    whole = evaluation if isinstance(evaluation, PeerEvaluation) else None
+    headline = whole.headline if whole is not None else evaluation
     card = ModelCard(
         name="peer encoder (two-tower contrastive, InfoNCE)",
         task=(
@@ -1296,7 +1431,7 @@ def fit_peer_encoder(
             "random_seed": seed,
             "parameters": encoder.n_parameters,
         },
-        evaluation=evaluation,
+        evaluation=headline,
         limitations=[
             "The labels are compensation peer groups, not trading comparables. A "
             "committee picks partly for competition for executive talent, so the "
@@ -1309,8 +1444,15 @@ def fit_peer_encoder(
             "training-window mean of zero. The missing-share indicators travel "
             "beside them but an imputed average is not a measurement.",
             "The candidate universe is the seed universe, so a company acquired "
-            "mid-sample is absent from it. See survivorship_report for the size "
-            "of that hole and note that it lands entirely in recall.",
+            "mid-sample is absent from it. peer_survivorship.csv, written by "
+            "`python -m techval.ml.peer_labels` beside the artifacts this was "
+            "fitted on, is the size of that hole; it lands entirely in recall.",
+            f"{len(trained_filers)} of the {len(present_tickers)} companies in "
+            f"the fitted universe were a query in the training window, which "
+            f"closed {cut}. The rest are cold starts, and the model is "
+            "materially weaker on them: PeerEncoder.cold_start_note names which "
+            "side a company is on and quotes the two scores where the "
+            "evaluation was handed in.",
         ],
         notes=list(history.notes) + list(space.notes) + list(dataset.notes),
     )
@@ -1334,6 +1476,10 @@ def fit_peer_encoder(
             "max_size_ratio": assumptions.ml.peers.max_size_ratio,
         },
         notes=list(space.notes),
+        trained_through=cut,
+        trained_filers=trained_filers,
+        warm=None if whole is None else whole.warm,
+        cold=None if whole is None else whole.cold,
     )
 
 
@@ -2128,6 +2274,42 @@ def _subset_result(
 # --------------------------------------------------------------------------- #
 
 
+def ablation_folds(
+    dataset: PeerDataset,
+    assumptions: Assumptions,
+    *,
+    n_folds: int | None = None,
+    embargo_days: int = EMBARGO_DAYS,
+) -> list[Fold]:
+    """The walk-forward cut ``ablate_towers`` uses when it is not given one.
+
+    The floor that matters is disclosed pairs, and the rows of the ablation's
+    own frame are not disclosed pairs: five sampled negatives ride along with
+    every one of them, so thirty rows, the generic floor in ``evaluation.py``,
+    is five real relationships. Cutting on those rows gave fold 0 a training
+    window of 46 rows holding 9 disclosed pairs on the committed proxies.
+    ``_train_encoder`` refused it, correctly, as too narrow for in-batch
+    negatives, and because ``ablation`` refits inside every fold a refusal in
+    one fold ends the whole ablation rather than costing that fold. It
+    reproduced at two, three and five folds, and it was not bad luck: proxies
+    arrive in a season, so the earliest stretch of any timeline built from them
+    is one filer's table.
+
+    Cutting on the positive pairs with ``MIN_TRAIN_PAIRS`` makes the request
+    mean what the model needs it to mean, which is that the first test block
+    begins once two hundred disclosed pairs sit behind it. The block boundaries
+    themselves do not move: ``walk_forward_folds`` splits the distinct dates
+    rather than the observations, and the two vectors carry the same set of
+    dates.
+    """
+    return walk_forward_folds(
+        [e.filed for e in dataset.examples],
+        int(assumptions.ml.walk_forward_folds if n_folds is None else n_folds),
+        min_train=MIN_TRAIN_PAIRS,
+        embargo_days=embargo_days,
+    )
+
+
 def ablate_towers(
     dataset: PeerDataset,
     assumptions: Assumptions,
@@ -2184,6 +2366,11 @@ def ablate_towers(
     than the whole universe because a rank correlation over a 1-in-100 positive
     rate is dominated by the ordering among the negatives, which is not the
     question.
+
+    **The folds are cut on disclosed pairs.** Passing ``folds`` uses them as
+    given, which is how a caller runs the ablation on the same cut the headline
+    evaluation used. Left to itself it takes ``ablation_folds``, whose docstring
+    carries why the generic floor was the wrong one and what it cost.
     """
     seed = int(assumptions.ml.random_seed)
     rng = np.random.default_rng(seed)
@@ -2223,10 +2410,8 @@ def ablate_towers(
 
     frame = _pair_frame(dataset, index_rows)
     if folds is None:
-        folds = walk_forward_folds(
-            [d for d in dates],
-            int(assumptions.ml.walk_forward_folds if n_folds is None else n_folds),
-            embargo_days=embargo_days,
+        folds = ablation_folds(
+            dataset, assumptions, n_folds=n_folds, embargo_days=embargo_days
         )
 
     settings = dict(
@@ -2383,10 +2568,16 @@ def survivorship_report(
 
     One row per named peer that is absent from the universe, with the count of
     groups that named it, the last year it was named, and the announcement date
-    of a merger agreement where ``deal_events`` carries one. Pass the output of
-    ``tmt.precedents.deal_events`` over the named peers to fill that column; the
-    default of nothing returns the absence census alone, which is still the
-    number that bounds recall.
+    of a merger agreement where ``deal_events`` carries one.
+
+    ``peer_labels.build_peer_artifacts`` calls this with no deal events and
+    writes the result as ``peer_survivorship.csv``, which is the absence census
+    and is already the number that bounds recall. Filling the merger columns
+    means passing ``tmt.precedents.deal_events`` over the absent names, and that
+    is a live run over companies that have been acquired: precisely the lookup
+    that used to be impossible, because a delisted ticker is not in the SEC's
+    current ticker file. ``techval.former_tickers`` is what makes it possible
+    now, and where a name is outside that table its CIK can be passed instead.
     """
     pool = {str(t).upper() for t in universe}
     deal_by_ticker = {t: (when, done) for t, when, done in deal_events}
