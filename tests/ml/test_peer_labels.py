@@ -149,10 +149,97 @@ def test_index_maps_both_forms_and_hides_its_collisions(index):
 
 
 def test_index_treats_share_classes_of_one_cik_as_one_company(index):
-    """GOOG and GOOGL are not an ambiguity: the CIK already settled the company."""
-    assert index["alphabet"] == "GOOG"
+    """GOOG and GOOGL are not an ambiguity: the CIK already settled the company.
+
+    The symbol returned is GOOGL rather than GOOG because the index now takes the
+    Commission's own listing order rather than the shorter symbol. Which of
+    Alphabet's two classes carries the label was always arbitrary and this test
+    never cared; what the ordering rule fixes is the case below, where the two
+    symbols of one CIK are not share classes at all.
+    """
+    assert index["alphabet"] == "GOOGL"
     assert "alphabet" not in index.ambiguous
     assert index.cik_of["GOOG"] == index.cik_of["GOOGL"]
+
+
+def test_the_state_of_incorporation_marker_is_not_part_of_the_name(client):
+    """The SEC's ticker file appends "/DE" to a title and no proxy ever writes it.
+
+    Left in, the marker tokenises into a trailing "de", the suffix stripper
+    stops on it before it reaches "inc", and the core form of "APPLIED MATERIALS
+    INC /DE" is "appliedmaterialsincde". The proxy's "Applied Materials" then
+    matches nothing, and the span lands in unresolved rather than becoming a
+    label. Measured over the seed universe this accounted for 121 of the 1,205
+    spans that could not be resolved, Applied Materials at 29 and Qualcomm at
+    24 of them.
+
+    It cannot be fixed by adding "de" to the suffix list: those are ordinary
+    word fragments and stripping them would eat the tail of a real name. The
+    marker is removed by its slash, at the end of the string, and nowhere else.
+    """
+    assert normalise_name("APPLIED MATERIALS INC /DE") == (
+        "appliedmaterialsinc",
+        "appliedmaterials",
+    )
+    assert normalise_name("QUALCOMM INC/DE") == ("qualcomminc", "qualcomm")
+    assert normalise_name("CHARTER COMMUNICATIONS, INC. /MO/") == (
+        "chartercommunicationsinc",
+        "chartercommunications",
+    )
+    # A name that merely ends in two letters keeps them: there is no slash.
+    assert normalise_name("Elastic N.V.") == normalise_name("Elastic NV")
+    assert normalise_name("F5, Inc.") == ("f5inc", "f5")
+
+    class WithMarker(FixtureProxyClient):
+        def _get_json(self, url):
+            data = dict(super()._get_json(url))
+            data["910"] = {
+                "cik_str": 6951,
+                "ticker": "AMAT",
+                "title": "APPLIED MATERIALS INC /DE",
+            }
+            return data
+
+    index = build_name_index(WithMarker())
+    assert index["appliedmaterials"] == "AMAT"
+    assert segment_names("Applied Materials, Inc.Netflix, Inc.", index)[0] == [
+        "AMAT",
+        "NFLX",
+    ]
+
+
+def test_a_registrants_symbols_are_ranked_by_the_commissions_own_order(client):
+    """Two symbols on one CIK are not always two share classes, and the short one loses.
+
+    Comcast files its common stock as CMCSA and an exchangeable debenture as CCZ,
+    both under CIK 1166691 and both titled COMCAST CORP in the Commission's
+    ticker file. The rule this replaced took the shorter symbol, so every proxy
+    that named Comcast produced a label pointing at a debt security rather than
+    at the company, and because no equity universe contains CCZ the pair was then
+    dropped as a peer outside the universe. One of the largest filers in the
+    sector disappeared from the training set and nothing said so.
+
+    Prudential lost PRU to the preferred PFH the same way, and DTE Energy lost
+    DTE to the debenture DTB. Across the live file the shortest-symbol rule
+    disagrees with the Commission's ordering for 224 of the 1,441 registrants
+    carrying more than one symbol.
+
+    The rows below are the real ones, in the real order, with CMCSA listed first
+    exactly as the Commission lists it.
+    """
+
+    class TwoSymbols(FixtureProxyClient):
+        def _get_json(self, url):
+            data = dict(super()._get_json(url))
+            data["900"] = {"cik_str": 1166691, "ticker": "CMCSA", "title": "COMCAST CORP"}
+            data["901"] = {"cik_str": 1166691, "ticker": "CCZ", "title": "COMCAST CORP"}
+            return data
+
+    index = build_name_index(TwoSymbols())
+    assert index.cik_of["CMCSA"] == index.cik_of["CCZ"]
+    assert "comcast" not in index.ambiguous
+    assert index["comcast"] == "CMCSA"
+    assert segment_names("ComcastNetflix, Inc.", index)[0] == ["CMCSA", "NFLX"]
 
 
 def test_index_survives_a_malformed_row_without_losing_the_rest(client):
@@ -537,7 +624,10 @@ def test_a_bare_year_heading_with_no_colon_anchors_the_list(client, index):
     assert group is not None
     assert group.fiscal_year == 2025
     assert group.method.endswith("(anchor: peer group heading for a year)")
-    assert group.peers[0] == "GOOG"  # Alphabet, the first name after the heading
+    # Alphabet, the first name after the heading. GOOGL rather than GOOG since
+    # the index began honouring the Commission's listing order; see
+    # test_a_registrants_symbols_are_ranked_by_the_commissions_own_order.
+    assert group.peers[0] == "GOOGL"
 
 
 def test_a_page_break_inside_the_table_does_not_hide_the_list(client, index):
