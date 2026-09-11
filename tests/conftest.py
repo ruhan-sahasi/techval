@@ -5,7 +5,7 @@ pruned to the us-gaap concepts techval reads and to facts ending on or after
 2023-01-01. Prices are frozen daily closes from the same date. Between them the
 whole engine runs offline and deterministically.
 
-The four companies are chosen for what they break:
+The companies are chosen for what they break:
 
     DDOG  calendar fiscal year, deep in-the-money convertibles, thin GAAP EBITDA
     CRWD  January fiscal year end, a four-for-one split mid-2026, no combined
@@ -13,6 +13,10 @@ The four companies are chosen for what they break:
     MDB   January fiscal year end, finance leases as well as operating leases
     ZS    January fiscal year end, marketable securities under a tag outside the
           obvious ladder
+    VZ    debt under a concept that bundles finance leases with it, a current
+          portion under a third concept, and a LongTermDebtNoncurrent whose
+          newest value is dated 2013
+    DIS   segment reporting, and a media pack the TMT commands read
 """
 
 from __future__ import annotations
@@ -89,6 +93,19 @@ def mdb():
 @pytest.fixture
 def zs():
     return build_financials("ZS", facts=load_facts("ZS"))
+
+
+@pytest.fixture
+def vz():
+    """Verizon: the debt ladder's worst case, and the reason it was rewritten.
+
+    Long-term debt under ``LongTermDebtAndCapitalLeaseObligations`` with finance
+    leases inside it, a current portion under a different concept again, and a
+    ``LongTermDebtNoncurrent`` whose newest value is dated 2013. The fixture
+    keeps the debt and lease concepts back to the first filing rather than
+    trimming them at 2023, because the thirteen-year-old value IS the test.
+    """
+    return build_financials("VZ", facts=load_facts("VZ"))
 
 
 @pytest.fixture
