@@ -503,13 +503,41 @@ class DelistedClient(MergerFixtureClient):
         return EdgarClient.ticker_to_cik(self, ticker)
 
 
-def test_the_committed_ticker_file_reproduces_the_delisting_wall():
-    """A tripwire on the premise. If this passes, the finding is real."""
+def test_the_delisting_wall_is_gone_and_the_ticker_file_is_still_why():
+    """The premise held and the wall it caused does not, so assert both halves.
+
+    This began as a tripwire on a finding: the SEC's current ticker file lists
+    10,407 symbols and none of them is a completed acquisition target, because a
+    delisted security's row goes with the security. That was true and is still
+    true, which is what ``source`` records here. What changed is that resolution
+    no longer ends there. A departed registrant keeps its whole filing history
+    under its CIK, and since 2019 every registrant tags ``dei:TradingSymbol`` on
+    its own signed cover page, so the mapping is recoverable from the filings
+    themselves.
+
+    Asserting the rung rather than only the number is the point. A test that
+    checked the CIK alone would keep passing if the ladder quietly started
+    guessing, and the whole value of the former-ticker index is that every row
+    traces to a document a company signed on a stated date.
+    """
     client = DelistedClient()
+
+    # A company that still trades answers from the authoritative source.
+    assert client.resolve_ticker("ROKU").source == "SEC ticker file"
     assert client.ticker_to_cik("ROKU") == 1428439
-    for delisted in ("SPLK", "ZEN", "MNDT", "WORK"):
-        with pytest.raises(MissingDataError):
-            client.ticker_to_cik(delisted)
+
+    # The four that could not be reached at all now resolve, and say how.
+    for delisted, cik in (
+        ("SPLK", 1353283),
+        ("ZEN", 1463172),
+        ("MNDT", 1370880),
+        ("WORK", 1764925),
+    ):
+        resolved = client.resolve_ticker(delisted)
+        assert resolved.cik == cik, delisted
+        assert resolved.source == "former-ticker index", delisted
+        assert "not in the SEC's current ticker file" in (resolved.note or "")
+        assert client.ticker_to_cik(delisted) == cik
 
 
 def test_parse_targets_reads_a_cik_beside_a_ticker():
@@ -525,18 +553,23 @@ def test_parse_targets_refuses_a_cik_that_is_not_a_number():
         C.parse_targets("=1353283")
 
 
-def test_a_delisted_target_cannot_be_named_by_ticker_alone(monkeypatch, merger_config):
-    """The state of the command before this change, asserted so it stays fixed.
+def test_a_delisted_target_resolves_by_ticker_alone(monkeypatch, merger_config):
+    """``precedents SPLK`` used to return nothing and blame the wrong cause.
 
-    ``precedents SPLK`` returns nothing and the flag blames the wrong cause: the
-    hint in ``edgar.ticker_to_cik`` reads as a foreign-filer problem and this is
-    a delisting. That hint belongs to ``edgar.py``; what this file can assert is
-    that the command offers a way past it.
+    The refusal read as a foreign-filer problem when it was a delisting, which is
+    the worst shape a refusal can take: it sent the reader looking in the wrong
+    place. Naming a CIK on the command line was the only way through, and it is
+    still supported and still tested below, but it is no longer the only way.
+
+    The command now reaches the deal from the bare ticker, and the provenance
+    line says which rung answered so a reader can tell a company that still
+    trades from one whose symbol was read off an old cover page.
     """
     monkeypatch.setattr(C, "EdgarClient", DelistedClient)
     out = _run(["precedents", "SPLK", "--config", str(merger_config)])
-    assert "0 of 1 ticker(s)" in _flat(out)
-    assert "not present in the SEC ticker file" in _flat(out)
+    flat = _flat(out)
+    assert "1 of 1 ticker(s)" in flat
+    assert "former-ticker index" in flat or "cover page" in flat
 
 
 def test_a_cik_on_the_command_line_gets_past_the_delisting(monkeypatch, merger_config):
