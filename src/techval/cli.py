@@ -4,12 +4,25 @@ All rendering lives here. The numeric modules return dataclasses and DataFrames
 and know nothing about terminals, so the same objects drive the CLI, the notebook
 and anything else built on the package.
 
-Four commands:
+The core valuation:
 
     techval value  TICKER      full valuation: statements, bridge, WACC, DCF, comps, chart
     techval comps  TICKER      the comp table alone
     techval merger ACQ TGT     accretion/dilution
+    techval backtest           value a set of names at past dates and score them
     techval fetch  TICKER      warm the cache and print the provenance table
+
+Nine more are mounted from the four ``commands_*`` modules, which own their own
+rendering: ``kpis``, ``segments`` and ``sotp`` over ``techval.tmt``; ``peers``
+and ``screen`` over the fitted encoder and the warranted multiple; ``fade`` and
+``signal`` over the forecast and the harness; ``precedents`` and ``targets``
+over M&A. They are merged in flat rather than nested behind a group, so the
+invocation is the one each module documents for itself.
+
+Six assumption flags additionally fold those capabilities into the ``value``
+report as optional sections. Every one defaults to off and the base report is
+byte-identical without them, which is asserted in tests/test_cli_integration.py
+rather than merely intended.
 """
 
 from __future__ import annotations
@@ -26,6 +39,30 @@ from rich.text import Text
 
 from .comps import run_comps
 from .apv import run_apv
+from .commands_forecast import app as _forecast_app
+from .commands_mna import app as _mna_app
+from .commands_peers import app as _peers_app
+from .commands_tmt import app as _tmt_app
+
+# The optional sections below reuse the command modules' own loaders and
+# renderers rather than growing second copies here. A warranted-multiple table
+# printed by the value report and one printed by `techval screen` should not be
+# able to drift apart, and the way to guarantee that is to have one of them.
+from .commands_forecast import _prices_from_csv
+from .commands_mna import load_dataset as _load_mna_dataset
+from .commands_peers import (
+    _bundle as _peer_bundle,
+    _cache_root as _ml_cache_root,
+    _load_observations,
+)
+from .commands_tmt import _render_sotp, load_plan as _load_sotp_plan
+from .errors import MissingDataError
+from .ml.mna import fit_propensity
+from .ml.signals import Score, test_signal
+from .ml.warranted import fit_warranted
+from .tmt.precedents import build_precedents
+from .tmt.segments import build_segments
+from .tmt.sotp import run_sotp
 from .backtest import (
     ForwardPrices,
     edgar_client_factory,
@@ -54,6 +91,31 @@ app = typer.Typer(
 # is not a terminal, which crushes every column to three characters in a piped
 # or redirected run, so a redirected run is given a width that fits the tables.
 console = Console(width=None if sys.stdout.isatty() else 120)
+
+
+def _mount(sub_app: typer.Typer, panel: str) -> None:
+    """Mount a command module's commands at the top level, under a help heading.
+
+    ``add_typer`` with no name merges the sub-app's commands into the parent
+    rather than nesting them behind a group, which is the shape all four command
+    modules document in their own docstrings: ``techval sotp DIS``, not
+    ``techval tmt sotp DIS``. Nesting would have read better in ``--help`` and
+    would have made those docstrings wrong, so the help panel carries the
+    grouping instead and the invocation stays the one the modules advertise.
+
+    The panel is set on each command here rather than in the modules themselves
+    because a module does not know what it will be mounted beside, and because
+    ``rich_help_panel`` passed to ``add_typer`` is silently ignored on a merge.
+    """
+    for command in sub_app.registered_commands:
+        command.rich_help_panel = panel
+    app.add_typer(sub_app)
+
+
+_mount(_tmt_app, "TMT fundamentals")
+_mount(_peers_app, "Learned comparables")
+_mount(_forecast_app, "Forecasts and signal testing")
+_mount(_mna_app, "M&A")
 
 _CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
 _NOCACHE = typer.Option(False, "--no-cache", help="Bypass the HTTP cache.")
@@ -524,6 +586,412 @@ def _render_comps(result) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# optional sections of the value report
+#
+# Six assumption flags switch these on and every one defaults to False, so the
+# base report is what it has always been unless a user asks for more. That is
+# not politeness about defaults. The premise of this package is that a DCF and a
+# comp table trace to filings, and a fitted model's output does not trace the
+# same way: it traces to a recorded panel, a training window and a seed. Mixing
+# the two by default would put a number nobody can audit next to numbers anybody
+# can, which is the one thing the engine is built not to do. A reader who turns
+# a flag on has asked for the fitted number and is told, in the section itself,
+# what it rests on.
+#
+# Each section refuses rather than invents. Where the artifact a model needs is
+# absent the section says which file it wanted and which command writes it, and
+# the report carries on: an optional section is not allowed to take the
+# valuation down with it.
+# --------------------------------------------------------------------------- #
+
+
+def _ml_root(assumptions, ml_data: Path | None) -> Path:
+    """Where the recorded model artifacts live.
+
+    ``--ml-data`` overrides ``ml.cache_dir``, which is the same root and the same
+    filenames ``techval peers`` and ``techval screen`` already default to. The
+    path is a function argument rather than a new assumptions entry deliberately:
+    a directory of recorded panels is a property of the machine a run happens on,
+    not a property of the company being valued, and the assumptions file is the
+    company's.
+    """
+    return Path(ml_data) if ml_data else _ml_cache_root(assumptions)
+
+
+def _require(paths: list[Path], *, what: str, writer: str) -> None:
+    """Refuse with the missing filename and the command that produces it."""
+    missing = [p for p in paths if not p.exists()]
+    if missing:
+        raise MissingDataError(
+            what,
+            hint=(
+                "missing "
+                + ", ".join(str(p) for p in missing)
+                + f". {writer} Point the run at another directory with --ml-data."
+            ),
+        )
+
+
+def _render_optional_sotp(ticker, fin, bridge, assumptions, client, plan_path) -> None:
+    """The sum of the parts, beside the DCF rather than instead of it.
+
+    A sum of the parts needs a multiple and a stated source for every segment and
+    there is no default anywhere in this package, because a peer multiple for a
+    cable network has no business living in a config shared with a software DCF.
+    So this section refuses without a plan and names the command that writes one.
+    """
+    report = build_segments(ticker, client, assumptions)
+    if plan_path is None:
+        console.print(
+            f"[yellow]tmt.sotp is on but no plan was supplied, so the parts are "
+            f"not valued. {ticker.upper()} reports "
+            f"{len(report.segments)} segment(s): "
+            + ", ".join(s.name for s in report.segments)
+            + ".[/yellow]"
+        )
+        console.print(
+            "[yellow]Run [bold]techval sotp "
+            f"{ticker.upper()} --emit-plan plan.yaml[/bold], fill in a multiple and "
+            "a source for every segment, then rerun with --sotp-plan plan.yaml. "
+            "There is no default multiple and inventing one would be the exact "
+            "failure this engine refuses.[/yellow]"
+        )
+        return
+
+    loaded = _load_sotp_plan(Path(plan_path))
+    if report.as_of != fin.as_of:
+        # The fix is deliberately NOT stated as --as-of {report.as_of}. Pinning
+        # the knowledge date to the last day of the fiscal year rolls the run
+        # back to before that year's annual report was filed, so the engine
+        # falls back to the PRIOR year's segment footnote and the two windows
+        # are still a period apart. Measured on DIS: --as-of 2025-09-27 returned
+        # segments for the year ended 2024-09-28. The date that actually closes
+        # the gap is shortly after the annual report reached EDGAR.
+        console.print(
+            f"[yellow]FLAG: the segments cover the year ended {report.as_of} and "
+            f"the consolidated figures cover the twelve months to {fin.as_of}. "
+            "Segment detail is annual, so the parts are measured a period behind "
+            "the whole. To bring them together, pin the run with --as-of set to a "
+            f"date shortly after the {report.as_of} annual report was filed, which "
+            "is a month or two after the year end rather than the year end "
+            "itself.[/yellow]"
+        )
+    result = run_sotp(
+        fin,
+        bridge,
+        report.segments,
+        loaded["multiples"],
+        assumptions,
+        corporate_cost=loaded["corporate_cost"],
+        corporate_multiple=loaded["corporate_multiple"],
+        corporate_multiple_source=loaded["corporate_multiple_source"],
+        conglomerate_discount=float(loaded["conglomerate_discount"]),
+    )
+    _render_sotp(result, fin, report)
+
+
+def _render_optional_peers(ticker, assumptions, root) -> list[str]:
+    """The encoder's comp set beside the hand-written one, and the disagreement.
+
+    Both are printed and neither replaces the other. The hand-written list is
+    somebody's judgment and the ranked list is a cosine from a model trained on
+    peer groups companies disclosed in their own proxies, so the interesting
+    output is not either list: it is the names one has and the other does not.
+
+    Returns the model's proposed tickers so a later section can reuse them.
+    """
+    groups = root / "peer_groups.json"
+    panel = root / "peer_panel.json"
+    text = root / "peer_item1.json"
+    _require(
+        [groups, panel, text],
+        what="the fitted peer encoder's training inputs",
+        writer=(
+            "These are recorded artifacts: an encoder is fitted on several "
+            "thousand proxy filings and cannot be built from one ticker. "
+            "tests/fixtures carries a committed set."
+        ),
+    )
+    target = ticker.upper()
+    bundle = _peer_bundle(
+        assumptions,
+        groups_path=groups,
+        panel_path=panel,
+        text_path=text,
+        through=None,
+        k=10,
+        # The walk-forward evaluation costs about a minute and belongs to
+        # `techval peers`, which prints it in full. A section inside the value
+        # report that silently spent a minute on it would be a surprise, and one
+        # that printed the warm number without the cold-start split beside it
+        # would be quoting the flattering half. So it is skipped here and the
+        # section says where to get it.
+        evaluate=False,
+        ablate=False,
+        refit=False,
+        use_cache=True,
+    )
+    encoder = bundle.encoder
+    shown = int(assumptions.ml.peers.n_peers)
+    ranked = encoder.neighbours(target, shown, apply_size_gate=True)
+    names: dict[str, str] = {}
+    for corpus in bundle.dataset.corpora.values():
+        names.update(corpus.entity_names)
+
+    console.print(
+        f"[dim]{len(encoder.tickers)} companies in the fitted universe, embedded "
+        f"at {encoder.fit_date}, text weight {encoder.text_weight:.2f}. This "
+        "ranking is a similarity, not a valuation, and it is shown beside the "
+        "hand-written set rather than in place of it.[/dim]\n"
+    )
+    hand = [p.upper() for p in assumptions.comps.peers]
+    hand_set = set(hand)
+    t = Table(box=None, pad_edge=False)
+    t.add_column("#", justify="right")
+    t.add_column("Ticker", no_wrap=True)
+    t.add_column("Company", overflow="ellipsis", max_width=34)
+    t.add_column("Similarity", justify="right")
+    t.add_column("In the hand-written set", justify="center")
+    for i, (peer, similarity) in enumerate(ranked, 1):
+        t.add_row(
+            str(i),
+            Text(peer, style="bold"),
+            names.get(peer, ""),
+            f"{similarity:.4f}",
+            "yes" if peer in hand_set else "-",
+        )
+    console.print(t)
+
+    proposed = [p for p, _s in ranked]
+    if hand:
+        added = [p for p in proposed if p not in hand_set]
+        dropped = [p for p in hand if p != target and p not in set(proposed)]
+        console.print("\n[bold]Disagreement[/bold]")
+        console.print(f"  The model adds  {', '.join(added) if added else 'nothing'}")
+        console.print(f"  The model drops {', '.join(dropped) if dropped else 'nothing'}")
+    console.print(
+        "\n[dim]The comp table above was built from the hand-written set. This "
+        "section proposes, it does not substitute: run [bold]techval peers "
+        f"{target}[/bold] for the cold-start split and the baselines that say "
+        "what the ranking is worth.[/dim]"
+    )
+    return proposed
+
+
+def _fit_warranted_panel(assumptions, root):
+    """Fit the warranted multiple on the recorded observation panel."""
+    panel_path = root / "observations.json.gz"
+    _require(
+        [panel_path],
+        what="the warranted-multiple observation panel",
+        writer=(
+            "The panel is every company in the universe priced at every quarter "
+            "end, which is why it is recorded rather than fetched: fit_warranted "
+            "refuses below 150 observations precisely so nobody runs it on a "
+            "sample small enough to fetch live. tests/fixtures/warranted/record.py "
+            "is the recorder."
+        ),
+    )
+    return fit_warranted(_load_observations(panel_path), assumptions)
+
+
+def _render_optional_warranted(ticker, model) -> None:
+    """The fitted warranted multiple and this company's residual.
+
+    The residual is the whole point and it is the easiest number here to
+    over-read, so the sentence the model writes about itself is printed rather
+    than a bare figure: it carries the within-date standard deviation, whether
+    the read was out of sample, and the reminder that a residual is a statement
+    about relative pricing and never about value.
+    """
+    read = model.warranted(ticker.upper())
+    rows = [
+        ("Actual multiple", f"{read.actual_multiple:,.1f}x"),
+        ("Warranted multiple", f"{read.warranted_multiple:,.1f}x"),
+        ("Residual, turns", f"{read.residual_turns:+,.1f}x"),
+        ("Residual, within-date SD", f"{read.z:+,.2f}"),
+        ("Out of sample", "yes" if read.out_of_sample else "NO, in sample"),
+    ]
+    t = Table(box=None, pad_edge=False)
+    t.add_column("", no_wrap=True)
+    t.add_column("", justify="right")
+    for label, shown in rows:
+        t.add_row(label, shown)
+    console.print(t)
+    console.print(f"\n{read.sentence()}")
+
+
+def _render_optional_signal(assumptions, model, root) -> None:
+    """Has the score driving that residual ever predicted anything?
+
+    This is the section the repository exists to be able to print. A warranted
+    residual is only worth reading if the ordering it produces has earned
+    anything in the years since, and the honest answer is allowed to be no. The
+    harness is handed the residuals as scores with the sign fixed before the
+    coefficient is seen: cheap means a negative residual, so the score is negated
+    so that a positive coefficient means cheap names earned more.
+    """
+    closes = root / "closes.csv.gz"
+    _require(
+        [closes],
+        what="the close price history the signal test scores against",
+        writer=(
+            "A forward return needs prices that run past the last score date by "
+            "the full horizon. tests/fixtures/signals carries a recorded set."
+        ),
+    )
+    scores = [
+        Score(ticker=t, as_of=when, value=-read.residual_log)
+        for (t, when), read in model.reads.items()
+    ]
+    prices = _prices_from_csv(closes, {s.ticker for s in scores})
+    result = test_signal(
+        scores,
+        prices,
+        assumptions=assumptions,
+        label="warranted residual (negated: positive means cheap)",
+    )
+    console.print(Text(result.verdict(), style="yellow bold"))
+    console.print(
+        "\n[dim]Sign fixed before the coefficient was seen. Run [bold]techval "
+        "signal --score warranted[/bold] for the per-date coefficient series, the "
+        "bucket table and the overlap correction behind this verdict.[/dim]"
+    )
+
+
+def _render_optional_propensity(ticker, assumptions, root) -> None:
+    """This company's own acquisition probability, beside the base rate.
+
+    The base rate is not decoration. A three percent unconditional chance of
+    being bought in a year means a model output of four percent is barely a
+    statement, and a probability printed on its own invites a reader to treat it
+    as a forecast. Both numbers or neither.
+    """
+    dataset = root / "mna"
+    _require(
+        [dataset / "universe.json", dataset / "events.json", dataset / "panel.csv.gz"],
+        what="the acquisition propensity dataset",
+        writer=(
+            "The universe has to keep companies after they delist, because a "
+            "company that is acquired stops filing and vanishes from every "
+            "current ticker list. tests/fixtures/mna carries one with its "
+            "manifest."
+        ),
+    )
+    panel, universe, events, extras = _load_mna_dataset(dataset)
+    when = max(panel.dates)
+    result = fit_propensity(
+        panel, universe, events, assumptions, as_of=when, extras=extras
+    )
+    frame = result.model.rank(
+        panel, universe, when, top_k=len(universe.as_of(when)),
+        extras=extras, events=events,
+    )
+    row = frame[frame["ticker"].str.upper() == ticker.upper()]
+    base = result.labels.base_rate
+    if row.empty:
+        console.print(
+            f"[yellow]{ticker.upper()} is not in the recorded propensity panel at "
+            f"{when}, so it has no probability. The universe's base rate at this "
+            f"horizon is {base:.1%}.[/yellow]"
+        )
+        return
+    probability = float(row.iloc[0]["probability"])
+    ev = result.evaluation
+    t = Table(box=None, pad_edge=False)
+    t.add_column("", no_wrap=True)
+    t.add_column("", justify="right")
+    t.add_row(f"{ticker.upper()} probability, {when}", _pct(probability))
+    t.add_row("Universe base rate", _pct(base))
+    t.add_row("Ratio to base rate", f"{probability / base:,.2f}x" if base else "NM")
+    t.add_row(f"Rank of {len(frame):,}", str(int(row.iloc[0]["rank"])))
+    console.print(t)
+    console.print(
+        Text(
+            f"\n  Walk-forward AUC {ev.score:.4f} against {ev.baseline_score:.4f} "
+            f"for the size sort, a lift of {ev.lift:+.4f}"
+            + (
+                f", inside a fold standard deviation of {ev.fold_sd:.4f}."
+                if ev.fold_sd is not None
+                else ", with no fold dispersion available."
+            ),
+            style="yellow bold",
+        )
+    )
+    console.print(
+        Text(
+            "  This is the weakest model in the package. Fundamentals only: no "
+            "valuation channel is in this ranking.",
+            style="yellow",
+        )
+    )
+
+
+def _render_optional_precedents(assumptions, client, market, candidates) -> None:
+    """Precedent transactions among the company's own sub-vertical.
+
+    ``build_precedents`` reads each target's own merger filing, so the tickers it
+    is handed are the question being asked. The comp set is the available stand
+    in for the sub-vertical: those are the names a banker would already have
+    agreed are the neighbours. Most of them were never acquired and contribute
+    nothing, which is not an error but the reason a propensity model has a
+    negative class.
+    """
+    if not candidates:
+        console.print(
+            "[yellow]No comp set and no proposed peers, so there is no "
+            "sub-vertical to draw precedents from. Set comps.peers.[/yellow]"
+        )
+        return
+    result = build_precedents(candidates, client, assumptions, prices=market)
+    if not result.transactions:
+        console.print(
+            f"[yellow]None of the {len(candidates)} names searched has a merger "
+            f"agreement on file inside {assumptions.ml.mna.lookback_years} years. "
+            "Most companies are not acquired, so an empty precedent set is a "
+            "finding rather than a failure.[/yellow]"
+        )
+        # Measured on live data rather than assumed. A reader who stops at the
+        # line above would conclude that nothing in this sub-vertical has ever
+        # been bought, and that conclusion would be wrong for a structural
+        # reason worth stating.
+        console.print(
+            "[yellow]Read that with the selection effect in mind. This section "
+            "searches the comp set, and a comp set is made of companies that "
+            "still trade. A company that was acquired was delisted, drops out of "
+            "the SEC ticker file, and can no longer be resolved from a ticker at "
+            "all, so the names most likely to carry a precedent are the ones that "
+            "cannot be in the list being searched. For a real precedent set, pass "
+            "the targets directly to [bold]techval precedents[/bold] with "
+            "price_source: csv and the closes supplied.[/yellow]"
+        )
+        return
+    t = Table(box=None, pad_edge=False)
+    t.add_column("Target", no_wrap=True)
+    t.add_column("Acquirer", overflow="ellipsis", max_width=28)
+    t.add_column("Announced", no_wrap=True)
+    t.add_column("Equity value", justify="right")
+    t.add_column("EV/Revenue", justify="right")
+    t.add_column("Premium", justify="right")
+    for deal in result.transactions:
+        t.add_row(
+            Text(str(deal.ticker), style="bold"),
+            str(getattr(deal, "acquirer", "") or ""),
+            str(getattr(deal, "announced", "") or ""),
+            _money(getattr(deal, "equity_value", None)),
+            _mult(getattr(deal, "ev_revenue", None)),
+            _pct(getattr(deal, "premium", None)),
+        )
+    console.print(t)
+    console.print(
+        "\n[dim]Precedents are not trading comps: a control premium and the "
+        "acquirer's expected synergies are inside every multiple above. Run "
+        "[bold]techval precedents[/bold] for the accession behind each row and "
+        "the deals that declined to price.[/dim]"
+    )
+
+
+# --------------------------------------------------------------------------- #
 # commands
 # --------------------------------------------------------------------------- #
 
@@ -535,6 +1003,23 @@ def value(
     no_cache: bool = _NOCACHE,
     out: str = _OUT,
     as_of: str = _ASOF,
+    ml_data: Path = typer.Option(
+        None,
+        "--ml-data",
+        help=(
+            "Directory holding the recorded model artifacts the optional sections "
+            "read. Defaults to ml.cache_dir. Only consulted when one of the ml.* "
+            "flags is on."
+        ),
+    ),
+    sotp_plan: Path = typer.Option(
+        None,
+        "--sotp-plan",
+        help=(
+            "Segment plan naming the multiple, the metric and the source for every "
+            "segment. Only consulted when tmt.sotp is on."
+        ),
+    ),
 ) -> None:
     """Full valuation: statements, EV bridge, WACC, DCF, comps and football field."""
     try:
@@ -645,8 +1130,94 @@ def value(
                 _rule("Adjusted present value")
                 console.print(f"[yellow]APV not run: {exc}[/yellow]")
 
+        # Beside the DCF, not instead of it. The sum of the parts needs only the
+        # statements and the bridge, so unlike the simulation and the APV it is
+        # not taken down by a DCF that could not be formed.
+        if assumptions.tmt.sotp:
+            # The heading is printed by the caller, before the attempt, so a
+            # section that refuses is still a section: it appears in the report
+            # under its own name with the reason underneath, rather than either
+            # vanishing or printing its title twice.
+            _rule("Sum of the parts")
+            try:
+                _render_optional_sotp(
+                    ticker, fin, bridge, assumptions, client, sotp_plan
+                )
+            except TechvalError as exc:
+                console.print(f"[yellow]Sum of the parts not run: {exc}[/yellow]")
+
         if comps_result is not None:
             _render_comps(comps_result)
+
+        # The fitted sections, each behind its own flag and each defaulting off.
+        # Every one is wrapped, because an optional section is never allowed to
+        # take the valuation down with it: a missing recorded panel should cost a
+        # reader that section and nothing else.
+        root = _ml_root(assumptions, ml_data)
+
+        proposed_peers: list[str] = []
+        if assumptions.ml.peers.enabled:
+            _rule("Learned comp set")
+            try:
+                proposed_peers = _render_optional_peers(ticker, assumptions, root)
+            except TechvalError as exc:
+                console.print(f"[yellow]Learned comp set not run: {exc}[/yellow]")
+
+        # The warranted multiple and the signal test share one fit. The signal
+        # section asks whether the residual the section above it just printed has
+        # ever predicted anything, so fitting the model twice would be wasteful
+        # and, worse, would let the two sections disagree.
+        warranted_model = None
+        warranted_error: TechvalError | None = None
+        if assumptions.ml.warranted.enabled or assumptions.ml.signals.enabled:
+            try:
+                warranted_model = _fit_warranted_panel(assumptions, root)
+            except TechvalError as exc:
+                warranted_error = exc
+
+        if assumptions.ml.warranted.enabled:
+            _rule("Warranted multiple")
+            if warranted_error is not None:
+                console.print(
+                    f"[yellow]Warranted multiple not fitted: {warranted_error}[/yellow]"
+                )
+            else:
+                try:
+                    _render_optional_warranted(ticker, warranted_model)
+                except TechvalError as exc:
+                    console.print(
+                        f"[yellow]No warranted read for {ticker.upper()}: {exc}[/yellow]"
+                    )
+
+        if assumptions.ml.signals.enabled:
+            _rule("Has that residual ever predicted anything?")
+            if warranted_error is not None:
+                console.print(
+                    "[yellow]Signal test not run: the warranted fit whose residual "
+                    f"it scores could not be made: {warranted_error}[/yellow]"
+                )
+            else:
+                try:
+                    _render_optional_signal(assumptions, warranted_model, root)
+                except TechvalError as exc:
+                    console.print(f"[yellow]Signal test not run: {exc}[/yellow]")
+
+        if assumptions.ml.mna.propensity_enabled:
+            _rule("Acquisition propensity")
+            try:
+                _render_optional_propensity(ticker, assumptions, root)
+            except TechvalError as exc:
+                console.print(f"[yellow]Propensity not run: {exc}[/yellow]")
+
+        if assumptions.ml.mna.precedents_enabled:
+            _rule("Precedent transactions")
+            try:
+                hand = [p.upper() for p in assumptions.comps.peers]
+                _render_optional_precedents(
+                    assumptions, client, market, hand or proposed_peers
+                )
+            except TechvalError as exc:
+                console.print(f"[yellow]Precedents not run: {exc}[/yellow]")
 
         path = _chart(
             ticker, fin, market, d, comps_result, price, out,
