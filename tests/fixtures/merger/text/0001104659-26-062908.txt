@@ -1,0 +1,713 @@
+false
+--03-31
+0000733269
+
+
+
+
+
+
+
+0000733269
+
+
+2026-05-15
+2026-05-15
+
+
+
+iso4217:USD
+
+
+xbrli:shares
+
+
+
+
+iso4217:USD
+
+
+xbrli:shares
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+UNITED STATES
+
+
+
+SECURITIES AND EXCHANGE COMMISSION
+
+
+
+WASHINGTON, D.C. 20549
+
+
+
+FORM 8-K
+
+
+
+
+
+CURRENT REPORT
+
+
+
+Pursuant to Section 13
+or 15(d) of
+
+
+
+the Securities Exchange Act of 1934
+
+
+
+Date of Report (Date of earliest event reported):
+May 15, 2026
+
+
+
+LIVERAMP
+HOLDINGS, INC.
+
+(Exact
+name of registrant as specified in its charter)
+
+
+
+
+
+
+Delaware
+001-38669
+83-1269307
+
+(State or other jurisdiction
+of incorporation)
+(Commission
+File Number)
+(IRS Employer
+Identification No.)
+
+
+
+225
+Bush Street, Seventeenth
+Floor
+
+San
+Francisco, CA
+94104
+
+(Address of principal executive offices, including
+zip code)
+
+
+
+(888)
+987-6764
+
+(Registrant’s telephone
+number, including area code)
+
+
+
+Check the appropriate box below if the Form 8-K
+filing is intended to simultaneously satisfy the filing obligations of the registrant under any of the following provisions (see General Instruction A.2. below):
+
+
+
+
+¨Written
+communications pursuant to Rule 425 under the Securities Act (17 CFR 230.425)
+
+
+
+
+
+
+
+xSoliciting
+material pursuant to Rule 14a-12 under the Exchange Act (17 CFR 240.14a-12)
+
+
+
+
+
+¨Pre-commencement
+communications pursuant to Rule 14d-2(b) under the Exchange Act (17 CFR 240-14d-2(b))
+
+
+
+
+
+¨Pre-commencement
+communications pursuant to Rule 13e-4(c) under the Exchange Act (17 CFR 240.13e-4(c))
+
+
+
+
+
+Securities registered pursuant to Section 12(b) of the Act:
+
+
+
+
+
+Title
+of each class
+
+Trading
+Symbol
+
+Name
+of each exchange on which registered
+
+Common
+Stock, $.10 par value
+
+RAMP
+
+New
+York Stock Exchange
+
+Indicate
+by check mark whether the registrant is an emerging growth company as defined in Rule 405
+of the Securities Act of 1933 (§230.405 of this chapter) or Rule 12b-2 of the Securities
+Exchange Act of 1934 (§240.12b-2 of this chapter).
+
+
+
+Emerging growth company ¨
+
+
+
+
+
+If an emerging growth company, indicate by check
+mark if the registrant has elected not to use the extended transition period for complying with any new or revised financial accounting
+standards provided pursuant to Section 13(a) of the Exchange Act.  ¨
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Item 1.01.Entry into a Material Definitive Agreement.
+
+
+
+On May 16, 2026, LiveRamp Holdings, Inc.
+(the “Company”) entered into an Agreement and Plan of Merger (the “Merger Agreement”) with
+MMS USA Holdings, Inc., a Delaware corporation (“Parent”) and a wholly owned subsidiary of Publicis (defined below),
+Covey Merger Sub, Inc., a Delaware corporation and a wholly owned subsidiary of Parent (“Merger Sub”), and, solely
+for the purpose of Section 10.14 thereto, Publicis Groupe S.A., a French société anonyme (“Publicis”),
+pursuant to which, among other things, at the effective time of the Merger (the “Effective Time”), Merger Sub will
+merge with and into the Company (the “Merger”), with the Company continuing as the surviving corporation and a direct
+wholly owned subsidiary of Parent.
+
+
+
+The Board of Directors of the Company (the “Company
+Board”) has unanimously (i) determined that the terms of the Merger Agreement and the transactions contemplated thereby,
+including the Merger, are fair to, and in the best interests of, the Company and its stockholders, (ii) determined that it is in
+the best interests of the Company and its stockholders and declared it advisable to enter into the Merger Agreement, (iii) approved
+the execution and delivery of the Merger Agreement by the Company, the performance by the Company of its covenants and agreements contained
+therein and the consummation of the Merger and the other transactions contemplated by the Merger Agreement upon the terms and subject
+to the conditions contained therein and (iv) resolved to recommend that the Company’s stockholders approve the transactions,
+including the Merger, and adopt the Merger Agreement.
+
+
+
+The Merger Agreement
+
+
+
+On the terms and subject to the conditions set
+forth in the Merger Agreement, at the Effective Time, each share of common stock, par value $0.10 per share, of the Company (“Company
+Common Stock”) issued and outstanding immediately prior to the Effective Time (other than any (i) Company Common Stock
+owned by stockholders that have properly perfected their rights of appraisal within the meaning of Section 262 of the Delaware General
+Corporation Law (the “DGCL”), (ii) Company Common Stock owned by the Company, Parent or Merger Sub and (iii) Company
+Common Stock owned by any direct or indirect wholly owned subsidiary of Parent (other than Merger Sub) or of the Company) will be converted
+into the right to receive $38.50 in cash, without interest (the “Merger Consideration”).
+
+
+
+In addition, the Merger Agreement provides for
+the following treatment of the Company’s equity awards at the Effective Time:
+
+
+
+
+·Options: Each outstanding option to purchase
+shares of Company Common Stock (each, a “Company Option”) will be converted into a restricted cash award in an amount
+equal to (i) the excess of the Merger Consideration over the applicable exercise price per share of such Company Option multiplied
+by (ii) the number of shares of Company Common Stock subject to such Company Option immediately prior to the Effective Time. The
+restricted cash award will otherwise be subject to the same terms and conditions as applicable before the Effective Time but will vest
+in full following certain qualifying terminations of employment that occur prior to the 24-month anniversary of the Effective Time in
+accordance with the Merger Agreement.
+
+
+
+
+·Restricted Stock Awards: Each outstanding
+award of restricted shares of Company Common Stock (each, a “Company Restricted Stock Award”) will be converted into
+a restricted cash award in an amount equal to (i) the number of shares of Company Common Stock subject to such Company Restricted
+Stock Award immediately prior to the Effective Time multiplied by (ii) the Merger Consideration. The restricted cash award will otherwise
+be subject to the same terms and conditions as applicable before the Effective Time, but will vest in full following certain qualifying
+terminations of employment that occur prior to the 24-month anniversary of the Effective Time in accordance with the Merger Agreement.
+
+
+
+
+
+
+
+
+
+
+
+
+
+·Company Restricted Stock Unit Awards and Performance
+Stock Unit Awards: Each outstanding time-vesting restricted stock unit award (each, a “Company RSU Award”) and
+each outstanding performance-vesting restricted stock unit award (each, a “Company PSU Award”) will be converted into
+a restricted cash award in an amount equal to (i) the number of shares of Company Common Stock subject to such Company RSU Award
+or Company PSU Award (determined based on (x) in the case of Company PSU Awards granted on or prior to December 31, 2025, that
+are subject to “Rule of 40” performance conditions, 128% of the target level of performance (in the case of fiscal year
+2025 grants) and 139% of the target level of performance (in the case of fiscal year 2026 grants), (y) in the case of all other Company
+PSU Awards granted on or prior to December 31, 2025, actual performance for completed performance periods and the greater of the
+target level and the actual level of performance through the Effective Time for incomplete performance periods and (z) in the case
+of Company PSU Awards granted after December 31, 2025, target level of performance) immediately prior to the Effective Time, multiplied
+by (ii) the Merger Consideration. The restricted cash award will otherwise be subject to the same terms and conditions as applicable
+before the Effective Time, except that the performance-based vesting conditions applicable to Company PSU Awards will cease to apply,
+and the awards will vest in full following certain qualifying terminations of employment that occur prior to the 24 month anniversary
+of the Effective Time in accordance with the Merger Agreement.
+
+
+
+The consummation of the Merger is subject to various
+conditions, including, among others, customary conditions relating to: (i) approval of the Merger and the adoption of the Merger
+Agreement by the Company’s stockholders (the “Company Stockholder Approval”); (ii) the absence of any law
+or order making unlawful or restraining, enjoining or otherwise prohibiting consummation of the Merger; (iii) (a) expiration
+or termination of any applicable waiting periods (and any extension thereof) under the Hart-Scott-Rodino Antitrust Improvements Act of
+1976, as amended, (b) the receipt of certain non-U.S. antitrust and foreign direct investment approvals and (c) the receipt
+of the CFIUS Approval (as defined in the Merger Agreement); (iv) the absence of any material adverse effect with respect to the Company;
+and (v) other customary conditions relating to the accuracy of representations and warranties and performance of covenants.
+
+
+
+The Merger Agreement also contains customary representations,
+warranties and covenants of the Company, Parent and Merger Sub, including, among others, covenants regarding the operation of the business
+of the Company and its subsidiaries prior to the Effective Time. Each of the Company and Parent will use its respective reasonable best
+efforts to take, or cause to be taken, all actions necessary, proper or advisable under applicable law to consummate the transactions
+contemplated in the Merger Agreement. In addition, the Company has agreed to customary “no shop” restrictions on the Company’s
+ability to solicit any Acquisition Proposal (as defined in the Merger Agreement) and to enter into any Company Acquisition Agreement (as
+defined in the Merger Agreement). Notwithstanding the limitations applicable under the “no-shop” restrictions, if, after the
+date of the Merger Agreement and prior to the date on which the Company Stockholder Approval is obtained, the Company receives a bona
+fide written Acquisition Proposal that did not result from a breach of the Company’s obligations under the “no-shop”
+restrictions and the Company Board determines in good faith, after consultation with its outside financial advisors and outside legal
+counsel, that such Acquisition Proposal (i) constitutes or could reasonably be expected to lead to a Superior Proposal (as defined
+in the Merger Agreement) and (ii) the failure to take such action would be a breach of its fiduciary duties under applicable law,
+the Company may engage in discussions or negotiations with and may provide nonpublic information relating to the Company to the person
+making such Acquisition Proposal and change its recommendation that the Company’s stockholders approve the adoption of the Merger
+Agreement, subject to certain notice rights, execution of confidentiality agreements and match rights in favor of Parent.
+
+
+
+If the Merger is consummated, the Company Common
+Stock will be delisted from the New York Stock Exchange and deregistered under the Securities Exchange Act of 1934, as amended (the
+“Exchange Act”), provided that such delisting and termination will not be effective until at or after the Effective
+Time.
+
+
+
+
+
+
+
+
+
+
+
+
+The Merger Agreement
+provides for certain customary termination rights of the Company and Parent, including, among others, (i) the Company’s right
+to terminate the Merger Agreement prior to the time the Company Stockholder Approval is obtained, in certain circumstances and subject
+to certain limitations, to accept a Superior Proposal, (ii) Parent’s right to terminate the Merger Agreement if the Company
+Board changes its recommendation that the Company’s stockholders approve the Merger and adopt the Merger Agreement or the Company
+is in material breach of the Merger Agreement, (iii) the right of each of the Company and Parent to terminate the Merger Agreement
+if the (a) the Company Stockholder Approval is not obtained, (b) the Merger has not been
+completed on or before May 16, 2027 (the “Outside Date”), which will be automatically extended by a period of
+three (3) months if certain regulatory closing conditions remain the only conditions not satisfied or waived as of the Outside Date
+(other than conditions that by their nature are to be satisfied at the closing) or (c) if the Committee on Foreign Investment in
+the United States (“CFIUS”) notifies Parent and the Company in writing that it intends to send a report to the President
+recommending he act to suspend or prohibit the Merger or the President issues an order suspending or prohibiting the Merger. The Merger
+Agreement also provides that (x) the Company will be required to pay Parent a termination fee of $32,350,000 following or in connection
+with the termination of the Merger Agreement in certain circumstances, including if the Company terminates the Merger Agreement in order
+to accept a Superior Proposal as set forth in the Merger Agreement and (y) Parent will be required to pay the Company a termination
+fee of $32,350,000 following or in connection with the termination of the Merger Agreement in certain circumstances, including if the
+Company terminates the Merger Agreement as a result of regulatory consents not being obtained on or before the Outside Date or the extension
+thereof and all other applicable conditions to the closing have been satisfied as of the time of such termination.
+
+
+
+The foregoing description of the Merger Agreement
+does not purport to be complete and is qualified in its entirety by reference to the Merger Agreement, which is attached hereto as Exhibit 2.1
+and is incorporated herein by reference.
+
+
+
+A copy of the Merger Agreement and the above description
+of the Merger Agreement have been included to provide investors with information regarding the terms of the Merger Agreement. They are
+not intended to provide any other factual information about the Company, Parent or their respective subsidiaries or affiliates. The representations,
+warranties and covenants contained in the Merger Agreement were made only for the purposes of the Merger Agreement and as of specific
+dates, are solely for the benefit of the parties to the Merger Agreement, may be subject to limitations agreed upon by the contracting
+parties, including being qualified by confidential disclosures made for the purposes of allocating contractual risk between the parties
+to the Merger Agreement instead of establishing these matters as facts, and may be subject to standards of materiality applicable to the
+contracting parties that differ from those applicable to investors. Investors should not rely on the representations, warranties and covenants
+or any descriptions thereof as characterizations of the actual state of facts or condition of the parties thereto or any of their respective
+subsidiaries or affiliates. Moreover, information concerning the subject matter of representations and warranties may change after the
+date of the Merger Agreement, which subsequent information may or may not be fully reflected in the Company’s or Parent’s
+public disclosures.
+
+
+
+
+Item 2.02.Results of Operations and Financial Condition
+
+
+
+On May 17, 2026, the Company issued a press
+release announcing the results of its financial performance for its fourth quarter and fiscal year ended March 31, 2026. The press
+release is furnished herewith as Exhibit 99.1 and incorporated by reference herein. Due to the announcement that the Company and
+Parent have entered into the Merger Agreement, the Company has canceled its conference call to discuss its fiscal 2026 fourth quarter
+financial results that was scheduled for 1:30 PM PDT on Thursday, May 21, 2026.
+
+
+
+The information in this Item 2.02 and Exhibit 99.1
+shall not be deemed “filed” for purposes of Section 18 of the Exchange Act, or otherwise subject to the liabilities of
+that Section, nor shall it be deemed incorporated by reference in any registration statement or other filing under the Securities Act
+of 1933, as amended (the “Securities Act”), or the Exchange Act, except in the event that the Company expressly states
+that such information is to be considered filed under the Exchange Act or incorporates it by specific reference in such filing.
+
+
+
+
+Item 5.02.Departure of Directors or Certain Officers; Election of Directors; Appointment of Certain Officers; Compensatory Arrangements of
+Certain Officers.
+
+
+
+Concurrently with the Merger Agreement, the Board
+approved the grant of retention awards to each of Scott Howe, Lauren Dillard, Jerry Jones and Vihan Sharma, in the amounts of $500,000,
+$500,000, $1,000,000 and $500,000, respectively. The retention awards will be payable in cash on the 30th day following the Effective
+Time (or such earlier date as is determined by Parent), subject to continued employment through such date with the Company or one of its
+affiliates.
+
+
+
+
+Item 5.03.Amendments to Articles of Incorporation or Bylaws; Change to Fiscal Year.
+
+
+
+On May 15, 2026, the Company Board approved
+an amendment and restatement to the Company’s Second Amended and Restated Bylaws (the “Bylaws”, and such amendment
+and restatement, the “Third Amended and Restated Bylaws”). The Third Amended and Restated Bylaws became effective on
+May 15, 2026.
+
+
+
+
+
+
+
+
+
+
+
+
+The Third Amended and Restated Bylaws provide
+that, unless the Company consents in writing to the selection of an alternative forum, the Court of Chancery of the State of Delaware
+(or, if the Court of Chancery does not have jurisdiction, the federal district court for the District of Delaware or, if neither such
+court has jurisdiction, any other state court located within the State of Delaware) shall be the sole and exclusive forum for (i) any
+derivative action or proceeding brought on behalf of the Company, (ii) any action asserting for or based upon a claim of breach of
+a fiduciary duty owed by any current or former director, officer or employee of the Company to the Company or the Company’s stockholders,
+including a claim alleging the aiding and abetting of such a breach of fiduciary duty, (iii) any action asserting a claim against
+the Company or any current or former director, officer or employee of the Company arising pursuant to any provision of the DGCL, the Certificate
+of Incorporation or the Bylaws (in each case, as they may be amended from time to time), (iv) any action asserting a claim related
+to or involving the Company that is governed by the internal affairs doctrine (as defined by or used in case law under the laws of the
+State of Delaware), or (v) any action asserting an “internal corporate claim” as the term is defined in Section 115
+of the DGCL. The Third Amended and Restated Bylaws also provide that, unless the Company consents in writing to the selection of an alternative
+forum, to the fullest extent permitted by law, the federal district courts of the United States shall be the sole and exclusive forum
+for any claim arising under the Securities Act or any rule or regulation promulgated thereunder (in each case, as amended from time
+to time); provided, however, that if such bylaws are, or the application of such bylaw to any person or any circumstance is, illegal,
+invalid or unenforceable, the Court of Chancery of the State of Delaware shall be the sole and exclusive state court forum for any claim
+arising under the Securities Act or any rule or regulation promulgated thereunder (in each case, as amended from time to time).
+
+
+
+Any person or entity purchasing or otherwise acquiring
+or holding any interest in shares of capital stock of the Company is deemed to have notice of and consented to the provisions of the bylaw
+amendment.
+
+
+
+The foregoing description of the Third Amended
+and Restated Bylaws does not purport to be complete and is subject to, and qualified in its entirety by, the full text of the Third Amended
+and Restated Bylaws, which is filed as Exhibit 3.1 to this Current Report on Form 8-K and is incorporated herein by reference.
+
+
+
+
+Item 7.01.Regulation FD Disclosure.
+
+
+
+On May 17, 2026, Publicis and the Company
+published a joint press release announcing the entry into the Merger Agreement. A copy of the press release is furnished as Exhibit 99.2
+to this Current Report on Form 8-K and is incorporated herein by reference.
+
+
+
+The information in this Item 7.01 and Exhibit 99.2
+shall not be deemed “filed” for purposes of Section 18 of the Exchange Act, or otherwise subject to the liabilities of
+that Section, nor shall it be deemed incorporated by reference in any registration statement or other filing under the Securities Act
+or the Exchange Act, except in the event that the Company expressly states that such information is to be considered filed under the Exchange
+Act or incorporates it by specific reference in such filing.
+
+
+
+Important Information and Where to Find
+It
+
+
+
+This Current Report on Form 8-K and the exhibits
+hereto may be deemed to be solicitation material in respect of the proposed transaction between the Company, Parent, Merger Sub and Publicis.
+In connection with the proposed transaction, the Company will be filing documents with the Securities and Exchange Commission (the “SEC”),
+including preliminary and definitive proxy statements relating to the proposed transaction (the “proxy statement”).
+The definitive proxy statement will be mailed to the Company’s shareholders in connection with the proposed transaction. BEFORE
+MAKING ANY VOTING DECISION, INVESTORS AND SECURITY HOLDERS ARE URGED TO READ THE PRELIMINARY AND DEFINITIVE PROXY STATEMENTS AND
+ANY OTHER DOCUMENTS TO BE FILED WITH THE SEC IN CONNECTION WITH THE PROPOSED TRANSACTION OR INCORPORATED BY REFERENCE IN THE PROXY STATEMENT
+WHEN THEY BECOME AVAILABLE BECAUSE THEY WILL CONTAIN IMPORTANT INFORMATION ABOUT THE PROPOSED TRANSACTION. Any vote in respect of resolutions
+to be proposed at the Company’s shareholder meeting to approve the proposed transaction should be made only on the basis of the
+information contained in the Company’s proxy statement and documents incorporated by reference therein. Investors and security holders
+may obtain free copies of these documents (when they are available) and other related documents filed with the SEC at the SEC’s
+web site at www.sec.gov or on the Company’s website at www.liveramp.com.
+
+
+
+
+
+
+
+
+
+
+
+
+NO OFFER OR SOLICITATION
+
+
+
+This Current Report on Form 8-K and the exhibits
+hereto do not constitute an offer to sell or the solicitation of an offer to buy any securities or a solicitation of any vote or approval,
+nor shall there be any sale of securities in any jurisdiction in which such offer, solicitation or sale would be unlawful prior to registration
+or qualification under the securities laws of any such jurisdiction. No offer of securities shall be made except by means of a prospectus
+meeting the requirements of Section 10 of the Securities Act of 1933, as amended, and applicable European and French regulations.
+
+
+
+Participants in the Solicitation
+
+
+
+Publicis, the Company and their respective directors
+and certain of their respective executive officers may be deemed to be participants in the solicitation of proxies from the shareholders
+of the Company in respect of the proposed transactions contemplated by the proxy statement. Information regarding the persons who are,
+under the rules of the SEC, participants in the solicitation of the shareholders of the Company in connection with the proposed transaction,
+including a description of their direct or indirect interests, by security holdings or otherwise, will be set forth in the proxy statement
+when it is filed with the SEC. Information about the directors and executive officers of the Company and their ownership of shares of
+Company common stock and other securities of the Company can be found in the sections entitled “Nominees and Continuing Directors,”
+“Stock Ownership,” “Compensation Discussion and Analysis,” “Compensation Tables,” and “Non-Employee
+Director Compensation” included in the Company’s proxy statement in connection with its 2025 Annual Meeting of Shareholders,
+filed with the SEC on June 27, 2025; in the Form 3 and Form 4 initial statements of beneficial ownership and statements
+of changes in beneficial ownership filed with the SEC by the Company’s directors and executive officers; and in other documents
+subsequently filed by the Company with the SEC, including the Company’s proxy statement relating to the proposed transaction when
+it becomes available. Investors and security holders may obtain free copies of these documents and other related documents filed with
+the SEC at the SEC’s website at www.sec.gov or on the Company’s website at www.liveramp.com.
+
+
+
+Cautionary Statement Regarding Forward-Looking
+Statements
+
+
+
+This Current Report on Form 8-K contains
+forward-looking statements within the meaning of, and subject to the protections of, Section 27A of the Securities Act of 1933, as
+amended, and Section 21E of the Securities Exchange Act of 1934, as amended, concerning Publicis, the Company, the proposed transaction
+and other matters. Forward-looking statements contained herein could include, among other things, statements regarding the anticipated
+timing of the consummation of the proposed transaction; statements about management’s confidence in and strategies for performance
+of the combined businesses; expectations for new and existing products, technologies and opportunities; and expectations regarding growth,
+sales, cash flows, and earnings. Forward-looking statements can be identified by the use of such terms as “may,” “could,”
+“expect,” “anticipate,” “intend,” “believe,” “likely,” “estimate,”
+“outlook,” “plan,” “contemplate,” “project,” “target” or other comparable
+terms. These forward-looking statements are not guarantees of future performance. Actual results may differ materially from the forward-looking
+statements as a result of a number of risks and uncertainties, many of which are outside the parties’ control. Many factors could
+cause actual future events to differ materially from the forward-looking statements in this communication including, but not limited to:
+(1) failure of the closing conditions in the merger agreement to be satisfied, or any unexpected delay in closing the proposed transaction
+or the occurrence of any event, change, or other circumstance that could give rise to the right of one or multiple of the parties to terminate
+the definitive agreement between Parent and the Company; (2) the possibility that the transaction does not close when expected or
+at all because required regulatory, shareholder, or other approvals are not received or satisfied on a timely basis or at all; (3) the
+possibility that the transaction may be more expensive to complete than anticipated, including as a result of unexpected factors or events,
+including those resulting from the announcement, pendency or completion of the transaction; (4) risks that the new businesses will
+not be integrated successfully or that the combined companies will not realize estimated cost savings, value of certain tax assets, synergies
+and growth or that such benefits may take longer to realize than expected; (5) failure to realize anticipated benefits of the combined
+operations; (6) risks relating to unanticipated costs of integration; (7) ability to hire and retain key personnel; (8) ability
+to successfully integrate the companies’ businesses; (9) the potential impact of announcement or consummation of the proposed
+transactions on relationships with third parties, including clients, employees and competitors, including reputational risk; (10) ability
+to attract new clients and retain existing clients in the manner anticipated; (11) reliance on and integration of information technology
+systems; or (12) suffering reduced profits or losses as a result of intense competition; or (13) potential litigation that may be instituted
+against the Company or its directors or officers related to the proposed transaction or the merger agreement. The foregoing list of factors
+is not exhaustive. You should carefully consider the foregoing factors and the other risks and uncertainties that affect the parties’
+businesses, including those described in the Company’s Annual Report on Form 10-K for the year ended March 31, 2025, in
+Part I “Cautionary Statements Relevant to Forward-Looking Information” and Part I, Item 1A, “Risk Factors,”
+as updated by subsequent Quarterly Reports on Form 10-Q, which are filed with the SEC and those described in documents Publicis has
+filed with the Autorité des Marchés Financiers (the French securities regulator). The parties do not undertake, nor do they
+have, any obligation to provide updates or to revise any forward-looking statements.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Item 9.01.Financial Statements and Exhibits.
+
+
+
+(d) The following items are filed as exhibits to this Current
+Report on Form 8-K.
+
+
+
+
+
+
+Exhibit No.
+
+Description of Exhibits
+
+2.1*
+
+Agreement and Plan of Merger, dated as of May 16, 2026, by and among the Company, Parent and Merger Sub and solely for purposes of Section 10.14 thereto, Publicis.
+
+3.1
+
+Third Amended and Restated Bylaws, dated May 15, 2026.
+
+99.1
+
+Press Release of the Company, dated May 17, 2026.
+
+99.2
+
+Joint Press Release of Publicis and the Company, dated May 17, 2026.
+
+104
+
+Cover Page Interactive Data File (embedded within the Inline XBRL document).
+
+
+
+
+*Schedules and similar attachments have been omitted pursuant to Item 601(a)(5) of Regulation S-K.
+The Company agrees to furnish supplementally a copy of any omitted schedule or similar attachment to the SEC upon request; provided, however,
+that the Company may request confidential treatment pursuant to Rule 24b-2 of the Exchange Act, for any schedules so furnished.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Signatures
+
+
+
+Pursuant to the requirements of the Securities Exchange Act of 1934, the registrant has duly caused this report to be signed on its behalf
+by the undersigned hereunto duly authorized.
+
+
+
+
+
+
+LIVERAMP HOLDINGS, INC.
+
+
+
+
+
+
+By:
+/s/ Jerry
+Jones
+
+
+Name:
+Jerry Jones
+
+
+Title:
+EVP, Chief Ethics and Legal Officer and Secretary
+
+
+
+
+Date: May 18, 2026

@@ -1,0 +1,693 @@
+false
+0001845815
+
+
+
+
+
+
+
+0001845815
+
+
+2026-06-12
+2026-06-12
+
+
+
+iso4217:USD
+
+
+xbrli:shares
+
+
+
+
+iso4217:USD
+
+
+xbrli:shares
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+UNITED STATES
+
+
+
+SECURITIES AND EXCHANGE COMMISSION
+
+
+
+Washington, D.C. 20549
+
+
+
+Form 8-K
+
+
+
+CURRENT REPORT
+
+
+
+Pursuant to Section 13 or 15(d) of the Securities
+Exchange Act of 1934
+
+
+
+Date of Report (Date of earliest event reported): June 15, 2026
+(June 12, 2026)
+
+
+
+
+
+
+Payoneer Global Inc.
+
+
+
+(Exact Name of Registrant as Specified in its Charter)
+
+
+
+
+
+
+Delaware
+
+001-40547
+
+86-1778671
+
+(State or other jurisdiction of incorporation)
+
+(Commission File Number)
+
+(I.R.S. Employer Identification No.)
+
+
+
+
+
+
+195 Broadway, 27th floor
+
+New York, New York
+
+
+10007
+
+(Address of Principal Executive Offices)
+
+(Zip Code)
+
+
+
+Registrant’s telephone number, including
+area code: (212) 600-9272
+
+
+
+
+
+N/A
+
+(Former name or former address, if changed since last report)
+
+
+
+Check the appropriate box below if the Form 8-K
+filing is intended to simultaneously satisfy the filing obligation of the registrant under any of the following provisions:
+
+
+
+
+
+☐
+Written communications pursuant to Rule 425 under the Securities Act (17 CFR 230.425)
+
+☒
+Soliciting material pursuant to Rule 14a-12 under the Exchange Act (17 CFR 240.14a-12)
+
+☐
+Pre-commencement communications pursuant to Rule 14d-2(b) under the Exchange Act (17 CFR 240.14d-2(b))
+
+☐
+Pre-commencement communications pursuant to Rule 13e-4(c) under the Exchange Act (17 CFR 240.13e-4(c))
+
+
+
+Securities registered pursuant to Section 12(b) of the Act:
+
+
+
+
+
+Title of each class
+
+Trading Symbol(s)
+
+Name of each exchange on which registered
+
+
+
+
+
+
+
+Common Stock, par value $0.01 per share
+
+PAYO
+
+The Nasdaq Stock Market LLC
+
+
+
+Indicate by check mark whether the registrant
+is an emerging growth company as defined in Rule 405 of the Securities Act of 1933 (Sec.230.405 of this chapter) or Rule 12b-2 of the
+Securities Exchange Act of 1934 (Sec.240.12b-2 of this chapter).
+
+
+
+Emerging growth company ☐
+
+
+
+If an emerging growth company, indicate by check mark if the registrant
+has elected not to use the extended transition period for complying with any new or revised financial accounting standards provided pursuant
+to Section 13(a) of the Exchange Act. ☐
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Item 1.01
+Entry into a Material Definitive Agreement.
+
+
+
+Merger Agreement
+
+
+
+On June 12, 2026, Payoneer
+Global Inc., a Delaware corporation (the “Company”), entered into an Agreement and Plan of Merger (the “Merger
+Agreement”) by and among the Company, Neon Maple Parent Inc., a corporation incorporated pursuant to the laws of Canada (“Nuvei”),
+and Panda Acquisition Sub Inc., a Delaware corporation and a wholly owned subsidiary of Nuvei (“Merger Sub”). Pursuant
+to the Merger Agreement, and upon the terms and subject to the conditions therein, Merger Sub will merge with and into the Company (the
+“Merger”), with the Company surviving the Merger as a wholly owned subsidiary of Nuvei.
+
+
+
+Subject to the terms and
+conditions of the Merger Agreement, at the effective time of the Merger (the “Effective Time”), each share of common
+stock, par value $0.01 per share, of the Company (the “Company Common Stock”) issued and outstanding immediately prior
+to the Effective Time, subject to certain limitations, will be converted into the right to receive $7.40 in cash, without interest (the
+“Merger Consideration”).
+
+
+
+Treatment of Company Equity Awards
+
+
+
+At the Effective Time, outstanding
+equity awards of the Company will generally be treated as follows:
+
+
+
+Options.
+Each vested option to purchase shares of Company Common Stock (“Option”)
+will be cancelled in exchange for a cash payment equal to the excess of the Merger Consideration over the exercise price of such Option,
+net of applicable tax withholding. Each unvested Option will be cancelled and converted into a deferred cash award equal to the excess
+of the Merger Consideration over the exercise price of such Option, subject to substantially the same vesting and payment terms (with
+accelerated vesting at the closing of the Merger of seventy-five percent (75%) of such deferred cash awards held by John Caplan, the
+Company’s Chief Executive Officer, in accordance with contractual arrangements (and vesting of the remaining twenty-five percent
+(25%) on the nine-month anniversary of the closing of the Merger, subject to the terms of the Caplan Letter Agreement (as defined below)).
+Options with an exercise price equal to or greater than the Merger Consideration will be cancelled for no consideration.
+
+
+
+
+RSU
+Awards. Each vested restricted stock unit award relating to shares of Company Common Stock that is subject solely to service-based
+vesting requirements as of the grant date (“RSU Award”) will be cancelled
+in exchange for a cash payment equal to the Merger Consideration, net of applicable tax withholding. Each unvested RSU Award will be
+cancelled and converted into a deferred cash award equal to the Merger Consideration, subject to substantially the same vesting and payment
+terms (with accelerated vesting at the closing of the Merger of seventy-five percent (75%) of such deferred cash awards held by Mr. Caplan
+(and vesting of the remaining twenty-five percent (25%) on the nine-month anniversary of the closing of the Merger, subject to the terms
+of the Caplan Letter Agreement) and fifty percent (50%) of such deferred cash awards held by Bea Ordonez, the Company’s Chief Financial
+Officer, in accordance with contractual arrangements).
+
+
+
+
+PSU Awards. Each restricted stock unit award relating to shares of Company Common
+Stock that is subject to performance-based vesting requirements as of the grant date (“PSU
+Award”) will be treated as follows. With respect to any PSU Award for which the applicable performance goals are the achievement
+of Adjusted EBITDA and Core Revenue (each as defined in the applicable award agreement), (x) for any performance year or performance period
+that is incomplete or for which the applicable performance measurement date has not yet occurred as of the Effective Time, the number
+of shares will be based on the greater of the target and actual level of achievement and (y) for any completed performance year or performance
+period, the number of shares will be based on the determination and certification of the goals by the Company Board of Directors prior
+to the Effective Time. For any PSU Award for which the applicable performance goal is the achievement of specified stock price performance
+targets, (x) for PSU Awards held by Mr. Caplan and Ms. Ordonez, the share price performance goals will be deemed achieved and (y) for
+any other holder, the performance goals will be determined based on stock price achievement when measured against the Merger Consideration.
+Each vested PSU Award (after taking into account the performance described above) will be cancelled in exchange for a cash payment equal
+to the Merger Consideration, subject to applicable tax withholding. Each unvested PSU Award (after taking into account the performance
+described above) will be cancelled and converted into a deferred cash award equal to the Merger Consideration, subject to substantially
+the same vesting and payment terms (but subject solely to time-based vesting conditions) (with accelerated vesting at the closing of the
+Merger of seventy-five percent (75%) of such deferred cash awards held by Mr. Caplan (and vesting of the remaining twenty-five percent
+(25%) on the nine-month anniversary of the closing of the Merger, subject to the terms of the Caplan Letter Agreement) and fifty percent
+(50%) of such deferred cash awards held by Ms. Ordonez in accordance with contractual arrangements).
+
+
+
+
+
+
+
+
+
+
+
+
+Closing Conditions
+
+
+
+Under the terms of the Merger
+Agreement, the completion of the Merger is subject to certain customary closing conditions, including, among others: (i) the adoption
+of the Merger Agreement and the approval of the transactions contemplated thereby by the affirmative vote (in person or by proxy) of the
+holders of a majority of the voting power of the outstanding Company Common Stock entitled to vote thereon (the “Company Stockholder
+Approval”); (ii) the accuracy of the parties’ respective representations and warranties in the Merger Agreement, subject
+to specified materiality qualifications; (iii) compliance by the parties with their respective covenants in the Merger Agreement in all
+material respects; (iv) the absence of any law or order restraining, enjoining, or otherwise prohibiting the consummation of the Merger;
+(v) the expiration of the waiting period applicable to the Merger under the Hart-Scott-Rodino Antitrust Improvements Act of 1976, as amended,
+and receipt of other approvals under specified antitrust, foreign investment and money transmitter license laws; (vi) the Company shall
+have provided certain required notices and received certain required change in ownership and change-in-control approvals for certain governmental
+authorizations held by the Company and its subsidiaries; and (vii) the absence of a Company Material Adverse Effect (as defined in the
+Merger Agreement) on or after the date of the Merger Agreement that is continuing as of immediately prior to the closing.
+
+
+
+Board Approval of the Merger Agreement
+
+
+
+The Merger Agreement and
+the consummation of the transactions contemplated thereby have been unanimously approved by the Company Board of Directors and the Company
+Board of Directors has resolved to recommend to the stockholders of the Company to adopt the Merger Agreement and approve the transactions
+contemplated by the Merger Agreement, including the Merger.
+
+
+
+Representations, Warranties and Covenants
+
+
+
+The Merger Agreement contains
+customary representations, warranties and covenants made by each of the Company, Nuvei and Merger Sub, including, among others, covenants
+by the Company regarding the conduct of its business during the pendency of the transactions contemplated by the Merger Agreement, public
+disclosures and other matters. The Company is required, among other things, not to solicit alternative business combination transactions
+and, subject to certain exceptions, not to engage in discussions or negotiations regarding an alternative business combination transaction.
+
+
+
+Termination Rights, Termination Fees
+
+
+
+Both the Company and
+Nuvei may terminate the Merger Agreement under certain specified circumstances, including, among others, (i) if the Merger is not
+consummated by June 12, 2027, subject to an extension for three months in order to obtain required regulatory approvals, (ii) if the
+Company Stockholder Approval is not obtained at the Company’s stockholders meeting to adopt the Merger Agreement and approve
+the Merger, (iii) in the case of Nuvei, if the Company willfully and materially breaches its covenants not to solicit alternative
+business combination transactions or the Company Board of Directors effects a change of recommendation with respect to the proposed
+transaction or (iv) in the case of the Company, in order to enter into a definitive agreement with respect to a “superior
+proposal” subject to certain requirements. In certain circumstances in connection with the termination of the Merger
+Agreement, including if the Company materially breaches its covenants not to solicit alternative business combination transactions,
+the Company Board of Directors effects a change of recommendation, or the Company terminates the Merger Agreement to enter into a
+definitive agreement with respect to a “superior proposal,” the Company would be required to pay Nuvei a termination fee
+of $89,000,000 in cash. In addition, in certain circumstances in connection with the termination of the Merger Agreement, including
+if the Company terminates the Merger Agreement because Nuvei fails to complete the transactions when required to do so under the
+terms of the Merger Agreement. Nuvei would be required to pay the Company a termination fee of $165,000,000 in cash. In the event
+that the Company terminates the Merger Agreement (i) because Nuvei materially breaches any of its representations, warranties or
+covenants (subject to certain cure rights) or (ii) under other circumstances and, at the time of termination, there has been fraud
+or willful and material breach of the Merger Agreement by Nuvei, the Company may elect to either receive such termination fee or
+pursue damages to be capped at $275,000,000.
+
+
+
+
+
+
+
+
+
+The foregoing description
+of the Merger Agreement does not purport to be complete and is qualified in its entirety by the full text of the Merger Agreement, a copy
+of which is filed as Exhibit 2.1 hereto and is incorporated by reference herein. The Merger Agreement has been attached to provide investors
+with information regarding its terms. It is not intended to provide any other factual information about the Company, Merger Sub or Nuvei.
+In particular, the assertions embodied in the representations and warranties contained in the Merger Agreement are qualified by information
+in confidential disclosure letters provided by each of the Company and Nuvei to each other in connection with the signing of the Merger
+Agreement or in filings of the respective parties with the United States Securities and Exchange Commission (the “SEC”).
+These confidential disclosure letters contain information that modifies, qualifies and creates exceptions to the representations and warranties
+and certain covenants set forth in the Merger Agreement. Moreover, the representations and warranties in the Merger Agreement were used
+for the purposes of allocating risk between the Company and Nuvei rather than establishing matters of fact. Accordingly, the representations
+and warranties in the Merger Agreement should not be relied on as a characterization of the actual state of facts about the Company, Merger
+Sub or Nuvei. The Merger Agreement should not be read alone but should instead be read in conjunction with the other information regarding
+the Merger Agreement, the Merger, the Company, Merger Sub, Nuvei, their respective affiliates and their respective businesses, that will
+be contained in, or incorporated by reference into, the proxy statement on Schedule 14A that the Company will file, as well as in the
+Form 10-K, Form 10-Q, Form 8-K and other filings that the Company may make with the SEC.
+
+
+
+Voting Agreements
+
+
+
+In connection with the transaction,
+certain stockholders of the Company (collectively, the “Support Stockholders”) have executed voting and support agreements
+(the “Voting Agreements”) in favor of Nuvei concurrently with the execution of the Merger Agreement, pursuant to which
+such Support Stockholders have agreed, among other things and subject to the terms and conditions of the Voting Agreements, to vote certain
+shares of Company Common Stock owned by them in favor of the approval and adoption of the Merger and the Merger Agreement. The Support
+Stockholders represent approximately 19% of the votes of all issued and outstanding shares of the Company Common Stock entitled to vote
+on the adoption of the Merger Agreement and approval of the transactions contemplated thereby. The Voting Agreements will terminate upon
+the earliest of (i) such date and time as the Merger Agreement shall be validly terminated, (ii) the effective time of the Merger or (iii)
+such date and time of any amendment, modification, change or waiver of any provision of the Merger Agreement (x) that reduces the amount
+or changes the form of the Merger Consideration (other than adjustments in accordance with the terms of the Merger Agreement) or (y) in
+a manner adverse in any material respect to the Support Stockholders.
+
+
+
+The foregoing description
+of the Voting Agreement does not purport to be complete and is qualified in its entirety by the full text of the Voting Agreement, a copy
+of which is filed as Exhibit 10.1 hereto and is incorporated by reference herein.
+
+
+
+
+Item 7.01. Regulation FD Disclosure.
+
+
+
+Press Release
+
+
+
+Attached as Exhibit 99.1
+to this Report is the press release jointly issued by the parties announcing the transactions on June 15, 2026.
+
+
+
+The information set forth
+in this Item 7.01, including the exhibits attached hereto, is intended to be furnished and shall not be deemed “filed” for
+purposes of Section 18 of the Exchange Act or otherwise subject to the liabilities of that section, nor shall it be deemed incorporated
+by reference in any filing under the Securities Act or the Exchange Act, except as expressly set forth by specific reference in such filing.
+
+
+
+Item 8.01 Other Events.
+
+
+
+Concurrently with entering into the Merger Agreement, Mr. Caplan entered
+into a letter agreement with Nuvei (the “Caplan Letter Agreement”), pursuant
+to which Mr. Caplan acknowledged that any changes to his position, title, authority, duties or responsibilities as a result of the closing
+of the Merger would not constitute “good reason” under any of his agreements or arrangements with the Company. Mr. Caplan
+further agreed that he will cease to serve as an employee of the Company as of the closing of the Merger, but will continue to make himself
+reasonably available to Nuvei as a consultant on an as-needed basis for the nine (9) month period immediately after the closing of the
+Merger for transition and integration matters. Consistent with the terms of the Merger Agreement, Mr. Caplan will be entitled to the accelerated
+vesting of his Options, RSU Awards and PSU Awards, in each case, as described above in the description of the Merger Agreement.
+
+
+
+
+
+
+
+
+
+
+Item 9.01 Financial Statements and Exhibits.
+
+
+
+(d) Exhibits
+
+
+
+
+
+Exhibit No.
+
+Description
+
+
+
+
+
+2.1*
+
+Agreement and Plan of Merger, by and among Payoneer Global Inc., Neon Maple Parent Inc. and Panda Acquisition Sub Inc., dated as of June 12, 2026.
+
+
+
+
+
+10.1
+
+Form of Voting and Support Agreement, by and among Neon Maple Parent Inc. and certain stockholders of Payoneer Global Inc.
+
+
+
+
+
+99.1
+
+Joint Press Release, dated as of June 15, 2026,
+by Payoneer Global Inc. and Neon Maple Parent Inc.
+
+
+
+
+
+
+104
+
+The cover page from this Current Report on Form 8-K, formatted in Inline XBRL
+
+
+
+
+
+*
+Schedules omitted pursuant to Item 601(b)(2) of Regulation S-K. The Company agrees to furnish supplementally a copy of any omitted schedule to the SEC upon request; provided, however, that the Company may request confidential treatment pursuant to Rule 24b-2 of the Securities Exchange Act of 1934, as amended, for any schedules or exhibits so furnished.
+
+
+
+
+
+Forward-Looking Statements
+
+
+
+Cautionary Statement Regarding Forward-Looking
+Statements
+
+
+
+This communication contains forward-looking statements
+within the meaning of the Private Securities Litigation Reform Act of 1995 (the “Act”). Except for historical information
+contained in this communication, the matters discussed herein contain forward-looking statements that involve risks and uncertainties.
+Such statements are provided under the “safe harbor” protection of the Act. In some cases, you can identify forward-looking
+statements because they contain words such as “may,” “will,” “shall,” “should,” “expects,”
+“plans,” “positioning,” “anticipates,” “could,” “intends,” “target,”
+“projects,” “contemplates,” “believes,” “estimates,” “predicts,” “potential”
+or “continue” or the negative of these words or other similar terms or expressions that concern our expectations, strategy,
+plans or intentions. Forward-looking statements include, but are not limited to, statements about transition and the impact of recent
+changes to our executive management team; statements regarding the expectations of demand for our products and cash flow generation; statements
+about improvements to and expansion of our products and platform, and launching new products; statements about future operating results,
+including revenue, volume, growth opportunities, variability of expenses, ability to realize efficiencies, future spending and incremental
+investments, business trends, our ability to deliver profits, and growth and value for shareholders; and assumptions regarding foreign
+exchange rates.
+
+
+
+
+
+
+
+
+
+Forward-looking statements by their nature address
+matters that are, to different degrees, uncertain, such as statements regarding the transactions (the “Transaction”) contemplated
+by the Merger Agreement, including the expected time period to consummate the Transaction. All such forward-looking statements are based
+upon current plans, estimates, expectations and ambitions that are subject to risks, uncertainties and assumptions, many of which are
+beyond the control of the Company, that could cause actual results to differ materially from those expressed in such forward-looking statements.
+Key factors that could cause actual results to differ materially include, but are not limited to, the expected timing and likelihood of
+completion of the Transaction, including the timing, receipt and terms and conditions of any required governmental and regulatory approvals
+of the Transaction; the occurrence of any event, change or other circumstances that could give rise to the termination of the Merger Agreement;
+the possibility that the Company’s stockholders may not approve the Transaction; the risk that the parties may not be able to satisfy
+the conditions to the Transaction in a timely manner or at all; risks related to disruption of management time from ongoing business operations
+due to the Transaction; the risk that any announcements relating to the Transaction could have adverse effects on the market price of
+the Company’s common stock; the risk that the Transaction and its announcement could have an adverse effect on the parties’
+business relationships and business generally, including the ability of the Company to retain customers and retain and hire key personnel
+and maintain relationships with their suppliers and customers, and on their operating results and businesses generally; the risk of unforeseen
+or unknown liabilities; customer, stockholder, partner, regulatory and other stakeholder approvals and support; the risk of unexpected
+future capital expenditures; the risk of potential litigation relating to the Transaction that could be instituted against the Company
+or its directors and/or officers; the risk associated with third party contracts containing material consent, anti-assignment, transfer
+or other provisions that may be related to the Transaction which are not waived or otherwise satisfactorily resolved; the risk of various
+events that could disrupt operations, including severe weather, such as droughts, floods, avalanches and earthquakes, cybersecurity attacks,
+wars, security threats and governmental response to them, and technological changes; the risks of labor disputes, changes in labor costs
+and labor difficulties; and the risks resulting from other effects of industry, market, economic, legal or legislative, political or regulatory
+conditions outside of the Company’s control. All such factors are difficult to predict and are beyond our control, including those
+detailed in the Company’s annual report on Form 10-K for the fiscal year ended December 31, 2025 (and which is available at https://www.sec.gov/Archives/edgar/data/1845815/000110465926020487/payo-20251231x10k.htm),
+quarterly reports on Form 10-Q and other documents subsequently filed by the Company with the Securities Exchange Commission (“SEC”)
+and that are available at https://www.sec.gov/edgar/search/#/ciks=0001845815&entityName=Payoneer%2520Global%2520Inc.%2520(PAYO)%2520(CIK%25200001845815).
+The Company’s forward-looking statements are based on assumptions that the Company believes to be reasonable but that may not prove
+to be accurate. Other unpredictable factors not discussed in this communication could also have material adverse effects on forward-looking
+statements. The Company does not assume an obligation to update any forward-looking statements, except as required by applicable law.
+These forward-looking statements speak only as of the date hereof.
+
+
+
+Additional Information and Where to Find It
+
+
+
+In connection with the Transaction, the Company
+will file with the SEC a proxy statement on Schedule 14A. The definitive proxy statement will be sent to the stockholders of the Company
+seeking their approval of the Transaction and other related matters. INVESTORS AND SECURITY HOLDERS ARE URGED TO READ THE PROXY STATEMENT
+ON SCHEDULE 14A WHEN IT BECOMES AVAILABLE, AS WELL AS ANY OTHER RELEVANT DOCUMENTS FILED WITH THE SEC IN CONNECTION WITH THE TRANSACTION
+OR INCORPORATED BY REFERENCE INTO THE PROXY STATEMENT, BECAUSE THEY WILL CONTAIN IMPORTANT INFORMATION REGARDING THE COMPANY, THE TRANSACTION
+AND RELATED MATTERS. Investors and security holders may obtain free copies of these documents, including the proxy statement, and other
+documents filed with the SEC by the Company through the website maintained by the SEC at https://www.sec.gov/edgar/browse/?CIK=1845815&owner=exclude.
+Copies of documents filed with the SEC by the Company will be made available free of charge by accessing the Company’s website at
+https://investor.payoneer.com/financials/sec-filings.
+
+
+
+
+
+
+
+
+
+Participants in the Solicitation
+
+
+
+The Company, Nuvei and their respective directors
+and executive officers may be deemed to be participants in the solicitation of proxies from the stockholders of the Company in connection
+with the Transaction under the rules of the SEC. Information about the interests of the directors and executive officers of the Company
+and other persons who may be deemed to be participants in the solicitation of stockholders of the Company in connection with the Transaction
+and a description of their direct and indirect interests, by security holdings or otherwise, will be included in the proxy statement related
+to the Transaction, which will be filed with the SEC. Information about the directors and executive officers of the Company and their
+ownership of the Company common stock is also set forth in the Company’s definitive proxy statement in connection with its 2026
+Annual Meeting of Stockholders, as filed with the SEC on April 27, 2026 (and which is available at https://www.sec.gov/ix?doc=/Archives/edgar/data/0001845815/000110465926049462/tm261500-1_def14a.htm)
+and in the Company’s Annual Report on Form 10-K for the fiscal year ended December 31, 2025 (and which is available at https://www.sec.gov/ix?doc=/Archives/edgar/data/0001845815/000110465926020487/payo-20251231x10k.htm).
+Information about the directors and executive officers of the Company, their ownership of the Company common stock, and the Company’s
+transactions with related persons is set forth in the sections entitled “Directors, Executive Officers and Corporate Governance,”
+“Security Ownership of Certain Beneficial Owners and Management and Related Stockholder Matters,” and “Certain Relationships
+and Related Transactions, and Director Independence” included in the Company’s annual report on Form 10-K for the fiscal year
+ended December 31, 2025, which was filed with the SEC on February 26, 2026 (and which is available at https://www.sec.gov/ix?doc=/Archives/edgar/data/0001845815/000110465926020487/payo-20251231x10k.htm),
+and in the sections entitled “Information Regarding the Board of Directors and Corporate Governance,” “Security Ownership
+of Certain Beneficial Owners and Management,” “Certain Relationships and Related Party Transactions,” and “Independence
+of the Board of Directors” included in the Company’s definitive proxy statement in connection with its 2026 Annual Meeting
+of Stockholders, as filed with the SEC on April 27, 2026 (and which is available at https://www.sec.gov/ix?doc=/Archives/edgar/data/0001845815/000110465926049462/tm261500-1_def14a.htm).
+Additional information regarding the interests of such participants in the solicitation of proxies in respect of the Transaction will
+be included in the proxy statement and other relevant materials to be filed with the SEC when they become available. These documents can
+be obtained free of charge from the SEC’s website at www.sec.gov.
+
+
+
+No Offer or Solicitation
+
+
+
+This communication is not intended to and shall
+not constitute an offer to sell or the solicitation of an offer to sell or the solicitation of an offer to buy any securities or the solicitation
+of any vote of approval, nor shall there be any sale of securities in any jurisdiction in which such offer, solicitation or sale would
+be unlawful prior to registration or qualification under the securities laws of any such jurisdiction. No offer of securities shall be
+made except by means of a prospectus meeting the requirements of Section 10 of the Securities Act of 1933, as amended.
+
+
+
+
+
+
+
+
+
+SIGNATURE
+
+
+
+Pursuant to the requirements of the Securities and Exchange Act of
+1934, the registrant has duly caused this report to be signed on its behalf by the undersigned hereunto duly authorized.
+
+
+
+
+
+
+PAYONEER GLOBAL INC.
+
+
+
+
+
+
+
+
+June 15, 2026
+By:
+/s/ Bea Ordonez
+
+
+
+Name: Bea Ordonez
+
+
+
+Title: Chief Financial Officer
