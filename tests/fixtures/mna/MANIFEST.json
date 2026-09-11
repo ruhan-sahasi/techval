@@ -1,0 +1,39 @@
+{
+ "retrieved": "2026-09-11",
+ "as_of": "2026-09-11",
+ "note": "Everything here was pulled from SEC EDGAR and the Nasdaq daily quote endpoint on the date above. No test reads the network.",
+ "files": {
+  "universe.json": {
+   "what": "493 TMT registrants with the two dates that decide point-in-time membership.",
+   "how": "Candidates are every filer carrying one of the 38 SIC codes in techval.tmt.taxonomy.SIC_TO_SUB_VERTICAL, taken from EDGAR's company search by SIC, screened to those reporting at least 500mm of revenue in some calendar year from 2018 to 2025 in the XBRL frames API. The departed side is the intersection of that set with every Form 25-NSE filed between 2019-01-01 and 2026-09-11, enumerated through EDGAR full-text search. Admission is the earliest 10-K or 10-Q in the submissions index, floored at the start of the EDGAR record for filers whose recent window truncates, and the substitution is recorded in notes. Departure is the Form 25 or Form 15 that is followed by no further periodic report.",
+   "warning": "Every departed registrant carries a CIK-derived key because a delisted ticker is not recoverable from EDGAR: it is absent from company_tickers.json, absent from the submissions payload, and absent from the Form 25 itself, all three of which were checked.",
+   "fields": "ticker (CIK-derived for a departed registrant), cik, name, admitted, departed, last_filing (the most recent 10-K or 10-Q, which is how a company that stopped filing without ever filing a Form 25 leaves the universe), sub_vertical, sic, notes."
+  },
+  "events.json": {
+   "what": "100 announced acquisitions of universe members, with completion.",
+   "how": "techval.tmt.precedents.find_merger_filings and extract_transaction, the production code paths, run over the 158 registrants whose submissions index carries a target-side merger form, with a budget of 25 documents each, proxies and tender-offer recommendations read before 8-Ks. Dates come from precedents._announcement_date and completion from precedents._completion.",
+   "audit": "Hand-audited after the fact and not hand-edited. Of the 7 transactions recovered by the dual-class fix in _consideration_clause, PowerSchool, Endeavor, DouYu and DISH are target-side acquisitions; DraftKings Holdings, SIRIUS XM and Gen Digital are an acquirer-side document or an internal reorganisation that the extractor still cannot tell from a sale. The same error rate presumably runs through the other 100. The set is shipped as the code produced it, because a label set corrected by the author's opinion of which deals are real is the author's opinion wearing a label set's clothes."
+  },
+  "panel.csv.gz": {
+   "what": "The point-in-time feature panel: every universe member on every quarter end from 2019-03-31 to 2026-06-30, built through a CompanyFacts pinned to the row date.",
+   "how": "techval.ml.features.build_features with market=None, then the cross-sectional winsorization at the 1st and 99th percentiles. The market feed is None deliberately: see the mna module docstring. The twelve price-dependent features are therefore empty for every row, which the tests assert. mna_net_cash_to_assets comes from techval.ml.mna.balance_sheet_extras on the same pinned client."
+  },
+  "price_availability.json": {
+   "what": "What the Nasdaq and Stooq daily quote endpoints returned for four delisted targets and one survivor, which is the evidence behind the decision to fit no price feature."
+  },
+  "facts/": {
+   "what": "Pruned companyfacts payloads for eight registrants.",
+   "how": "us-gaap reduced to the tags in techval.tags plus the research and sales expense ladders and the three weighted-average share tags that split detection reads; dei reduced to EntityCommonStockSharesOutstanding. Every fact with a period ending before 2015-01-01 dropped and every row key techval does not read dropped. Nothing is deduplicated, because split detection needs two filed values for one period."
+  },
+  "text/": {
+   "what": "PowerSchool's DEFM14C, markup stripped and otherwise verbatim.",
+   "why": "The regression fixture for the dual-class extraction fix."
+  }
+ },
+ "counts": {
+  "registrants": 493,
+  "departed": 104,
+  "deals": 107,
+  "deals_on_departed_registrants": 77
+ }
+}
