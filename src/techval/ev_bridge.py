@@ -220,7 +220,30 @@ def build_ev_bridge(
                 "multiples will be suppressed rather than shown inconsistently."
             )
 
-    equity_value = price * fin.diluted_shares
+    shares = fin.shares_for_valuation
+
+    # A treasury-stock count is built from outstanding shares and award tables,
+    # so it does NOT contain the shares an in-the-money convertible would
+    # create, whereas diluted WASO does through the mandatory if-converted
+    # method. Pairing that count with a bridge that also carries the note as
+    # equity would drop the instrument out of both sides of the valuation. Add
+    # the conversion shares back here, where the treatment is decided.
+    if (
+        fin.valuation_shares
+        and treatment == "if_converted"
+        and conv_cfg.conversion_price
+    ):
+        conversion_shares = fin.convertible_debt / conv_cfg.conversion_price
+        shares += conversion_shares
+        notes.append(
+            f"Added {conversion_shares:,.2f}mm conversion shares to the treasury "
+            "stock count. That count is built from outstanding shares and award "
+            "tables and so does not contain them, while the notes are carried as "
+            "equity rather than debt, and the instrument has to appear on one "
+            "side of the bridge or the other."
+        )
+
+    equity_value = price * shares
     liquid = fin.cash + fin.short_term_investments
 
     core = (
@@ -241,7 +264,7 @@ def build_ev_bridge(
     return EVBridge(
         ticker=fin.ticker,
         price=price,
-        diluted_shares=fin.diluted_shares,
+        diluted_shares=shares,
         equity_value=equity_value,
         straight_debt=fin.straight_debt,
         convertible_debt=fin.convertible_debt,

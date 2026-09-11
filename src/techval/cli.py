@@ -544,14 +544,17 @@ def value(
                 f"[yellow]Point in time: valuing {ticker.upper()} as it was knowable "
                 f"on {assumptions.as_of}.[/yellow]"
             )
-        fin, price, bridge = _load(ticker, client, market, assumptions)
+        fin = build_financials(ticker, client=client)
+        price = market.spot(ticker)
         _render_financials(fin)
 
+        # The share count is settled BEFORE the bridge is priced, because equity
+        # value and every multiple built on it divide by whatever it decides.
         if assumptions.dilution.method == "treasury_stock":
             try:
-                _render_share_count(
-                    build_share_count(ticker, price, fin, assumptions, client)
-                )
+                sc = build_share_count(ticker, price, fin, assumptions, client)
+                _render_share_count(sc)
+                fin.valuation_shares = sc.fully_diluted
             except TechvalError as exc:
                 _rule("Share count")
                 console.print(
@@ -559,6 +562,7 @@ def value(
                     f"diluted WASO: {exc}[/yellow]"
                 )
 
+        bridge = build_ev_bridge(fin, price, assumptions)
         _render_bridge(bridge, fin)
 
         comps_result = None

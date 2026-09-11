@@ -197,3 +197,76 @@ def test_conversion_shares_missing_from_diluted_waso_is_flagged(
 
     assert b.convertible_treatment == "if_converted"
     assert any(n.startswith("Warning:") and "understated" in n for n in b.notes)
+
+
+# --------------------------------------------------------------------------- #
+# the treasury stock count and the convertible, which must not fall between them
+# --------------------------------------------------------------------------- #
+
+
+def test_bridge_prices_on_the_valuation_share_count(ddog, assumptions, market):
+    """Equity value divides by whatever count has been settled, not always WASO."""
+    price = market.spot("DDOG")
+    assumptions.convertibles.conversion_price = None
+    assumptions.convertibles.treatment = "debt"
+
+    waso = build_ev_bridge(ddog, price, assumptions)
+    assert waso.equity_value == pytest.approx(price * ddog.diluted_shares)
+
+    ddog.valuation_shares = 377.73
+    tsm = build_ev_bridge(ddog, price, assumptions)
+    assert tsm.equity_value == pytest.approx(price * 377.73)
+    assert tsm.equity_value > waso.equity_value
+
+
+def test_conversion_shares_are_added_to_a_treasury_stock_count(
+    ddog, assumptions, market
+):
+    """The instrument has to appear on one side of the bridge or the other.
+
+    Diluted WASO already contains an in-the-money convertible's shares, because
+    ASU 2020-06 makes if-converted mandatory. A treasury stock count does not:
+    it is built from shares outstanding and the award tables, and a convertible
+    is neither. So pairing that count with a bridge that also carries the note
+    as equity rather than debt would drop the instrument out of BOTH sides, and
+    understate the share count by the conversion shares.
+
+    Datadog: 986mm of notes at a 148.15 conversion price is 6.65mm shares.
+    """
+    price = market.spot("DDOG")
+    assumptions.convertibles.treatment = "auto"
+    assumptions.convertibles.conversion_price = 148.15
+    ddog.valuation_shares = 377.73
+
+    b = build_ev_bridge(ddog, price, assumptions)
+    expected = 377.73 + ddog.convertible_debt / 148.15
+
+    assert b.convertible_treatment == "if_converted"
+    assert b.convertible_in_debt == 0.0
+    assert b.diluted_shares == pytest.approx(expected)
+    assert any("conversion shares to the treasury" in n for n in b.notes)
+
+
+def test_no_conversion_shares_are_added_when_the_note_is_debt(
+    ddog, assumptions, market
+):
+    """Carried as debt, the note is already on the bridge and must not be twice."""
+    price = market.spot("DDOG")
+    assumptions.convertibles.treatment = "debt"
+    assumptions.convertibles.conversion_price = 148.15
+    ddog.valuation_shares = 377.73
+
+    b = build_ev_bridge(ddog, price, assumptions)
+    assert b.convertible_in_debt == pytest.approx(ddog.convertible_debt)
+    assert b.diluted_shares == pytest.approx(377.73)
+
+
+def test_waso_path_never_adds_conversion_shares(ddog, assumptions, market):
+    """Diluted WASO already contains them; adding again would double count."""
+    price = market.spot("DDOG")
+    assumptions.convertibles.treatment = "auto"
+    assumptions.convertibles.conversion_price = 148.15
+    assert ddog.valuation_shares is None
+
+    b = build_ev_bridge(ddog, price, assumptions)
+    assert b.diluted_shares == pytest.approx(ddog.diluted_shares)

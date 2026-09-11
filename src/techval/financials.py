@@ -70,6 +70,11 @@ class Financials:
     current_liabilities: float | None
     deferred_revenue: float
 
+    # A point-in-time share count, when one has been built. ``diluted_shares``
+    # stays as filed so the two can always be compared and so the EPS tie-out
+    # control keeps comparing like with like.
+    valuation_shares: float | None = None
+
     provenance: dict[str, Provenance] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
 
@@ -160,6 +165,17 @@ class Financials:
         return (self.current_assets - self.cash - self.short_term_investments) - (
             self.current_liabilities
         )
+
+    @property
+    def shares_for_valuation(self) -> float:
+        """The count equity value and per-share figures divide by.
+
+        The treasury-stock count when one has been built, otherwise trailing
+        diluted weighted-average shares. Keeping both on the object rather than
+        overwriting one with the other means a reader can always see which was
+        used and what the other would have given.
+        """
+        return self.valuation_shares or self.diluted_shares
 
     @property
     def eps_diluted(self) -> float:

@@ -497,7 +497,7 @@ def project(
     rows: list[ProjectionYear] = []
     revenue = fin.revenue
     nwc_prev = cfg.nwc_pct_revenue * fin.revenue
-    shares = fin.diluted_shares
+    shares = fin.shares_for_valuation
     for i in range(n):
         revenue = revenue * (1.0 + float(growth[i]))
         ebit = revenue * float(margin[i])
@@ -733,7 +733,7 @@ def run_dcf(
     notes: list[str] = []
     checks: list[str] = []
 
-    if fin.diluted_shares <= 0:
+    if fin.shares_for_valuation <= 0:
         raise MissingDataError(
             "diluted shares outstanding",
             ticker=fin.ticker,
