@@ -65,6 +65,20 @@ and the fundamentals tower inside it. ``--ablate`` runs that refit and prints
 both rows with the fold standard deviation each has to clear, so neither half of
 the picture is available without the other.
 
+**Label sources, which is where the cross-sector results come from.** Cold start
+is a property of the target. The names that come out visibly wrong are on the
+other side of the pair, and the measure that separates them is how many DIFFERENT
+filers ever named the candidate. ``peers DIS`` ranks Procter and Gamble fifth,
+above Netflix, and every labelled appearance P&G has in the committed fit comes
+from Microsoft's proxy: one filer, no group of its own. ``peers NVDA`` ranks
+Boston Scientific sixth, above Microsoft, on Analog Devices' proxy alone. A
+candidate enters the universe by being named once, so the universe is always
+wider than the supervision behind it, and the cross-sector name a compensation
+committee reaches for is exactly the kind that enters on one mention. The count
+is a column in the ranking and a single-source row gets a banner of its own.
+Nothing is dropped: see ``_render_thin_evidence`` for why a bad row printed and
+marked beats a bad row filtered out.
+
 **The hand-written comp set, beside it.** ``assumptions.comps.peers`` is what a
 human chose, and the disagreement between that list and the model's is the
 interesting output. Agreement is not, particularly: if the target is warm, the
@@ -210,22 +224,61 @@ _CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML fi
 # --------------------------------------------------------------------------- #
 
 
+# The flag that supplies each artifact and the committed file that satisfies it,
+# so a refusal can print the command line that works rather than the directory to
+# go looking in. Nothing here is loaded by default: pointing the command at the
+# test fixtures is a decision a reader makes, because a fixture recorded on one
+# day is evidence about that day and substituting it for a missing input would be
+# the engine inventing a universe.
+_ARTIFACT_FLAGS = {
+    "the disclosed peer groups": ("peers", "--groups", "tests/fixtures/peer_groups_tmt.json"),
+    "the feature panel": ("peers", "--panel", "tests/fixtures/peer_panel_tmt.json"),
+    "the business-description corpora": (
+        "peers",
+        "--text",
+        "tests/fixtures/peer_item1_tmt.json",
+    ),
+    "the warranted-multiple observation panel": (
+        "screen",
+        "--panel",
+        "tests/fixtures/warranted/observations.json.gz",
+    ),
+}
+
+
 def _read_json(path: Path, *, what: str) -> Any:
     """Read a JSON document, gzipped or not, and name the file when it will not.
 
     ``.json.gz`` is accepted because the observation panel is two thousand rows
     of features and compresses fourteen to one. The suffix decides, so a file
     named ``.json`` that is really gzip is an error rather than a guess.
+
+    The refusal names the flag and the committed file that satisfies it. Measured
+    on a clean machine: ``peers DDOG`` with no flags fails, because
+    ``~/.techval/ml/`` holds the joblib caches these commands write but none of
+    the three inputs they read, and the old refusal pointed at ``tests/fixtures``
+    without saying which of the files in it went with which of the three flags.
+    A reader who has to guess that has been handed a puzzle rather than an
+    instruction.
     """
     if not path.exists():
+        command, flag, example = _ARTIFACT_FLAGS.get(what, ("", "", ""))
+        fix = (
+            f" Supply it with {flag}, for example: techval {command} "
+            f"{'TICKER ' if command == 'peers' else ''}{flag} {example}."
+            if flag
+            else ""
+        )
         raise MissingDataError(
             what,
             hint=(
                 f"no file at {path}. These commands read a recorded artifact rather "
                 "than the network, because fitting either model touches thousands of "
-                "filings. tests/fixtures carries recorded examples read from real "
-                "filings on 2026-09-11, and tests/fixtures/warranted/record.py is the "
-                "script that wrote the observation panel"
+                "filings, and nothing is loaded by default: a fixture recorded on one "
+                "day is evidence about that day." + fix + " The committed examples "
+                "under tests/fixtures were read from real filings on 2026-09-11, and "
+                "tests/fixtures/warranted/record.py is the script that wrote the "
+                "observation panel"
             ),
         )
     try:
@@ -605,14 +658,75 @@ def _trained_filers(dataset: PeerDataset, through: date) -> dict[str, list[PeerG
     return out
 
 
+# How many DIFFERENT filers have to have asserted something about a name before
+# its position in a ranking is treated as a result rather than as extrapolation.
+# Two, because one committee is not a distribution: a name every one of whose
+# labelled appearances comes from a single proxy has an embedding driven by its
+# features and its prose, with the contrastive loss having pulled on it from one
+# direction only.
+MIN_LABEL_SOURCES = 2
+
+
+def _label_sources(dataset: PeerDataset, through: date) -> dict[str, set[str]]:
+    """For every company, the set of filers whose disclosed groups mention it.
+
+    A company's own group counts as one source, so a filer that disclosed a group
+    and was never named by anybody else has exactly one and is flagged, which is
+    the right answer: nothing outside its own compensation committee has said
+    where it sits.
+
+    Why this and not the cold-start flag the command already prints. Warm and
+    cold are properties of the TARGET and they were measured at the right place:
+    ``peers DIS`` reports Disney WARM, because Disney disclosed two groups inside
+    the training window. The names that come out wrong are on the other side of
+    the pair. Measured on the committed universe of 173 companies and 220
+    disclosed groups:
+
+        PROCTER & GAMBLE ranks 5th for Disney at 0.9161, above NETFLIX at 0.9076.
+        Every labelled appearance P&G has in this fit comes from Microsoft's
+        proxy. One filer, four groups, no group of its own.
+
+        BOSTON SCIENTIFIC ranks 6th for Nvidia at 0.7601, above MICROSOFT at
+        0.7532. Every labelled appearance it has comes from Analog Devices'
+        proxy. One filer, six groups, no group of its own.
+
+    Those were the two cross-sector results the wave's verifiers found, and both
+    are single-source names. 34 of the 173 candidates are in that state and the
+    median name has four sources, so this is a real minority rather than a
+    description of the whole universe. The measure needs no sector taxonomy,
+    which matters: a sector label would be this command's opinion, and the
+    question a comp set has to answer is what the labels support.
+    """
+    out: dict[str, set[str]] = {}
+    for g in dataset.groups:
+        if g.filed is None or g.filed > through or not g.usable:
+            continue
+        filer = g.ticker.upper()
+        out.setdefault(filer, set()).add(filer)
+        for peer in g.peers:
+            out.setdefault(peer.upper(), set()).add(filer)
+    return out
+
+
 def _render_start_banner(
-    ticker: str, groups: list[PeerGroup], evaluation: PeerEvaluation | None
+    ticker: str,
+    groups: list[PeerGroup],
+    evaluation: PeerEvaluation | None,
+    sources: set[str],
 ) -> None:
     """Warm or cold, said before the table rather than in a footnote.
 
     The two scores beside it come from the model's own walk-forward evaluation
     and are printed only when that evaluation was run. Neither is hardcoded here
     and neither is a claim this command makes on its own.
+
+    ``sources`` is the second, orthogonal question: warm or cold is about whether
+    the target ever appeared as a QUERY, and this is about how many different
+    filers said anything about it at all. A cold target named by fifteen proxies
+    is a name the model has seen from fifteen angles without ever being asked to
+    rank it, and a warm target named by nobody else is a company whose only
+    supervision is its own compensation committee. They come apart often enough
+    that printing one without the other is a half answer.
     """
     warm = bool(groups)
     filed = max(g.filed for g in groups) if warm else None
@@ -644,6 +758,17 @@ def _render_start_banner(
                 style="red bold",
             )
         )
+    n = len(sources)
+    console.print(
+        Text(
+            f"{n} distinct filer(s) named {ticker} in a usable disclosed group "
+            "inside the training window, counting its own. That is how much the "
+            "labels constrain where this company sits, and it is a different "
+            "question from warm or cold: only the filer of a group was ever a "
+            "query, while anybody can name anybody.",
+            style="red bold" if n < MIN_LABEL_SOURCES else "dim",
+        )
+    )
 
 
 def _render_ranking(
@@ -652,25 +777,90 @@ def _render_ranking(
     hand: list[str],
     disclosed: set[str],
     names: dict[str, str],
+    sources: dict[str, set[str]],
 ) -> None:
     t = Table(box=None, pad_edge=False)
     t.add_column("#", justify="right")
     t.add_column("Ticker", no_wrap=True)
     t.add_column("Company", overflow="ellipsis", max_width=34)
     t.add_column("Similarity", justify="right")
+    t.add_column("Label sources", justify="right")
     t.add_column("In the hand-written set", justify="center")
     t.add_column(f"In {ticker}'s own proxy", justify="center")
     hand_set = {h.upper() for h in hand}
     for i, (peer, similarity) in enumerate(ranked, 1):
+        n = len(sources.get(peer, ()))
+        thin = n < MIN_LABEL_SOURCES
+        style = "red" if thin else ""
         t.add_row(
             str(i),
-            Text(peer, style="bold"),
-            names.get(peer, ""),
-            f"{similarity:.4f}",
+            Text(peer, style="red bold" if thin else "bold"),
+            Text(names.get(peer, ""), style=style),
+            Text(f"{similarity:.4f}", style=style),
+            Text(str(n), style="red bold" if thin else ""),
             "yes" if peer in hand_set else "-",
             "yes" if peer in disclosed else "-",
         )
     console.print(t)
+
+
+def _render_thin_evidence(
+    ticker: str,
+    ranked: list[tuple[str, float]],
+    sources: dict[str, set[str]],
+    universe: list[str],
+    names: dict[str, str],
+) -> None:
+    """The rows the labels barely constrain, named, kept and argued over.
+
+    Nothing is dropped and nothing is capped. A ranking that quietly excluded its
+    embarrassing rows would be a worse object than one that prints them: the
+    reader would have no way to see that the model puts a consumer staples
+    company fifth for a media conglomerate, which is the single most useful thing
+    this output can tell them about how far the model can be trusted here.
+
+    The argument for refusing the whole ranking instead was considered and
+    rejected. On Disney seven of the eight names are Comcast, Verizon, AT&T,
+    Charter, T-Mobile, Netflix and Microsoft, which is a defensible media and
+    telecom comp set and is what the reader came for. Refusing all eight because
+    one of them rests on one proxy throws away a right answer to avoid printing a
+    wrong row that is now labelled as one. What IS refused is the silent version:
+    the row keeps its rank and carries the count that earned the warning.
+    """
+    thin = [(p, s) for p, s in ranked if len(sources.get(p, ())) < MIN_LABEL_SOURCES]
+    if not thin:
+        return
+    total_thin = sum(1 for t in universe if len(sources.get(t, ())) < MIN_LABEL_SOURCES)
+    console.print()
+    for peer, similarity in thin:
+        who = sorted(sources.get(peer, ()))
+        rank = next(i for i, (p, _s) in enumerate(ranked, 1) if p == peer)
+        origin = (
+            f"every labelled appearance it has comes from one filer's proxy ({who[0]})"
+            if who
+            else "no disclosed group in the training window mentions it at all"
+        )
+        console.print(
+            Text(
+                f"OUT OF ITS DEPTH. {peer} ({names.get(peer, 'name unknown')}) is "
+                f"ranked {rank} of {len(ranked)} for {ticker} at {similarity:.4f}, and "
+                f"{origin}. The contrastive loss pulled on this name from one "
+                "direction, so its position here is driven by its features and its "
+                "prose rather than by anything a committee asserted about it. The "
+                "row is printed at its rank rather than dropped, because a ranking "
+                "that hides the names it cannot support is worse than one that "
+                "marks them.",
+                style="red bold",
+            )
+        )
+    console.print(
+        f"\n[dim]{total_thin} of the {len(universe)} companies in the candidate "
+        f"universe are named by fewer than {MIN_LABEL_SOURCES} distinct filers. A "
+        "candidate enters the universe by being named once, so the universe is "
+        "wider than the supervision behind it, and the cross-sector names a "
+        "compensation committee reaches for are exactly the ones that enter on a "
+        "single mention.[/dim]"
+    )
 
 
 def _render_hand_set(
@@ -871,7 +1061,12 @@ def peers(
     through: str = typer.Option(
         None,
         "--through",
-        help="Fit on pairs disclosed on or before this date (YYYY-MM-DD).",
+        "--as-of",
+        help=(
+            "Fit on pairs disclosed on or before this date (YYYY-MM-DD). This is "
+            "what --as-of means here, and it pins less than --as-of pins on the "
+            "commands that read EDGAR: see the note printed under the ranking."
+        ),
     ),
     size_gate: bool = typer.Option(
         True, "--size-gate/--no-size-gate", help="Apply ml.peers size bands to candidates."
@@ -900,14 +1095,17 @@ def peers(
     the blend ``(1 - text_weight) * fundamentals + text_weight * text`` because
     that blend is inside the architecture rather than applied afterwards.
 
-    Three things are printed beside the ranking and none of them is optional.
+    Four things are printed beside the ranking and none of them is optional.
     Whether the target was warm or cold in the training window, since the model
-    is much weaker cold and a ranked list looks the same either way. Where the
-    hand-written comp set landed, since the disagreement is the output worth
-    reading. And every baseline on the same queries, since the popularity prior
-    is a degenerate solution that scores respectably by naming the same famous
-    companies for every query, and a model that beat it by imitating it would
-    otherwise be invisible.
+    is much weaker cold and a ranked list looks the same either way. How many
+    different filers ever named each name in the list, since a candidate resting
+    on one proxy is where this model leaves the distribution it was fitted on and
+    the ranked list looks the same there too. Where the hand-written comp set
+    landed, since the disagreement is the output worth reading. And every
+    baseline on the same queries, since the popularity prior is a degenerate
+    solution that scores respectably by naming the same famous companies for
+    every query, and a model that beat it by imitating it would otherwise be
+    invisible.
 
     ``--ablate`` adds the fourth, at the cost of about a minute: the model
     refitted without each tower in turn, with the fold-to-fold standard deviation
@@ -949,12 +1147,32 @@ def peers(
         console.print(
             f"[dim]{names.get(target, '')}   {len(encoder.tickers)} companies in the "
             f"fitted universe, embedded at {encoder.fit_date} on proxies filed through "
-            f"{trained_through}, text weight {encoder.text_weight:.2f}.[/dim]\n"
+            f"{trained_through}, text weight {encoder.text_weight:.2f}.[/dim]"
+        )
+        # What --as-of means here, stated because it does not mean what it means
+        # everywhere else in this engine. On a command that reads EDGAR it
+        # discards facts filed later and stops the price series. Here there is no
+        # EDGAR call: the labels are cut at the date, and the features and the
+        # prose are whatever the recorded artifacts hold, because the panel and
+        # the corpora were built once per panel date and this command cannot
+        # rebuild them. `fit_peer_encoder` embeds at the newest panel date
+        # whatever the cut, so a 2023 cut on the committed artifacts still
+        # embeds at 2026-01-01. An alias that silently pinned less than the flag
+        # pins elsewhere would be the worst of the three options available.
+        console.print(
+            f"[dim]--through / --as-of pins the LABELS only: pairs disclosed after "
+            f"{trained_through} were not fitted on. The feature panel and the "
+            f"business descriptions are recorded artifacts, and the universe is "
+            f"embedded at {encoder.fit_date}, the newest date in the panel, "
+            "whatever the cut. Point-in-time here is therefore weaker than "
+            "--as-of on the commands that read EDGAR, and the fix is a panel "
+            "recorded to the date rather than a flag.[/dim]\n"
         )
 
         filers = _trained_filers(bundle.dataset, trained_through)
         own = filers.get(target, [])
-        _render_start_banner(target, own, bundle.evaluation)
+        sources = _label_sources(bundle.dataset, trained_through)
+        _render_start_banner(target, own, bundle.evaluation, sources.get(target, set()))
 
         disclosed: set[str] = set()
         if own:
@@ -963,7 +1181,8 @@ def peers(
 
         hand = [p.upper() for p in assumptions.comps.peers]
         console.print()
-        _render_ranking(target, ranked, hand, disclosed, names)
+        _render_ranking(target, ranked, hand, disclosed, names, sources)
+        _render_thin_evidence(target, ranked, sources, list(encoder.tickers), names)
         if size_gate:
             console.print(
                 f"\n[dim]Size gate on: candidates below "
@@ -1230,7 +1449,17 @@ def screen(
     ),
     model: str = typer.Option("mlp", "--model", help="'mlp' or 'ridge'."),
     n: int = typer.Option(10, "--n", help="Names to show at each end."),
-    when: str = typer.Option(None, "--date", help="Screen date (YYYY-MM-DD). Default: latest."),
+    when: str = typer.Option(
+        None,
+        "--date",
+        "--as-of",
+        help=(
+            "Screen date (YYYY-MM-DD). Default: latest. This is what --as-of "
+            "means here: the rows read are the ones the recorded panel priced on "
+            "that date, and each residual comes from a walk-forward fold that "
+            "did not train on it."
+        ),
+    ),
     ticker: str = typer.Option(None, "--ticker", help="Also print this company's own read."),
     sub_vertical: str = typer.Option(
         None, "--sub-vertical", help="Restrict the ranking to one sub-vertical."

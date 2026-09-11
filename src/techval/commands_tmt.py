@@ -313,6 +313,55 @@ _SUBSCRIBER_SOURCES = ("paid_subscribers", "subscribers")
 SUBSCRIBER_IMPLIED_FLOOR = 1.0
 SUBSCRIBER_IMPLIED_CEILING = 500.0
 
+# ...and why the band alone was not enough, which is the second half of the same
+# lesson and cost a printed number to learn.
+#
+# The band caught T-Mobile and passed Disney. `kpis DIS` read
+# ``subscribers 27,100,000`` at confidence 0.75, crossed it, and printed
+# "Implied revenue per subscriber (monthly) $304.00", which is inside the band
+# and is not a subscriber figure at all. The sentence behind it, in footnote (2)
+# to the Key Metrics table of the FY2025 10-K (dis-20250927.htm, accession
+# 0001744489-25-000155), reads:
+#
+#     Includes 43.7 million and 27.1 million subscribers to bundles that have
+#     both Disney+ and Hulu as of September 27, 2025 and September 28, 2024,
+#     respectively.
+#
+# So 27.1 million is the PRIOR year's half of an "X and Y ... respectively" pair
+# and it counts bundle overlap rather than any base. Disney's Disney+ base on the
+# same page is 131.6 million. The extractor matched it because it is the number
+# adjacent to the word "subscribers", the two-value guard did not fire because
+# only one of the two numbers sits next to that word, and the band could not
+# fire because 27.1 million happens to divide into group revenue at a number a
+# cable bundle really could cost.
+#
+# Neither failure is fixable by another arithmetic bound, and both have the same
+# shape: a count in prose is a number attached to a population, the sentence
+# says how many, and the SUBJECT of the sentence says how many of what. The
+# parser sees the number and the noun beside it and never the subject. So a
+# subscriber count whose only evidence is a sentence does not reach the computed
+# pack, and the refusal prints the fragment and the override.
+#
+# The cost is real and belongs beside the reason. Almost no filer tags a
+# subscriber base in XBRL: Netflix, T-Mobile, Disney and Cloudflare tag none of
+# their operating counts, so this rule costs the media and telecom packs their
+# subscriber line, their implied revenue per subscriber, their ARPU consistency
+# gap and their implied subscriber life at nearly every company. The argument for
+# paying that is the alternative on the page above: $304.00 a month for Disney,
+# printed at two decimals beside figures that were read off tagged facts, with
+# nothing in the computed table to say which was which. One override, --kpi
+# subscribers=131.6, buys all four metrics back and puts the reader's eyes on the
+# filing while they type it.
+#
+# Sources whose count may still cross, and why each is different from a sentence.
+# A tagged fact names its population in the element name, which is the thing the
+# prose case is missing. A statement read and a supplied figure were both fixed
+# by somebody who could see what they were looking at. A derived count would be
+# arithmetic this engine did on two figures it can name; nothing produces one
+# today and the entry is here so that a future one is admitted deliberately
+# rather than caught by a rule written about prose.
+_SUBSCRIBER_EVIDENCE = ("xbrl_extension", "statements", "supplied", "derived")
+
 # ARPU by the period the extractor managed to read off the sentence.
 _ARPU_FACTORS = {"usd_per_month": 1.0, "usd_per_quarter": 1.0 / 3.0, "usd_per_year": 1.0 / 12.0}
 
@@ -345,6 +394,15 @@ def _bridge_kpis(kpi_set, fin) -> tuple[dict[str, float], list[str]]:
     that did not cross and the reason. The lines are the point: the failure this
     guards against is not an exception, it is a table of metrics that quietly
     came back empty because two modules spell retention differently.
+
+    Rates and prices cross from prose; populations do not. Net revenue retention,
+    ARPU and churn are quantities whose meaning is carried by the words next to
+    the number, and the extractor checks those words. A count is not: "27.1
+    million subscribers" is the same fragment whether the sentence is about a
+    base, a period's additions, one product, one geography or a footnote about
+    bundle overlap, and only the subject of the sentence separates them. See the
+    note above ``_SUBSCRIBER_EVIDENCE`` for the two filings that settled it and
+    for what the rule costs.
     """
     out: dict[str, float] = {}
     lines: list[str] = []
@@ -393,6 +451,38 @@ def _bridge_kpis(kpi_set, fin) -> tuple[dict[str, float], list[str]]:
         implied = (
             fin.revenue / (millions * 12.0) if millions > 0 else None
         )
+        if kpi.source not in _SUBSCRIBER_EVIDENCE:
+            lines.append(
+                f"FLAG: {name} of {kpi.value:,.0f} was read out of the fragment "
+                f"{kpi.tag_or_phrase!r} and is NOT passed to the pack, because a "
+                "count parsed out of prose is a number attached to a population "
+                "the parser cannot see. The sentence says how many; its subject "
+                "says how many of what. Measured on two filings: T-Mobile's "
+                "'3,287,000 postpaid phone customers' is a year of net additions "
+                "against a base near 130 million, and Disney's '27.1 million "
+                "subscribers' is the prior year's half of a footnote counting "
+                "subscribers to bundles carrying both Disney+ and Hulu, against a "
+                "Disney+ base of 131.6 million on the same page. Both read as a "
+                "base and neither is one."
+            )
+            lines.append(
+                f"{name}: for reference only, {kpi.value:,.0f} against "
+                f"{fin.revenue:,.0f}mm of trailing revenue would imply "
+                + (
+                    f"{implied:,.2f} dollars"
+                    if implied is not None
+                    else "an undefined amount"
+                )
+                + " of revenue per subscriber per month. That arithmetic is "
+                "printed rather than acted on: the numerator is the whole "
+                "company's revenue, so at a filer whose subscription business is "
+                "one segment among several the ratio is not a revenue per "
+                "subscriber at all, and the band it would be judged against was "
+                "set on subscription price points. Pass --kpi subscribers="
+                f"{kpi.value / 1e6:,.1f} if that count is the base you want, or "
+                "the right figure once you have read the sentence in the filing."
+            )
+            break
         if implied is None or not (
             SUBSCRIBER_IMPLIED_FLOOR <= implied <= SUBSCRIBER_IMPLIED_CEILING
         ):
@@ -475,6 +565,72 @@ def _bridge_kpis(kpi_set, fin) -> tuple[dict[str, float], list[str]]:
             lines.append(f"{name}: reaches no computed metric, {reason}")
 
     return out, lines
+
+
+def _pack_input_evidence(
+    kpi_set, merged, statement_rows, override_rows
+) -> list[tuple[str, str, str]]:
+    """One row per figure the pack was given: the key, the rung, the evidence.
+
+    This exists because the two tables this command prints are not the same kind
+    of claim and only the first of them says so. The disclosed table carries an
+    Evidence column and a confidence rung on every row. The computed table
+    carries a name, a value and a unit, so a Rule of 40 built on a tagged fact
+    and an implied revenue per subscriber built on a sentence in Item 7 print
+    identically, and the provenance a reader was shown twenty lines earlier does
+    not survive the crossing. Printing the inputs under the computed table is
+    what closes that, and it is cheap: every figure here already carries its own
+    label, and nothing new is asserted about any of them.
+    """
+    # One pack input to the KPISet names it can have come from, in the order the
+    # bridge tries them. Subscribers is the one with two, and the preference
+    # order has to match ``_SUBSCRIBER_SOURCES`` or the table would name the
+    # wrong sentence beside the right number.
+    by_input: dict[str, tuple[str, ...]] = {
+        c.input_key: (c.kpi_name,) for c in _CROSSINGS
+    }
+    by_input["arpu"] = ("arpu",)
+    by_input["churn"] = ("churn",)
+    by_input["subscribers"] = _SUBSCRIBER_SOURCES
+    rows: list[tuple[str, str, str]] = []
+    supplied = {str(r["name"]): r for r in override_rows}
+    filed = {str(r["name"]): r for r in statement_rows}
+    for key in sorted(merged):
+        if key in supplied:
+            rows.append((key, _evidence_label(supplied[key]), str(supplied[key]["tag_or_phrase"])))
+            continue
+        if key in filed:
+            rows.append((key, _evidence_label(filed[key]), str(filed[key]["tag_or_phrase"])))
+            continue
+        kpi = next(
+            (k for k in (kpi_set.get(n) for n in by_input.get(key, (key,))) if k is not None),
+            None,
+        )
+        if kpi is None:
+            rows.append((key, "unknown", "this bridge did not record where it came from"))
+            continue
+        rows.append((key, _evidence_label(kpi.row()), str(kpi.tag_or_phrase)))
+    return rows
+
+
+def _render_pack_inputs(rows: list[tuple[str, str, str]]) -> None:
+    if not rows:
+        return
+    console.print("\n[bold]What the pack was given, and the evidence behind each[/bold]")
+    t = Table(box=None, pad_edge=False)
+    t.add_column("Pack input", no_wrap=True)
+    t.add_column("Evidence", no_wrap=True)
+    t.add_column("Tag or phrase", overflow="fold", style="dim")
+    weak = {"prose", "prose, hedged", "command line", "unknown"}
+    for key, label, evidence in rows:
+        style = "yellow" if label in weak else ""
+        t.add_row(Text(key, style=style), Text(label, style=style), evidence)
+    console.print(t)
+    console.print(
+        "[dim]Every metric above was computed from these and from the filed "
+        "statements. A metric is no better than the weakest row it stands on, and "
+        "the computed table has no column that says so.[/dim]"
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -586,22 +742,123 @@ def bridge_caveats(fin) -> list[str]:
     comes out at 201,807mm against a real figure nearer 275,000mm, EV/EBITDA
     prints 6.2x against something nearer 8.5x, and nothing on the page says so.
     The fix belongs in ``financials``; naming it here is what this command can do.
+
+    **Two defaults that look identical and are not.** The first version of this
+    block put the same warning on both and taught a reader to skip it. Measured:
+    ``kpis DDOG`` printed five of these, each ending "Every enterprise-value
+    multiple below rests on that zero", and Datadog's enterprise value is right.
+    It has no straight debt, no current debt and no finance leases, its
+    convertible notes resolve under ``ConvertibleLongTermNotesPayable`` at
+    985.5mm, and all five statements were true with a false conclusion attached.
+    Verizon's block looks exactly the same and its conclusion is true by 143bn.
+
+    The difference is already on the object, in ``Provenance.note``, and this
+    reads it rather than adding a heuristic:
+
+        *no tag reports this* means the whole ladder came back empty across every
+        period the filer has ever reported. The concept is absent from this
+        company's accounts, which is what a debt-free balance sheet looks like.
+        Stated once, quietly, in a list.
+
+        *only stale tags found* means the filer DOES tag the concept and the
+        newest fact predates the balance sheet this page is built on, so the zero
+        is standing in for a number that exists somewhere in the filing history.
+        That is the dangerous one and it gets the loud clause, the tag name and
+        the date it went stale.
+
+    **And one corroborating check, because a stale tag is not the only way debt
+    goes missing.** Verizon's long-term debt reads as zero because it reports
+    under ``LongTermDebtAndCapitalLeaseObligations``, which is on no ladder here,
+    and the provenance for that is a clean stale-tag note about a tag it stopped
+    using in 2013. The independent evidence is on the income statement: 7,348mm
+    of interest expense against 21,783mm of resolved debt is an implied cost of
+    debt of 34%, which no investment-grade carrier pays. The check is one
+    division and it is reported as a question rather than a verdict, because a
+    filer that repaid most of its debt during the year shows the same signature
+    honestly: a full year of interest against a period-end balance that is nearly
+    gone. Both readings are printed.
     """
     out = [f"FLAG: {w}" if "overstated" in w or "not explained" in w else w
            for w in fin.warnings]
+    absent: list[str] = []
     for concept, prov in sorted(fin.provenance.items()):
         low = concept.lower()
         if not any(k in low for k in ("debt", "cash", "investment", "lease")):
             continue
         if "defaulted" not in (prov.method or ""):
             continue
+        note = prov.note or "no note"
+        if "stale" in note:
+            out.append(
+                f"FLAG: {concept} was read as zero even though this filer tags "
+                f"it: {note}. A zero standing in for a figure the company does "
+                "report is not an absence, it is a gap the size of whatever that "
+                "figure is now. Every enterprise-value multiple below rests on "
+                "it, so read the balance sheet before quoting one."
+            )
+        else:
+            absent.append(concept)
+    if absent:
         out.append(
-            f"FLAG: {concept} could not be sourced and was read as zero "
-            f"({prov.note or 'no note'}). Every enterprise-value multiple below "
-            "rests on that zero, so check it against the balance sheet before "
-            "quoting one."
+            f"{len(absent)} balance-sheet concept(s) read as zero because no tag "
+            "in the ladder reports them in any period this filer has ever filed: "
+            + "; ".join(absent)
+            + ". That is what a company which genuinely does not have the line "
+            "looks like, so it is reported rather than flagged. The same default "
+            "becomes a FLAG where the filer does tag the concept and the newest "
+            "fact is stale."
         )
+    out.extend(_leverage_crosscheck(fin))
     return out
+
+
+# Interest expense divided by debt, above which the debt side of the bridge is
+# not believable. Set at a level no rated issuer pays on its whole stack: US
+# high-yield coupons top out in the low teens, and an issuer paying twice that
+# would not be reporting zero debt. It is deliberately far above the false
+# positive it has to tolerate, which is a company that repaid its debt during the
+# year and carries a full year of interest against almost none of it.
+IMPLIED_COST_OF_DEBT_CEILING = 0.25
+
+
+def _leverage_crosscheck(fin) -> list[str]:
+    """Does the interest on the income statement fit the debt on the page.
+
+    A second opinion on the balance sheet, from the one part of the filing that
+    cannot be missed by a tag ladder: a company pays interest on debt whether or
+    not this engine found the debt. It catches the case the provenance cannot,
+    where every tag resolved cleanly and the ladder simply has no entry for the
+    element this filer uses.
+    """
+    interest = fin.interest_expense
+    if interest is None or interest <= 0:
+        # A filer that reports interest net of interest income can carry a
+        # negative figure here, and a ratio built on it means nothing.
+        return []
+    debt = fin.straight_debt + fin.convertible_debt + fin.finance_lease_liability
+    if debt <= 0:
+        return [
+            f"FLAG: the income statement carries {interest:,.1f}mm of interest "
+            "expense and the debt side of this bridge is zero. A company with no "
+            "debt does not pay interest on it, so either the interest is on "
+            "something this bridge does not count as debt, or the debt is tagged "
+            "under an element the ladder does not read. Enterprise value is "
+            "understated in the second case and nothing here can tell you which."
+        ]
+    implied = interest / debt
+    if implied <= IMPLIED_COST_OF_DEBT_CEILING:
+        return []
+    return [
+        f"FLAG: {interest:,.1f}mm of interest expense against {debt:,.1f}mm of "
+        f"debt is an implied cost of debt of {implied:.1%}, above the "
+        f"{IMPLIED_COST_OF_DEBT_CEILING:.0%} this engine will believe. The "
+        "reading that costs money is that the debt is understated because part "
+        "of it is tagged under an element the ladder does not read, which makes "
+        "every enterprise-value multiple below too low. The innocent reading is "
+        "that the company repaid its debt during the year, so a full year of "
+        "interest sits against a period-end balance that is nearly gone. Both "
+        "are visible on the balance sheet in about a minute."
+    ]
 
 
 def _parse_kpi_overrides(raw: list[str] | None) -> tuple[dict[str, float], list[dict]]:
@@ -1104,6 +1361,9 @@ def kpis(
             bridge, _price, price_note = _priced_bridge(ticker, fin, market, assumptions)
             pack = build_metrics(fin, pack_key, assumptions, kpis=merged, bridge=bridge)
             _render_pack(pack, definitions=definitions)
+            _render_pack_inputs(
+                _pack_input_evidence(kpi_set, merged, statement_rows, override_rows)
+            )
             _notes(pack.flags, heading="Not computed")
             _notes(([price_note] if price_note else []) + pack.notes)
 
@@ -1421,6 +1681,81 @@ def plan_skeleton(report) -> str:
     return "\n".join(lines)
 
 
+def _annual_filed(client, ticker: str, accession: str | None) -> date | None:
+    """The date the annual report behind the segment table reached EDGAR.
+
+    Returned so the FLAG below can name a knowledge date that works instead of
+    describing one. ``None`` when the submissions feed cannot be read or does not
+    carry the accession, in which case the FLAG falls back to describing the
+    window, which is still true and still better than the date it used to print.
+    """
+    if not accession:
+        return None
+    try:
+        for filing in client.filings(ticker, forms=("10-K",), limit=20):
+            if filing.get("accession") == accession:
+                filed = filing.get("filed")
+                return filed if isinstance(filed, date) else None
+    except TechvalError:
+        return None
+    return None
+
+
+def _period_gap_flag(client, ticker: str, report, fin) -> str:
+    """The two windows, and the pin that actually closes them.
+
+    This sentence used to end "pin the whole run to the annual report with
+    --as-of {report.as_of}", and that instruction makes the problem worse rather
+    than better. The last day of a fiscal year is weeks or months before the
+    annual report covering it reaches EDGAR, so pinning the knowledge date there
+    puts the run BEHIND that filing: the engine falls back to the prior year's
+    segment footnote and the two windows are a period apart again, one year
+    earlier. Measured on Disney, whose FY2025 10-K was filed 2025-11-13:
+    ``sotp DIS --as-of 2025-09-27`` returns segments for the year ended
+    2024-09-28, and that footnote carries no depreciation and amortisation for
+    Experiences, so the run then fails with a different ``MissingDataError`` and
+    a reader who followed the instruction is further from an answer than when
+    they started. The knowledge date that works is the day after the annual
+    report was filed, where the 10-K is the newest periodic filing on record and
+    the parts and the whole are read out of the same document.
+
+    The integration agent corrected the copy of this sentence in ``cli.py``
+    during the same wave. This one is the copy that was missed.
+    """
+    filed = _annual_filed(client, ticker, report.accession)
+    head = (
+        f"FLAG: the segments cover the year ended {report.as_of} and the "
+        f"consolidated figures cover the twelve months to {fin.as_of}, because "
+        f"{ticker.upper()} has filed at least one quarter since its annual "
+        "report. Segment detail is annual, so the two cannot be brought together "
+        "by reading more filings. Either accept that the parts are measured a "
+        "period behind the whole, or pin the knowledge date so that the annual "
+        "report is the newest filing on record."
+    )
+    if filed is not None:
+        pin = filed + timedelta(days=1)
+        return (
+            head
+            + f" That date is {pin.isoformat()}, the day after the {report.as_of} "
+            f"annual report reached EDGAR on {filed.isoformat()}: run with --as-of "
+            f"{pin.isoformat()}, which also prices the company at that date's "
+            f"close. Do NOT pin to {report.as_of.isoformat()}. The annual report "
+            "did not exist on the last day of the year it covers, so that date "
+            "reads the PRIOR year's segment note and the two windows are a period "
+            "apart again."
+        )
+    return (
+        head
+        + " That is a date shortly after the annual report was filed, which is a "
+        f"month or two after the year end rather than the year end itself. Do NOT "
+        f"pin to {report.as_of.isoformat()}: the annual report did not exist on "
+        "the last day of the year it covers, so that date reads the PRIOR year's "
+        "segment note and the two windows are a period apart again. The "
+        "submissions feed did not give this run the filing date, so the exact day "
+        "has to come from the filing index."
+    )
+
+
 def _render_sotp(result, fin, report) -> None:
     _rule("The parts")
     t = Table(box=None, pad_edge=False)
@@ -1663,20 +1998,9 @@ def sotp(
         # The parts and the whole are read over two different windows whenever a
         # quarter has been filed since the annual report, and the coverage check
         # inside run_sotp will then refuse on a gap that is growth rather than a
-        # missing segment. Say so before it does, and name the fix.
+        # missing segment. Say so before it does, and name a fix that works.
         if report.as_of != fin.as_of:
-            console.print(
-                f"\n[yellow]FLAG: the segments cover the year ended "
-                f"{report.as_of} and the consolidated figures cover the twelve "
-                f"months to {fin.as_of}, because {ticker.upper()} has filed at "
-                "least one quarter since its annual report. Segment detail is "
-                "annual, so the two cannot be brought together by reading more "
-                "filings. Either accept that the parts are measured a period "
-                "behind the whole, or pin the whole run to the annual report "
-                f"with --as-of {report.as_of.isoformat()}, which reads the "
-                "company as it was knowable then and prices it at that date's "
-                "close.[/yellow]"
-            )
+            console.print(f"\n[yellow]{_period_gap_flag(client, ticker, report, fin)}[/yellow]")
 
         result = run_sotp(
             fin,

@@ -46,6 +46,7 @@ import pytest
 from typer.testing import CliRunner
 
 from techval import commands_mna as C
+from techval.errors import ConfigError, MissingDataError
 from techval.edgar import (
     SEC_FACTS_URL,
     SEC_SUBMISSIONS_URL,
@@ -475,6 +476,101 @@ def test_an_engine_refusal_prints_cleanly_rather_than_as_a_traceback(monkeypatch
     assert result.exit_code == 1
     assert "Traceback" not in result.output
     assert "No tickers given" in result.output
+
+
+# --------------------------------------------------------------------------- #
+# precedents: the delisting wall
+#
+# The committed company_tickers.json is the real file pruned to fifteen
+# registrants, and it reproduces the wall exactly: ROKU, SLAB, IRDM, PAYO and
+# RAMP are in it and SPLK, ZEN, MNDT and WORK are not, because a completed
+# acquisition delists the target and the SEC's ticker file lists current
+# registrants only. ``MergerFixtureClient`` normally papers over that with its
+# own ``ticker_to_cik``. ``DelistedClient`` takes the paper off.
+# --------------------------------------------------------------------------- #
+
+
+class DelistedClient(MergerFixtureClient):
+    """The fixture client with the real ticker lookup put back.
+
+    Resolution goes through ``EdgarClient.ticker_to_cik`` against the committed
+    ticker file, so a delisted target fails here for exactly the reason it fails
+    against live SEC data, and the command's escape hatch is tested rather than
+    the double.
+    """
+
+    def ticker_to_cik(self, ticker: str) -> int:
+        return EdgarClient.ticker_to_cik(self, ticker)
+
+
+def test_the_committed_ticker_file_reproduces_the_delisting_wall():
+    """A tripwire on the premise. If this passes, the finding is real."""
+    client = DelistedClient()
+    assert client.ticker_to_cik("ROKU") == 1428439
+    for delisted in ("SPLK", "ZEN", "MNDT", "WORK"):
+        with pytest.raises(MissingDataError):
+            client.ticker_to_cik(delisted)
+
+
+def test_parse_targets_reads_a_cik_beside_a_ticker():
+    names, pinned = C.parse_targets("ROKU, SPLK=1353283 ,ZEN=1463172")
+    assert names == ["ROKU", "SPLK", "ZEN"]
+    assert pinned == {"SPLK": 1353283, "ZEN": 1463172}
+
+
+def test_parse_targets_refuses_a_cik_that_is_not_a_number():
+    with pytest.raises(ConfigError, match="does not give a CIK"):
+        C.parse_targets("SPLK=splunk")
+    with pytest.raises(ConfigError, match="no ticker in front"):
+        C.parse_targets("=1353283")
+
+
+def test_a_delisted_target_cannot_be_named_by_ticker_alone(monkeypatch, merger_config):
+    """The state of the command before this change, asserted so it stays fixed.
+
+    ``precedents SPLK`` returns nothing and the flag blames the wrong cause: the
+    hint in ``edgar.ticker_to_cik`` reads as a foreign-filer problem and this is
+    a delisting. That hint belongs to ``edgar.py``; what this file can assert is
+    that the command offers a way past it.
+    """
+    monkeypatch.setattr(C, "EdgarClient", DelistedClient)
+    out = _run(["precedents", "SPLK", "--config", str(merger_config)])
+    assert "0 of 1 ticker(s)" in _flat(out)
+    assert "not present in the SEC ticker file" in _flat(out)
+
+
+def test_a_cik_on_the_command_line_gets_past_the_delisting(monkeypatch, merger_config):
+    """The same target, named as SPLK=1353283, builds its deal.
+
+    The CIK has to reach the lookups INSIDE the client as well as the one the
+    command makes, because ``submissions`` and ``filings`` call
+    ``self.ticker_to_cik`` themselves. A proxy object fails that and was measured
+    failing it; see ``pin_ciks``.
+    """
+    monkeypatch.setattr(C, "EdgarClient", DelistedClient)
+    out = _run(["precedents", "SPLK=1353283", "--config", str(merger_config)])
+    flat = _flat(out)
+    assert "1 of 1 ticker(s)" in flat
+    assert "CIK supplied on the command line for SPLK (1353283)" in flat
+    assert "25,856" in _flat(_section(out, "Deal size and provenance"))
+
+
+def test_the_help_example_is_one_that_can_actually_run(monkeypatch, merger_config):
+    """The argument help used to read "e.g. SPLK,ZEN,MNDT,WORK", none of which resolve.
+
+    This runs the example the help now gives, against the committed ticker file
+    with the delisting wall intact.
+    """
+    monkeypatch.setattr(C, "EdgarClient", DelistedClient)
+    out = _run(
+        [
+            "precedents",
+            "SPLK=1353283,ZEN=1463172,MNDT=1370880,WORK=1764925",
+            "--config",
+            str(merger_config),
+        ]
+    )
+    assert "4 of 4 ticker(s)" in _flat(out)
 
 
 def test_the_run_echoes_the_assumptions_that_drove_it(precedent_output):

@@ -110,20 +110,44 @@ class FixtureClient:
     def instance_facts(self, ticker, forms=("10-K", "10-Q")):
         return _instance(self.instance[ticker.upper()])
 
+    #: The 10-K behind each ticker's fixtures, with the date it reached EDGAR.
+    #: Disney's is here because ``sotp`` reads the filing date to work out the
+    #: knowledge date that brings the annual segment note and the trailing twelve
+    #: months into the same window. The accession and the date are the real ones,
+    #: and they match ``instance_facts_DIS.json``'s own header.
+    TENKS = {
+        "DDOG": {
+            "accession": "0001628280-26-008819",
+            "filed": date(2026, 2, 18),
+            "form": "10-K",
+            "document": "ddog-20251231.htm",
+            "period": "2025-12-31",
+        },
+        "DIS": {
+            "accession": "0001744489-25-000155",
+            "filed": date(2025, 11, 13),
+            "form": "10-K",
+            "document": "dis-20250927.htm",
+            "period": "2025-09-27",
+        },
+    }
+
     def filings(self, ticker, forms=("10-K",), since=None, limit=20):
-        if ticker.upper() != "DDOG":
+        row = self.TENKS.get(ticker.upper())
+        if row is None:
             return []
-        return [
-            {
-                "accession": "0001628280-26-008819",
-                "filed": date(2026, 2, 18),
-                "form": "10-K",
-                "document": "ddog-20251231.htm",
-                "period": "2025-12-31",
-            }
-        ]
+        if self.knowledge_date is not None and row["filed"] > self.knowledge_date:
+            return []
+        return [dict(row)]
 
     def filing_text(self, ticker, filing) -> str:
+        # Only Datadog's 10-K text is committed. Serving it for another ticker
+        # would hand Disney's Item 7 reader Datadog's prose and every metric
+        # parsed out of it would be attributed to the wrong company.
+        if ticker.upper() != "DDOG":
+            raise AssertionError(
+                f"no 10-K text fixture for {ticker.upper()}; only DDOG's is committed"
+            )
         with gzip.open(
             FIXTURES / "filing_text_DDOG_2025.json.gz", "rt", encoding="utf-8"
         ) as fh:
@@ -330,10 +354,13 @@ def test_content_amortisation_crosses_the_spelling():
     assert bridged == {"content_amortization": 8_529.2}
 
 
-def test_a_subscriber_count_is_divided_into_millions():
+def test_a_tagged_subscriber_count_is_divided_into_millions():
     """An absolute count on one side of the bridge and millions on the other."""
     bridged, lines = _bridge(
-        revenue=48_000.0, subscribers=_kpi("subscribers", 300_000_000.0, "count")
+        revenue=48_000.0,
+        subscribers=_kpi(
+            "subscribers", 300_000_000.0, "count", source="xbrl_extension", confidence=1.0
+        ),
     )
     assert bridged["subscribers"] == pytest.approx(300.0)
     assert "divided by a million" in " ".join(lines)
@@ -342,22 +369,61 @@ def test_a_subscriber_count_is_divided_into_millions():
 def test_paid_subscribers_wins_over_a_total_that_includes_free_tiers():
     bridged, _ = _bridge(
         revenue=48_000.0,
-        paid_subscribers=_kpi("paid_subscribers", 280_000_000.0, "count"),
-        subscribers=_kpi("subscribers", 300_000_000.0, "count"),
+        paid_subscribers=_kpi(
+            "paid_subscribers", 280_000_000.0, "count", source="xbrl_extension", confidence=1.0
+        ),
+        subscribers=_kpi(
+            "subscribers", 300_000_000.0, "count", source="xbrl_extension", confidence=1.0
+        ),
     )
     assert bridged["subscribers"] == pytest.approx(280.0)
 
 
-def test_a_net_additions_sentence_read_as_a_base_is_refused():
-    """The T-Mobile case, which is a false positive with no flag of its own.
+def test_a_subscriber_count_read_out_of_prose_never_reaches_the_pack():
+    """The Disney case, and the reason no arithmetic band can catch it.
+
+    ``kpis DIS`` read ``subscribers 27,100,000`` at confidence 0.75 out of a
+    footnote to the FY2025 Key Metrics table that says "Includes 43.7 million and
+    27.1 million subscribers to bundles that have both Disney+ and Hulu as of
+    September 27, 2025 and September 28, 2024, respectively". That is the prior
+    year's half of an "X and Y ... respectively" pair, it counts bundle overlap
+    rather than any base, and Disney's Disney+ base on the same page is 131.6
+    million. Divided into group revenue it lands at 304 dollars a month, which is
+    inside the band a cable bundle really could cost, so the band passed it and
+    the pack printed it.
+
+    Only one of the two numbers in that sentence sits next to the word
+    "subscribers", so the extractor's two-value guard cannot fire either. What
+    separates a base from a footnote is the subject of the sentence, which the
+    parser does not read. So a count whose only evidence is prose is refused.
+    """
+    bridged, lines = _bridge(
+        revenue=98_861.0,
+        subscribers=_kpi("subscribers", 27_100_000.0, "count", phrase="27.1 million subscribers"),
+    )
+    assert "subscribers" not in bridged
+    flagged = [line for line in lines if line.startswith("FLAG")]
+    assert len(flagged) == 1
+    assert "27.1 million subscribers" in flagged[0]
+    assert "population" in flagged[0]
+    # The arithmetic that used to endorse it is still printed, as a reference
+    # rather than as a reason, with the denominator named.
+    reference = " ".join(line for line in lines if not line.startswith("FLAG"))
+    assert "304.00" in reference
+    assert "the whole company's revenue" in reference
+    assert "--kpi subscribers=27.1" in reference
+
+
+def test_the_net_additions_case_is_refused_by_the_same_rule():
+    """T-Mobile, which the band caught and which the prose rule catches earlier.
 
     The extractor's subscriber ladder matches "<count> postpaid phone customers".
     T-Mobile's Item 7 says it added 3,287,000 postpaid phone customers in the
     year, against a base of something over a hundred million, and the sentence
     does not contain the word "net" so the net-additions rule above it does not
-    claim the figure first. Passed through, the pack reports a carrier with 3.3
-    million subscribers and an implied 2,337 dollars of revenue per subscriber
-    per month, and both numbers look like numbers.
+    claim the figure first. The band would have refused this one on its own; it
+    is here to show that both failures now leave by the same door and that the
+    arithmetic is still on the page.
     """
     bridged, lines = _bridge(
         revenue=92_189.0,
@@ -366,18 +432,47 @@ def test_a_net_additions_sentence_read_as_a_base_is_refused():
         ),
     )
     assert "subscribers" not in bridged
-    flagged = [line for line in lines if line.startswith("FLAG")]
-    assert len(flagged) == 1
-    assert "net additions" in flagged[0]
-    assert "2,337" in flagged[0]
+    joined = " ".join(lines)
+    assert "net additions" in joined
+    assert "2,337" in joined
 
 
-def test_a_plausible_count_still_crosses():
+def test_a_plausible_tagged_count_still_crosses():
     """The gate has to let a real carrier through or it is just a refusal."""
     bridged, _ = _bridge(
-        revenue=92_189.0, subscribers=_kpi("subscribers", 131_000_000.0, "count")
+        revenue=92_189.0,
+        subscribers=_kpi(
+            "subscribers", 131_000_000.0, "count", source="xbrl_extension", confidence=1.0
+        ),
     )
     assert bridged["subscribers"] == pytest.approx(131.0)
+
+
+def test_a_tagged_count_outside_the_band_is_still_refused_by_the_band():
+    """The band is not dead. A tagged fact can be a net-adds element too."""
+    bridged, lines = _bridge(
+        revenue=92_189.0,
+        subscribers=_kpi(
+            "subscribers", 3_287_000.0, "count", source="xbrl_extension", confidence=1.0
+        ),
+    )
+    assert "subscribers" not in bridged
+    flagged = [line for line in lines if line.startswith("FLAG")]
+    assert len(flagged) == 1
+    assert "outside the" in flagged[0]
+    assert "net additions" in flagged[0]
+
+
+def test_a_figure_typed_on_the_command_line_is_how_a_prose_count_gets_in():
+    """The override is the whole answer to what the prose rule costs.
+
+    ``--kpi subscribers=131.6`` goes into the merged dict directly rather than
+    through this bridge, so it is tested here as the contract the FLAG points at:
+    the key the packs read, in the units they document.
+    """
+    values, rows = C._parse_kpi_overrides(["subscribers=131.6"])
+    assert values == {"subscribers": 131.6}
+    assert rows[0]["source"] == "supplied"
 
 
 @pytest.mark.parametrize(
@@ -574,7 +669,29 @@ def test_a_command_line_figure_is_validated_against_what_the_packs_read():
         C._parse_kpi_overrides(["arpu=seventeen"])
 
 
-def test_a_defaulted_balance_sheet_line_is_flagged_against_every_ev_multiple():
+def _bs(provenance: dict, **balance) -> SimpleNamespace:
+    """A financials stand-in carrying only what ``bridge_caveats`` reads."""
+    fields = {
+        "warnings": [],
+        "provenance": provenance,
+        "interest_expense": None,
+        "straight_debt": 0.0,
+        "convertible_debt": 0.0,
+        "finance_lease_liability": 0.0,
+    }
+    fields.update(balance)
+    return SimpleNamespace(**fields)
+
+
+def _defaulted(concept: str, note: str) -> Provenance:
+    return Provenance(concept=concept, tag=None, method="absent, defaulted", note=note)
+
+
+STALE = "only stale tags found (LongTermDebtNoncurrent (newest 2025-12-31)); read as zero"
+ABSENT = "no tag reports this; read as zero"
+
+
+def test_a_stale_debt_tag_read_as_zero_is_flagged_against_every_ev_multiple():
     """T-Mobile again, in the other half of the engine.
 
     Its Q2 2026 10-Q tags ``ShortTermBorrowings`` and tags
@@ -583,23 +700,112 @@ def test_a_defaulted_balance_sheet_line_is_flagged_against_every_ev_multiple():
     debt as zero. Enterprise value comes out around 202bn against something
     nearer 275bn and nothing else on the page says so.
     """
-    fin = SimpleNamespace(
-        warnings=[],
-        provenance={
-            "long-term debt": Provenance(
-                concept="long-term debt",
-                tag=None,
-                method="absent, defaulted",
-                note="only stale tags found (LongTermDebtNoncurrent (newest 2025-12-31)); read as zero",
-            ),
-            "revenue": Provenance(concept="revenue", tag="Revenues", method="ttm"),
-        },
+    caveats = C.bridge_caveats(
+        _bs(
+            {
+                "long-term debt": _defaulted("long-term debt", STALE),
+                "revenue": Provenance(concept="revenue", tag="Revenues", method="ttm"),
+            },
+            straight_debt=6_117.0,
+        )
     )
-    caveats = C.bridge_caveats(fin)
     assert len(caveats) == 1
     assert caveats[0].startswith("FLAG:")
-    assert "read as zero" in caveats[0]
+    assert "even though this filer tags it" in caveats[0]
     assert "enterprise-value multiple" in caveats[0]
+
+
+def test_a_concept_no_tag_reports_is_listed_rather_than_flagged():
+    """The Datadog case: five true statements with a false conclusion attached.
+
+    ``kpis DDOG`` printed five of these FLAGs, one of them reading "long-term
+    debt could not be sourced and was read as zero" and each ending "Every
+    enterprise-value multiple below rests on that zero". Datadog's enterprise
+    value is right: it has no straight debt and no finance leases, and its
+    convertible notes resolve under ``ConvertibleLongTermNotesPayable`` at
+    985.5mm. A block that fires identically on that company and on Verizon, where
+    the number is out by 143bn, teaches a reader to skip it.
+
+    The discriminator is already in the provenance note and is read rather than
+    guessed at: a ladder that found no fact in any period is an absence, and a
+    ladder that found only stale ones is a gap.
+    """
+    caveats = C.bridge_caveats(
+        _bs(
+            {
+                "current debt": _defaulted("current debt", ABSENT),
+                "finance lease liability, current": _defaulted(
+                    "finance lease liability, current", ABSENT
+                ),
+                "long-term debt": _defaulted("long-term debt", ABSENT),
+                "total debt": _defaulted("total debt", ABSENT),
+            },
+            convertible_debt=985.5,
+            interest_expense=11.4,
+        )
+    )
+    assert len(caveats) == 1
+    assert not caveats[0].startswith("FLAG")
+    assert "4 balance-sheet concept(s)" in caveats[0]
+    assert "long-term debt" in caveats[0]
+    assert "no tag in the ladder reports them in any period" in caveats[0]
+
+
+def test_the_two_kinds_of_default_are_not_reported_the_same_way():
+    """Both together, because the point is that they are different."""
+    caveats = C.bridge_caveats(
+        _bs(
+            {
+                "long-term debt": _defaulted("long-term debt", STALE),
+                "short-term investments": _defaulted("short-term investments", ABSENT),
+            }
+        )
+    )
+    flags = [c for c in caveats if c.startswith("FLAG")]
+    assert len(flags) == 1
+    assert "long-term debt" in flags[0]
+    quiet = [c for c in caveats if not c.startswith("FLAG")]
+    assert any("short-term investments" in c for c in quiet)
+
+
+def test_interest_expense_contradicting_the_debt_on_the_page_is_flagged():
+    """Verizon, whose provenance looks clean and whose debt is 143bn short.
+
+    Its long-term debt reads as zero because it reports under
+    ``LongTermDebtAndCapitalLeaseObligations``, which is on no ladder in
+    ``tags``. The income statement is the independent witness: 7,348mm of
+    interest expense against the 21,783mm of debt this bridge did resolve is an
+    implied cost of debt of 34%, which no investment-grade carrier pays.
+    """
+    caveats = C.bridge_caveats(
+        _bs({}, interest_expense=7_348.0, straight_debt=21_783.0)
+    )
+    assert len(caveats) == 1
+    assert caveats[0].startswith("FLAG:")
+    assert "33.7%" in caveats[0]
+    assert "repaid its debt during the year" in caveats[0]
+
+
+def test_a_normal_cost_of_debt_says_nothing():
+    """Datadog: 11.4mm of interest on 985.5mm of convertibles is 1.2%."""
+    assert C.bridge_caveats(
+        _bs({}, interest_expense=11.4, convertible_debt=985.5)
+    ) == []
+
+
+def test_interest_paid_with_no_debt_on_the_page_is_the_loudest_case():
+    assert "no debt does not pay interest" in " ".join(
+        C.bridge_caveats(_bs({}, interest_expense=7_348.0))
+    )
+
+
+def test_a_negative_net_interest_figure_is_not_turned_into_a_ratio():
+    """Disney reports interest net of interest income, at -1,829mm.
+
+    A cost of debt computed off that is a negative percentage, which means
+    nothing, so the check declines rather than printing one.
+    """
+    assert C.bridge_caveats(_bs({}, interest_expense=-1_829.0, straight_debt=46_041.0)) == []
 
 
 # --------------------------------------------------------------------------- #
@@ -699,6 +905,61 @@ def test_the_bridge_prints_one_line_per_figure_that_crossed_or_did_not():
     assert "How the disclosed figures reached the pack" in result.stdout
     assert "kpis['nrr']" in result.stdout
     assert "reaches no computed metric" in result.stdout
+
+
+def test_the_evidence_survives_the_crossing_into_the_computed_table():
+    """The provenance the first table carries has to reach the second one.
+
+    The disclosed table has an Evidence column and a confidence rung on every
+    row. The computed table has a name, a value and a unit, so a Rule of 40 built
+    on filed lines and a net revenue retention read out of a hedged sentence in
+    Item 7 print identically and the reader has nothing to tell them apart. This
+    asserts the block that closes it: every input the pack was given, with the
+    same label the disclosed table used.
+    """
+    result = run("kpis", "DDOG", "--no-definitions")
+    out = " ".join(result.stdout.split())
+    assert "What the pack was given, and the evidence behind each" in out
+    # Datadog's retention is the weak one and it says so in both tables.
+    assert "nrr prose, hedged dollar-based net retention rate was about 120%" in out
+    assert "rpo XBRL, us-gaap RevenueRemainingPerformanceObligation" in out
+    assert "revenue_prior XBRL, us-gaap" in out
+
+
+def test_a_command_line_figure_is_labelled_as_such_in_the_pack_inputs():
+    result = run("kpis", "DDOG", "--no-definitions", "--kpi", "arr=3000")
+    out = " ".join(result.stdout.split())
+    assert "arr command line --kpi arr=3000" in out
+
+
+def test_a_tagged_subscriber_count_names_the_element_it_was_read_from():
+    """The one pack input that has two possible KPISet names behind it.
+
+    ``subscribers`` is filled from ``paid_subscribers`` first and from
+    ``subscribers`` second, so the evidence table has to follow the same
+    preference or it prints the right number beside the wrong element.
+    """
+    kpi_set = _set(
+        paid_subscribers=_kpi(
+            "paid_subscribers",
+            280_000_000.0,
+            "count",
+            source="xbrl_extension",
+            confidence=1.0,
+            phrase="nflx:NumberOfPaidMemberships",
+        ),
+        subscribers=_kpi(
+            "subscribers",
+            300_000_000.0,
+            "count",
+            source="xbrl_extension",
+            confidence=1.0,
+            phrase="nflx:NumberOfMemberships",
+        ),
+    )
+    bridged, _ = C._bridge_kpis(kpi_set, _fin(48_000.0))
+    rows = C._pack_input_evidence(kpi_set, bridged, [], [])
+    assert rows == [("subscribers", "XBRL, extension", "nflx:NumberOfPaidMemberships")]
 
 
 def test_a_supplied_figure_is_labelled_as_typed_rather_than_read():
@@ -941,10 +1202,38 @@ def test_the_period_mismatch_is_named_before_the_coverage_check_refuses(tmp_path
     """
     result = sotp(tmp_path, PLAN, as_of="2026-09-10")
     assert result.exit_code == 1
-    out = result.stdout
+    out = " ".join(result.stdout.split())
     assert "the segments cover the year ended 2025-09-27" in out
-    assert "--as-of 2025-09-27" in out
     assert "97.4% of the company" in out
+
+
+def test_the_period_mismatch_names_a_pin_that_works_and_the_one_that_does_not(tmp_path):
+    """The remedy, which used to make the problem worse.
+
+    The FLAG said "pin the whole run to the annual report with --as-of
+    2025-09-27". Disney's FY2025 10-K reached EDGAR on 2025-11-13, so that date
+    reads the company as it was knowable seven weeks BEFORE the filing exists:
+    the engine falls back to the FY2024 segment footnote, which carries no
+    depreciation and amortisation for Experiences, and the run then fails with a
+    different MissingDataError. A reader who followed the instruction was further
+    from an answer than when they started.
+
+    The date the command now names is the day after the filing date, which is the
+    same 2025-11-14 that every other sotp test in this file already pins to.
+    """
+    result = sotp(tmp_path, PLAN, as_of="2026-09-10")
+    out = " ".join(result.stdout.split())
+    assert "--as-of 2025-11-14" in out
+    assert "reached EDGAR on 2025-11-13" in out
+    assert "Do NOT pin to 2025-09-27" in out
+    assert "--as-of 2025-09-27" not in out
+
+
+def test_the_pin_the_flag_names_is_the_one_that_completes(tmp_path):
+    """Follow the instruction and the run finishes. That is the whole test."""
+    result = sotp(tmp_path, PLAN, as_of="2025-11-14")
+    assert result.exit_code == 0
+    assert "the segments cover the year ended" not in result.stdout
 
 
 def test_the_cross_checks_name_the_wedge_between_revenue_and_value(tmp_path):
