@@ -688,10 +688,51 @@ def test_a_filer_reporting_debt_outside_the_ladder_is_caught():
     assert "LongTermDebtAndCapitalLeaseObligations" in caught
     assert "20,000.0mm" in caught
 
-    # A company that really has no straight debt, and one whose debt the ladder
-    # did resolve, both pass.
+    # A company that really has no straight debt passes, and so does one whose
+    # ladder resolution is within the lease-shaped tolerance of the concept
+    # outside it.
     assert W.debt_is_outside_the_ladder(Facts({}), Fin(0.0)) is None
-    assert W.debt_is_outside_the_ladder(Facts(found), Fin(4_000.0)) is None
+    assert W.debt_is_outside_the_ladder(Facts(found), Fin(19_000.0)) is None
+
+
+def test_a_filer_whose_ladder_resolved_only_the_current_portion_is_caught():
+    """Verizon, which the guard used to pass because the threshold was zero.
+
+    The test was ``if straight_debt > 0: return None``, which reads as "the
+    ladder found the debt" and means "the ladder found A debt". Verizon's
+    30 June 2026 balance sheet carries 143,448mm of long-term debt under
+    ``LongTermDebtAndCapitalLeaseObligations``, which is in none of the three
+    ladders, and 21,783mm maturing within one year under ``LongTermDebtCurrent``,
+    which is in one of them. The current portion alone resolved, the guard saw a
+    positive number and let the row through 143bn light, and the screen then
+    read Verizon as priced in line. Both figures here are the ones the filing
+    tags; the accession is 0000732712-26-000046.
+    """
+
+    class Facts:
+        def __init__(self, resolved):
+            self.resolved = resolved
+
+        def resolve_instant(self, concept, ladder, as_of, **kwargs):
+            return self.resolved.get(ladder[0]), None
+
+    class Fin:
+        as_of = date(2026, 6, 30)
+
+        def __init__(self, straight_debt):
+            self.straight_debt = straight_debt
+
+    verizon = {"LongTermDebtAndCapitalLeaseObligations": 143_448e6}
+    caught = W.debt_is_outside_the_ladder(Facts(verizon), Fin(21_783.0))
+    assert caught is not None
+    assert "21,783.0mm" in caught
+    assert "143,448.0mm" in caught
+    assert "121,665.0mm" in caught
+
+    # And the gap floor still holds: a difference too small to change a verdict
+    # is not worth refusing a row over.
+    small = {"LongTermDebtAndCapitalLeaseObligations": 21_820e6}
+    assert W.debt_is_outside_the_ladder(Facts(small), Fin(21_783.0)) is None
 
 
 def test_a_price_series_that_is_not_this_company_is_caught(payloads):

@@ -195,7 +195,10 @@ the comp tables too, and a model is the wrong place to make that change.
 
     A filer reporting ``LongTermDebtAndCapitalLeaseObligations`` matches no debt
     ladder, so Lumen resolves zero straight debt against roughly twenty billion
-    and prints an enterprise value of 996mm.
+    and prints an enterprise value of 996mm. Verizon is the same failure wearing
+    a resolved number: its current portion is inside a ladder and its 143,448mm
+    of long-term debt is not, so the check compares what resolved against what
+    the filer reports rather than against zero.
 
     A price vendor returns the wrong security, so Booking's series runs 71 to 174
     where the share traded near 1,750 to 5,500, and its EV/Revenue prints as
@@ -375,9 +378,19 @@ _DEBT_TAGS_OUTSIDE_THE_LADDER = (
     "LongTermDebtAndCapitalLeaseObligationsCurrent",
 )
 
-# Below this, a resolved zero debt is a rounding artefact rather than a gap worth
-# refusing a row over. USD millions.
+# Below this, a gap between what the ladder resolved and what a concept outside
+# it reports is a rounding artefact rather than a gap worth refusing a row over.
+# USD millions.
 _MATERIAL_DEBT = 100.0
+
+# How much larger a concept outside the ladder may be than what the ladder
+# resolved before the resolution is not believed. The outside concepts bundle
+# capital lease obligations in with the debt and the ladder's do not, so a filer
+# that resolved correctly can still show a few percent more under one of them.
+# Ten percent is wide enough to cover that and nowhere near wide enough to cover
+# a missing balance-sheet line: Verizon resolves its current portion alone and
+# the outside concept is six and a half times it.
+_DEBT_LADDER_TOLERANCE = 1.10
 
 # How far the price-implied equity value may sit from the filer's own reported
 # public float before the price series is not believed. Ten times either way is
@@ -824,7 +837,7 @@ def revenue_is_a_component(facts, fin) -> str | None:
 
 
 def debt_is_outside_the_ladder(facts, fin) -> str | None:
-    """Whether a resolved zero straight debt is really zero.
+    """Whether what the debt ladders resolved is the whole of the debt.
 
     A filer that reports under ``LongTermDebtAndCapitalLeaseObligations`` matches
     nothing in ``tags.DEBT_NONCURRENT``, ``DEBT_CURRENT`` or ``DEBT_COMBINED``, so
@@ -838,23 +851,54 @@ def debt_is_outside_the_ladder(facts, fin) -> str | None:
     returns zero rather than raising. The retired-tag trap in the ``edgar``
     docstring, one ladder along.
 
+    **A partial resolution is worse than a zero, and this test used to stop at
+    the zero.** The guard was written as ``if straight_debt > 0: return None``,
+    which reads as "the ladder found the debt" and means "the ladder found A
+    debt". Verizon at 30 June 2026 reports 143,448mm of long-term debt under the
+    outside concept and 21,783mm of it maturing within a year under
+    ``LongTermDebtCurrent``, which IS in the ladder. The current portion alone
+    resolved, the guard saw a positive number and passed the row, and the panel
+    took Verizon at an enterprise value 143bn light: a screen then called it
+    priced in line when its real multiple sits above the fitted line rather than
+    below it. Every large carrier has this shape, so the threshold excluded
+    exactly the population the check was written for. The comparison is now
+    against what the ladder resolved rather than against zero, which catches the
+    zero as the special case it is.
+
+    The tolerance is a ratio because the outside concepts bundle capital lease
+    obligations in with the debt while the ladder's own concepts do not, so a
+    filer that resolved correctly can legitimately show a few percent more under
+    one of them. ``_MATERIAL_DEBT`` floors the gap in dollars so a small filer is
+    not refused over a rounding difference.
+
     Adding the tag to the ladder is NOT a one-line fix, which is why it is flagged
     rather than made. The concept includes capital lease obligations, and the
     bridge already adds finance leases from their own tags, so importing it
     wholesale would count every finance lease twice. Someone has to decide whether
     to net them off or to suppress the separate lease line for filers using it.
     """
-    if fin.straight_debt > 0:
-        return None
+    resolved = float(fin.straight_debt or 0.0)
     for tag in _DEBT_TAGS_OUTSIDE_THE_LADDER:
         value, _ = facts.resolve_instant("debt", [tag], fin.as_of, required=False)
-        if value is not None and value / _MM >= _MATERIAL_DEBT:
-            return (
-                f"straight debt resolved to zero, but {tag} reports "
-                f"{value / _MM:,.1f}mm at {fin.as_of}. That concept is in none of "
-                "the three debt ladders, so the enterprise value here is equity "
-                "less cash and understates the claim on the business by that amount"
-            )
+        if value is None:
+            continue
+        outside = value / _MM
+        if outside - resolved < _MATERIAL_DEBT:
+            continue
+        if outside <= resolved * _DEBT_LADDER_TOLERANCE:
+            continue
+        had = (
+            "straight debt resolved to zero"
+            if resolved <= 0
+            else f"straight debt resolved to {resolved:,.1f}mm"
+        )
+        return (
+            f"{had}, but {tag} reports {outside:,.1f}mm at {fin.as_of}. That "
+            "concept is in none of the three debt ladders, so the enterprise "
+            "value here understates the claim on the business by at least "
+            f"{outside - resolved:,.1f}mm, and by more where the two cover "
+            "different parts of the balance sheet"
+        )
     return None
 
 

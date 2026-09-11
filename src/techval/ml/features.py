@@ -1460,6 +1460,9 @@ def build_panel(
     many dates and one feed can only be pinned to one of them; handing in a
     single client would mean every row after the first saw the wrong world.
 
+    ``peer_labels.build_peer_artifacts`` is the production caller, and it is
+    what writes the panel ``techval peers`` and the value report both read.
+
     A company that cannot be built at a date is recorded as a failed row carrying
     the reason, never dropped and never filled in. Across a real universe the
     engine meets filers whose tagging it cannot resolve and filers that had not
