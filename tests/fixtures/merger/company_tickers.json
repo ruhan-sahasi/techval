@@ -1,0 +1,82 @@
+{
+ "_fixture": {
+  "source": "https://www.sec.gov/files/company_tickers.json",
+  "retrieved": "2026-09-11",
+  "pruned": "reduced from 10,407 tickers to the 15 the merger tests resolve"
+ },
+ "2": {
+  "cik_str": 1652044,
+  "ticker": "GOOGL",
+  "title": "Alphabet Inc."
+ },
+ "20": {
+  "cik_str": 1341439,
+  "ticker": "ORCL",
+  "title": "ORACLE CORP"
+ },
+ "23": {
+  "cik_str": 858877,
+  "ticker": "CSCO",
+  "title": "CISCO SYSTEMS, INC."
+ },
+ "59": {
+  "cik_str": 97476,
+  "ticker": "TXN",
+  "title": "TEXAS INSTRUMENTS INC"
+ },
+ "69": {
+  "cik_str": 1108524,
+  "ticker": "CRM",
+  "title": "Salesforce, Inc."
+ },
+ "161": {
+  "cik_str": 796343,
+  "ticker": "ADBE",
+  "title": "ADOBE INC."
+ },
+ "394": {
+  "cik_str": 1819994,
+  "ticker": "RKLB",
+  "title": "Rocket Lab Corp"
+ },
+ "516": {
+  "cik_str": 1754301,
+  "ticker": "FOXA",
+  "title": "Fox Corp"
+ },
+ "585": {
+  "cik_str": 1428439,
+  "ticker": "ROKU",
+  "title": "ROKU, INC"
+ },
+ "1174": {
+  "cik_str": 1038074,
+  "ticker": "SLAB",
+  "title": "SILICON LABORATORIES INC."
+ },
+ "1458": {
+  "cik_str": 1418819,
+  "ticker": "IRDM",
+  "title": "Iridium Communications Inc."
+ },
+ "2029": {
+  "cik_str": 1845815,
+  "ticker": "PAYO",
+  "title": "Payoneer Global Inc."
+ },
+ "2077": {
+  "cik_str": 733269,
+  "ticker": "RAMP",
+  "title": "LiveRamp Holdings, Inc."
+ },
+ "7485": {
+  "cik_str": 1652044,
+  "ticker": "GOOG",
+  "title": "Alphabet Inc."
+ },
+ "7614": {
+  "cik_str": 1754301,
+  "ticker": "FOX",
+  "title": "Fox Corp"
+ }
+}

@@ -1,0 +1,235 @@
+8-K
+
+
+false 0001463172 0001463172 2022-06-24 2022-06-24 UNITED STATES SECURITIES AND EXCHANGE COMMISSION Washington, D.C. 20549 FORM 8-K CURRENT REPORT Pursuant to Section 13 or 15(d) of the Securities Exchange Act of 1934 Date of Report (Date of earliest event reported): June 24, 2022 Zendesk, Inc. (Exact Name of Registrant as Specified in its Charter)
+
+
+
+
+
+
+
+
+Delaware
+
+001-36456
+
+26-4411091
+
+(State or Other Jurisdiction of Incorporation)
+
+(Commission File Number)
+
+(I.R.S. Employer Identification No.) 989 Market Street, San Francisco, California 94103 (Address of principal executive offices) (Zip Code) (415) 418-7506 (Registrant’s telephone number, including area code) Not Applicable (Former name or former address, if changed since last report) Check the appropriate box below if the Form 8-K filing is intended to simultaneously satisfy the filing obligation of the registrant under any of the following provisions:
+
+
+
+☐
+Written communications pursuant to Rule 425 under the Securities Act (17 CFR 230.425)
+
+
+
+☒
+Soliciting material pursuant to Rule 14a-12 under the Exchange Act (17 CFR 240.14a-12)
+
+
+
+☐
+Pre-commencement communications pursuant to Rule 14d-2(b) under the Exchange Act (17 CFR 240.14d-2(b))
+
+
+
+☐
+Pre-commencement communications pursuant to Rule 13e-4(c) under the Exchange Act (17 CFR 240.13e-4(c)) Securities registered pursuant to Section 12(b) of the Act:
+
+
+
+
+
+
+
+
+Title of each class
+
+Trading Symbol(s)
+
+Name of each exchange on which registered
+
+Common Stock, par value $0.01 per share
+
+ZEN
+
+New York Stock Exchange Indicate by check mark whether the registrant is an emerging growth company as defined in Rule 405 of the Securities Act of 1933 (§230.405 of this chapter) or Rule 12b-2 of the Securities Exchange Act of 1934 (§240.12b-2 of this chapter). Emerging growth company ☐ If an emerging growth company, indicate by check mark if the registrant has elected not to use the extended transition period for complying with any new or revised financial accounting standards provided pursuant to Section 13(a) of the Exchange Act. ☐
+
+
+
+
+
+
+
+
+Item 1.01.
+Entry Into a Material Definitive Agreement. Agreement and Plan of Merger On June 24, 2022, Zendesk, Inc. (the “Company” or “Zendesk”) entered into an Agreement and Plan of Merger (the “Merger Agreement”) with Zoro BidCo, Inc., a Delaware corporation (“Parent”), and Zoro Merger Sub, Inc., a Delaware corporation and a direct wholly owned subsidiary of Parent (“Merger Sub”). Parent and Merger Sub are affiliates of funds advised by Hellman & Friedman LLC (“H&F”) and Permira Advisers LLC (“Permira”). Platinum Falcon B 2018 RSC Limited (“PF”) and an affiliate of GIC Private Limited will also be a direct or indirect investor in Parent (“GIC” and, each of H&F, Permira, PF and GIC, an “Investor” and, together, the “Investors”). The Merger Agreement provides that, among other things and on the terms and subject to the conditions of the Merger Agreement, (a) Merger Sub will merge with and into the Company (the “Merger”), with the Company surviving the Merger as a wholly owned subsidiary of Parent, and (b) at the effective time of the Merger (the “Effective Time”), each issued and outstanding share of common stock of the Company, par value $0.01 per share (the “Company Common Stock”) (other than (i) certain shares of Company Common Stock that are issued and outstanding and owned, directly or indirectly, by Parent or its subsidiaries, including Merger Sub, or held by the Company or its wholly owned subsidiaries, in each case immediately prior to the Effective Time, (ii) shares of Company Common Stock that are issued and outstanding immediately prior to the Effective Time and that are held by holders who have not voted in favor of the adoption of the Merger Agreement and who have properly exercised appraisal rights in accordance with, and who have complied with, Section 262 of the General Corporation Law of the State of Delaware and (iii) shares of Company Common Stock underlying or comprising unexercised, unvested or unsettled Company Stock Options and Company RSU Awards (in each case, as defined below)) will be converted into the right to receive $77.50 in cash, without interest (the “Merger Consideration”), subject to any required tax withholding as provided in the Merger Agreement. The Board of Directors of the Company has unanimously approved the Merger Agreement and the transactions contemplated thereby and, subject to certain exceptions set forth in the Merger Agreement, resolved to recommend that the Company’s stockholders approve the adoption of the Merger Agreement. If the Merger is consummated, the Company Common Stock will be delisted from the New York Stock Exchange and deregistered under the Securities Exchange Act of 1934, as amended (the “Exchange Act”), at or after the Effective Time. Treatment of the Company Equity Awards At the Effective Time, each restricted stock unit award (each, a “Company RSU Award”) and option to purchase shares of Company Common Stock under the Company stock plans (each, a “Company Stock Option”) that are vested as of immediately prior to the Effective Time (assuming achievement of performance for performance-based Company RSU Award using the same formula provided for in the applicable award agreement) will be converted into the right to receive an amount in cash equal to the product of (x) the total number of shares of Company Common Stock subject to such award and (y) the Merger Consideration (and for Company Stock Options, less the exercise price per share of Company Common Stock subject to such Company Stock Option (the “Cash Amount”)), less any required tax withholding and deductions. Company Stock Options with per share exercise prices that are equal to or less than the Merger Consideration will be cancelled for no consideration. Any unvested Company Stock Option that is in-the-money and unvested Company RSU Award will be cancelled and converted into a cash award for the Cash Amount (assuming achievement of performance for performance-based RSU Awards using the same formula provided for in the applicable award agreement), with such cash awards being subject to the same time-vesting terms and conditions that applied to the associated award, as applicable (except for performance-based vesting conditions), immediately prior to the Effective Time.
+
+
+
+
+
+
+
+
+Conditions to the Merger The completion of the Merger is subject to the fulfillment or waiver of certain customary mutual closing conditions, including (a) the affirmative vote of holders of a majority of the outstanding shares of Company Common Stock having approved adoption of the Merger Agreement (the “Company Stockholder Approval”), (b) the expiration or termination of the applicable waiting period under the Hart-Scott-Rodino Antitrust Improvements Act of 1976, as amended, and the receipt of certain other regulatory approvals, including from the Committee on Foreign Investment in the United States, and (c) the absence of any law or order by a court or other governmental entity of competent jurisdiction restraining, enjoining or otherwise prohibiting the consummation of the Merger. The obligation of each party to consummate the Merger is also conditioned upon the other party’s representations and warranties being true and correct (subject to certain customary materiality exceptions) and the other party having performed in all material respects its obligations under the Merger Agreement, and the obligation of Parent to consummate the Merger is additionally conditioned upon the absence of a material adverse effect on the Company that is continuing. The consummation of the Merger is not subject to any financing condition. Termination The Merger Agreement contains termination rights for each of the Company and Parent, including, among others, (a) if the consummation of the Merger does not occur on or before March 24, 2023 (the “End Date”), (b) if the Company Stockholder Approval is not obtained following the meeting of the Company’s stockholders for purposes of obtaining such Company Stockholder Approval and (c) subject to certain conditions, (i) by Parent if the Board of Directors of the Company makes an adverse recommendation change with respect to the Merger or (ii) by the Company if the Company wishes to terminate the Merger Agreement to enter into a definitive agreement with respect to a Superior Proposal (as defined by the Merger Agreement). The Company and Parent may also terminate the Merger Agreement by mutual written consent. The Company is required to pay Parent a termination fee of $254 million in cash upon termination of the Merger Agreement under specified circumstances, including, among others, the termination by Parent in the event of an adverse recommendation change by the Board of Directors of the Company or the termination by the Company to enter into an agreement in connection with a Superior Proposal. The Merger Agreement also provides that a reverse termination fee of $610 million will be payable by Parent to the Company under specified circumstances, including, among others, if (a) Parent fails to consummate the Merger following satisfaction or waiver of certain closing conditions and the Company’s irrevocable confirmation that it is ready to consummate the closing or (b) Parent otherwise breaches its obligations under the Merger Agreement such that there is a failure of certain conditions to the Merger that cannot be cured by the End Date. The Merger Agreement also provides that, in certain circumstances, either party may seek to compel the other party to specifically perform its obligations under the Merger Agreement. Financing Parent has obtained equity, debt and preferred equity financing commitments for the purpose of financing the transactions contemplated by the Merger Agreement. Funds advised by the Investors have committed to capitalize Parent at the closing of the Merger with an aggregate equity contribution equal to $6.32 billion on the terms and subject to the conditions set forth in an equity commitment letter. In addition, the Investors have guaranteed payment of the reverse termination fee payable by Parent under certain circumstances, as well as certain indemnification and reimbursement obligations that may be owed by Parent pursuant to the Merger Agreement, subject to the terms and conditions set forth in the Merger Agreement and a fee funding agreement provided by each Investor to the Company. Parent’s debt commitments to finance in part the transactions contemplated by the Merger Agreement include a $3.75 billion senior secured term loan facility and a $350 million senior secured revolving credit facility on the terms set forth in a debt commitment letter. The obligations of the lenders to provide debt financing under the debt commitment letter are subject to a number of customary conditions.
+
+
+
+
+
+
+
+
+Parent’s preferred equity commitments to finance in part the transactions contemplated by the Merger Agreement consist of $500 million of Series A preferred equity on the terms set forth in a preferred equity commitment letter. The obligations of the purchasers to provide preferred equity financing under the preferred equity commitment letter are subject to a number of customary conditions. Pursuant to the Merger Agreement, the Company is required to use reasonable best efforts to provide Parent with customary cooperation in connection with the debt financing and the preferred equity financing. Other Terms of the Merger Agreement The Merger Agreement contains customary representations and warranties of the Company, Parent and Merger Sub, in each case generally subject to customary materiality qualifiers. Additionally, the Merger Agreement provides for customary pre-closing covenants of the Company, Parent and Merger Sub, including covenants relating to the Company conducting its and its subsidiaries’ business in the ordinary course, preserving substantially intact its business organization and material business relationships and taking or refraining from taking certain actions without Parent’s consent, subject to certain exceptions. The Company, Parent and Merger Sub also agreed to use their respective reasonable best efforts to cause the Merger to be consummated. The Merger Agreement provides that, during the period from the date of the Merger Agreement until the Effective Time, the Company will be subject to certain restrictions on its ability to solicit certain alternative acquisition proposals from third parties, provide non-public information to third parties and engage in discussions or enter into agreements with third parties regarding certain alternative acquisition proposals, subject to customary exceptions. The foregoing description of the Merger Agreement does not purport to be complete and is qualified in its entirety by the full text of the Merger Agreement, a copy of which is filed as Exhibit 2.1 hereto and is incorporated by reference herein. The Merger Agreement and the above description have been included to provide investors with information regarding its terms. They are not intended to provide any other factual information about the Company, Parent, Merger Sub or their respective affiliates. The representations, warranties and covenants contained in the Merger Agreement were made only for purposes of the Merger Agreement as of the specific dates therein, were solely for the benefit of the parties to the Merger Agreement, may be subject to limitations agreed upon by the contracting parties, including being qualified by confidential disclosures made for the purposes of allocating contractual risk between the parties to the Merger Agreement instead of establishing these matters as facts, and may be subject to standards of materiality applicable to the contracting parties that differ from those applicable to investors. Investors should not rely on the representations, warranties and covenants or any descriptions thereof as characterizations of the actual state of facts or condition of the parties thereto or any of their respective subsidiaries or affiliates. Moreover, information concerning the subject matter of representations and warranties may change after the date of the Merger Agreement, which subsequent information may or may not be fully reflected in the Company’s public disclosures. Accordingly, the Merger Agreement should not be read alone, but should instead be read in conjunction with the other information regarding the Company, Parent and Merger Sub and the transactions contemplated by the Merger Agreement that will be contained in or attached as annex to the proxy statement that the Company will file in connection with the transactions contemplated by the Merger Agreement, as well as in other filings that the Company will make with the U.S. Securities and Exchange Commission (the “SEC”).
+
+
+Item 5.02.
+Departure of Directors or Certain Officers; Election of Directors; Appointment of Certain Officers; Compensatory Arrangements of Certain Officers. On June 23, 2022, the Compensation Committee of the Board of Directors of the Company adopted and approved a severance plan, effective June 24, 2022, for all salaried employees of the Company, including the Company’s executive officers. This severance plan provides for different levels of severance benefits depending on the participant’s seniority with the Company in connection with a termination of the participant’s employment by the Company without cause or by the participant for good reason (each term as defined in the severance plan). For the Company’s executive officers, those severance benefits are: (a) a lump sum severance payment equal to the sum of the participant’s (i) annual rate of base salary and (ii) annual target bonus opportunity; (b) 12 months of COBRA continuation; and (c) either (i) if the termination occurs prior to the Effective Time, acceleration of equity awards that
+
+
+
+
+
+
+
+
+
+would have become vested within six months after termination, or (ii) if the termination occurs during the one year after the Effective Time, acceleration of equity awards in full pursuant to the Change in Control Acceleration Plan, which was filed with the SEC as Exhibit 10.1 on the Current Report on Form 8-K filed on May 15, 2015. The severance plan does not provide for a gross-up payment to any of the executive officers, or any other eligible employee, to offset any excise taxes that may be imposed under Section 4999 of the Internal Revenue Code of 1986, as amended.
+
+
+Item 9.01.
+Financial Statements and Exhibits.
+
+
+(d)
+Exhibits.
+
+
+
+
+
+
+
+
+
+
+ExhibitNo.
+
+Description of Exhibit
+
+
+
+
+
+
+2.1†
+
+Agreement and Plan of Merger, dated as of June 24, 2022, by and among Zendesk, Inc., Zoro BidCo, Inc. and Zoro Merger Sub, Inc.
+
+
+
+
+104
+
+Cover Page Interactive Data File (embedded within the Inline XBRL document)
+
+
+
+†
+Schedules have been omitted pursuant to Item 601(b)(2) of Regulation S-K. The registrant hereby undertakes to furnish supplementally copies of any of the omitted schedules upon request by the SEC. Additional Information and Where to Find It This communication relates to the proposed transaction involving Zendesk, Inc. (“Zendesk”). In connection with the proposed transaction, Zendesk will file relevant materials with the U.S. Securities and Exchange Commission (the “SEC”), including Zendesk’s proxy statement on Schedule 14A (the “Proxy Statement”). This communication is not a substitute for the Proxy Statement or for any other document that Zendesk may file with the SEC and send to its stockholders in connection with the proposed transaction. The proposed transaction will be submitted to Zendesk’s stockholders for their consideration. Before making any voting decision, Zendesk’s stockholders are urged to read all relevant documents filed or to be filed with the SEC, including the Proxy Statement, as well as any amendments or supplements to those documents, when they become available because they will contain important information about the proposed transaction. Zendesk’s stockholders will be able to obtain a free copy of the Proxy Statement, as well as other filings containing information about Zendesk, without charge, at the SEC’s website (www.sec.gov). Copies of the Proxy Statement and the filings with the SEC that will be incorporated by reference therein can also be obtained, without charge, by directing a request to Zendesk, Inc., 989 Market Street, San Francisco, CA 94103, Attention: Investor Relations, email: ir@zendesk.com, or from Zendesk’s website www.zendesk.com. Participants in the Solicitation Zendesk and certain of its directors, executive officers and employees may be deemed to be participants in the solicitation of proxies in respect of the proposed transaction. Information regarding Zendesk’s directors and executive officers is available in Zendesk’s Annual Report on Form 10-K/A, which was filed with the SEC on May 2, 2022. Other information regarding the participants in the proxy solicitation and a description of their direct and indirect interests, by security holdings or otherwise, will be contained in the Proxy Statement and other relevant materials to be filed with the SEC in connection with the proposed transaction when they become available. Free copies of the Proxy Statement and such other materials may be obtained as described in the preceding paragraph. Forward-Looking Statements This communication includes information that could constitute forward-looking statements made pursuant to the safe harbor provision of the Private Securities Litigation Reform Act of 1995. These statements include those set forth above relating to the proposed transaction as well as those that may be identified by words such as “will,” “intend,” “expect,” “anticipate,” “should,” “could” and similar expressions. These statements are subject to risks and uncertainties, and actual results and events could differ materially from what presently is expected, including regarding the proposed transaction. Factors leading thereto may include, without limitation, the risks related to Ukraine conflict or the COVID-19 pandemic on the global economy and financial markets; the uncertainties relating to the impact of the Ukraine conflict or the COVID-19 pandemic on Zendesk’s business; economic or other conditions in the markets
+
+
+
+
+
+
+
+
+
+Zendesk is engaged in; impacts of actions and behaviors of customers, suppliers and competitors; technological developments, as well as legal and regulatory rules and processes affecting Zendesk’s business; the timing, receipt and terms and conditions of any required governmental and regulatory approvals of the proposed transaction that could reduce anticipated benefits or cause the parties to abandon the proposed transaction; the occurrence of any event, change or other circumstances that could give rise to the termination of the merger agreement entered into pursuant to the proposed transaction; the possibility that Zendesk stockholders may not approve the proposed transaction; the risk that the parties to the merger agreement may not be able to satisfy the conditions to the proposed transaction in a timely manner or at all; risks related to disruption of management time from ongoing business operations due to the proposed transaction; the risk that any announcements relating to the proposed transaction could have adverse effects on the market price of Zendesk’s common stock; the risk of any unexpected costs or expenses resulting from the proposed transaction; the risk of any litigation relating to the proposed transaction; the risk that the proposed transaction and its announcement could have an adverse effect on the ability of Zendesk to retain customers and retain and hire key personnel and maintain relationships with customers, suppliers, employees, stockholders and other business relationships and on its operating results and business generally; the risk the pending proposed transaction could distract management of Zendesk; and other specific risk factors that are outlined in Zendesk’s disclosure filings and materials, which you can find on www.zendesk.com, such as its 10-K, 10-Q and 8-K reports that have been filed with the SEC. Please consult these documents for a more complete understanding of these risks and uncertainties. This list of factors is not intended to be exhaustive. Such forward-looking statements only speak as of the date of these materials, and Zendesk assumes no obligation to update any written or oral forward-looking statement made by Zendesk or on its behalf as a result of new information, future events or other factors, except as required by law.
+
+
+
+
+
+
+
+
+SIGNATURE Pursuant to the requirements of the Securities Exchange Act of 1934, the registrant has duly caused this report to be signed on its behalf by the undersigned hereunto duly authorized.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ZENDESK, INC.
+
+
+
+
+
+
+
+(Registrant)
+
+
+
+
+
+
+Date: June 24, 2022
+
+
+
+By:
+
+/s/ Shelagh Glaser
+
+
+
+
+
+
+
+Shelagh Glaser
+
+
+
+
+
+
+
+Chief Financial Officer
+
+
+
+
+
+
+
+(Principal Financial Officer)

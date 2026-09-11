@@ -1,0 +1,1009 @@
+false000142843900014284392026-06-142026-06-14
+
+
+
+
+
+
+UNITED STATES
+
+SECURITIES AND EXCHANGE COMMISSION
+
+Washington, D.C. 20549
+
+
+
+
+Form 8-K
+
+
+
+
+CURRENT REPORT
+
+Pursuant to Section 13 or 15(d)
+
+of the Securities Exchange Act of 1934
+
+
+
+
+June 14, 2026
+
+
+(Date of earliest event reported)
+
+
+
+
+Roku, Inc.
+
+
+(Exact name of registrant as specified in its charter)
+
+
+
+
+
+
+
+
+
+
+Delaware
+
+
+
+
+001-38211
+
+
+
+
+26-2087865
+
+
+
+
+
+
+
+
+(State or Other Jurisdiction of Incorporation)
+
+
+
+(Commission File Number)
+
+
+
+(I.R.S. Employer Identification Number)
+
+
+
+
+
+
+
+
+
+1173 Coleman Ave, San Jose, California
+
+(Address of principal executive offices)
+
+95110
+
+(Zip Code)
+
+
+
+
+(408) 556-9040
+
+
+(Registrant’s telephone number, including area code)
+
+
+
+
+
+
+Check the appropriate box below if the Form 8-K filing is intended to simultaneously satisfy the filing obligation of the registrant under any of the following
+provisions:
+
+
+
+
+
+
+
+
+
+☒
+
+
+Written communications pursuant to Rule 425 under the Securities Act (17 CFR 230.425)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+☐
+
+
+
+Soliciting material pursuant to Rule 14a-12 under the Exchange Act (17 CFR 240.14a-12)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+☐
+
+
+
+Pre-commencement communications pursuant to Rule 14d-2(b) under the Exchange Act (17 CFR 240.14d-2(b))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+☐
+
+
+
+Pre-commencement communications pursuant to Rule 13e-4(c) under the Exchange Act (17 CFR 240.13e-4(c))
+
+
+
+
+
+
+
+
+
+Securities registered pursuant to Section 12(b) of the Act:
+
+
+
+
+
+
+
+
+
+
+Title of each class
+
+
+
+Trading Symbol(s)
+
+
+
+Name of each exchange on which registered
+
+
+
+
+
+
+
+Class A Common Stock, $0.0001 par value
+
+
+
+
+ROKU
+
+
+
+
+The Nasdaq Global Select Market
+
+
+
+
+
+
+
+
+
+
+Indicate by check mark whether the registrant is an emerging growth company as defined in Rule 405 of the Securities Act of 1933 (§230.405 of this chapter) or Rule 12b-2
+of the Securities Exchange Act of 1934 (§240.12b-2 of this chapter).
+
+
+
+
+Emerging growth company ☐
+
+
+
+
+
+If an emerging growth company, indicate by check mark if the registrant has elected not to use the extended transition period for complying with any new or revised financial accounting
+standards provided pursuant to Section 13(a) of the Exchange Act. ☐
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Item 1.01
+
+
+Entry into a Material Definitive Agreement.
+
+
+
+
+
+
+
+
+
+Agreement and Plan of Merger
+
+
+
+
+On June 14, 2026, Roku, Inc., a Delaware corporation (the “Company”), entered into an Agreement and Plan of Merger (the “Merger Agreement”), by and among the Company, Fox Corporation, a Delaware corporation (“Fox” or “Parent”), Falcon Merger Sub 1,
+Inc., a Delaware corporation and a wholly owned subsidiary of Parent (“Merger Sub 1”), and Falcon Merger Sub 2, LLC, a Delaware limited liability company and a wholly owned subsidiary of Parent (“Merger Sub 2” and, together with Merger Sub 1, the “Merger Subs”). Pursuant to the Merger Agreement, and subject to the satisfaction or waiver of the conditions specified
+therein, (i) Merger Sub 1 will merge with and into the Company (the “First Merger”), with the Company surviving the First Merger as a wholly owned subsidiary of Parent (the “Surviving
+
+
+
+
+
+
+
+Corporation”), and (ii) immediately following the First Merger, and as the second step in a single integrated transaction with the First Merger, the Surviving Corporation will merge with and into Merger Sub 2 (the “Second Merger” and together with the First Merger, the “Mergers”), with Merger Sub 2 continuing as the surviving entity in the Second Merger and a wholly owned subsidiary
+of Parent (the “Surviving Company”). Capitalized terms used but not defined herein have the meanings specified in the Merger Agreement.
+
+
+
+
+The Company’s Board of Directors (the “Board”) has unanimously approved the Merger Agreement and resolved to recommend that the
+Company’s stockholders adopt and approve the Merger Agreement and approve the Mergers and the other transactions contemplated by the Merger Agreement (the “Transactions”).
+
+
+
+
+Merger Consideration
+
+
+
+
+At the effective time of the First Merger (the “Effective Time”), each share of Class A Common Stock, par value $0.0001 per
+share, and Class B Common Stock, par value $0.0001 per share, of the Company (together, “Company Common Stock”), outstanding immediately prior to the Effective Time (subject to certain exceptions, including
+shares of the Company Common Stock owned by stockholders of the Company who have not voted in favor of the adoption of the Merger Agreement and have properly exercised appraisal rights in accordance with Section 262 of the General Corporation Law
+of the State of Delaware (the “DGCL”)) will be converted into the right to receive (i) 0.9693 (the “Exchange Ratio”) shares of Class A Common Stock, par value $0.01 per
+share, of Parent (“Parent Class A Common Stock”), without interest, and (ii) $96.00 in cash, without interest (the “Per Share Cash Amount”), subject to applicable
+withholding taxes (the foregoing clauses (i) and (ii), collectively, the “Merger Consideration”). No fractional shares of Parent Class A Common Stock will be issued in the Mergers, and the Company
+stockholders will receive cash in lieu of any fractional shares, as specified in the Merger Agreement.
+
+
+
+
+If the Mergers are consummated, the Company’s Class A Common Stock will be delisted from The Nasdaq Global Select Market (“Nasdaq”)
+
+
+
+
+
+
+
+and deregistered under the Securities Exchange Act of 1934, as amended. The Exchange Ratio is expected to result in the Company stockholders owning approximately 27% of the combined company on a pro forma basis following the closing of the
+transactions contemplated by the Merger Agreement (the “Closing,” and the date on which the Closing occurs, the “Closing Date”).
+
+
+
+
+Treatment of Equity Awards
+
+
+
+
+Immediately prior to the Effective Time, by virtue of the First Merger, each vested unsettled restricted stock unit of the Company (a “Company
+
+
+RSU”) outstanding immediately prior to the Effective Time (each, a “Vested Company RSU”) shall be cancelled and be automatically converted into the right to receive, without interest and subject to
+deduction for any required withholding, the Merger Consideration in respect of each share of Company Common Stock that was subject to such Vested Company RSU immediately prior to the Effective Time.
+
+
+
+
+Immediately prior to the Effective Time, by virtue of the First Merger, each Company RSU outstanding immediately prior to the Effective Time that is not a Vested
+Company RSU (each, an “Unvested Company RSU”) shall be cancelled and converted into the right to receive (i) a Converted RSU Cash Award and (ii) a Converted RSU Equity Award as set forth below:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+•
+
+
+Each Converted RSU Cash Award shall provide the holder with the right to receive a payment in respect of each share of Company Common Stock that was subject to the applicable Unvested Company RSU immediately prior to the Effective Time
+equal to the Per Share Cash Amount (a “Converted RSU Cash Award”). The Converted RSU Cash Award shall be subject to the same vesting schedule that was applicable to such Unvested Company RSU
+immediately prior to the Effective Time (and any contractual acceleration rights that would have otherwise applied to such Unvested Company RSU shall apply to the Converted RSU Cash Award). Each Converted RSU Cash Award shall be payable by
+Parent on the date that such Unvested Company RSU would have become vested pursuant to the vesting schedule in place for such Unvested Company RSUs immediately prior to the Effective Time. Parent shall make all such required payments to
+holders of Converted RSU Cash Awards no later than 30 days following the date on which such Converted RSU Cash Award would have become vested under the original vesting schedule (such date on which the Converted RSU Cash Award is paid, the
+“RSU Payment Date”). Payment of the Converted RSU Cash Award shall be made in the form of cash or Parent Class A Common Stock, or a combination thereof, as determined by Parent in its sole discretion,
+with the value of the Parent Class A Common Stock determined based on the closing trading price of Parent Class A Common Stock on the last trading day immediately prior to the RSU Payment Date.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+•
+
+
+Each Converted RSU Equity Award shall be an award of restricted stock units that shall provide the holder with the right to receive a number of shares of Parent Class A Common Stock equal to the product of (rounded to the nearest whole
+number of shares): (i) the number of shares of Company Common Stock subject to such Unvested Company RSU immediately prior to the Effective Time multiplied by (ii) the Exchange Ratio (a “Converted RSU Equity
+Award”). Each Converted RSU Equity Award shall be subject to the terms and conditions of the Parent Stock Plan provided that the applicable vesting schedule, and any contractual acceleration rights that would have otherwise
+applied to such Unvested Company RSU shall apply to such Converted RSU Equity Award.
+
+
+
+
+
+
+
+
+
+Immediately prior to the Effective Time, by virtue of the First Merger, each option to purchase Company Common Stock (“Company Option”)
+
+
+that is an In-the-Money Company Option (as defined in the Merger Agreement) and that is vested, outstanding and unexercised immediately prior to the Effective Time (each, a “Vested In-the-Money Company Option”)
+
+
+shall be cancelled and be automatically converted into the right to receive, without interest and subject to deduction for any required withholding, for each share of Company Common Stock subject to such Vested In-the-Money Company Option
+immediately prior to the Effective Time, the Merger Consideration reduced by the applicable per share exercise price for such Vested In-the-Money Company Option, which shall be paid in the same proportion of Parent Class A Common Stock and cash as
+the Merger Consideration (the “Vested Company Option Consideration”). Any fractional shares resulting from such calculation shall be treated as provided in the Merger Agreement. The value of Merger
+Consideration for purposes of determining the Vested Company Option Consideration shall be determined based on the closing trading price of Parent Class A Common Stock on the last trading day immediately prior to the Closing Date.
+
+
+
+
+Immediately prior to the Effective Time, by virtue of the First Merger, each Company Option that is an Out-of-the-Money Company Option and that is outstanding and
+unexercised immediately prior to the Effective Time shall be cancelled as of the Effective Time for no consideration.
+
+
+
+
+Immediately prior to the Effective Time, by virtue of the First Merger, each Company Option that is unvested and outstanding immediately prior to the Effective Time
+(each, an “Unvested Company Option”) shall be cancelled and converted into the right to receive (1) a Converted Option Cash Award and (2) a Converted Option Equity Award as set forth below:
+
+
+
+
+
+
+
+
+
+
+
+
+•
+
+
+Each Converted Option Cash Award shall provide the holder with the right to receive a payment in respect of each share of Company Common Stock subject to such Unvested Company Option immediately prior to the Effective Time equal to (i)
+the Per Share Cash Amount minus (ii) the product of (x) the applicable exercise price per share of such Unvested Company Option and (y) 60% (a “Converted Option Cash Award”). The Converted Option Cash
+Award shall be subject to the same vesting schedule that was applicable to such Unvested Company Option immediately prior to the Effective Time (and any contractual acceleration rights that would otherwise have applied to such Unvested
+Company Option shall continue to apply to the Converted Option Cash Award following the Effective Time). Each Converted Option Cash Award shall be payable by Parent on the date that such Unvested Company Option would have become vested
+pursuant to the vesting schedule applicable to such Unvested Company Option immediately prior to the Effective Time. Parent shall make all such required payments to holders of Converted Option Cash Awards no later than 30 days following the
+date on which such Converted Option Cash Award would have become vested under the original vesting schedule (such date on which the Converted Option Cash Award is paid, the “Option Payment Date”).
+Payment of the Converted Option Cash Award shall be made in the form of cash or Parent Class A Common Stock, or a combination thereof, as determined by Parent in its sole discretion, with the value of the Parent Class A Common Stock
+determined based on the closing trading price of Parent Class A Common Stock on the last trading day immediately prior to the Option Payment Date. To the extent any Converted Option Cash Award is settled in Parent Class A Common Stock,
+Parent shall satisfy any required withholding under applicable tax law through either net share withholding or Parent shall permit the holder to elect a sale-to-cover transaction pursuant to which such number of shares of Parent Class A
+Common Stock otherwise deliverable in settlement of such Converted Option Cash Award as is necessary to satisfy such withholding obligation shall be sold and the proceeds thereof remitted to the applicable taxing authorities.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+•
+
+
+Each Converted Option Equity Award shall be a stock option award that shall provide the holder with the right to purchase a number of shares of Parent Class A Common Stock under the Parent Stock Plan equal to the product of (rounded down
+to the nearest whole number of shares): (i) the number of shares of Company Common Stock subject to such Unvested Company Option immediately prior to the Effective Time multiplied by (ii) the Exchange Ratio, with an exercise price per share
+(rounded up to the nearest whole cent) equal to: (i) the exercise price per share applicable to such Unvested Company Option immediately prior to the Effective Time divided by (ii) the Exchange Ratio, multiplied by (iii) 40% (a “Converted Option Equity Award”). Each Converted Option Equity Award shall be subject to the terms and conditions of the Parent Stock Plan provided that the applicable vesting schedule and any contractual
+acceleration rights that would otherwise have applied to the applicable Unvested Company Option immediately prior to the Effective Time shall apply to such Converted Option Equity Award.
+
+
+
+
+
+
+
+
+
+Governance
+
+
+
+
+After the date of the Merger Agreement and prior to the Closing, the Company shall be permitted to designate an additional member of the Board of Directors of Parent,
+who must be reasonably acceptable to Parent (the “Company Designee”). The parties will ensure that, immediately following the Effective Time, the Company Designee shall be added as an additional member of the
+Board of Directors of Parent, to hold office until the earliest to occur of the appointment or election of his or her successor or his or her resignation or proper removal.
+
+
+
+
+Closing Conditions
+
+
+
+
+Completion of the Mergers is subject to certain closing conditions, including (1) the adoption of the Merger Agreement by the holders of a majority of the shares of
+Class A Common Stock and Class B Common Stock of the Company, voting together as a single class, (2) the expiration or early termination of the applicable waiting period under the Hart-Scott-Rodino Antitrust Improvements Act of 1976, as amended,
+and the approval of the Mergers under certain other antitrust and foreign investment regimes, (3) the absence of any order, injunction or law of such jurisdictions prohibiting the Mergers, (4) the effectiveness of the registration statement
+pursuant to which shares of Parent Class A Common Stock to be issued in the Mergers will be registered with the U.S. Securities and Exchange Commission (the “SEC”), (5) the approval of the issuance of shares
+of Parent Class A Common Stock included in the Merger Consideration by a majority of the votes cast by the holders of shares of Parent Class B Common Stock entitled to vote on such matter at a meeting duly called and held for such purpose, (6) the
+accuracy of the other party’s representations and warranties, subject to certain standards set forth in the Merger Agreement, (7) compliance in all material respects with the other party’s obligations under the Merger Agreement, and (8) the absence
+of a continuing material adverse effect with respect to each of the Company and Parent.
+
+
+
+
+No Solicitation; Board Recommendation
+
+
+
+
+Each of the Company and Parent has also agreed not to (a) solicit proposals relating to alternative acquisition transactions or (b) enter into discussions or
+negotiations or provide non-public information in connection with any proposal for an alternative acquisition transaction from a third party, subject to certain exceptions to permit its respective board of directors to comply with its fiduciary
+obligations. Each party has further agreed to cease and cause to be terminated any existing discussions or negotiations, if any, with regard to alternative acquisition transactions. However, subject to the conditions specified in the Merger
+Agreement, prior to receipt of the requisite stockholder approval of each party, each party’s respective board of directors may consider and ultimately change its recommendation with respect to, and may terminate the Merger Agreement in response
+to, an unsolicited, bona fide acquisition proposal that such board of directors determines in good faith constitutes a Superior Proposal, subject to customary information and match rights for the other party. Each party’s board of directors may
+also change its recommendation in response to an Intervening Event, as defined in the Merger Agreement.
+
+
+
+
+
+
+
+
+
+
+Termination and Fees
+
+
+
+
+The Merger Agreement may be terminated under certain circumstances, including (1) by either the Company or Parent if the Mergers are not completed by June 14, 2027,
+which date may be extended to December 14, 2027, and which date may be further extended to March 14, 2028, under certain circumstances (the “Termination Date”), (2) by either the Company or Parent if any
+governmental entity of a competent jurisdiction has issued a final non-appealable order or injunction permanently restraining, enjoining or otherwise prohibiting the Mergers, (3) by either the Company or Parent if either party fails to obtain the
+requisite approval of its stockholders, (4) by either the Company or Parent if the other party’s board of directors changes its recommendation to its stockholders to vote in favor of the adoption of the Merger Agreement (in the case of Company) or
+the issuance of Parent Class A Common Stock pursuant to the Merger Agreement (in the case of Parent), (5) by either party in order to accept a Superior Proposal, or (6) by either party if the other party materially breaches its covenants, or
+breaches its representations and warranties, in the Merger Agreement such that the applicable conditions to closing would not be satisfied, subject in certain cases to the right of the breaching party to cure the breach. The Company and Parent may
+also terminate the Merger Agreement by mutual written consent.
+
+
+
+
+Upon termination of the Merger Agreement, each of Company and Parent under specified circumstances, including termination by such party to accept a Superior Proposal
+or termination by the other party upon a change in such party’s board of directors’ recommendation to its stockholders, will be required to pay the other party a termination fee of $866,084,000. Additionally, Parent, under specified circumstances,
+including termination following an injunction arising in connection with certain antitrust or investment screening laws, or failure to receive certain required regulatory approvals of specified governmental authorities by the Termination Date, will
+be required to pay the Company a termination fee of $1,237,262,000. Additionally, if the Merger Agreement is terminated because the requisite approval of Parent’s stockholders is not obtained, Parent will be required to pay the Company an amount in
+cash equal to 100% of the Company’s aggregate third-party fees and expenses incurred in connection with the transactions contemplated by the Merger Agreement; provided that such reimbursement shall not exceed $70,000,000 in the aggregate.
+
+
+
+
+Other Terms of the Merger Agreement
+
+
+
+
+The Merger Agreement contains customary representations, warranties and covenants made by each of the parties, including, among others, covenants regarding the conduct
+of the Company’s and Parent’s businesses during the pendency of the transaction, the making of certain public disclosures and other matters as described therein. The parties have agreed to use reasonable best efforts to take all actions necessary
+to consummate the Mergers, including cooperating to obtain the regulatory approvals necessary to complete the Mergers.
+
+
+
+
+Voting and Support Agreements
+
+
+
+
+Concurrently with the execution of the Merger Agreement, Parent and Mr. Anthony Wood, in his capacity as a stockholder of the Company, and certain other stockholders
+of the Company affiliated with Anthony Wood (each, a “Sellside VSA Stockholder”), entered into a Voting and Support Agreement (the “Sellside VSA”), pursuant to which
+each Sellside VSA Stockholder has agreed to vote his, her or its shares of Company Common Stock in favor of the adoption of the Merger Agreement and the transactions contemplated thereby, and to vote such shares against any competing acquisition
+proposal or any other action that would reasonably be expected to interfere with the transactions contemplated by the Merger Agreement. Each Sellside VSA Stockholder has also agreed to cease discussions regarding and not to solicit any competing
+acquisition proposal. As of June 15, 2026, the Sellside VSA Stockholders collectively held approximately 55% of Company’s outstanding voting power. The Sellside VSA will terminate, as to each Sellside VSA Stockholder, upon the earliest to occur of
+(a) the Effective Time, (b) the termination of the Merger Agreement, and (c) any specified amendment to the Merger Agreement that reduces the amount, or changes the form (other than an increase in the Per Share Cash Amount or the relative amount of
+the Merger Consideration represented by the Per Share Cash Amount), of the Merger Consideration payable to a Sellside VSA Stockholder or that is in any way material and adverse to a Sellside VSA Stockholder or Company stockholders generally.
+
+
+
+
+
+
+
+
+
+
+Concurrently with the execution of the Merger Agreement, the Company and certain stockholders of Parent (each, a “Buyside VSA
+Stockholder”), entered into a Voting and Support Agreement (the “Buyside VSA” and, together with the Sellside VSA, the “VSAs”), pursuant to which each Buyside
+VSA Stockholder has agreed to vote its shares of Parent Common Stock in favor of stock issuance of Parent Class A Common Stock contemplated by the Merger Agreement, and to vote such shares against any competing acquisition proposal or any other
+action that would reasonably be expected to interfere with the transactions contemplated by the Merger Agreement. Each Buyside VSA Stockholder has also agreed to cease discussions regarding and not to solicit any competing acquisition proposal. As
+of June 15, 2026, the Buyside VSA Stockholders collectively held approximately 38.7% of Parent’s outstanding voting power. The Buyside VSA will terminate upon the earliest to occur of (a) the Effective Time, (b) the termination of the Merger
+Agreement, and (c) any specified amendment to the Merger Agreement that increases the amount, or changes the form, of the Merger Consideration or that is in any way material and adverse to a Buyside VSA Stockholder or Parent stockholders generally.
+
+
+
+
+The foregoing description of the Merger Agreement and the VSAs does not purport to be complete and is qualified in its entirety by reference to the full text of the
+Merger Agreement, which is attached hereto as Exhibit 2.1, and the VSAs, which are attached hereto as Exhibit 10.1 and Exhibit 10.2, all of which are incorporated herein by reference. The Merger Agreement and the VSAs have been attached to provide
+Company stockholders and other security holders with information regarding their terms and are not intended to provide any factual information about Company, Parent, Merger Sub 1, Merger Sub 2 or their respective affiliates. The representations,
+warranties and covenants contained in the Merger Agreement and the VSAs have been made solely for purposes of the Merger Agreement and the VSAs, respectively, and as of specific dates; were made solely for the benefit of the parties to the Merger
+Agreement and the VSAs, respectively; are not intended as statements of fact to be relied upon by Company stockholders or other security holders, but rather as a way of allocating the risk between the parties in the event the statements therein
+prove to be inaccurate; have been modified or qualified by certain confidential disclosures that were made between the parties in connection with the negotiation of the Merger Agreement and the VSAs, which disclosures are not reflected in the
+Merger Agreement and the VSAs itself; may no longer be true as of a given date; and may apply standards of materiality in a way that is different from what may be viewed as material by Company stockholders or other security holders. Company
+stockholders and other security holders are not third-party beneficiaries under the Merger Agreement or the VSAs (except, following the Effective Time, with respect to Company stockholders’ right to receive the Merger Consideration and the right of
+holders of Company equity awards to receive the consideration provided for such equity awards pursuant to the Merger Agreement) and should not rely on the representations, warranties and covenants or any descriptions thereof as characterizations of
+the actual state of facts or condition of Parent, Company, Merger Sub 1, Merger Sub 2 or their respective affiliates. Moreover, information concerning the subject matter of the representations and warranties may change after the date of the Merger
+Agreement and the VSAs, which subsequent information may or may not be fully reflected in Company’s public disclosures. Company acknowledges that, notwithstanding the inclusion of the foregoing cautionary statements, it is responsible for
+considering whether additional specific disclosures of material information regarding material contractual provisions are required to make the statements in this Current Report on Form 8-K not misleading. The Merger Agreement and the VSAs should
+not be read alone but should instead be read in conjunction with the other information regarding the Merger Agreement, the VSAs, the Mergers, Parent, Company, Merger Sub 1, Merger Sub 2, their respective affiliates and their respective businesses,
+that will be contained in, or incorporated by reference into, the Joint Proxy Statement/Prospectus that Company and Parent will file, as well as in the Annual Reports on Form 10-K, Quarterly Reports on Form 10-Q, Current Reports on Form 8-K and
+other filings that Company will make with the SEC.
+
+
+
+
+
+
+
+
+
+Item 8.01
+
+
+Other Events.
+
+
+
+
+
+
+
+
+
+On June 15, 2026, the Company and Parent jointly issued a press release announcing the execution of the Merger Agreement. The full text of the press release is
+attached hereto as Exhibit 99.1 and is incorporated herein by reference.
+
+
+
+
+Important Information About the Proposed Transaction and Where to Find It
+
+
+
+
+In connection with the Transactions, Parent intends to file with the SEC a registration statement on Form S-4 (the “Registration
+Statement”), which will include a prospectus with respect to the shares of Parent’s common stock to be issued in the Transactions and a joint proxy statement for Parent’s and the Company’s respective stockholders (the “Joint Proxy Statement/Prospectus”)]. The definitive joint proxy statement (if and when available) will be mailed to stockholders of Parent and the Company. Each of Parent and the Company may also file with or
+furnish to the SEC other relevant documents regarding the Transactions. This communication is not a substitute for the Registration Statement, the Joint Proxy Statement/Prospectus or any other document that Parent or the Company may mail to their
+respective stockholders in connection with the Transactions.
+
+
+
+
+INVESTORS AND SECURITY HOLDERS OF PARENT AND THE COMPANY ARE URGED TO READ THE REGISTRATION STATEMENT AND THE JOINT PROXY STATEMENT/PROSPECTUS INCLUDED WITHIN THE
+REGISTRATION STATEMENT WHEN THEY BECOME AVAILABLE, AS WELL AS ANY OTHER RELEVANT DOCUMENTS FILED WITH THE SEC IN CONNECTION WITH THE TRANSACTIONS OR INCORPORATED BY REFERENCE INTO THE REGISTRATION STATEMENT AND THE JOINT PROXY STATEMENT/PROSPECTUS
+(INCLUDING ANY AMENDMENTS OR SUPPLEMENTS THERETO), BECAUSE THEY WILL CONTAIN IMPORTANT INFORMATION REGARDING PARENT, THE COMPANY, THE TRANSACTIONS AND RELATED MATTERS.
+
+
+
+
+
+
+
+
+
+
+The documents filed by Parent with the SEC also may be obtained free of charge at Parent’s website at investor. foxcorporation.com or upon written request to Parent
+through the form provided on the website or by phone at (212) 852-7059. The documents filed by the Company with the SEC also may be obtained free of charge at the Company’s website at roku.com/investor or upon written request to the Company at
+ir@roku.com. These documents filed with the SEC are also available for free to the public at the website maintained by the SEC at www.sec.gov.
+
+
+
+
+Participants in the Solicitation
+
+
+
+
+Parent, the Company and their respective directors and executive officers may be deemed to be participants in the solicitation of proxies from the stockholders of
+Parent and the Company in connection with the Transactions under the rules of the SEC.
+
+
+
+
+Information about the interests of the directors and executive officers of Parent and the Company and other persons who may be deemed to be participants in the
+solicitation of stockholders of Parent and the Company in connection with the Transactions and a description of their direct and indirect interests, by security holdings or otherwise, will be included in the Joint Proxy Statement/Prospectus, which
+will be filed with the SEC.
+
+
+
+
+Information about Parent’s directors and executive officers and their ownership of Parent’s common stock is set forth in Parent’s proxy statement for its 2025 Annual
+Meeting of Stockholders on Schedule 14A filed with the SEC on September 25, 2025. To the extent that holdings of Parent’s securities have changed since the amounts printed in Parent’s proxy statement, such changes have been or will be reflected on
+Initial Statements of Beneficial Ownership of Securities on Form 3 and Statements of Changes in Beneficial Ownership on Form 4 filed with the SEC.
+
+
+
+
+Information about the Company’s directors and executive officers and their ownership of the Company’s common stock is set forth in the Company’s proxy statement for
+its 2026 Annual Meeting of Stockholders on Schedule 14A filed with the SEC on April 24, 2026. To the extent that holdings of the Company’s securities have changed since the amounts printed in the Company’s proxy statement, such changes have been or
+will be reflected on Initial Statements of Beneficial Ownership of Securities on Form 3 and Statements of Changes in Beneficial Ownership on Form 4 filed with the SEC.
+
+
+
+
+Additional information regarding the direct and indirect interests of those persons and other persons who may be deemed participants in the Transactions may be
+obtained by reading the Joint Proxy Statement/Prospectus regarding the Transactions when it becomes available. Free copies of these documents may be obtained as described above.
+
+
+
+
+No Offer or Solicitation
+
+
+
+
+This communication is for informational purposes only and does not constitute, or form a part of, an offer to sell or the solicitation of an offer to buy any
+securities or a solicitation of any vote or approval, nor shall there be any sale of securities in any jurisdiction in which such offer, solicitation or sale would be unlawful prior to registration or qualification under the securities laws of any
+such jurisdiction. No offer of securities shall be made except by means of a prospectus meeting the requirements of Section 10 of the Securities Act of 1933, as amended, and otherwise in accordance with applicable law.
+
+
+
+
+
+
+
+
+
+
+This document contains “forward-looking statements” within the meaning of the federal securities laws, including Section 27A of the U.S. Securities Act of 1933, as
+amended, and Section 21E of the Securities Exchange Act of 1934, as amended. These forward-looking statements are based on Parent’s and the Company’s current expectations, estimates and projections about the expected date of closing of the
+Transactions and the potential benefits thereof, their respective businesses and industries, management’s beliefs and certain assumptions made by Parent and the Company, all of which are subject to change. In this context, forward-looking
+statements often address expected future business and financial performance and financial condition, and often contain words such as “expect,” “anticipate,” “intend,” “plan,” “believe,” “could,” “seek,” “see,” “will,” “may,” “would,” “might,”
+“potentially,” “estimate,” “continue,” “target,” similar expressions or the negatives of these words or other comparable terminology that convey uncertainty of future events or outcomes. All forward-looking statements by their nature address
+matters that involve risks and uncertainties, many of which are beyond our control and are not guarantees of future results, such as statements about the consummation of the Transactions and the anticipated benefits thereof. These and other
+forward-looking statements, including the failure to consummate the Transactions or to make or take any filing or other action required to consummate the transaction in a timely manner or at all, are not guarantees of future results and are subject
+to risks, uncertainties and assumptions that could cause actual results to differ materially from those expressed in any forward-looking statements. Accordingly, there are or will be important factors that could cause actual results to differ
+materially from those indicated in such statements and, therefore, you should not place undue reliance on any such statements and caution must be exercised in relying on forward-looking statements. Important risk factors that may cause such a
+difference include, but are not limited to: (i) the completion of the Transactions on anticipated terms and timing, including obtaining shareholder and regulatory approvals, anticipated tax treatment, unforeseen liabilities, future capital
+expenditures, revenues, expenses, earnings, synergies, economic performance, indebtedness, financial condition, losses, future prospects, business and management strategies, expansion and growth of Parent’s and the Company’s businesses and other
+conditions to the completion of the Transactions; (ii) failure to realize the anticipated benefits of the Transactions, including as a result of delay in completing the transaction or integrating the businesses of Parent and the Company;
+(iii) Parent’s and the Company’s ability to implement their business strategies; (iv) pricing trends; (v) potential litigation relating to the Transactions that could be instituted against Parent, the Company or their respective directors; (vi) the
+risk that disruptions from the Transactions will harm Parent’s or the Company’s business, including current plans and operations; (vii) the ability of Parent or the Company to retain and hire key personnel; (viii) potential adverse reactions or
+changes to business relationships resulting from the announcement, pendency or completion of the Transactions; (ix) uncertainty as to the long-term value of Parent’s common stock; (x) legislative, regulatory and economic developments affecting
+Parent’s and the Company’s businesses; (xi) general economic and market developments and conditions; (xii) the evolving legal, regulatory and tax regimes under which Parent and the Company operate; (xiii) potential business uncertainty, including
+changes to existing business relationships, during the pendency of the Transactions that could affect Parent’s or the Company’s financial performance; (xiv) restrictions during the pendency of the Transactions that may impact Parent’s or the
+Company’s ability to pursue certain business opportunities or strategic transactions; (xv) unpredictability and severity of catastrophic events, including, but not limited to, acts of terrorism or outbreak of war or hostilities, as well as Parent’s
+and the Company’s response to any of the aforementioned factors; and (xvi) failure to receive the approval of the stockholders of Parent and the Company. These risks, as well as other risks associated with the Transactions, are more fully discussed
+in the Joint Proxy Statement/Prospectus to be filed with the SEC in connection with the Transactions. While the list of factors presented here is, and the list of factors presented in the Joint Proxy Statement/Prospectus will be, considered
+representative, no such list should be considered to be a complete statement of all potential risks and uncertainties. Unlisted factors may present significant additional obstacles to the realization of forward-looking statements. Consequences of
+material differences in results as compared with those anticipated in the forward-looking statements could include, among other things, business disruption, operational problems, financial loss, legal liability to third parties and similar risks,
+any of which could have a material adverse effect on Parent’s or the Company’s consolidated financial condition, results of operations or liquidity. Neither Parent nor the Company assumes any obligation to publicly provide revisions or updates to
+any forward-looking statements, whether as a result of new information, future developments or otherwise, should circumstances change, except as otherwise required by securities and other applicable laws.
+
+
+
+
+
+
+
+
+
+Item 9.01
+
+
+Financial Statements and Exhibits.
+
+
+
+
+
+
+
+
+
+(d) Exhibits
+
+
+
+
+
+
+
+
+
+
+Exhibit
+No.
+
+
+
+
+
+
+Description of Exhibit
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2.1*
+
+
+
+
+
+
+Agreement and Plan of Merger, dated as of June 14, 2026, by and among Roku, Inc., Fox Corporation, Falcon Merger Sub 1, Inc. and Falcon Merger Sub 2, LLC
+
+
+
+
+
+
+
+10.1
+
+
+
+
+
+
+Voting and Support Agreement, dated as of June 14, 2026, by and among Fox Corporation and certain stockholders of Roku, Inc.
+
+
+
+
+
+
+
+10.2
+
+
+
+
+
+
+Voting and Support Agreement, dated as of June 14, 2026, by and among Roku, Inc. and certain stockholders of Fox Corporation
+
+
+
+
+
+
+
+99.1
+
+
+
+
+
+
+Joint Press Release, dated June 15, 2026
+
+
+
+
+
+
+
+104
+
+
+
+
+
+
+Cover Page Interactive Data File (embedded within the Inline XBRL document)
+
+
+
+
+
+
+
+
+
+* Schedules have been omitted pursuant to Item 601(a)(5) of Regulation S-K. The registrant hereby undertakes to furnish supplementally a copy of any omitted schedule upon
+request by the SEC.
+
+
+
+
+
+
+
+
+
+
+SIGNATURE
+
+
+
+
+Pursuant to the requirements of the Securities Exchange Act of 1934, the registrant has duly caused this report to be signed on its behalf by the
+undersigned hereunto duly authorized.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Roku, Inc.
+
+
+
+
+
+
+
+Dated: June 15, 2026
+
+
+
+
+
+
+
+
+
+
+
+
+
+By:
+
+
+
+/s/ Dan Jedda
+
+
+
+
+
+
+
+
+
+
+
+
+
+Dan Jedda
+
+
+
+
+
+
+
+
+
+
+
+
+
+Chief Financial Officer and Chief Operating Officer
