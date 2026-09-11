@@ -51,6 +51,214 @@ class MarketAssumptions(_Base):
             "convention that shrinks toward the market. 'raw' is the OLS estimate."
         ),
     )
+    peer_beta_method: Literal["median", "vasicek"] = Field(
+        "median",
+        description=(
+            "How peer asset betas are pooled. 'median' is the sell-side default and "
+            "treats a beta measured on an R-squared of 0.05 exactly like one measured "
+            "on 0.40. 'vasicek' weights each peer by the precision of its own "
+            "regression, shrinking noisy estimates toward the cross-sectional mean by "
+            "an amount the data decides rather than by a fixed rule. Blume shrinks "
+            "every beta by the same 33% no matter how well measured it was."
+        ),
+    )
+
+
+class DilutionAssumptions(_Base):
+    """How the share count in equity value is built."""
+
+    method: Literal["waso", "treasury_stock"] = Field(
+        "waso",
+        description=(
+            "'waso' uses trailing-twelve-month weighted-average diluted shares, which "
+            "is an average over a past window and understates the count for a company "
+            "issuing steadily. 'treasury_stock' counts basic shares outstanding plus "
+            "the net new shares in-the-money awards would create at today's price, "
+            "which is the point-in-time figure a live model uses."
+        ),
+    )
+    include_rsus: bool = Field(
+        True,
+        description=(
+            "Unvested RSUs have no strike, so they contribute their full count with no "
+            "buyback offset. Excluding them understates dilution at any software "
+            "company that has moved from options to units."
+        ),
+    )
+    assumed_forfeiture_rate: float = Field(
+        0.0,
+        ge=0.0,
+        le=0.5,
+        description=(
+            "Share of unvested awards assumed never to vest. Left at zero: the "
+            "treasury stock method as written in ASC 260 does not haircut for "
+            "forfeitures, and guessing one is a thumb on the scale."
+        ),
+    )
+
+
+class NOLAssumptions(_Base):
+    """Net operating loss carryforwards in the projection."""
+
+    track: bool = Field(
+        False,
+        description=(
+            "Off by default so the base case stays simple. On, a projected loss "
+            "creates a carryforward that shelters later taxable income, which is "
+            "worth real money to a company with a decade of accumulated losses."
+        ),
+    )
+    opening_balance: float | None = Field(
+        None,
+        description=(
+            "Federal NOL carryforward at the valuation date, USD millions. Null reads "
+            "it from the filings where the filer tags it; the tax footnote carries the "
+            "number when the tag is absent."
+        ),
+    )
+    annual_limitation_pct: float = Field(
+        0.80,
+        description=(
+            "Share of taxable income a carryforward may shelter in one year. Post-2017 "
+            "federal losses carry forward indefinitely but offset only 80% of taxable "
+            "income, so a profitable year still pays some cash tax."
+        ),
+    )
+
+
+class TerminalAssumptions(_Base):
+    """How the terminal value is constructed."""
+
+    method: Literal["gordon", "value_driver"] = Field(
+        "gordon",
+        description=(
+            "'gordon' capitalises the final projected cash flow and leaves the implied "
+            "return on capital to be checked afterwards. 'value_driver' inverts that: "
+            "you state the terminal ROIC you believe and the reinvestment needed to "
+            "fund growth is derived from it, so the terminal value cannot embed a "
+            "return nobody signed up for. Both are always reported; this picks the "
+            "headline."
+        ),
+    )
+    terminal_roic: float | None = Field(
+        None,
+        description=(
+            "Return on incremental invested capital in perpetuity, used by the "
+            "value-driver formula. Null falls back to the WACC, the competitive "
+            "equilibrium assumption that growth is worth exactly nothing."
+        ),
+    )
+
+
+class SimulationAssumptions(_Base):
+    """Monte Carlo over the assumptions that actually move the answer."""
+
+    enabled: bool = False
+    draws: int = Field(10_000, ge=100, le=1_000_000)
+    seed: int = Field(
+        7,
+        description="Fixed so a distribution is reproducible; this is a model, not a lottery.",
+    )
+    revenue_growth_sd: float = Field(
+        0.04, description="Standard deviation on the year-one growth rate, absolute."
+    )
+    terminal_margin_sd: float = Field(
+        0.04, description="Standard deviation on the terminal EBIT margin, absolute."
+    )
+    wacc_sd: float = Field(0.010, description="Standard deviation on the discount rate.")
+    terminal_growth_sd: float = Field(0.005)
+
+
+class APVAssumptions(_Base):
+    """Adjusted present value, valued as unlevered firm plus financing side effects."""
+
+    enabled: bool = Field(
+        False,
+        description=(
+            "On, the engine values the business unlevered and adds the present value of "
+            "the interest tax shield separately, then reconciles to the WACC answer. "
+            "The two agree only when leverage is constant; where they diverge, the "
+            "divergence is the point."
+        ),
+    )
+    shield_discount_rate: Literal["cost_of_debt", "unlevered_cost_of_equity"] = Field(
+        "cost_of_debt",
+        description=(
+            "What the tax shield is worth turns on how safe it is. Discounting at the "
+            "cost of debt (Modigliani-Miller) assumes a fixed debt schedule; "
+            "discounting at the unlevered cost of equity (Miles-Ezzell, Harris-Pringle) "
+            "assumes debt rebalances with firm value, which is what a constant-WACC "
+            "model already implies."
+        ),
+    )
+
+
+class RegressionCompsAssumptions(_Base):
+    """Warranted multiples from fundamentals rather than from a percentile band."""
+
+    enabled: bool = Field(
+        False,
+        description=(
+            "Fits EV/Revenue across the peer set against growth and margin, then reads "
+            "off the multiple the target's own fundamentals warrant. A percentile band "
+            "says what the neighbours trade at; this says what the company should trade "
+            "at given what it is. Needs a real sample to mean anything."
+        ),
+    )
+    min_observations: int = Field(
+        8,
+        description=(
+            "Below this the fit is memorising the peer set. The engine reports the "
+            "regression as unavailable rather than fitting two parameters to six points."
+        ),
+    )
+    drivers: list[str] = Field(
+        default_factory=lambda: ["revenue_growth", "ebitda_margin"],
+        description="Explanatory variables, as PeerMetrics attribute names.",
+    )
+
+
+class PurchaseAccountingAssumptions(_Base):
+    """The opening balance sheet a real merger model builds."""
+
+    enabled: bool = Field(
+        False,
+        description=(
+            "On, the merger module builds goodwill, writes up identifiable intangibles, "
+            "books the deferred tax liability on the step-up, haircuts acquired deferred "
+            "revenue and runs the deal forward with debt amortisation. Off, it stays the "
+            "year-one screening tool it is documented as."
+        ),
+    )
+    intangible_pct_of_excess: float = Field(
+        0.40,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Share of purchase price above book equity allocated to identifiable "
+            "intangibles rather than goodwill. Software deals commonly land 30-50% here; "
+            "the rest is goodwill, which is not amortised."
+        ),
+    )
+    intangible_life_years: int = Field(7, ge=1, le=40)
+    deferred_revenue_haircut: float = Field(
+        0.40,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Write-down of acquired deferred revenue to fair value, which is the cost of "
+            "delivering the service plus a margin, not the amount billed. The haircut "
+            "permanently destroys revenue the target would have recognised, which is why "
+            "SaaS acquisitions look worse in year one than the run rate suggests."
+        ),
+    )
+    projection_years: int = Field(3, ge=1, le=10)
+    debt_repayment_pct_of_fcf: float = Field(
+        0.50,
+        ge=0.0,
+        le=1.0,
+        description="Share of free cash flow swept to repay acquisition debt each year.",
+    )
     size_premium: float = Field(
         0.0,
         description="Additive CAPM adjustment for small-cap illiquidity. Default off.",
@@ -153,6 +361,19 @@ class DCFAssumptions(_Base):
     sensitivity_wacc_step: float = 0.015
     sensitivity_growth_step: float = 0.010
 
+    sbc_dilution: bool = Field(
+        True,
+        description=(
+            "Only bites under sbc_treatment: addback. Grows the share count each year "
+            "by the stock compensation issued divided by the share price, which is the "
+            "other half of that treatment. Adding the cash back while holding the "
+            "denominator flat counts the benefit of paying in equity and ignores its "
+            "cost, and the two camps very nearly converge once both halves are modelled."
+        ),
+    )
+    nol: NOLAssumptions = Field(default_factory=NOLAssumptions)
+    terminal: TerminalAssumptions = Field(default_factory=TerminalAssumptions)
+
     @model_validator(mode="after")
     def _check(self) -> "DCFAssumptions":
         if self.terminal_growth >= 0.06:
@@ -197,6 +418,9 @@ class CompsAssumptions(_Base):
         ),
     )
     apply_percentiles: tuple[float, float] = (0.25, 0.75)
+    regression: RegressionCompsAssumptions = Field(
+        default_factory=RegressionCompsAssumptions
+    )
 
 
 class SynergyAssumptions(_Base):
@@ -233,6 +457,9 @@ class MergerAssumptions(_Base):
     intangible_step_up: float = 0.0
     intangible_life_years: int = 10
     synergies: SynergyAssumptions = Field(default_factory=SynergyAssumptions)
+    purchase_accounting: PurchaseAccountingAssumptions = Field(
+        default_factory=PurchaseAccountingAssumptions
+    )
 
 
 class Assumptions(_Base):
@@ -245,6 +472,20 @@ class Assumptions(_Base):
     dcf: DCFAssumptions = Field(default_factory=DCFAssumptions)
     comps: CompsAssumptions = Field(default_factory=CompsAssumptions)
     merger: MergerAssumptions = Field(default_factory=MergerAssumptions)
+    dilution: DilutionAssumptions = Field(default_factory=DilutionAssumptions)
+    simulation: SimulationAssumptions = Field(default_factory=SimulationAssumptions)
+    apv: APVAssumptions = Field(default_factory=APVAssumptions)
+
+    as_of: str | None = Field(
+        None,
+        description=(
+            "Value the company as it was knowable on this date (YYYY-MM-DD). Every "
+            "fact filed after it is discarded and prices stop there, so a historical "
+            "run uses only information that existed at the time. This is what makes a "
+            "backtest a backtest rather than an exercise in hindsight."
+        ),
+    )
+
     price_source: Literal["nasdaq", "stooq", "csv"] = "nasdaq"
     price_csv_dir: str | None = None
 

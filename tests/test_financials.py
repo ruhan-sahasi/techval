@@ -299,3 +299,161 @@ def test_latest_periodic_report_still_wins_within_its_class():
     )
     assert fy2024.filed == date(2026, 3, 5)
     assert fy2024.val / 1e6 == pytest.approx(72.2, rel=1e-2)
+
+
+# --------------------------------------------------------------------------- #
+# point-in-time knowledge
+# --------------------------------------------------------------------------- #
+
+
+def test_knowledge_date_hides_facts_filed_later():
+    """A valuation dated in the past may only see what was filed by then.
+
+    Without this every historical run quietly reads restatements, later
+    comparatives and split adjustments that nobody could have seen at the time,
+    and a backtest built on it measures hindsight rather than the model.
+
+    Datadog's June 2026 quarter was filed on 2026-08-06. As of 1 March 2026 the
+    newest revenue period knowable is the December 2025 year end, from the 10-K
+    filed on 2026-02-18.
+    """
+    import json
+
+    from techval.edgar import CompanyFacts
+
+    from pathlib import Path
+
+    raw = json.loads(
+        (Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text()
+    )
+    tag = "RevenueFromContractWithCustomerExcludingAssessedTax"
+
+    full = CompanyFacts(raw, "DDOG")
+    past = CompanyFacts(raw, "DDOG", knowledge_date=date(2026, 3, 1))
+
+    latest = lambda c: max(f.end for f in c.facts(tag) if not f.is_instant)
+    assert latest(full) == date(2026, 6, 30)
+    assert latest(past) == date(2025, 12, 31)
+    assert all(f.filed <= date(2026, 3, 1) for f in past.facts(tag))
+
+
+def test_knowledge_date_falls_back_to_the_filing_of_record(crwd):
+    """Hiding a later restatement must expose the earlier figure, not a gap.
+
+    CrowdStrike's fiscal 2024 net income reads 89.3mm in the 10-K filed in 2024
+    and 72.2mm in the one filed in 2026. An analyst working in 2025 saw the
+    first. Filtering only after deduplication would have let the 2026 filing win
+    selection and then be dropped, losing the period altogether.
+    """
+    import json
+
+    from techval.edgar import CompanyFacts
+
+    raw = json.loads(
+        (__import__("pathlib").Path(__file__).parent / "fixtures"
+         / "companyfacts_CRWD.json").read_text()
+    )
+    period = (date(2023, 2, 1), date(2024, 1, 31))
+
+    then = CompanyFacts(raw, "CRWD", knowledge_date=date(2025, 6, 30))
+    fact = next(
+        f for f in then.facts("NetIncomeLoss")
+        if (f.start, f.end) == period
+    )
+    assert fact.val / 1e6 == pytest.approx(89.3, rel=1e-2)
+    assert fact.filed <= date(2025, 6, 30)
+
+
+def test_a_point_in_time_statement_is_internally_consistent():
+    """The whole statement moves back together, not just one line."""
+    import json
+
+    from techval.edgar import CompanyFacts
+
+    raw = json.loads(
+        (__import__("pathlib").Path(__file__).parent / "fixtures"
+         / "companyfacts_DDOG.json").read_text()
+    )
+    fin = build_financials(
+        "DDOG", facts=CompanyFacts(raw, "DDOG", knowledge_date=date(2026, 3, 1))
+    )
+    assert fin.as_of == date(2025, 12, 31)
+    assert fin.revenue == pytest.approx(3427.2, rel=1e-3)   # FY2025 as filed
+    for p in fin.provenance.values():
+        if p.filed and p.filed != "-":
+            assert p.filed <= "2026-03-01"
+
+
+# --------------------------------------------------------------------------- #
+# dimensioned facts from the filing instance
+# --------------------------------------------------------------------------- #
+
+
+_INSTANCE = b"""<?xml version="1.0" encoding="UTF-8"?>
+<xbrl xmlns="http://www.xbrl.org/2003/instance"
+      xmlns:xbrldi="http://xbrl.org/2006/xbrldi"
+      xmlns:us-gaap="http://fasb.org/us-gaap/2024"
+      xmlns:dei="http://xbrl.sec.gov/dei/2024">
+  <context id="cA">
+    <entity><identifier scheme="x">1</identifier>
+      <segment><xbrldi:explicitMember dimension="us-gaap:StatementClassOfStockAxis">us-gaap:CommonClassAMember</xbrldi:explicitMember></segment>
+    </entity>
+    <period><instant>2026-06-30</instant></period>
+  </context>
+  <context id="cB">
+    <entity><identifier scheme="x">1</identifier>
+      <segment><xbrldi:explicitMember dimension="us-gaap:StatementClassOfStockAxis">us-gaap:CommonClassBMember</xbrldi:explicitMember></segment>
+    </entity>
+    <period><instant>2026-06-30</instant></period>
+  </context>
+  <context id="cPlain">
+    <entity><identifier scheme="x">1</identifier></entity>
+    <period><startDate>2026-01-01</startDate><endDate>2026-06-30</endDate></period>
+  </context>
+  <unit id="shares"><measure>xbrli:shares</measure></unit>
+  <unit id="usdPerShare"><measure>iso4217:USD</measure><measure>xbrli:shares</measure></unit>
+  <dei:EntityCommonStockSharesOutstanding contextRef="cA" unitRef="shares">334904614</dei:EntityCommonStockSharesOutstanding>
+  <dei:EntityCommonStockSharesOutstanding contextRef="cB" unitRef="shares">24170410</dei:EntityCommonStockSharesOutstanding>
+  <us-gaap:ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber contextRef="cPlain" unitRef="shares">3474619</us-gaap:ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber>
+  <us-gaap:NotANumber contextRef="cPlain">n/a</us-gaap:NotANumber>
+</xbrl>
+"""
+
+
+def test_instance_parsing_recovers_dimensioned_facts():
+    """companyfacts publishes only undimensioned facts, so this is the way in.
+
+    A dual-class issuer reports shares outstanding once per class, and both
+    vanish from companyfacts. Summing them is the only route to a point-in-time
+    share count for Datadog, Alphabet or any other multi-class filer.
+    """
+    from techval.edgar import parse_instance
+
+    facts = parse_instance(_INSTANCE)
+    shares = [f for f in facts if f.tag == "EntityCommonStockSharesOutstanding"]
+
+    assert len(shares) == 2
+    assert sum(f.value for f in shares) == pytest.approx(359_075_024)
+    assert {f.axis("StatementClassOfStockAxis").split(":")[-1] for f in shares} == {
+        "CommonClassAMember",
+        "CommonClassBMember",
+    }
+    assert all(f.is_instant and f.end == date(2026, 6, 30) for f in shares)
+
+
+def test_instance_parsing_keeps_duration_and_skips_non_numeric():
+    """Durations survive with both endpoints; unparseable values are dropped.
+
+    Coercing a non-numeric fact to zero would put a fabricated figure into a
+    share count, which is the one thing this engine does not do.
+    """
+    from techval.edgar import parse_instance
+
+    facts = parse_instance(_INSTANCE)
+    options = next(f for f in facts if "OptionsOutstandingNumber" in f.tag)
+
+    assert options.value == pytest.approx(3_474_619)
+    assert options.start == date(2026, 1, 1) and options.end == date(2026, 6, 30)
+    assert not options.is_instant
+    assert options.unit == "shares"
+    assert not any(f.tag == "NotANumber" for f in facts)

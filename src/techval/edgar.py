@@ -246,7 +246,20 @@ class Provenance:
 class CompanyFacts:
     """The ``companyfacts`` payload for one filer, indexed for lookup."""
 
-    def __init__(self, payload: dict[str, Any], ticker: str) -> None:
+    def __init__(
+        self,
+        payload: dict[str, Any],
+        ticker: str,
+        knowledge_date: date | None = None,
+    ) -> None:
+        """``knowledge_date`` pins the run to what was filed by that date.
+
+        Every fact filed later is discarded, so a valuation dated in the past uses
+        only information that existed then. Without it a historical run silently
+        reads restatements, later comparatives and split adjustments that nobody
+        could have seen, and any backtest built on that measures hindsight rather
+        than the model.
+        """
         self.raw = payload
         self.ticker = ticker.upper()
         self.entity_name: str = payload.get("entityName", ticker)
@@ -254,6 +267,7 @@ class CompanyFacts:
         self._gaap: dict[str, Any] = payload.get("facts", {}).get("us-gaap", {})
         self._dei: dict[str, Any] = payload.get("facts", {}).get("dei", {})
         self._splits: list[tuple[date, float]] | None = None
+        self.knowledge_date = knowledge_date
 
     # -- raw tag access ---------------------------------------------------- #
 
@@ -412,6 +426,12 @@ class CompanyFacts:
             end = r.get("end")
             if not end or r.get("val") is None:
                 continue
+            # Filtered here as well as below: if a later filing won selection and
+            # were only dropped afterwards, the period would vanish rather than
+            # falling back to the version that was actually on file at the time.
+            if self.knowledge_date is not None and r.get("filed"):
+                if _d(r["filed"]) > self.knowledge_date:
+                    continue
             key = (r.get("start"), end)
             prev = best.get(key)
             if prev is None or (
@@ -428,6 +448,8 @@ class CompanyFacts:
         out = []
         for r in best.values():
             filed = _d(r["filed"]) if r.get("filed") else _d(r["end"])
+            if self.knowledge_date is not None and filed > self.knowledge_date:
+                continue
             val = float(r["val"])
             if adjust:
                 val = self._split_adjust(val, filed, unit)
@@ -881,9 +903,123 @@ def latest_annual(facts: list[Fact], as_of: date) -> Fact | None:
 # --------------------------------------------------------------------------- #
 
 
+@dataclass(frozen=True)
+class DimensionedFact:
+    """One XBRL fact together with the axes it was reported along.
+
+    ``companyfacts`` publishes only undimensioned facts, so everything reported
+    by class, by award type or by exercise-price band is invisible there. Those
+    are exactly the facts a treasury-stock share count needs: option counts and
+    strikes sit under the award-type axis, and a dual-class issuer's shares
+    outstanding sit under the class-of-stock axis.
+    """
+
+    tag: str
+    value: float
+    unit: str | None
+    start: date | None
+    end: date
+    dimensions: dict[str, str]
+
+    @property
+    def is_instant(self) -> bool:
+        return self.start is None
+
+    def axis(self, name: str) -> str | None:
+        """Member reported along an axis, matched on the local name."""
+        for axis, member in self.dimensions.items():
+            if axis.split(":")[-1].lower() == name.split(":")[-1].lower():
+                return member
+        return None
+
+
+def _local(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
+
+
+def parse_instance(xml_bytes: bytes) -> list[DimensionedFact]:
+    """Read an XBRL instance document into dimensioned facts.
+
+    Deliberately namespace-agnostic: instance documents differ in prefixes and
+    in which taxonomy versions they bind, and matching on local names survives
+    that where a namespace map does not. Facts whose value is not numeric, and
+    footnote or schema-reference elements, are skipped rather than coerced.
+    """
+    import xml.etree.ElementTree as ET
+
+    root = ET.fromstring(xml_bytes)
+
+    contexts: dict[str, tuple[date | None, date | None, dict[str, str]]] = {}
+    for node in root.iter():
+        if _local(node.tag) != "context":
+            continue
+        cid = node.get("id")
+        if not cid:
+            continue
+        start = end = None
+        dims: dict[str, str] = {}
+        for sub in node.iter():
+            name = _local(sub.tag)
+            text = (sub.text or "").strip()
+            if name == "instant" and text:
+                end = _d(text)
+            elif name == "startDate" and text:
+                start = _d(text)
+            elif name == "endDate" and text:
+                end = _d(text)
+            elif name == "explicitMember":
+                axis = sub.get("dimension")
+                if axis and text:
+                    dims[axis] = text
+        if end is not None:
+            contexts[cid] = (start, end, dims)
+
+    units: dict[str, str] = {}
+    for node in root.iter():
+        if _local(node.tag) != "unit":
+            continue
+        uid = node.get("id")
+        measures = [
+            (m.text or "").strip().split(":")[-1]
+            for m in node.iter()
+            if _local(m.tag) == "measure"
+        ]
+        if uid and measures:
+            units[uid] = "/".join(measures)
+
+    out: list[DimensionedFact] = []
+    for node in root.iter():
+        ctx = node.get("contextRef")
+        if not ctx or ctx not in contexts:
+            continue
+        text = (node.text or "").strip().replace(",", "")
+        if not text:
+            continue
+        try:
+            value = float(text)
+        except ValueError:
+            continue
+        sign = -1.0 if (node.get("sign") == "-") else 1.0
+        start, end, dims = contexts[ctx]
+        out.append(
+            DimensionedFact(
+                tag=_local(node.tag),
+                value=value * sign,
+                unit=units.get(node.get("unitRef") or ""),
+                start=start,
+                end=end,
+                dimensions=dims,
+            )
+        )
+    return out
+
+
 class EdgarClient:
-    def __init__(self, cache: HttpCache | None = None) -> None:
+    def __init__(
+        self, cache: HttpCache | None = None, knowledge_date: date | None = None
+    ) -> None:
         self.cache = cache if cache is not None else HttpCache()
+        self.knowledge_date = knowledge_date
         self._ticker_map: dict[str, int] | None = None
 
     def _get_json(self, url: str) -> dict:
@@ -911,4 +1047,79 @@ class EdgarClient:
     def company_facts(self, ticker: str) -> CompanyFacts:
         cik = self.ticker_to_cik(ticker)
         payload = self._get_json(SEC_FACTS_URL.format(cik=cik))
-        return CompanyFacts(payload, ticker)
+        return CompanyFacts(payload, ticker, knowledge_date=self.knowledge_date)
+
+    # -- filing documents, for the facts companyfacts leaves out ----------- #
+
+    def submissions(self, ticker: str) -> dict:
+        cik = self.ticker_to_cik(ticker)
+        return self._get_json(SEC_SUBMISSIONS_URL.format(cik=cik))
+
+    def latest_filing(
+        self, ticker: str, forms: tuple[str, ...] = ("10-K", "10-Q")
+    ) -> tuple[str, date, str]:
+        """Accession, filing date and form of the most recent periodic report.
+
+        Honours the client's knowledge date, so a historical run reaches for the
+        filing that was current then rather than the newest one on file.
+        """
+        recent = (self.submissions(ticker).get("filings") or {}).get("recent") or {}
+        rows = list(
+            zip(
+                recent.get("accessionNumber", []),
+                recent.get("filingDate", []),
+                recent.get("form", []),
+            )
+        )
+        for accn, filed, form in rows:
+            if form not in forms:
+                continue
+            when = _d(filed)
+            if self.knowledge_date is not None and when > self.knowledge_date:
+                continue
+            return accn, when, form
+        raise MissingDataError(
+            "periodic filing",
+            ticker=ticker,
+            hint=f"no {' or '.join(forms)} on file"
+            + (f" by {self.knowledge_date}" if self.knowledge_date else ""),
+        )
+
+    def instance_facts(
+        self, ticker: str, forms: tuple[str, ...] = ("10-K", "10-Q")
+    ) -> tuple[list[DimensionedFact], str, date]:
+        """Dimensioned facts from the latest periodic filing's instance document.
+
+        Returns the facts, the accession they came from and its filing date, so
+        anything built on them can be sourced as precisely as a companyfacts
+        figure. Raises ``MissingDataError`` when the filing carries no separable
+        instance document, which happens with older filings that predate inline
+        XBRL; callers are expected to fall back rather than guess.
+        """
+        cik = self.ticker_to_cik(ticker)
+        accn, filed, _form = self.latest_filing(ticker, forms)
+        bare = accn.replace("-", "")
+        base = f"https://www.sec.gov/Archives/edgar/data/{cik}/{bare}"
+        listing = self._get_json(f"{base}/index.json")
+
+        names = [
+            item.get("name", "")
+            for item in (listing.get("directory") or {}).get("item", [])
+        ]
+        instance = next(
+            (n for n in names if n.endswith("_htm.xml")),
+            next((n for n in names if n.endswith(".xml") and "cal" not in n
+                  and "def" not in n and "lab" not in n and "pre" not in n), None),
+        )
+        if instance is None:
+            raise MissingDataError(
+                "XBRL instance document",
+                ticker=ticker,
+                hint=f"filing {accn} exposes no instance document to parse",
+            )
+        body = http_get(
+            f"{base}/{instance}",
+            cache=self.cache,
+            headers={"User-Agent": _user_agent()},
+        )
+        return parse_instance(body), accn, filed

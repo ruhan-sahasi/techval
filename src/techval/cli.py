@@ -49,6 +49,15 @@ console = Console(width=None if sys.stdout.isatty() else 120)
 _CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
 _NOCACHE = typer.Option(False, "--no-cache", help="Bypass the HTTP cache.")
 _OUT = typer.Option("out", "--out", "-o", help="Directory for chart output.")
+_ASOF = typer.Option(
+    None,
+    "--as-of",
+    help=(
+        "Value the company as it was knowable on this date (YYYY-MM-DD). Facts filed "
+        "later are discarded and prices stop there, so the run uses only information "
+        "that existed at the time."
+    ),
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -129,14 +138,22 @@ def _notes(items: list[str], *, heading: str = "Notes") -> None:
         console.print(Text(f"  - {n}", style=style))
 
 
-def _setup(config: Path | None, no_cache: bool):
+def _setup(config: Path | None, no_cache: bool, as_of: str | None = None):
     assumptions = Assumptions.load(config)
+    if as_of:
+        assumptions.as_of = as_of
+
+    # A dated run sees only what was filed by that date and prices that stopped
+    # there. Both halves are needed: filings alone would still be marked to
+    # today's price, which is the more obvious half of the same hindsight.
+    knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
+
     cache = HttpCache(enabled=not no_cache)
-    client = EdgarClient(cache)
+    client = EdgarClient(cache, knowledge_date=knowledge)
     source = make_price_source(
         assumptions.price_source, cache, assumptions.price_csv_dir
     )
-    market = MarketData(source, cache, today=date.today())
+    market = MarketData(source, cache, today=knowledge or date.today())
     return assumptions, client, market
 
 
@@ -344,10 +361,16 @@ def value(
     config: Path = _CFG,
     no_cache: bool = _NOCACHE,
     out: str = _OUT,
+    as_of: str = _ASOF,
 ) -> None:
     """Full valuation: statements, EV bridge, WACC, DCF, comps and football field."""
     try:
-        assumptions, client, market = _setup(config, no_cache)
+        assumptions, client, market = _setup(config, no_cache, as_of)
+        if assumptions.as_of:
+            console.print(
+                f"[yellow]Point in time: valuing {ticker.upper()} as it was knowable "
+                f"on {assumptions.as_of}.[/yellow]"
+            )
         fin, price, bridge = _load(ticker, client, market, assumptions)
         _render_financials(fin)
         _render_bridge(bridge, fin)
@@ -512,10 +535,15 @@ def _chart(
 
 
 @app.command()
-def comps(ticker: str, config: Path = _CFG, no_cache: bool = _NOCACHE) -> None:
+def comps(
+    ticker: str,
+    config: Path = _CFG,
+    no_cache: bool = _NOCACHE,
+    as_of: str = _ASOF,
+) -> None:
     """Trading comparables only."""
     try:
-        assumptions, client, market = _setup(config, no_cache)
+        assumptions, client, market = _setup(config, no_cache, as_of)
         if not assumptions.comps.peers:
             console.print("[red]No peers in the assumptions file (comps.peers).[/red]")
             raise typer.Exit(1)
@@ -527,11 +555,15 @@ def comps(ticker: str, config: Path = _CFG, no_cache: bool = _NOCACHE) -> None:
 
 @app.command()
 def merger(
-    acquirer: str, target: str, config: Path = _CFG, no_cache: bool = _NOCACHE
+    acquirer: str,
+    target: str,
+    config: Path = _CFG,
+    no_cache: bool = _NOCACHE,
+    as_of: str = _ASOF,
 ) -> None:
     """Accretion/(dilution), contribution and breakeven synergies."""
     try:
-        assumptions, client, market = _setup(config, no_cache)
+        assumptions, client, market = _setup(config, no_cache, as_of)
         acq_fin, acq_price, acq_bridge = _load(acquirer, client, market, assumptions)
         tgt_fin, tgt_price, tgt_bridge = _load(target, client, market, assumptions)
         r = run_merger(
@@ -606,10 +638,15 @@ def merger(
 
 
 @app.command()
-def fetch(ticker: str, config: Path = _CFG, no_cache: bool = _NOCACHE) -> None:
+def fetch(
+    ticker: str,
+    config: Path = _CFG,
+    no_cache: bool = _NOCACHE,
+    as_of: str = _ASOF,
+) -> None:
     """Warm the cache and print where every figure came from."""
     try:
-        assumptions, client, market = _setup(config, no_cache)
+        assumptions, client, market = _setup(config, no_cache, as_of)
         fin = build_financials(ticker, client=client)
         _render_financials(fin)
 
