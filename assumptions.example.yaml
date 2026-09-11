@@ -149,3 +149,92 @@ merger:
     pretax_cost_synergies: 400.0
     pretax_revenue_synergies: 0.0
     phase_in_year_one: 0.60
+
+# Point in time. Value the company as it was knowable on this date: every fact
+# filed after it is discarded and the price series stops there, which is what
+# separates a backtest from an exercise in hindsight. Left out, the run uses
+# everything on file today.
+#
+# Both forms below are accepted. YAML resolves an unquoted ISO date to a native
+# date object rather than to text, and the engine normalises it back to the ISO
+# string it passes to the EDGAR client, so the obvious spelling works and the
+# quoted one is not a trap either.
+#
+# as_of: 2025-12-31
+# as_of: "2025-12-31"
+
+# Sector conventions. TMT is three businesses, not one, and the first two
+# switches below are on by default because reading a filing's own operating
+# metrics costs nothing and changes no valuation number.
+tmt:
+  # Null classifies from the filer's SIC code and business description. Set it
+  # where the classification is wrong, which for a conglomerate it usually is.
+  sub_vertical: null
+  kpi_extraction: true
+  segments: true
+
+  # Value each reported segment on its own peer multiple and sum. Off by
+  # default: it is the right answer only where the segments are genuinely
+  # separable and separately disclosed, and it needs a plan naming a multiple
+  # and a source for each one. `techval sotp TICKER --emit-plan plan.yaml`
+  # writes the skeleton. There is no default multiple anywhere in this package.
+  sotp: false
+
+# The fitted models. Seven switches, every one false, and that is the contract
+# rather than a preference: a discounted cash flow and a comp table trace to
+# filings, and a fitted number traces to a recorded panel, a training window and
+# a seed. With all seven off the report is byte-identical to what it was before
+# any of this existed, which tests/test_cli_integration.py asserts on the
+# rendered characters.
+#
+# Each section reads a recorded artifact. `techval value TICKER --ml-data
+# tests/fixtures` points a whole run at the committed set; without the flag the
+# sections read ml.cache_dir, which starts empty, and say which file they wanted.
+ml:
+  random_seed: 7
+  # Null uses ~/.techval/ml.
+  cache_dir: null
+  walk_forward_folds: 5
+
+  peers:
+    # Rank a candidate universe by similarity and propose a comp set beside the
+    # hand-written one. It proposes, it does not substitute: both lists print
+    # and the interesting output is the names one has and the other does not.
+    enabled: false
+    n_peers: 8
+    text_weight: 0.5
+    min_market_cap: 1000.0
+    max_size_ratio: 10.0
+
+  forecast:
+    # Fit the revenue growth fade curve on filings and value the company on it
+    # beside the straight line in dcf.revenue_growth_start. This is the switch
+    # that replaces the DCF's most consequential typed-in assumption with a
+    # measured one, so it prints four valuations rather than one: the assumed
+    # path, the fitted path, and the two ends of the band the fit supports.
+    enabled: false
+    horizon_years: 3
+    model: ridge          # ridge | gradient_boosting | linear
+    min_train_observations: 60
+
+  warranted:
+    # Regress the multiple on fundamentals across the universe and read the
+    # residual. A statement about relative pricing and never about value.
+    enabled: false
+    target: ev_revenue    # ev_revenue | ev_gross_profit | ev_ebitda
+    demean_by_date: true
+    min_train_observations: 150
+
+  signals:
+    # Test whether the residual above has predicted anything. The honest answer
+    # is allowed to be no, and on the committed panel it is.
+    enabled: false
+    horizon_months: 12
+    buckets: 5
+    min_names_per_date: 20
+
+  mna:
+    propensity_enabled: false
+    precedents_enabled: false
+    lookback_years: 10
+    min_deal_size: 250.0
