@@ -226,9 +226,17 @@ def test_two_splits_of_the_same_ratio_stay_two(split_facts):
 
 
 def test_two_splits_of_different_ratios_are_both_kept(split_facts):
+    """Three-for-one then two-for-one, and the dates are bounds rather than ex dates.
+
+    The three-for-one reads 2022-11-18 rather than 2023-05-24, which is the first
+    filing to visibly restate a comparative by three. The earlier date is the
+    earliest filing the fact set can *prove* was already on the post-split basis,
+    and proving it takes the whole of ``_basis_by_filing``. Palo Alto really
+    split in September 2022, so the tighter bound is also the truer one.
+    """
     facts = CompanyFacts(split_facts["PANW"], "PANW")
     assert facts._split_factors() == [
-        (date(2023, 5, 24), 3.0),
+        (date(2022, 11, 18), 3.0),
         (date(2025, 2, 14), 2.0),
     ]
 
@@ -316,43 +324,83 @@ def test_the_basis_factor_is_one_now_that_the_units_are_normalised(split_facts):
         assert note is None
 
 
-def test_palo_alto_is_the_known_gap_and_the_row_is_refused_not_believed(split_facts):
-    """The one case where the unit normalisation does not reach, and what saves it.
+def test_palo_alto_was_the_known_gap_and_the_row_is_now_usable(split_facts):
+    """The last case the unit normalisation did not reach, and the record of closing it.
 
-    A split is bracketed between the last filing carrying old units and the first
-    carrying new ones, and the detector dates it at the later end. Palo Alto
-    split three for one in September 2022 and the first filing to restate a
-    comparative by three is dated May 2023, so the bracket is eight months wide
-    and the 10-Q filed in November 2022 sits inside it. That 10-Q already
-    reported post-split shares, 292.9mm for the quarter, and gets multiplied by
-    three a second time.
+    **This test asserted the defect until the per-filing basis map closed it, and
+    the history is worth keeping rather than deleting.** A split used to be
+    bracketed between the last filing carrying old units and the first carrying
+    new ones, dated at the later end. Palo Alto split three for one in September
+    2022 and no filing restates a comparative by three until May 2023, so the
+    bracket was eight months wide and the 10-Q filed 2022-11-18 sat inside it.
+    That 10-Q already reported post-split shares, 292.9mm for the quarter, and
+    was multiplied by three a second time. Reading the ratio between a pinned
+    fact set and a current one then gave a third, a third is not a product of any
+    split Palo Alto declared, and the panel builder dropped the row into
+    ``skips`` under ``share_basis_unresolved``. Refusing contained the damage,
+    and it cost a row.
 
-    The point of this test is that nothing believes the result. Reading the ratio
-    between a pinned fact set and a current one gives a third, a third is not a
-    product of any split Palo Alto declared, and the note says so. The panel
-    builder drops the row into ``skips`` with the category
-    ``share_basis_unresolved``. The engine refuses rather than inventing, which
-    is the convention everywhere else in it, and the cost is a row rather than a
-    market capitalisation that is wrong by three times while looking ordinary.
+    ``CompanyFacts._basis_by_filing`` now settles the unit once per filing rather
+    than guessing from a date. The quarter ended 2022-10-31 reads 338.4mm in both
+    the 10-Q of 2022-11-18 and the 10-Q of 2023-11-17, so those two filings share
+    a basis; the later one is two splits behind today, so the earlier one is too,
+    and the November 2022 report is therefore already post-split. The bracket
+    collapses to 2022-11-18 and the double multiplication is gone.
+
+    So the assertion inverts: the factor is one, there is no note, and the row is
+    usable. Palo Alto is no longer a gap.
     """
     current = CompanyFacts(split_facts["PANW"], "PANW")
     pinned = CompanyFacts(split_facts["PANW"], "PANW", knowledge_date=date(2022, 12, 31))
     factor, note = share_basis_factor(pinned, current)
 
-    assert factor == pytest.approx(1.0 / 3.0)
-    assert note is not None and "different bases" in note
+    assert factor == pytest.approx(1.0)
+    assert note is None
 
-    # A third is not reachable as a product of the splits this filer declared,
-    # which is exactly why it is refused rather than snapped to something.
+    # Both splits are still detected. Nothing was suppressed to make the ratio
+    # come out at one: the units are genuinely reconciled.
     declared = [f for _, f in current._split_factors()]
     assert declared == [3.0, 2.0]
 
-    # And this is the number a rule keyed on the restating filing date gives.
-    threshold_rule = 1.0
-    for when, ratio in current._split_factors():
-        if when > date(2022, 12, 31):
-            threshold_rule *= ratio
-    assert threshold_rule == pytest.approx(6.0)
+    # The quarter that carried the error. It is reported by exactly one filing,
+    # the 10-Q of 2022-11-18, so no later restatement anchors it and only the
+    # basis of its own filing can place it. 292.9mm shares already on the
+    # post-three-for-one basis, times the two-for-one that came later, is 585.8mm
+    # against a true count of roughly 600mm. The old rule returned 1,757.4mm, or
+    # three times the shares Palo Alto has ever had.
+    tag = "WeightedAverageNumberOfDilutedSharesOutstanding"
+    quarter = [
+        f
+        for f in current.facts(tag)
+        if f.end == date(2021, 10, 31) and f.start == date(2021, 8, 1)
+    ]
+    assert len(quarter) == 1
+    assert quarter[0].val == pytest.approx(585_800_000)
+
+
+def test_the_palo_alto_quarter_reads_the_same_pinned_or_not(split_facts):
+    """A unit is not knowledge, so pinning the fact set must not move it.
+
+    The quarter the defect lived in is the sharpest test of that rule, because it
+    is the one period whose basis is settled by a filing rather than by a later
+    restatement. A fact set pinned to 2022-12-31 and an unpinned one must agree
+    on it exactly.
+    """
+    tag = "WeightedAverageNumberOfDilutedSharesOutstanding"
+
+    def quarter(facts: CompanyFacts) -> float:
+        hit = [
+            f
+            for f in facts.facts(tag)
+            if f.end == date(2021, 10, 31) and f.start == date(2021, 8, 1)
+        ]
+        assert hit, "the fixture should carry the quarter ended 2021-10-31"
+        return hit[0].val
+
+    pinned = CompanyFacts(split_facts["PANW"], "PANW", knowledge_date=date(2022, 12, 31))
+    current = CompanyFacts(split_facts["PANW"], "PANW")
+    assert quarter(pinned) == pytest.approx(quarter(current))
+    assert quarter(current) == pytest.approx(585_800_000)
 
 
 def test_the_rounding_artefact_is_absent_rather_than_snapped(split_facts):
