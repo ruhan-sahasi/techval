@@ -214,6 +214,37 @@ def _neg_date(iso: str) -> tuple[int, ...]:
         return (0, 0, 0)
 
 
+def _collapse_to_actions(
+    detections: list[tuple[date, float, date]],
+) -> list[tuple[date, float]]:
+    """Reduce split detections to one threshold per corporate action.
+
+    ``detections`` is ``(filed, factor, latest_period_end_restated)``, sorted.
+    A company reflects one split across several filings, because each report
+    restates only the comparative periods it happens to show, so the same
+    four-for-one is detected three or four times over the following year. Every
+    one of those detections is the same event and a pre-split fact must be
+    multiplied by four once, not once per filing.
+
+    The test that separates a repeat from a second split is the period end. A
+    filing reflecting split S can only restate periods that closed before S,
+    since anything that closed afterwards was first reported on the new basis.
+    So a detection whose latest restated period ends after the open action's own
+    filing date cannot belong to that action, and opens a new one.
+
+    Returns ``(filed_on_or_after, factor)``, which is what ``_split_adjust``
+    multiplies through.
+    """
+    thresholds: list[tuple[date, float]] = []
+    open_action: dict[float, date] = {}
+    for filed, factor, latest_end in detections:
+        opened = open_action.get(factor)
+        if opened is None or latest_end > opened:
+            open_action[factor] = filed
+            thresholds.append((filed, factor))
+    return sorted(thresholds)
+
+
 @dataclass
 class Provenance:
     """Where a single reported figure came from.
@@ -311,6 +342,28 @@ class CompanyFacts:
         value dates it. Ordinary restatements are excluded by the tightness of
         that test.
 
+        **A split the knowledge date has not reached has not happened.** The
+        rows are filtered on their filing date here exactly as ``facts`` filters
+        them, and for the same reason. Nvidia split ten-for-one in June 2024; a
+        run pinned to March 2022 that read that split off the 2024 filings would
+        multiply a share count nobody would report for another two years, and a
+        point-in-time equity value built on it is wrong by an order of
+        magnitude while looking entirely ordinary.
+
+        **One corporate action gets one threshold, however many filings carried
+        it.** A split is not restated all at once. The first 10-Q after it
+        restates the comparatives that quarter happens to show, the next 10-Q
+        restates its own, and the 10-K restates the annual periods, so the same
+        four-for-one appears as three separate detections dated months apart.
+        Treating each as its own action multiplies a pre-split fact by four
+        three times over. Detections of the same ratio therefore belong to one
+        action unless a later one restates a period ENDING AFTER the action
+        already opened: a period that closed after a split was first reported
+        post-split, so it cannot be that split restating itself, and a second
+        move of the same size is a second split. Arista is the case that decides
+        the rule, with two separate four-for-one splits in November 2021 and
+        December 2024 appearing across six filings.
+
         Returns ``(filed_on_or_after, factor)`` pairs: any fact filed strictly
         before that date must be multiplied by ``factor`` to be comparable.
         """
@@ -331,6 +384,9 @@ class CompanyFacts:
             for r in rows:
                 if r.get("val") in (None, 0) or not r.get("end"):
                     continue
+                if self.knowledge_date is not None and r.get("filed"):
+                    if _d(r["filed"]) > self.knowledge_date:
+                        continue
                 groups.setdefault((r.get("start"), r["end"]), []).append(r)
 
             for versions in groups.values():
@@ -351,12 +407,15 @@ class CompanyFacts:
 
         # One agreeing period could be a typo in a single tagged fact. Two or
         # more distinct periods moving by the identical ratio in the identical
-        # filing is a corporate action.
-        self._splits = sorted(
-            (_d(filed), factor)
+        # filing is a corporate action. Each detection also carries the latest
+        # period end it restated, which is what separates one action from the
+        # next.
+        detections = sorted(
+            (_d(filed), factor, max(_d(end) for _, end in periods))
             for (filed, factor), periods in votes.items()
             if len(periods) >= 2
         )
+        self._splits = _collapse_to_actions(detections)
         return self._splits
 
     def split_note(self) -> str | None:
