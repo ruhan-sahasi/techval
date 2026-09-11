@@ -937,6 +937,37 @@ def _local(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
 
+def strip_markup(body: bytes) -> str:
+    """HTML or inline XBRL to readable text.
+
+    Uses lxml where available and falls back to a regex strip, because a filing
+    that cannot be parsed should still yield something a keyword search can run
+    over rather than raising and taking a whole screen down with it.
+    """
+    try:
+        from lxml import html as lxml_html
+
+        tree = lxml_html.fromstring(body)
+        for bad in tree.xpath("//script | //style | //ix:header", namespaces={
+            "ix": "http://www.xbrl.org/2013/inlineXBRL"
+        }):
+            bad.getparent().remove(bad)
+        text = tree.text_content()
+    except Exception:
+        import re
+
+        raw = body.decode("utf-8", "replace")
+        raw = re.sub(r"(?is)<(script|style).*?</\1>", " ", raw)
+        text = re.sub(r"(?s)<[^>]+>", " ", raw)
+
+    import html as _html
+    import re as _re
+
+    text = _html.unescape(text)
+    text = text.replace("\xa0", " ")
+    return _re.sub(r"[ \t]*\n[ \t]*", "\n", _re.sub(r"[ \t]+", " ", text)).strip()
+
+
 def parse_instance(xml_bytes: bytes) -> list[DimensionedFact]:
     """Read an XBRL instance document into dimensioned facts.
 
@@ -1084,6 +1115,67 @@ class EdgarClient:
             hint=f"no {' or '.join(forms)} on file"
             + (f" by {self.knowledge_date}" if self.knowledge_date else ""),
         )
+
+    def filings(
+        self,
+        ticker: str,
+        forms: tuple[str, ...] = ("10-K",),
+        since: date | None = None,
+        limit: int = 20,
+    ) -> list[dict]:
+        """Recent filings of the given forms, newest first.
+
+        Each entry carries accession, form, filing date and the primary
+        document name, which is what ``filing_text`` needs. The client's
+        knowledge date applies, so a historical run never sees a filing that had
+        not happened.
+        """
+        recent = (self.submissions(ticker).get("filings") or {}).get("recent") or {}
+        rows = zip(
+            recent.get("accessionNumber", []),
+            recent.get("filingDate", []),
+            recent.get("form", []),
+            recent.get("primaryDocument", []),
+            recent.get("reportDate", []),
+        )
+        out: list[dict] = []
+        for accn, filed, form, doc, period in rows:
+            if form not in forms:
+                continue
+            when = _d(filed)
+            if self.knowledge_date is not None and when > self.knowledge_date:
+                continue
+            if since is not None and when < since:
+                continue
+            out.append(
+                {
+                    "accession": accn,
+                    "filed": when,
+                    "form": form,
+                    "document": doc,
+                    "period": period,
+                }
+            )
+            if len(out) >= limit:
+                break
+        return out
+
+    def filing_text(self, ticker: str, filing: dict) -> str:
+        """Plain text of a filing's primary document.
+
+        Modern filings are inline XBRL, meaning the human-readable HTML and the
+        tagged facts are the same file, so the document has to be stripped of
+        markup before anything can read it. Script and style content is dropped
+        rather than flattened, because an inline-XBRL document carries a good
+        deal of both and it would otherwise end up in the text as noise.
+        """
+        cik = self.ticker_to_cik(ticker)
+        bare = filing["accession"].replace("-", "")
+        url = (
+            f"https://www.sec.gov/Archives/edgar/data/{cik}/{bare}/{filing['document']}"
+        )
+        body = http_get(url, cache=self.cache, headers={"User-Agent": _user_agent()})
+        return strip_markup(body)
 
     def instance_facts(
         self, ticker: str, forms: tuple[str, ...] = ("10-K", "10-Q")

@@ -466,6 +466,148 @@ class MergerAssumptions(_Base):
     )
 
 
+# --------------------------------------------------------------------------- #
+# TMT sector layer and the models over it
+# --------------------------------------------------------------------------- #
+
+
+class TMTAssumptions(_Base):
+    """Sector conventions. TMT is three businesses, not one."""
+
+    sub_vertical: str | None = Field(
+        None,
+        description=(
+            "Override the classified sub-vertical: infrastructure_software, "
+            "application_software, internet, semiconductors, hardware, payments, "
+            "media_entertainment, telecom, towers_fiber, gaming. Null classifies "
+            "from the filer's SIC code and business description."
+        ),
+    )
+    kpi_extraction: bool = Field(
+        True,
+        description=(
+            "Read the operating metrics the sector is priced on out of the filing "
+            "text and custom tags: ARR, net revenue retention, remaining performance "
+            "obligation, billings, subscribers, ARPU, churn, content spend. None of "
+            "these is a standard us-gaap concept, which is why a generic engine "
+            "cannot see them."
+        ),
+    )
+    segments: bool = Field(
+        True,
+        description=(
+            "Pull segment and geography detail from dimensioned XBRL. A media "
+            "conglomerate valued on its consolidated margin is being valued as an "
+            "average of businesses that trade at different multiples."
+        ),
+    )
+    sotp: bool = Field(
+        False,
+        description=(
+            "Value each reported segment on its own peer multiple and sum. Off by "
+            "default: it is the right answer only where segments are genuinely "
+            "separable and separately disclosed."
+        ),
+    )
+
+
+class PeerModelAssumptions(_Base):
+    """Learned comparable company selection."""
+
+    enabled: bool = Field(
+        False,
+        description=(
+            "Rank a candidate universe by similarity to the target and propose a "
+            "comp set, instead of taking the hand-written list. The engine's own "
+            "limitations section has always said peer sets are hand-picked and "
+            "comparability is the user's judgment; this is the attempt to measure it."
+        ),
+    )
+    n_peers: int = Field(8, ge=3, le=30)
+    text_weight: float = Field(
+        0.5,
+        ge=0.0,
+        le=1.0,
+        description=(
+            "Blend between business-description similarity and financial-profile "
+            "similarity. Text alone groups companies that describe themselves alike; "
+            "financials alone group companies that happen to be the same size. "
+            "Neither is a comp set on its own."
+        ),
+    )
+    min_market_cap: float = Field(
+        1_000.0, description="Smallest candidate by market capitalisation, USD millions."
+    )
+    max_size_ratio: float = Field(
+        10.0,
+        description=(
+            "Largest tolerated ratio between candidate and target market "
+            "capitalisation, either way round. A banker does not put a 2bn company "
+            "in a 200bn company's comp set however similar the prose."
+        ),
+    )
+    require_same_sub_vertical: bool = False
+
+
+class ForecastAssumptions(_Base):
+    """Statistical revenue and margin forecasts, held to a baseline."""
+
+    enabled: bool = False
+    horizon_years: int = Field(3, ge=1, le=5)
+    model: Literal["ridge", "gradient_boosting", "linear"] = "ridge"
+    min_train_observations: int = Field(
+        60,
+        description=(
+            "Below this the fit is memorising. The engine reports the forecast as "
+            "unavailable rather than producing one nobody should act on."
+        ),
+    )
+
+
+class MnaAssumptions(_Base):
+    """Which companies get acquired, and on what terms precedent suggests."""
+
+    propensity_enabled: bool = False
+    precedents_enabled: bool = Field(
+        False,
+        description=(
+            "Build a precedent transaction set from merger filings: multiples paid, "
+            "premium to unaffected, consideration mix. Precedents are what anchor an "
+            "M&A conversation, and they are not trading comps: a control premium and "
+            "expected synergies are inside every one of them."
+        ),
+    )
+    lookback_years: int = Field(10, ge=1, le=25)
+    min_deal_size: float = Field(
+        250.0, description="Smallest precedent by equity purchase price, USD millions."
+    )
+
+
+class MLAssumptions(_Base):
+    """Shared settings for everything fitted rather than assumed."""
+
+    random_seed: int = Field(
+        7, description="Fixed so a fitted model is reproducible. Never left to chance."
+    )
+    cache_dir: str | None = Field(
+        None,
+        description="Where fitted models and text features are cached. Null uses ~/.techval/ml.",
+    )
+    walk_forward_folds: int = Field(
+        5,
+        ge=2,
+        le=20,
+        description=(
+            "Out-of-sample folds, split by DATE rather than at random. A random "
+            "split lets a model train on 2026 and test on 2024, which is the "
+            "cleanest way to manufacture a result that cannot be repeated."
+        ),
+    )
+    peers: PeerModelAssumptions = Field(default_factory=PeerModelAssumptions)
+    forecast: ForecastAssumptions = Field(default_factory=ForecastAssumptions)
+    mna: MnaAssumptions = Field(default_factory=MnaAssumptions)
+
+
 class Assumptions(_Base):
     ticker: str | None = None
     market: MarketAssumptions = Field(default_factory=MarketAssumptions)
@@ -477,6 +619,8 @@ class Assumptions(_Base):
     comps: CompsAssumptions = Field(default_factory=CompsAssumptions)
     merger: MergerAssumptions = Field(default_factory=MergerAssumptions)
     dilution: DilutionAssumptions = Field(default_factory=DilutionAssumptions)
+    tmt: TMTAssumptions = Field(default_factory=TMTAssumptions)
+    ml: MLAssumptions = Field(default_factory=MLAssumptions)
     simulation: SimulationAssumptions = Field(default_factory=SimulationAssumptions)
     apv: APVAssumptions = Field(default_factory=APVAssumptions)
 
