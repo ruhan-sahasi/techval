@@ -1,0 +1,347 @@
+{
+ "_note": "A pruned copy of the SEC company_tickers.json payload, shaped exactly like the original so build_name_index reads it unchanged. Trimmed to the registrants the peer-label tests name, plus the collisions those tests rely on: STEM for the suffix-bridging trap, Team Inc for the parenthesised-ticker trap, the share classes of one CIK, and NVIDIA and SAP SE, whose names begin with the corporate suffix words NV and SA.",
+ "_retrieved": "2026-09-11",
+ "_source": "https://www.sec.gov/files/company_tickers.json",
+ "data": {
+  "0": {
+   "cik_str": 1652044,
+   "ticker": "GOOGL",
+   "title": "Alphabet Inc."
+  },
+  "1": {
+   "cik_str": 1403161,
+   "ticker": "V",
+   "title": "VISA INC."
+  },
+  "10": {
+   "cik_str": 1543151,
+   "ticker": "UBER",
+   "title": "Uber Technologies, Inc"
+  },
+  "11": {
+   "cik_str": 1373715,
+   "ticker": "NOW",
+   "title": "ServiceNow, Inc."
+  },
+  "12": {
+   "cik_str": 1640147,
+   "ticker": "SNOW",
+   "title": "Snowflake Inc."
+  },
+  "13": {
+   "cik_str": 1262039,
+   "ticker": "FTNT",
+   "title": "Fortinet, Inc."
+  },
+  "14": {
+   "cik_str": 1559720,
+   "ticker": "ABNB",
+   "title": "Airbnb, Inc."
+  },
+  "15": {
+   "cik_str": 1751008,
+   "ticker": "APP",
+   "title": "AppLovin Corp"
+  },
+  "16": {
+   "cik_str": 796343,
+   "ticker": "ADBE",
+   "title": "ADOBE INC."
+  },
+  "17": {
+   "cik_str": 1477333,
+   "ticker": "NET",
+   "title": "Cloudflare, Inc."
+  },
+  "18": {
+   "cik_str": 896878,
+   "ticker": "INTU",
+   "title": "INTUIT INC."
+  },
+  "19": {
+   "cik_str": 1561550,
+   "ticker": "DDOG",
+   "title": "Datadog, Inc."
+  },
+  "2": {
+   "cik_str": 1341439,
+   "ticker": "ORCL",
+   "title": "ORACLE CORP"
+  },
+  "20": {
+   "cik_str": 1512673,
+   "ticker": "XYZ",
+   "title": "Block, Inc."
+  },
+  "21": {
+   "cik_str": 1650372,
+   "ticker": "TEAM",
+   "title": "Atlassian Corp"
+  },
+  "22": {
+   "cik_str": 1327811,
+   "ticker": "WDAY",
+   "title": "Workday, Inc."
+  },
+  "23": {
+   "cik_str": 1633917,
+   "ticker": "PYPL",
+   "title": "PayPal Holdings, Inc."
+  },
+  "24": {
+   "cik_str": 1065088,
+   "ticker": "EBAY",
+   "title": "EBAY INC"
+  },
+  "25": {
+   "cik_str": 1393052,
+   "ticker": "VEEV",
+   "title": "VEEVA SYSTEMS INC"
+  },
+  "26": {
+   "cik_str": 1447669,
+   "ticker": "TWLO",
+   "title": "TWILIO INC"
+  },
+  "27": {
+   "cik_str": 1315098,
+   "ticker": "RBLX",
+   "title": "Roblox Corp"
+  },
+  "28": {
+   "cik_str": 1660134,
+   "ticker": "OKTA",
+   "title": "Okta, Inc."
+  },
+  "29": {
+   "cik_str": 1441816,
+   "ticker": "MDB",
+   "title": "MongoDB, Inc."
+  },
+  "3": {
+   "cik_str": 1321655,
+   "ticker": "PLTR",
+   "title": "Palantir Technologies Inc."
+  },
+  "30": {
+   "cik_str": 1585521,
+   "ticker": "ZM",
+   "title": "Zoom Communications, Inc."
+  },
+  "31": {
+   "cik_str": 1713683,
+   "ticker": "ZS",
+   "title": "Zscaler, Inc."
+  },
+  "32": {
+   "cik_str": 1754301,
+   "ticker": "FOXA",
+   "title": "Fox Corp"
+  },
+  "33": {
+   "cik_str": 1642896,
+   "ticker": "IOT",
+   "title": "Samsara Inc."
+  },
+  "34": {
+   "cik_str": 1048695,
+   "ticker": "FFIV",
+   "title": "F5, INC."
+  },
+  "35": {
+   "cik_str": 1810806,
+   "ticker": "U",
+   "title": "Unity Software Inc."
+  },
+  "36": {
+   "cik_str": 1773383,
+   "ticker": "DT",
+   "title": "Dynatrace, Inc."
+  },
+  "37": {
+   "cik_str": 1261333,
+   "ticker": "DOCU",
+   "title": "DOCUSIGN, INC."
+  },
+  "38": {
+   "cik_str": 1404655,
+   "ticker": "HUBS",
+   "title": "HUBSPOT INC"
+  },
+  "39": {
+   "cik_str": 1506293,
+   "ticker": "PINS",
+   "title": "PINTEREST, INC."
+  },
+  "4": {
+   "cik_str": 1065280,
+   "ticker": "NFLX",
+   "title": "NETFLIX INC"
+  },
+  "40": {
+   "cik_str": 1590955,
+   "ticker": "PAYC",
+   "title": "Paycom Software, Inc."
+  },
+  "41": {
+   "cik_str": 1707753,
+   "ticker": "ESTC",
+   "title": "Elastic N.V."
+  },
+  "42": {
+   "cik_str": 1564408,
+   "ticker": "SNAP",
+   "title": "Snap Inc"
+  },
+  "43": {
+   "cik_str": 1671933,
+   "ticker": "TTD",
+   "title": "Trade Desk, Inc."
+  },
+  "44": {
+   "cik_str": 1786352,
+   "ticker": "BILL",
+   "title": "BILL Holdings, Inc."
+  },
+  "45": {
+   "cik_str": 1794515,
+   "ticker": "GTM",
+   "title": "ZoomInfo Technologies Inc."
+  },
+  "46": {
+   "cik_str": 318833,
+   "ticker": "TISI",
+   "title": "TEAM INC"
+  },
+  "47": {
+   "cik_str": 1758766,
+   "ticker": "STEM",
+   "title": "STEM, INC."
+  },
+  "48": {
+   "cik_str": 1652044,
+   "ticker": "GOOG",
+   "title": "Alphabet Inc."
+  },
+  "49": {
+   "cik_str": 1754301,
+   "ticker": "FOX",
+   "title": "Fox Corp"
+  },
+  "5": {
+   "cik_str": 1327567,
+   "ticker": "PANW",
+   "title": "Palo Alto Networks Inc"
+  },
+  "50": {
+   "cik_str": 104889,
+   "ticker": "GHC",
+   "title": "Graham Holdings Co"
+  },
+  "51": {
+   "cik_str": 716314,
+   "ticker": "GHM",
+   "title": "GRAHAM CORP"
+  },
+  "52": {
+   "cik_str": 27419,
+   "ticker": "TGT",
+   "title": "TARGET CORP"
+  },
+  "53": {
+   "cik_str": 1586554,
+   "ticker": "CBDY",
+   "title": "Target Group Inc."
+  },
+  "6": {
+   "cik_str": 1596532,
+   "ticker": "ANET",
+   "title": "Arista Networks, Inc."
+  },
+  "7": {
+   "cik_str": 1535527,
+   "ticker": "CRWD",
+   "title": "CrowdStrike Holdings, Inc."
+  },
+  "8": {
+   "cik_str": 1108524,
+   "ticker": "CRM",
+   "title": "Salesforce, Inc."
+  },
+  "9": {
+   "cik_str": 1594805,
+   "ticker": "SHOP",
+   "title": "SHOPIFY INC."
+  },
+  "54": {
+   "cik_str": 320193,
+   "ticker": "AAPL",
+   "title": "Apple Inc."
+  },
+  "55": {
+   "cik_str": 769397,
+   "ticker": "ADSK",
+   "title": "Autodesk, Inc."
+  },
+  "56": {
+   "cik_str": 2488,
+   "ticker": "AMD",
+   "title": "ADVANCED MICRO DEVICES INC"
+  },
+  "57": {
+   "cik_str": 1018724,
+   "ticker": "AMZN",
+   "title": "AMAZON COM INC"
+  },
+  "58": {
+   "cik_str": 1730168,
+   "ticker": "AVGO",
+   "title": "Broadcom Inc."
+  },
+  "59": {
+   "cik_str": 858877,
+   "ticker": "CSCO",
+   "title": "CISCO SYSTEMS, INC."
+  },
+  "60": {
+   "cik_str": 1609711,
+   "ticker": "GDDY",
+   "title": "GoDaddy Inc."
+  },
+  "61": {
+   "cik_str": 1326801,
+   "ticker": "META",
+   "title": "Meta Platforms, Inc."
+  },
+  "62": {
+   "cik_str": 789019,
+   "ticker": "MSFT",
+   "title": "MICROSOFT CORP"
+  },
+  "63": {
+   "cik_str": 1618732,
+   "ticker": "NTNX",
+   "title": "Nutanix, Inc."
+  },
+  "64": {
+   "cik_str": 1045810,
+   "ticker": "NVDA",
+   "title": "NVIDIA CORP"
+  },
+  "65": {
+   "cik_str": 1734722,
+   "ticker": "PATH",
+   "title": "UiPath, Inc."
+  },
+  "66": {
+   "cik_str": 1384905,
+   "ticker": "RNG",
+   "title": "RingCentral, Inc."
+  },
+  "67": {
+   "cik_str": 1000184,
+   "ticker": "SAP",
+   "title": "SAP SE"
+  }
+ }
+}
