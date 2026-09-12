@@ -2,10 +2,15 @@
 
 ![Datadog football field](out/DDOG_football.png)
 
+*Both DCF bands sitting far below the traded price ARE the result, not a broken
+chart: on GAAP economics the model will not pay what the market pays, and that
+gap is what the rest of this document is about. The chart carries two of the
+engine's three terminal values; the third prints in the run below.*
+
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Fourteen commands, 50k lines
-of source, 1,701 tests, and no paid terminal anywhere in the stack.
+the US Treasury daily curve for the risk-free rate. Fourteen commands, 1,701
+tests, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
 trailing statements out of raw XBRL. An enterprise value bridge. A CAPM cost of
@@ -172,8 +177,8 @@ strictly before the test window less an embargo.
 | Model | Metric | Score | Baseline | Baseline score | Verdict |
 |---|---|---|---|---|---|
 | Value signal, trailing EV/Revenue | mean IC, 12m forward | **-0.0984** | random score, same cross-sectional shape | +0.0002 | loses, and is **not significant** once overlap is corrected |
-| Peer similarity encoder | NDCG@10 | **0.5407** | popularity prior, query ignored | 0.2213 | beats it, outside the fold noise |
-| Warranted EV/Revenue | Spearman, level | **0.7651** | `comps.py` OLS refit on sub-vertical peers | 0.6313 | beats it, and scores **+0.0420** on the change |
+| Peer similarity encoder | NDCG@10 | **0.5407** | popularity prior, query ignored | 0.2213 | beats it on 84% of targets, paired t 13.6 |
+| Warranted EV/Revenue | Spearman, level | **0.7651** | `comps.py` OLS refit on sub-vertical peers | 0.6313 | beats it on the 888 observations both can score, and adds only **+0.0420** on the change |
 | Revenue fade, 1 year | mean absolute error | **0.1474** | last year's growth carried forward | 0.1510 | ties it, inside the fold noise |
 | Revenue fade, 3 years | mean absolute error | **0.1391** | last year's growth carried forward | 0.1921 | beats it, outside the fold noise |
 | Acquisition propensity | AUC | **0.5685** | sort the universe smallest first | 0.5474 | lift of +0.0212 against a fold sd of 0.0910, so it **ties** |
@@ -264,11 +269,14 @@ upward by the outcomes it cannot see.
 
 That last flag is the limitation this package cannot fix. The delisting
 machinery is built, tested and exercised, and on the real panel it finds nothing
-to do, because the data sources delete a company the day it stops trading. Four
-of the 110 names in the seed universe return no CIK from the SEC's own
-`company_tickers.json` and no rows from the price endpoint, and every one of the
-four left to an acquisition. They are not in the panel at all, so the harness
-cannot terminate them at a deal. The direction matters for reading the headline:
+to do, because the data sources delete a company the day it stops trading. Five
+of the 110 names in the seed universe, EA, FI, FYBR, IPG and JNPR, are missing
+from the SEC's own `company_tickers.json` and return no rows from the price
+endpoint, and every one of the five left to an acquisition. Juniper's CIK still
+resolves through the committed former-tickers index, which is why the taxonomy
+section further down counts only four unresolved names, but a CIK is not a
+price history. None of the five is in the panel at all, so the harness cannot
+terminate them at a deal. The direction matters for reading the headline:
 the missing names are takeouts, takeouts earn a premium and skew cheap, so their
 absence flatters cheapness and the true coefficient is if anything more negative
 than -0.098.
@@ -304,11 +312,16 @@ fundamentals cosine 0.372876 0.234782      0.325309   0.201466        162
     size and growth 0.248605 0.203738      0.236420   0.148277        162
    popularity prior 0.221331 0.240940      0.211111   0.131127        162
   same sub-vertical 0.201501 0.197943      0.181481   0.112323        162
-
-ndcg@10 of 0.5407 against 0.2213 for popularity prior (named-by-anybody count,
-query ignored), a lift of +0.3193 on 162 observations. Fold standard deviation
-0.2553, so the lift is outside the fold-to-fold noise.
 ```
+
+The lift over the popularity prior is +0.3193 on 162 scorable targets. Read the
+`ndcg_sd` column for what it is: the spread of per-query scores across targets,
+dominated by how findable each target's peers are, which is variation every
+method shares. It is a spread, not an error bar on the lift. The statistic that
+answers whether the encoder beats a baseline on the same company is the paired,
+query-by-query difference, and it is unambiguous: the encoder beats the
+popularity prior on 84% of the 162 targets, paired t 13.6, and beats the
+strongest baseline, fundamentals cosine, on 74% of them, paired t 7.9.
 
 The popularity trap is measured, not merely avoided. A model can beat a weak
 baseline by imitating it, so `popularity_collapse` reports the rank correlation
@@ -345,12 +358,16 @@ untruncated documents and cannot be reproduced without refetching them.
 Two further slices belong beside the headline. Splitting the queries by whether
 the target ever appeared in a training group separates warm start from cold
 start, and the cold-start score is the one worth quoting for a new coverage
-name. And `ablate_towers` refits without each tower: the text tower carries the
-signal and the fundamentals tower is not shown to help, with a point estimate
-slightly negative and a fold standard deviation wider than it. Part of that is
-the panel. It is built with no price feed at all, so 14 of the 50 features are
-missing on every row, market capitalisation among them. The fundamentals tower
-is being judged on a degraded input and the model card says so.
+name. And `ablate_towers` refits without each tower. On the committed fixtures
+the full model scores 0.4241 with a fold standard deviation of 0.0850; dropping
+the text tower costs 0.0643 against a dispersion of 0.0636, and dropping the
+fundamentals tower costs 0.0387 against 0.0690. So the text tower is the more
+important of the two, its edge over the noise is a hair, and the fundamentals
+tower is not shown to help but is not shown to hurt either. Part of its
+weakness is the panel. It is built with no price feed at all, so 14 of the 50
+features are missing on every row, market capitalisation among them. The
+fundamentals tower is being judged on a degraded input and the model card says
+so.
 
 ### The warranted trading multiple
 
@@ -378,11 +395,16 @@ as a description of where a company sits, not as a forecast of where it is
 going.
 ```
 
-0.7651 is the level. 0.0420 is the change, and the second is the honest size of
-the contribution. A feature vector barely moves in three months and neither does
+0.7651 is the level, and it is the level on the 888 observations where the
+incumbent OLS can be refit at all. Every baseline is scorable on a different
+subsample, so the same model carries more than one Spearman in this section:
+0.7651 against the sub-vertical OLS, 0.8391 against the OLS refit on the whole
+cross-section, 0.8294 against the sub-vertical median, 0.8412 against
+persistence. 0.0420 is the change, and it is the honest size of the
+contribution. A feature vector barely moves in three months and neither does
 a relative multiple, so a model fitted on the past is rewarded for recognising a
 name as much as for understanding it. That is not lookahead, since the training
-window is strictly earlier, but a reader shown 0.77 will believe far more than
+window is strictly earlier, but a reader shown 0.84 will believe far more than
 the model earned. The practical consequence prints on every read: the residual
 describes where a company sits, it does not forecast that the gap will close.
 Testing whether it closes needs forward returns with the full horizon as an
@@ -1561,229 +1583,247 @@ forms they came from and the method. `techval fetch <TICKER>` prints the table.
 
 Read these before quoting a number from this tool.
 
-### The share count
+### The share count and the discount rate
 
-- **The treasury stock count degrades to WASO rather than guessing.** If the
-  instance document cannot be read, if shares outstanding are not tagged, or if
-  options are tagged only by award type, the result comes back as
-  `diluted WASO fallback` with a flag naming what was missing. The award-type case
-  is the common one, because a dimensioned option row cannot be told apart from an
-  antidilutive-securities table reusing the same tag.
-- **ESPP shares are never counted.** Neither is any award the filer discloses only
-  in narrative text. Where bands are tagged but not all of them carry a strike, the
-  single weighted-average strike is used and dilution is understated to the extent
-  any band is out of the money.
-- **The count is as of the last filing, not as of today.** Shares outstanding come
-  off the latest cover page and awards off the latest balance sheet date, so
-  anything issued since is missing. Forfeitures are not haircut either:
-  `assumed_forfeiture_rate` defaults to zero because ASC 260 does not haircut and
-  guessing a rate is a thumb on the scale.
+The treasury stock count degrades to diluted WASO rather than guessing. If the
+instance document cannot be read, if shares outstanding are not tagged, or if
+options are tagged only by award type, the result comes back as `diluted WASO
+fallback` with a flag naming what was missing, and the award-type case is the
+common one, because a dimensioned option row cannot be told apart from an
+antidilutive-securities table reusing the same tag. ESPP shares are never
+counted, and neither is any award the filer discloses only in narrative text.
+Where bands are tagged but not all of them carry a strike, the single
+weighted-average strike is used and dilution is understated to the extent any
+band is out of the money. And the count is as of the last filing, not as of
+today: shares outstanding come off the latest cover page, awards off the latest
+balance sheet date, and anything issued since is missing. Forfeitures are not
+haircut either. `assumed_forfeiture_rate` defaults to zero because ASC 260 does
+not haircut and guessing a rate is a thumb on the scale.
 
-### The discount rate
+The discount rate carries four approximations of its own. Book value proxies
+the market value of debt, in the EV bridge and in the WACC weights, which is
+close for investment-grade paper near par and wrong for distressed. The cost of
+debt is synthetic: interest coverage maps to a rating and a spread, and
+coverage is the wrong risk metric for a net-cash issuer. Datadog's 1.4x
+coverage implies a speculative rating against negligible actual default risk,
+and the debt weight is near zero there, so it barely reaches the WACC, but for
+a company with real debt and real cash you should override the rate. The equity
+risk premium is an assumption, not a measurement, and it is the largest single
+unobservable in the output. And peer sets are hand-picked in YAML. There is no
+automated screen in the valuation path, and comparability is your judgment. The
+warranted-multiple regression needs eight usable observations where the shipped
+six-name example produces five, so it declines, and `ml.encoder`, the attempt
+to measure comparability, is not wired into `comps.py`.
 
-- **Book value proxies the market value of debt**, in the EV bridge and in the
-  WACC weights. Close for investment-grade paper near par, wrong for distressed.
-- **Cost of debt is synthetic.** Interest coverage maps to a rating and a spread.
-  Coverage is the wrong risk metric for a net-cash issuer: Datadog's 1.4x coverage
-  implies a speculative rating against negligible actual default risk. The debt
-  weight is near zero there, so it barely reaches the WACC, but for a company with
-  real debt and real cash you should override the rate.
-- **The equity risk premium is an assumption**, not a measurement, and it is the
-  largest single unobservable in the output.
-- **Peer sets are hand-picked** in YAML. There is no automated screen in the
-  valuation path, and comparability is your judgment. The warranted-multiple
-  regression needs eight usable observations and the shipped six-name example
-  produces five, so it declines. `ml.encoder` is the attempt to measure
-  comparability, and it is not wired into `comps.py`.
+### The projection, the simulation and the APV
 
-### The projection
+The NOL model stops short of three things that matter: Section 382, which caps
+annual use of a carryforward after a change of control, so any deal case here
+overstates the shield; state carryforwards, with their own expiry and
+apportionment; and the valuation allowance, so the balance used is the gross
+federal carryforward rather than the deferred tax asset the filer believes it
+will realise. The residual balance at year N is not carried into the terminal
+value either, which is struck at the full rate. Working capital is anchored on
+a ratio, not on the balance sheet: the year one change is measured against
+`nwc_pct_revenue` applied to TTM revenue rather than against the reported
+balance, which keeps the path internally consistent at the cost of ignoring
+where the balance sheet actually starts.
 
-- **The NOL model stops short of three things that matter.** Section 382, which
-  caps annual use of a carryforward after a change of control, so any deal case
-  here overstates the shield. State carryforwards, with their own expiry and
-  apportionment. And the valuation allowance, so the balance used is the gross
-  federal carryforward rather than the deferred tax asset the filer believes it
-  will realise. The residual balance at year N is not carried into the terminal
-  value either, which is struck at the full rate.
-- **Working capital is anchored on a ratio, not on the balance sheet.** The year
-  one change is measured against `nwc_pct_revenue` applied to TTM revenue rather
-  than against the reported balance, which keeps the path internally consistent at
-  the cost of ignoring where the balance sheet actually starts.
-- **The Monte Carlo shocks only year-one revenue growth.** The path still fades to
-  an unshocked terminal growth rate, so the spread on the final explicit year is
-  narrower than a parallel shift of the whole path would give. The exit multiple is
-  not simulated at all, because sampling a peer median alongside terminal growth
-  would put two competing terminal assumptions into one histogram. And the
-  distribution is over assumptions, not over outcomes: nothing here models the
-  chance that the business is a different business than the one the projection
-  describes.
+The Monte Carlo shocks only year-one revenue growth. The path still fades to an
+unshocked terminal growth rate, so the spread on the final explicit year is
+narrower than a parallel shift of the whole path would give. The exit multiple
+is not simulated at all, because sampling a peer median alongside terminal
+growth would put two competing terminal assumptions into one histogram. And the
+distribution is over assumptions, not over outcomes: nothing here models the
+chance that the business is a different business than the one the projection
+describes.
 
-### APV
+The APV holds debt flat at the current balance across the explicit period, and
+interest on it is the WACC's own pre-tax cost of debt rather than the filed
+interest expense. Nothing in the assumptions describes a paydown, and inventing
+an amortisation schedule would put a financing forecast inside the module whose
+job is to expose one. The cost is that a filer whose coupon sits far below its
+synthetic yield, the zero-coupon convertible signature, gets a modelled shield
+larger than the deduction it will claim, and the checks report that gap. The
+terminal shield then grows at g while the explicit period held debt flat. That
+inconsistency is inside the schedule, it is stated on every run, and it
+vanishes when g is zero.
 
-- **Debt is held flat at the current balance across the explicit period**, and
-  interest on it is the WACC's own pre-tax cost of debt rather than the filed
-  interest expense. Nothing in the assumptions describes a paydown, and inventing
-  an amortisation schedule would put a financing forecast inside the module whose
-  job is to expose one. The cost is that a filer whose coupon sits far below its
-  synthetic yield, the zero-coupon convertible signature, gets a modelled shield
-  larger than the deduction it will claim. The checks report that gap.
-- **The terminal shield grows at g while the explicit period held debt flat.**
-  That inconsistency is inside the schedule, it is stated on every run, and it
-  vanishes when g is zero.
+### The merger module
 
-### Merger
+Book equity acquired is understated, so goodwill is overstated. It is built
+from working capital less borrowings and any preferred or minority interest;
+lease liabilities are left out because their right-of-use assets are not
+carried here and deducting one side alone would invent goodwill, and
+non-current operating assets are missing for the same reason. The deal
+therefore looks more dilutive here than it should, not less. The multi-year
+roll-forward needs D&A, capex and pre-tax income and refuses where a filer does
+not tag them: CrowdStrike as an acquirer fails on the D&A tag, the same gap
+that makes its EV/EBITDA non-meaningful in the comp table.
 
-- **Book equity acquired is understated, so goodwill is overstated.** It is built
-  from working capital less borrowings and any preferred or minority interest.
-  Lease liabilities are left out because their right-of-use assets are not carried
-  here and deducting one side alone would invent goodwill, and non-current
-  operating assets are missing for the same reason. The deal therefore looks more
-  dilutive here than it should, not less.
-- **The multi-year roll-forward needs D&A, capex and pre-tax income** and refuses
-  where a filer does not tag them. CrowdStrike as an acquirer fails on the D&A
-  tag, the same gap that makes its EV/EBITDA non-meaningful in the comp table.
-- **The CLI cannot render the multi-year pro forma.** With
-  `merger.purchase_accounting.enabled` the model computes correctly and the opening
-  balance sheet prints, then `_render_purchase_accounting` passes each
-  `(year, dollars, percent)` tuple from `accretion_by_year` to a formatter
-  expecting a float and raises `TypeError`. The figures are reachable from the
-  Python API. The renderer is not fixed yet.
-- **Left at its default the merger module is a screen.** No opening balance sheet,
-  no goodwill, no deferred tax on the step-up, no deferred revenue haircut, no debt
-  paydown. Year-one EPS on two sets of TTM figures tells you the shape of a deal
-  and roughly what it costs. It is not a merger model, and no one should take a bid
-  to a board on it.
+**The CLI cannot render the multi-year pro forma.** With
+`merger.purchase_accounting.enabled` the model computes correctly and the
+opening balance sheet prints, then `_render_purchase_accounting` passes each
+`(year, dollars, percent)` tuple from `accretion_by_year` to a formatter
+expecting a float and raises `TypeError`. The figures are reachable from the
+Python API. The renderer is not fixed yet.
 
-### TMT data layer
+Left at its default the merger module is a screen: no opening balance sheet, no
+goodwill, no deferred tax on the step-up, no deferred revenue haircut, no debt
+paydown. Year-one EPS on two sets of TTM figures tells you the shape of a deal
+and roughly what it costs. **It is not a merger model, and no one should take a
+bid to a board on it.**
 
-- **Segment detail is read from the latest 10-K only**, so there is no segment
-  time series, and segment EBITDA is not built because segment D&A is disclosed
-  inconsistently and adding a partial D&A back to segment EBIT would produce a
-  margin nobody reported. Geography rows carry long-lived assets, which is what
-  ASC 280 requires, so the two asset columns mean different things and each row
-  says which tag produced it.
-- **A sum of the parts is a gross asset-value argument.** There is no tax leakage
-  on a break-up, often the thing that kills the pitch, and the discount when set is
-  applied uniformly, so a partly owned subsidiary or a listed tracking stake is not
-  supported. Segment profit is reconciled to consolidated revenue and not down to
-  consolidated operating income, so a corporate cost that does not actually close
-  the footnote reconciliation is accepted as given.
-- **`tmt.metrics` and `tmt.taxonomy` speak different vocabularies.**
-  `build_metrics` routes on `software, saas, internet, media, streaming,
-  entertainment, telecom, wireless, cable, fiber, towers` while
-  `taxonomy.SubVertical` speaks in `infrastructure_software, application_software,
-  internet, semiconductors, hardware, it_services, payments, media_entertainment,
-  telecom, towers_fiber, gaming`. The CLI bridges them through an explicit map in
-  `commands_tmt.SUB_VERTICAL_TO_METRIC_PACK`, but the two vocabularies have not
-  been reconciled at the source, and
-  `test_tmt_metrics_cannot_be_run_across_this_universe` is a tripwire as much as a
-  test. Reconciling them is a design decision about which pack a bucket belongs
-  to, so it is flagged. I have not guessed at it.
-- **Several inputs to the metric packs have to be supplied.** Sales and marketing,
-  content spend, content amortisation, maintenance capex and subscriber counts are
-  income statement and footnote lines the normalized statement set does not
-  separate. Anything missing is `None` with a flag naming the exact key, never a
-  zero.
-- **Media and telecom packs are proven on synthetic cases.** No fixture company is
-  a streamer or a carrier, so the content gap and capex intensity are tested
-  against arithmetic that checks on paper.
-- **Precedent premia over closed deals need a local CSV price source.** Nasdaq
-  answers "Symbol not exists" for a delisted target, and Stooq is behind a bot check
-  this engine will not defeat, so a live run over completed deals returns multiples
-  and no premium, flagged and never zero. Every priced deal in the fixture set is
-  a pending transaction, and that is exactly why its ticker still trades.
-- **The acquirer on a precedent is the entity the agreement names, which is often
-  not the buyer a reader has in mind.** LiveRamp's comes back as MMS USA Holdings,
-  Inc., the vehicle in the merger agreement, with Publicis Groupe S.A. carried
-  beside it in the other-parties note. Every priced figure in a `Transaction` comes
-  from the target side and from the consideration clause, so the acquirer label
-  reaches no premium and no multiple, but it should not be printed in a table
-  without being read.
+### The data layer
+
+Segment detail is read from the latest 10-K only, so there is no segment time
+series, and segment EBITDA is not built, because segment D&A is disclosed
+inconsistently and adding a partial D&A back to segment EBIT would produce a
+margin nobody reported. Geography rows carry long-lived assets, which is what
+ASC 280 requires, so the two asset columns mean different things and each row
+says which tag produced it. A sum of the parts, in turn, is a gross asset-value
+argument. There is no tax leakage on a break-up, often the thing that kills the
+pitch, and the discount when set is applied uniformly, so a partly owned
+subsidiary or a listed tracking stake is not supported. Segment profit is
+reconciled to consolidated revenue and not down to consolidated operating
+income, so a corporate cost that does not actually close the footnote
+reconciliation is accepted as given.
+
+`tmt.metrics` and `tmt.taxonomy` speak different vocabularies. `build_metrics`
+routes on `software, saas, internet, media, streaming, entertainment, telecom,
+wireless, cable, fiber, towers` while `taxonomy.SubVertical` speaks in
+`infrastructure_software, application_software, internet, semiconductors,
+hardware, it_services, payments, media_entertainment, telecom, towers_fiber,
+gaming`. The CLI bridges them through an explicit map in
+`commands_tmt.SUB_VERTICAL_TO_METRIC_PACK`, but the two vocabularies have not
+been reconciled at the source, and
+`test_tmt_metrics_cannot_be_run_across_this_universe` is a tripwire as much as
+a test. Reconciling them is a design decision about which pack a bucket belongs
+to, so it is flagged. I have not guessed at it. Several inputs to the metric
+packs have to be supplied as well: sales and marketing, content spend, content
+amortisation, maintenance capex and subscriber counts are income statement and
+footnote lines the normalized statement set does not separate, and anything
+missing is `None` with a flag naming the exact key, never a zero. The media and
+telecom packs are proven on synthetic cases, because no fixture company is a
+streamer or a carrier, so the content gap and capex intensity are tested
+against arithmetic that checks on paper.
+
+Two limits sit under the precedent transactions. Premia over closed deals need
+a local CSV price source: Nasdaq answers "Symbol not exists" for a delisted
+target, and Stooq is behind a bot check this engine will not defeat, so a live
+run over completed deals returns multiples and no premium, flagged and never
+zero. Every priced deal in the fixture set is a pending transaction, and that
+is exactly why its ticker still trades. And the acquirer on a precedent is the
+entity the agreement names, which is often not the buyer a reader has in mind.
+LiveRamp's comes back as MMS USA Holdings, Inc., the vehicle in the merger
+agreement, with Publicis Groupe S.A. carried beside it in the other-parties
+note. Every priced figure in a `Transaction` comes from the target side and
+from the consideration clause, so the acquirer label reaches no premium and no
+multiple, but it should not be printed in a table without being read.
 
 ### The models
 
-- **A universe of today's survivors runs under every one of them.** The SEC's
-  `company_tickers.json` is a snapshot of currently registered filers and the price
-  sources delete a company the day it stops trading, so four seed names are missing
-  on every date including the dates on which they were live and cheap. Two separate
-  losses sit under the peer models and they are worth keeping apart. The one you can
-  measure: of the peers a proxy names and the resolver does resolve, 2,201 of 2,573
-  (85.5%) are in the candidate universe at their own date, and recall at any k is
-  capped by that share. Most of that shortfall is not delisting at all, it is
-  compensation committees reaching outside TMT, and the names it drops are Intel,
-  Alphabet, IBM and a row of REITs and pharmaceutical companies. The one you cannot:
-  a deregistered company is never resolved and so never becomes a named peer, so it
-  lands in `PeerGroup.unresolved` and never reaches a survivorship count. The
-  committed peer fixture holds only the spans that resolved, so the size of that
-  second loss cannot be reproduced from this repository, and no figure for it is
-  quoted here. Its shape is visible from the other side:
-  `former_tickers.FORMER_TICKERS` carries Splunk, Coupa, Xilinx, Activision,
-  VMware, Slack, Citrix, Zendesk and Juniper with the dates each left the tape,
-  2021 through 2025. The refusal to guess is what makes the loss auditable. The
-  honest fix is a delisting-complete vendor file or an archived ticker file per
-  date, and this package has neither.
-- **`fold_sd` is dispersion across folds, not a confidence interval.** On a handful
-  of folds it is an honest error bar and not a significance test. Quarterly readings
-  of the same companies are not independent draws, and nothing in the evaluation
-  harness corrects for that; only `ml.signals` does, and only for a score tested
-  against forward returns.
-- **The Newey-West correction in `ml.signals` is an undercorrection**, by a knowable
-  amount of roughly a fifth at this sample size, and the module says so.
-- **The feature panel carries no market data at all.** Nasdaq's keyless quote API
-  serves roughly the last three years, and a panel carrying market features at its
-  late dates and none at its early ones would hand a model a clean proxy for the
-  calendar. So 14 of the 50 features are missing on every row: market capitalisation
-  and enterprise value, the five capital ratios struck against them, momentum at
-  three, six and twelve months, relative momentum, the 52-week range position, beta
-  and realised volatility. The size gate and the size-and-growth baseline fall back
-  to log total assets, a different quantity. This is the single largest
-  limitation on the peer encoder and it is very likely part of why its fundamentals
-  tower is not earning its place.
-- **The committed peer fixture truncates Item 1 to 2,500 characters**, so the
-  encoder score that reproduces offline is 0.5407 against the 0.594 measured on
-  the untruncated documents. Both are stated above with the cause.
-- **The acquisition screen cannot say whether cheap companies get bought**, because
-  the valuation channel had to be removed to keep the delisting out of the labels.
-  Nine of its fifteen coefficients change sign somewhere across the five folds and
-  nothing in it should be quoted to two decimal places.
-- **Some of the label sets carry false positives and were not hand-cleaned.** The
-  seven transactions recovered by the consideration-clause fix were audited by hand
-  and three of them are an acquirer-side document or an internal reorganisation that
-  the extractor cannot yet tell from a sale. The same error rate presumably runs
-  through the rest. A label set corrected by my opinion of which deals are real is
-  my opinion wearing a label set's clothes, so it ships as the code produced it with
-  the audit in the manifest.
-- **The fitted growth path is not constrained to decay.** Each horizon is fitted
-  directly rather than by iterating the one-year model, so nothing forces the fitted
-  years to fade monotonically, and `GrowthPath.notes` flags it. The one-year slope is 0.47 and the three-year
-  slope is 0.17, which is not 0.47 cubed, so a constant-decay model is wrong about
-  the shape as well.
-- **Prediction intervals on the fade are unconditional**, the same width for every
-  company, because the residual quantiles of a sub-vertical with 80 observations are
-  two observations deep at each tail.
+**A universe of today's survivors runs under every one of them.** The SEC's
+`company_tickers.json` is a snapshot of currently registered filers and the
+price sources delete a company the day it stops trading, so five seed names are
+missing on every date, including the dates on which they were live and cheap.
+Two separate losses sit under the peer models and they are worth keeping apart.
 
-### The backtest
+The one you can measure: of the peers a proxy names and the resolver does
+resolve, 2,201 of 2,573 (85.5%) are in the candidate universe at their own
+date, and recall at any k is capped by that share. Most of that shortfall is
+not committees reaching outside TMT. It is this repository's own extraction
+failing on names the committed panel already carries, and the fixtures record
+which name died where. Intel, named 61 times, and HubSpot, at 54, have no Item
+1 in the committed corpus at any panel date; Intel answers Item 1 by
+cross-reference to page numbers, so there is no section to extract, and the
+splitter declines rather than returning the wrong span. MongoDB, at 47, and
+Visa fail on `could not source 'diluted shares'` at every panel date. KLA, at
+33, and IBM, at 20, fail on `could not source 'EBIT'`, and so do the REIT and
+pharmaceutical names the proxies carry, Public Storage and Welltower through
+Johnson & Johnson and Pfizer. Alphabet, at 25, is lost twice over, with no
+clean feature row at any date and no Item 1 before the 2025 panel date. The
+loss that is structural rather than a bug is the smaller share: the 20-F
+filers a committee names, SAP, STMicroelectronics, Spotify, file no 10-K and
+so have no Item 1 to split, and the odd retailer or airline never enters the
+panel at all.
 
-- **The universe is survivorship biased and this harness does not fix it.** The
-  ticker list is supplied by the caller, so it contains only companies that exist
-  today. Names delisted, acquired at a discount or wound up during the sample are
-  absent and are disproportionately the losers, so every statistic is biased upward
-  by an amount the harness cannot measure.
-- **Overlapping windows are not independent draws.** Valuing the same name
-  quarterly on a one-year horizon shares most of the price path between
-  observations, and names in the same months are correlated through the market, so
-  any significance computed from the raw n is overstated. The count of
-  non-overlapping windows is reported beside it, and `ml.signals` is where the
-  correction itself lives.
-- **Returns are price returns**, not total returns. No name in this universe pays a
-  material dividend, but the convention is stated.
-- **The risk-free rate is held flat across dates** unless you supply one per date,
-  so measured upsides move with fundamentals and the share price and not with the
-  rates that were actually quoted.
+The one you cannot measure: a deregistered company is never resolved and so
+never becomes a named peer, so it lands in `PeerGroup.unresolved` and never
+reaches a survivorship count. The committed peer fixture holds only the spans
+that resolved, so the size of that second loss cannot be reproduced from this
+repository, and no figure for it is quoted here. Its shape is visible from the
+other side: `former_tickers.FORMER_TICKERS` carries Splunk, Coupa, Xilinx,
+Activision, VMware, Slack, Citrix, Zendesk and Juniper with the dates each left
+the tape, 2021 through 2025. The refusal to guess is what makes the loss
+auditable. The honest fix is a delisting-complete vendor file or an archived
+ticker file per date, and this package has neither.
 
-### Scope
+On the statistics themselves: `fold_sd` is dispersion across folds, not a
+confidence interval. On a handful of folds it is an honest error bar and not a
+significance test. Quarterly readings of the same companies are not independent
+draws, and nothing in the evaluation harness corrects for that; only
+`ml.signals` does, and only for a score tested against forward returns, where
+its Newey-West correction is itself an undercorrection, by a knowable amount of
+roughly a fifth at this sample size, and the module says so.
 
-- **US GAAP only.** No foreign private issuers, no IFRS, no 20-F filers.
+The feature panel carries no market data at all. Nasdaq's keyless quote API
+serves roughly the last three years, and a panel carrying market features at
+its late dates and none at its early ones would hand a model a clean proxy for
+the calendar. So 14 of the 50 features are missing on every row: market
+capitalisation and enterprise value, the five capital ratios struck against
+them, momentum at three, six and twelve months, relative momentum, the 52-week
+range position, beta and realised volatility. The size gate and the
+size-and-growth baseline fall back to log total assets, a different quantity.
+This is the single largest limitation on the peer encoder and it is very likely
+part of why its fundamentals tower is the weaker of the two in the ablation,
+where the text tower's edge over the noise is a hair and the fundamentals
+tower's contribution sits inside its own dispersion. The committed peer fixture
+also truncates Item 1 to 2,500 characters, so the encoder score that reproduces
+offline is 0.5407 against the 0.594 measured on the untruncated documents. Both
+are stated above with the cause.
+
+The acquisition screen cannot say whether cheap companies get bought, because
+the valuation channel had to be removed to keep the delisting out of the
+labels. Nine of its fifteen coefficients change sign somewhere across the five
+folds and nothing in it should be quoted to two decimal places. Some of its
+label sets carry false positives and were not hand-cleaned: the seven
+transactions recovered by the consideration-clause fix were audited by hand,
+three of them are an acquirer-side document or an internal reorganisation that
+the extractor cannot yet tell from a sale, and the same error rate presumably
+runs through the rest. A label set corrected by my opinion of which deals are
+real is my opinion wearing a label set's clothes, so it ships as the code
+produced it with the audit in the manifest.
+
+The fitted growth path is not constrained to decay. Each horizon is fitted
+directly rather than by iterating the one-year model, so nothing forces the
+fitted years to fade monotonically, and `GrowthPath.notes` flags it. The
+one-year slope is 0.47 and the three-year slope is 0.17, which is not 0.47
+cubed, so a constant-decay model is wrong about the shape as well. And the
+prediction intervals on the fade are unconditional, the same width for every
+company, because the residual quantiles of a sub-vertical with 80 observations
+are two observations deep at each tail.
+
+### The backtest, and scope
+
+The backtest universe is survivorship biased and the harness does not fix it.
+The ticker list is supplied by the caller, so it contains only companies that
+exist today; names delisted, acquired at a discount or wound up during the
+sample are absent and are disproportionately the losers, so every statistic is
+biased upward by an amount the harness cannot measure. Overlapping windows are
+not independent draws either: valuing the same name quarterly on a one-year
+horizon shares most of the price path between observations, names in the same
+months are correlated through the market, and any significance computed from
+the raw n is overstated. The count of non-overlapping windows is reported
+beside it, and `ml.signals` is where the correction itself lives. Returns are
+price returns, not total returns; no name in this universe pays a material
+dividend, but the convention is stated. And the risk-free rate is held flat
+across dates unless you supply one per date, so measured upsides move with
+fundamentals and the share price and not with the rates that were actually
+quoted.
+
+The scope is US GAAP only. No foreign private issuers, no IFRS, no 20-F
+filers.
 
 ---
 
