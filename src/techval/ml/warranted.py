@@ -201,10 +201,11 @@ the comp tables too, and a model is the wrong place to make that change.
     the filer reports rather than against zero.
 
     A price vendor returns the wrong security, so Booking's series runs 71 to 174
-    where the share traded near 1,750 to 5,500, and its EV/Revenue prints as
-    0.02x. The filer's own ``dei:EntityPublicFloat`` is the only independent
-    anchor free data offers, and on that series Booking's equity value comes out
-    at 7,796mm against a reported float of 133,100mm.
+    where the share traded near 1,750 to 5,500, and every committed read of its
+    EV/Revenue prints below a single turn. The filer's own
+    ``dei:EntityPublicFloat`` is the only independent anchor free data offers,
+    and on that series the 2025-03-31 price implies an equity value of 6,277mm
+    against a public float of 133,100mm reported as of 2024-06-30.
 
 The cost of refusing rather than repairing is stated rather than absorbed: it
 deletes the towers and fibre sub-vertical from the panel entirely, along with
@@ -802,7 +803,7 @@ def revenue_is_a_component(facts, fin) -> str | None:
 
     Measured on this panel, at 31 March 2025: Crown Castle resolves 210.0mm
     against 6,568.0mm reported under ``Revenues``, American Tower 774.6mm against
-    10,127.2mm, and SBA Communications 128.7mm against 2,083.1mm. Every EV/Revenue
+    10,127.2mm, and SBA Communications 152.9mm against 2,679.6mm. Every EV/Revenue
     for the towers and fibre sub-vertical is therefore between thirteen and
     thirty-one times too high, and the whole bucket reads as though it trades at
     125x revenue.
@@ -916,9 +917,10 @@ def price_disagrees_with_the_public_float(facts, fin, equity_value: float) -> st
     Booking Holdings is the case. The vendor's series for BKNG runs 71.39 at the
     start of 2018 to 174.33 in September 2026, against a share that actually
     traded near 1,750 and 5,500 on those days: not a split adjustment, since the
-    ratio is not constant, but a different instrument. Priced on it, Booking's
-    equity value comes out at 7,796mm against a reported public float of
-    133,100mm, and its EV/Revenue prints as 0.02x.
+    ratio is not constant, but a different instrument. Priced on it at
+    2025-03-31, Booking's equity value comes out at 6,277mm against a public
+    float of 133,100mm reported as of 2024-06-30, a factor of 0.05, and every
+    committed read of its EV/Revenue prints below a single turn of revenue.
 
     The tolerance is ten times either way and is meant to be far too wide to fire
     on anything real. The float is stale by up to a year, it excludes insider
