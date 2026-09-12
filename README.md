@@ -611,9 +611,12 @@ baseline that has to peek at the answer key is named in sample, which makes it
 the harder comparison and therefore the conservative choice.
 
 Fold dispersion travels with every score. A lift of 0.02 against a fold standard
-deviation of 0.09 reads as what it is, and `verdict()` says "inside the
-fold-to-fold noise" in those words. It is an honest error bar and not a
-significance test, and the module does not pretend otherwise.
+deviation of 0.09 reads as what it is, and where the folds are real folds
+`verdict()` says "inside the fold-to-fold noise" in those words. A ranking
+result carries one score per query instead, so its verdict names the spread as
+per-query, declines that judgment, and cites the paired per-query difference,
+the only spread that is an error bar on the lift. Honest error bars, not
+significance tests, and the module does not pretend otherwise.
 
 Ranking well and being calibrated are different claims. `calibration_table`
 buckets on equal-width bins over [0, 1], not by quantile, because the question
@@ -1759,18 +1762,21 @@ the tape, 2021 through 2025. The refusal to guess is what makes the loss
 auditable. The honest fix is a delisting-complete vendor file or an archived
 ticker file per date, and this package has neither.
 
-On the statistics themselves: `fold_sd` is dispersion across folds, not a
-confidence interval. On a handful of folds it is an honest error bar and not a
+On the statistics themselves: `fold_sd` is dispersion across folds where the
+result holds folds, and across queries where a ranking result holds per-query
+scores, and it is not a confidence interval either way. On a handful of folds it is an honest error bar and not a
 significance test. Quarterly readings of the same companies are not independent
 draws, and nothing in the evaluation harness corrects for that; only
 `ml.signals` does, and only for a score tested against forward returns, where
 its Newey-West correction is itself an undercorrection, by a knowable amount of
 roughly a fifth at this sample size, and the module says so.
 
-The feature panel carries no market data at all. Nasdaq's keyless quote API
-serves roughly the last three years, and a panel carrying market features at
-its late dates and none at its early ones would hand a model a clean proxy for
-the calendar. So 14 of the 50 features are missing on every row: market
+The feature panel carries no market data at all. It was recorded that way
+under a belief that Nasdaq's keyless quote API only reaches back three years,
+which measurement later contradicted: the endpoint serves ten years for every
+symbol tested, so the early panel dates could have carried prices and, as
+committed, do not. Re-recording the panel with the feed is the obvious next
+experiment. In the meantime 14 of the 50 features are missing on every row: market
 capitalisation and enterprise value, the five capital ratios struck against
 them, momentum at three, six and twelve months, relative momentum, the 52-week
 range position, beta and realised volatility. The size gate and the
