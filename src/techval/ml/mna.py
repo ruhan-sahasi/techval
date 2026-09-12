@@ -395,12 +395,17 @@ def _as_date(value: Any) -> date | None:
 #: 13E-3 is the going-private schedule required by Rule 13e-3 whenever an
 #: affiliate is on the buy side.
 #:
-#: This is not a rounding error in coverage and it is not random. Searching a
-#: real universe of 493 TMT registrants, 13 of the 23 departed companies that a
-#: proxy-only screen could not explain had filed a DEFM14C: PowerSchool,
-#: Instructure, Thoughtworks, Informatica, Paycor, SolarWinds, Vizio and their
-#: like, which is to say sponsor and founder-controlled take-privates almost
-#: without exception. The form a company uses to be sold is decided by who
+#: This is not a rounding error in coverage and it is not random. During the
+#: EDGAR sweep that recorded tests/fixtures/mna (its MANIFEST.json carries the
+#: date and the method), 13 of the 23 departed companies in the 493-registrant
+#: universe that a proxy-only screen could not explain had filed a DEFM14C:
+#: PowerSchool, Instructure, Thoughtworks, Informatica, Paycor, SolarWinds,
+#: Vizio and their like, which is to say sponsor and founder-controlled
+#: take-privates almost without exception. That tally is the sweep's and is not
+#: reproducible from what is committed: the fixture keeps the universe and the
+#: extracted deal events, six of which are consent-path forms, not the
+#: per-registrant submissions indexes the 13-of-23 count was made over.
+#: The form a company uses to be sold is decided by who
 #: controls its votes, so a screen that reads only proxies systematically drops
 #: controlled companies, and control is one of the things a propensity model is
 #: trying to use as a predictor. Screening on proxies alone biases the label set

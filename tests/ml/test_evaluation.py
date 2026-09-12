@@ -43,6 +43,7 @@ from techval.ml.evaluation import (
     precision_recall_at_k,
     walk_forward_folds,
 )
+from techval.ml.protocol import EvalResult
 
 # The label window in months. Twelve is the horizon the growth model forecasts
 # over and the window the takeout model asks about, and it is the number that
@@ -569,6 +570,114 @@ def test_ranking_counts_the_queries_it_could_not_score():
     ranked.pop("T7")
     result = evaluate_ranking(relevance, ranked, k=10)
     assert any("no ranking and were not scored" in note for note in result.notes)
+
+
+def test_a_ranking_result_declares_its_folds_are_queries_not_folds():
+    """The README quoted a fold-noise sentence about numbers that are not folds.
+
+    ``evaluate_ranking`` fills ``folds`` with per-query NDCG, so a verdict that
+    judged the lift inside or outside "the fold-to-fold noise" was claiming
+    fold dispersion about across-target dispersion: 1.25 sigma of the wrong
+    quantity on the committed scoreboard, and the row a sceptical reader would
+    attack. The result now says what its folds are, the verdict names the
+    spread as across-query and refuses the inside-or-outside judgment, and the
+    statistic it cites instead is the paired per-query difference, which is the
+    error bar the lift actually has.
+    """
+    relevance, ranked, shuffled = peer_task()
+    result = evaluate_ranking(
+        relevance, ranked, k=10, baseline=shuffled, baseline_name="popularity order"
+    )
+    assert result.beat_baseline
+    assert result.fold_unit == "query"
+
+    text = result.verdict()
+    assert "fold-to-fold noise" not in text.replace("not fold-to-fold noise", "")
+    assert "Fold standard deviation" not in text
+    assert f"spread across {result.n_observations:,} queries" in text
+    assert "Paired on identical queries" in text
+
+    # rows() must not label per-query scores as folds either.
+    labels = dict(result.rows())
+    assert "Folds" not in labels
+    assert labels["Per-query scores"] == result.n_observations
+
+
+def test_the_paired_delta_is_the_same_queries_paired_by_construction():
+    """Mean of per-query differences equals the lift, and the shape is sane.
+
+    Scored on identical queries, mean(model - baseline) is exactly
+    mean(model) - mean(baseline), so ``paired.mean`` must reproduce ``lift`` to
+    the last decimal. The rest is arithmetic on the same vector: the standard
+    error is sd over root n, t is mean over the standard error, and the win
+    rate lives in [0, 1].
+    """
+    relevance, ranked, shuffled = peer_task()
+    result = evaluate_ranking(
+        relevance, ranked, k=10, baseline=shuffled, baseline_name="popularity order"
+    )
+    p = result.paired
+    assert p is not None
+    assert p.n == result.n_observations
+    assert p.mean == pytest.approx(result.lift)
+    assert p.standard_error == pytest.approx(p.sd / np.sqrt(p.n))
+    assert p.t == pytest.approx(p.mean / p.standard_error)
+    assert 0.0 <= p.win_rate <= 1.0
+    # A model with real signal against a shuffle should win nearly everywhere.
+    assert p.t > 2.0
+
+
+def test_a_walk_forward_verdict_still_judges_the_lift_against_fold_noise():
+    """The fold sentence is the right one where the folds are folds.
+
+    Regression and classification fill ``folds`` with walk-forward fold scores,
+    ``fold_unit`` stays at its default, and the one-line verdict keeps the
+    inside-or-outside judgment it has always made. This pins the default so the
+    ranking fix cannot silently take the honest sentence away from the results
+    it was true for.
+    """
+    dates, _, y = forward_panel()
+    rng = np.random.default_rng(11)
+    pred = y + rng.normal(scale=0.05, size=y.size)
+    result = evaluate_regression(
+        y, pred, None, dates=dates, n_folds=5, min_train=200, embargo_days=365
+    )
+    assert result.fold_unit == "fold"
+    assert result.paired is None
+    assert "Fold standard deviation" in result.verdict()
+    assert "the fold-to-fold noise" in result.verdict()
+    assert dict(result.rows())["Folds"] == 5
+
+
+def test_a_result_cached_before_fold_unit_existed_still_answers():
+    """An old joblib cache entry must not crash the first verdict it is asked for.
+
+    Fitted bundles are cached with joblib, which restores a dataclass from its
+    saved attribute dict without calling ``__init__``. A result pickled before
+    ``fold_unit`` and ``paired`` existed therefore arrives without either
+    attribute, and without the ``__setstate__`` backfill the first ``verdict()``
+    or ``rows()`` would raise AttributeError deep inside a command. The old
+    entry keeps its old meaning: unit ``fold``, no paired statistic.
+    """
+    result = EvalResult(
+        metric="mae",
+        score=1.0,
+        baseline_name="training-mean constant",
+        baseline_score=2.0,
+        n_observations=40,
+        higher_is_better=False,
+        folds=[1.1, 0.9, 1.0],
+    )
+    state = dict(result.__dict__)
+    del state["fold_unit"]
+    del state["paired"]
+
+    revived = EvalResult.__new__(EvalResult)
+    revived.__setstate__(state)
+    assert revived.fold_unit == "fold"
+    assert revived.paired is None
+    assert "Fold standard deviation" in revived.verdict()
+    assert dict(revived.rows())["Folds"] == 3
 
 
 # ------------------------------------------------------------- classification

@@ -349,8 +349,23 @@ def _render_purchase_accounting(pa, acq_ticker: str) -> None:
         cells = [Text(_money(getattr(y, attr), dp), style="bold" if bold else "")
                  for y in pa.years]
         t.add_row(Text(label, style="bold" if bold else ""), *cells)
-    acc = [Text(_money(a, 3) if a is not None else "NM") for a in pa.accretion_by_year]
-    t.add_row(Text("Accretion / (dilution)", style="bold"), *acc)
+    # ``accretion_by_year`` holds (year, dollars per share, percent or None):
+    # the contract is on PurchaseAccounting in merger.py. The percent is None
+    # wherever standalone EPS is too thin to divide by, and the dollars figure
+    # is then the only one that carries meaning, so it gets its own row and the
+    # percent row prints NM in exactly the years the model refused to quote one.
+    t.add_row(
+        Text("Accretion / (dilution), $", style="bold"),
+        *[Text(_money(dollars, 3)) for _, dollars, _ in pa.accretion_by_year],
+    )
+    if any(pct is not None for _, _, pct in pa.accretion_by_year):
+        t.add_row(
+            Text("Accretion / (dilution), %", style="bold"),
+            *[
+                Text(_pct(pct) if pct is not None else "NM")
+                for _, _, pct in pa.accretion_by_year
+            ],
+        )
     console.print(t)
     _notes(list(pa.checks), heading="Cross-checks")
     _notes(list(pa.notes))

@@ -741,8 +741,9 @@ def test_a_price_series_that_is_not_this_company_is_caught(payloads):
     A vendor returning the wrong security gives a clean, monotone, entirely
     plausible series, and nothing inside a valuation can tell. The filer's own
     cover page can: ``dei:EntityPublicFloat`` is a number the company states.
-    Priced on the vendor's series for BKNG, Booking's equity value comes out at
-    7,796mm against a reported float of 133,100mm.
+    Priced on the vendor's series for BKNG at 2025-03-31, Booking's equity value
+    comes out at 6,277mm against a public float of 133,100mm reported as of
+    2024-06-30.
 
     The tolerance is ten times either way and is meant never to fire on anything
     real, so the test pins both ends: a sixteenfold gap is refused and a

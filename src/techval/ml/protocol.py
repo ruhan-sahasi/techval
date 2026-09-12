@@ -30,6 +30,27 @@ import numpy as np
 
 
 @dataclass
+class PairedDelta:
+    """The model less the baseline, taken observation by observation.
+
+    The spread of a score across queries is dominated by variation the model and
+    the baseline share: some targets have findable peers and some do not, and
+    both methods score high on the first kind. The difference on the SAME query
+    subtracts that shared variation out, which is what makes its mean, its
+    standard error and its win rate an error bar on the lift rather than on the
+    task. Only defined where the two methods were scored on identical
+    observations, which the producer is responsible for guaranteeing.
+    """
+
+    mean: float
+    sd: float
+    standard_error: float
+    t: float
+    win_rate: float
+    n: int
+
+
+@dataclass
 class EvalResult:
     """How a model scored, against what, and whether that was any good.
 
@@ -38,6 +59,14 @@ class EvalResult:
     the honest alternative rather than a straw man: for a growth model that is
     last year's growth, for a ranking model the sector median, for a classifier
     the base rate.
+
+    ``fold_unit`` says what the entries of ``folds`` actually are, because two
+    different producers fill the list with two different things and a sentence
+    built on the wrong one is a false claim. ``"fold"`` means walk-forward fold
+    scores, and their dispersion is the fold-to-fold noise the lift is judged
+    against. ``"query"`` means per-query scores from a ranking task, and their
+    dispersion is how much targets differ, which is not an error bar on the
+    lift: ``paired``, when the producer supplies it, is.
     """
 
     metric: str
@@ -48,6 +77,21 @@ class EvalResult:
     higher_is_better: bool = True
     folds: list[float] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
+    fold_unit: str = "fold"
+    paired: PairedDelta | None = None
+
+    def __setstate__(self, state: dict) -> None:
+        """Backfill the fields this class gained after caches began storing it.
+
+        Fitted bundles are cached with joblib, which restores a dataclass from
+        its saved attribute dict without calling ``__init__``, so a result
+        pickled before ``fold_unit`` and ``paired`` existed would come back
+        without them and the first ``verdict()`` would raise. The defaults here
+        keep an old cache entry meaning exactly what it meant when it was saved.
+        """
+        self.__dict__.update(state)
+        self.__dict__.setdefault("fold_unit", "fold")
+        self.__dict__.setdefault("paired", None)
 
     @property
     def beat_baseline(self) -> bool:
@@ -63,7 +107,13 @@ class EvalResult:
 
     @property
     def fold_sd(self) -> float | None:
-        """Dispersion across folds, which is the honest error bar on the score."""
+        """Dispersion across the entries of ``folds``.
+
+        For a walk-forward result that is fold-to-fold noise, the honest error
+        bar on the score. For a ranking result the entries are per-query scores,
+        so this is dispersion across targets and it is NOT an error bar on the
+        lift: ``fold_unit`` says which one this is, and ``verdict`` reads it.
+        """
         if len(self.folds) < 2:
             return None
         return float(np.std(self.folds, ddof=1))
@@ -76,18 +126,36 @@ class EvalResult:
                 f"for {self.baseline_name}: the model does NOT beat the baseline on "
                 f"{self.n_observations:,} observations. Use the baseline."
             )
-        sd = self.fold_sd
-        spread = (
-            f" Fold standard deviation {sd:.4f}, so the lift is "
-            + ("inside" if sd and abs(self.lift) < sd else "outside")
-            + " the fold-to-fold noise."
-            if sd is not None
-            else ""
-        )
-        return (
+        head = (
             f"{self.metric} of {self.score:.4f} against {self.baseline_score:.4f} "
             f"for {self.baseline_name}, a lift of {self.lift:+.4f} on "
-            f"{self.n_observations:,} observations.{spread}"
+            f"{self.n_observations:,} observations."
+        )
+        sd = self.fold_sd
+        if sd is None:
+            return head
+        if self.fold_unit == "query":
+            # Per-query dispersion is how much targets differ, and both methods
+            # share most of that variation, so no inside-or-outside judgment is
+            # made on it. The paired difference is the statistic that judges
+            # the lift, and it is cited whenever the producer computed it.
+            spread = (
+                f" The {sd:.4f} standard deviation beside the score is spread "
+                f"across {len(self.folds):,} queries, not fold-to-fold noise."
+            )
+            if self.paired is not None:
+                p = self.paired
+                spread += (
+                    f" Paired on identical queries the lift is {p.mean:+.4f} "
+                    f"with a standard error of {p.standard_error:.4f} "
+                    f"(t {p.t:.1f}), and the model wins {p.win_rate:.0%} of "
+                    f"{p.n:,} queries."
+                )
+            return head + spread
+        return head + (
+            f" Fold standard deviation {sd:.4f}, so the lift is "
+            + ("inside" if abs(self.lift) < sd else "outside")
+            + " the fold-to-fold noise."
         )
 
     def rows(self) -> list[tuple[str, Any]]:
@@ -97,7 +165,10 @@ class EvalResult:
             (f"Baseline ({self.baseline_name})", self.baseline_score),
             ("Lift", self.lift),
             ("Observations", self.n_observations),
-            ("Folds", len(self.folds)),
+            (
+                "Per-query scores" if self.fold_unit == "query" else "Folds",
+                len(self.folds),
+            ),
             ("Beats baseline", self.beat_baseline),
         ]
 
