@@ -251,7 +251,7 @@ def dumps_snapshot(snapshot: Snapshot) -> str:
 def dump_snapshot(snapshot: Snapshot, path: str | Path) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(dumps_snapshot(snapshot), encoding="utf-8")
+    path.write_text(dumps_snapshot(snapshot), encoding="utf-8", newline="\n")
     return path
 
 
