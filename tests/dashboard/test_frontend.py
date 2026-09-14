@@ -285,3 +285,42 @@ def test_reduced_motion_and_focus_are_respected():
     layout = _strip_comments((ASSETS / "layout.css").read_text(encoding="utf-8"))
     assert "@media (prefers-reduced-motion: no-preference)" in layout
     assert re.search(r":focus-visible\s*\{[^}]*outline:\s*2px solid var\(--focus\)", layout)
+
+
+# App shell and section renderers ---------------------------------------------------
+
+
+APP = ASSETS / "app.js"
+
+
+def test_every_section_has_a_renderer_that_registers_its_own_id():
+    sections = ASSETS / "sections"
+    assert sorted(p.stem for p in sections.glob("*.js")) == sorted(SECTION_IDS)
+    for sid in SECTION_IDS:
+        text = (sections / f"{sid}.js").read_text(encoding="utf-8")
+        registered = re.findall(r"TV\.sections\.register\(\s*\"([\w-]+)\"", text)
+        assert registered == [sid], f"sections/{sid}.js registers {registered}"
+
+
+def test_app_stamps_the_theme_from_the_query_string():
+    text = APP.read_text(encoding="utf-8")
+    assert re.search(r"theme=\(dark\|light\)", text)
+    assert 'setAttribute("data-theme"' in text
+    # Stamped when the script runs, not at boot, so the page never paints in the wrong theme.
+    assert re.search(r"\n  stampTheme\(\);\n", text)
+
+
+def test_app_waits_for_the_section_scripts_before_drawing():
+    # The page inlines app.js before the section scripts, so boot must wait for the document.
+    text = APP.read_text(encoding="utf-8")
+    assert 'addEventListener("DOMContentLoaded", boot)' in text
+    assert "TV.sections.order()" in text
+
+
+def test_app_reads_the_snapshot_block_and_draws_every_state():
+    text = APP.read_text(encoding="utf-8")
+    assert 'SNAPSHOT_ID = "tv-snapshot"' in text
+    for status in ("not_built", "refused", "ok"):
+        assert re.search(rf'status [!=]== "{status}"', text), status
+    # A snapshot the page cannot read is a refusal, not a blank page.
+    assert "readSnapshot" in text and "read.error" in text
