@@ -10,6 +10,8 @@ that cannot be reproduced offline is shown as a refusal with its reason.
 
 from __future__ import annotations
 
+from .collect import CollectContext, SectionRun, collect_snapshot
+from .sections import COLLECT_ORDER, SECTION_IDS, section_module
 from .snapshot import (
     SCHEMA_VERSION,
     Snapshot,
@@ -20,10 +22,16 @@ from .snapshot import (
 )
 
 __all__ = [
+    "COLLECT_ORDER",
+    "CollectContext",
     "SCHEMA_VERSION",
+    "SECTION_IDS",
+    "SectionRun",
     "Snapshot",
+    "collect_snapshot",
     "dump_snapshot",
     "fixture_digests",
     "load_snapshot",
+    "section_module",
     "to_jsonable",
 ]
