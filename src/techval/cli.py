@@ -1136,10 +1136,10 @@ def _render_optional_fade(ticker, fin, bridge, wacc_result, assumptions, root) -
 
     What it is worth wiring for is the shape of a DCF. Every other assumption in
     ``assumptions.dcf`` moves the answer by a few percent; the growth path moves
-    it by multiples, and it is typed in. ``revenue_growth_start: 0.22`` is a
+    it by multiples, and it is typed in. ``dcf.revenue_growth_start`` is a
     judgment about one company with no panel behind it, and the fade model
-    replaces it with a number fitted on what several hundred TMT filers actually
-    did next, out of sample, against three baselines.
+    replaces it with a number fitted on what more than two hundred TMT filers
+    actually did next, out of sample, against three baselines.
 
     Four valuations are printed rather than two, and that is the point of the
     section rather than a flourish. A fitted point estimate set beside the

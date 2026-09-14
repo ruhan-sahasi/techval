@@ -1618,10 +1618,11 @@ class GrowthPath:
     fallen back to the engine's own straight line toward
     ``dcf.revenue_growth_terminal``. The fallback is not a defect and it is not
     optional: what the filings support is mean reversion toward the average
-    growth of a growth sector, about 15%, and no terminal value can be built on
-    that. The fitted curve governs the first ``horizon_years``. The assumption
-    still governs the perpetuity, and this field is where the handover is
-    visible rather than blended away.
+    growth of a growth sector, the level ``FadeModel.reversion_level`` reports,
+    and no terminal value can be built on a rate that high. The fitted curve
+    governs the first ``horizon_years``. The assumption still governs the
+    perpetuity, and this field is where the handover is visible rather than
+    blended away.
     """
 
     ticker: str

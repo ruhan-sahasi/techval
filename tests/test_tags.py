@@ -188,13 +188,15 @@ def test_the_debt_ladders_reach_the_companies_that_have_debt():
     ladder therefore changes the answer here without re-recording anything, which
     is the only form of the guard that can fail on the bug it was written for.
 
-    Measured on 2026-09-11 over the seed universe: 81 filers carry a material
-    debt balance, the old ladders reached 72 of them and these reach 80. The one
-    they do not reach is Digital Realty, which publishes 16,014mm of
-    ``SeniorNotes`` and 842mm of ``SecuredDebt`` and no total concept of any
-    kind, so a single-tag ladder cannot add its debt stack up without assuming
-    the pieces do not overlap. It refuses instead, which is the right outcome and
-    is tested in ``test_financials``.
+    Measured over the census recorded on 2026-09-11: 80 filers publish a
+    non-current borrowings line at their own balance-sheet date and these
+    ladders reach 79 of them, and 58 publish a current one and all 58 are
+    reached. The ladders as they stood before the Verizon fix reach 67 and 48
+    by the same intersection. The one filer not reached is Digital Realty,
+    which publishes 16,014mm of ``SeniorNotes`` and 842mm of ``SecuredDebt`` and
+    no total concept of any kind, so a single-tag ladder cannot add its debt
+    stack up without assuming the pieces do not overlap. It refuses instead,
+    which is the right outcome and is tested in ``test_financials``.
     """
     combined = set(tags.DEBT_COMBINED)
     for leg, reported in (
