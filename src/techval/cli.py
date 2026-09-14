@@ -19,6 +19,12 @@ and ``screen`` over the fitted encoder and the warranted multiple; ``fade`` and
 over M&A. They are merged in flat rather than nested behind a group, so the
 invocation is the one each module documents for itself.
 
+One more renders results rather than a valuation. ``techval dashboard`` runs
+each dashboard section's collector against the committed fixtures, writes what
+they return to ``docs/dashboard/snapshot.json``, and renders
+``docs/dashboard/index.html`` from that file alone. It sits under its own help
+heading.
+
 Seven assumption flags additionally fold those capabilities into the ``value``
 report as optional sections. Every one defaults to off and the base report is
 byte-identical without them, which is asserted in tests/test_cli_integration.py
@@ -34,6 +40,7 @@ from pathlib import Path
 import pandas as pd
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
 
@@ -64,6 +71,14 @@ from .commands_peers import (
     _load_observations,
 )
 from .commands_tmt import _render_sotp, load_plan as _load_sotp_plan
+from .dashboard import (
+    collect_snapshot,
+    dump_snapshot,
+    load_snapshot,
+    write_dashboard,
+)
+from .dashboard.collect import SectionRun
+from .dashboard.sections import SECTION_IDS, section_module
 from .errors import MissingDataError
 from .ml.forecast import compare_fade, fit_fade
 from .ml.mna import fit_propensity
@@ -82,7 +97,7 @@ from .dilution import build_share_count
 from .config import Assumptions
 from .dcf import run_dcf, sensitivity_wacc_exit, sensitivity_wacc_growth
 from .edgar import EdgarClient, HttpCache
-from .errors import TechvalError
+from .errors import ConfigError, TechvalError
 from .ev_bridge import build_ev_bridge
 from .financials import build_financials
 from .football import FootballRow, football_field
@@ -1854,6 +1869,179 @@ def fetch(
         )
     except TechvalError as exc:
         console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        raise typer.Exit(1)
+
+
+# --------------------------------------------------------------------------- #
+# the results dashboard
+# --------------------------------------------------------------------------- #
+
+
+def _section_line(sid: str, status: str, seconds: str, cache: str) -> None:
+    console.print(Text(f"  {sid:<11} {status:<10} {seconds:>9}   {cache}"))
+
+
+def _print_run(run: SectionRun) -> None:
+    _section_line(run.id, run.status, f"{run.seconds:,.2f}s", f"cache {run.cache}")
+
+
+@app.command(rich_help_panel="Results")
+def dashboard(
+    config: Path = _CFG,
+    ml_data: Path = typer.Option(
+        Path("tests/fixtures"),
+        "--ml-data",
+        help=(
+            "Directory the sections read their recorded artifacts from. The default "
+            "is the committed fixtures, which is what makes the page reproducible."
+        ),
+    ),
+    snapshot: Path = typer.Option(
+        Path("docs/dashboard/snapshot.json"),
+        "--snapshot",
+        help="The results snapshot to collect into, or to render from.",
+    ),
+    out: Path = typer.Option(
+        Path("docs/dashboard/index.html"), "--out", "-o", help="Where to write the page."
+    ),
+    collect: bool = typer.Option(
+        None,
+        "--collect/--no-collect",
+        help=(
+            "Run the sections, or render the existing snapshot as it stands. "
+            "Default: collect only when the snapshot file does not exist."
+        ),
+    ),
+    sections: str = typer.Option(
+        None,
+        "--sections",
+        help=(
+            "Comma-separated section ids to collect and merge into the existing "
+            "snapshot. The sample and scoreboard sections that read them are "
+            "collected again too."
+        ),
+    ),
+    no_cache: bool = typer.Option(
+        False,
+        "--no-cache",
+        help="Recompute every section instead of reading the dashboard result cache.",
+    ),
+    collected_at: str = typer.Option(
+        None,
+        "--collected-at",
+        help="The date the snapshot is stamped with (YYYY-MM-DD). Default: today.",
+    ),
+) -> None:
+    """Collect every model's results from the fixtures and render the dashboard page.
+
+    Each section runs the package's own entry points against the recorded
+    artifacts under --ml-data, and each figure it produces is written to the
+    snapshot with the entry point that computed it and the sha256 of every
+    fixture it read. A section that cannot be reproduced from those artifacts
+    is written as a refusal with its reason, and the page shows the refusal
+    rather than a number. The page is then rendered from the snapshot alone, so
+    a render never computes anything and the same snapshot always produces the
+    same page.
+
+    Section results are cached under ml.cache_dir, keyed on the section's code,
+    its fixtures' bytes and the assumptions, and each line below says whether
+    the cache was hit. --no-cache recomputes everything, which is the answer
+    when model code outside a section's own entry point module has changed.
+    """
+    try:
+        names = (
+            [n.strip() for n in sections.split(",") if n.strip()] if sections else None
+        )
+        for name in names or ():
+            section_module(name)  # an unknown id is refused before anything runs
+        exists = snapshot.is_file()
+        if names is not None and collect is False:
+            raise ConfigError(
+                "--sections names sections to collect and --no-collect says collect "
+                "nothing. Drop one of them."
+            )
+        if collected_at is not None and collect is False:
+            raise ConfigError(
+                "--collected-at dates a collection and --no-collect renders an "
+                "existing snapshot with the date it already carries. Drop one of them."
+            )
+        if collect is None:
+            collect = names is not None or not exists
+        if not collect and not exists:
+            raise ConfigError(
+                f"--no-collect renders an existing snapshot and there is none at "
+                f"{snapshot}. Collect one first by leaving the flag off."
+            )
+
+        _rule("Dashboard")
+        if collect:
+            stamp = collected_at or date.today().isoformat()
+            assumptions = Assumptions.load(config)
+            base = None
+            if names is not None:
+                if not exists:
+                    raise ConfigError(
+                        f"--sections merges into an existing snapshot and there is "
+                        f"none at {snapshot}. Collect every section first by leaving "
+                        "--sections off."
+                    )
+                base = load_snapshot(snapshot)
+            console.print(
+                Text(
+                    f"Collecting {', '.join(names) if names else 'every section'} from "
+                    f"{ml_data}, stamped {stamp}, "
+                    + ("cache off." if no_cache else "cache on."),
+                    style="dim",
+                ),
+                soft_wrap=True,
+            )
+            snap = collect_snapshot(
+                ml_data,
+                stamp,
+                sections=names,
+                use_cache=not no_cache,
+                assumptions=assumptions,
+                base=base,
+                on_section=_print_run,
+            )
+            dump_snapshot(snap, snapshot)
+            refused = [s for s in snap.sections.values() if s["status"] == "refused"]
+            _notes(
+                [
+                    f"{s['id']}: {r['what']}: {r['why']}"
+                    for s in refused
+                    for r in s["refusals"]
+                ],
+                heading="Refused",
+            )
+            console.print(
+                Text(
+                    f"\nWrote {snapshot}: commit {snap.techval_commit}, "
+                    f"{len(snap.fixtures)} fixture digests.",
+                    style="dim",
+                ),
+                soft_wrap=True,
+            )
+        else:
+            snap = load_snapshot(snapshot)
+            console.print(
+                Text(
+                    f"Rendering {snapshot} as collected on {snap.collected_at} at "
+                    f"commit {snap.techval_commit}. Nothing was re-collected.",
+                    style="dim",
+                ),
+                soft_wrap=True,
+            )
+            for sid in SECTION_IDS:
+                section = snap.sections.get(sid)
+                _section_line(
+                    sid, section["status"] if section else "absent", "", "not collected"
+                )
+
+        write_dashboard(snap, out)
+        console.print(Text(f"Wrote {out}.", style="dim"), soft_wrap=True)
+    except TechvalError as exc:
+        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{escape(str(exc))}")
         raise typer.Exit(1)
 
 
