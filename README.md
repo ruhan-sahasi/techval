@@ -9,7 +9,7 @@ engine's three terminal values; the third prints in the run below.*
 
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Fourteen commands, 1,701
+the US Treasury daily curve for the risk-free rate. Fifteen commands, 1,701
 tests, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
@@ -32,6 +32,11 @@ Every number traces back to a filing, a quote, or an assumption you wrote down.
 Where a figure cannot be sourced the engine raises an error naming the XBRL
 concept and the tags it tried. It does not interpolate.
 
+The results are also on [one page](docs/dashboard/index.html), collected from
+the committed fixtures by the package's own entry points, every figure carrying
+its provenance. [The results dashboard](#the-results-dashboard) below says how
+it is built and where it differs from the live runs quoted here.
+
 > **Start with [the value signal](#the-value-signal).** The one thing here
 > tested directly against forward returns came back negative, and then came back
 > not significant once the overlapping windows were corrected. It is the result
@@ -43,6 +48,7 @@ concept and the tags it tried. It does not interpolate.
 [The TMT data layer](#the-tmt-data-layer) ·
 [The judgment calls](#the-judgment-calls) ·
 [Beyond a single valuation](#beyond-a-single-valuation) ·
+[The results dashboard](#the-results-dashboard) ·
 [Install](#install) ·
 [Usage](#usage) ·
 [What the data layer handles](#what-the-data-layer-handles-that-a-naive-one-does-not) ·
@@ -1356,6 +1362,35 @@ configuration says not to use.
 
 ---
 
+## The results dashboard
+
+[`docs/dashboard/index.html`](docs/dashboard/index.html) puts the results in
+this document on one self-contained page, and nothing on it is typed in. Each
+section runs the package's own entry points, `fit_propensity`, `test_signal`,
+`fit_fade` and the rest, offline against the committed fixtures. What they
+return is written to `docs/dashboard/snapshot.json`, and the page is rendered
+from that file alone, so a render computes nothing. Every figure carries its
+provenance: the entry point that computed it and the SHA-256 of every fixture
+it read. A figure that cannot be reproduced offline is shown as a refusal with
+its reason, in the place the number would have gone.
+
+To rebuild the snapshot and the page from a clone:
+
+```bash
+techval dashboard --config docs/dashboard/assumptions.yaml --collect
+```
+
+One input is not a fixture. The engine reads the risk-free rate from the
+Treasury curve, and an offline collection cannot reach it, so
+`docs/dashboard/assumptions.yaml` pins the rate the test suite pins, and the
+page labels it as an assumption. That is also why the page's Datadog valuation
+will not match [the run at the top](#sample-output): the page strikes it at
+the last committed close on the pinned rate, and the run above used the quote
+and the Treasury yield of the day it was taken. The same goes for any other
+figure this document quotes from a live run.
+
+---
+
 ## Install
 
 Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
@@ -1372,7 +1407,7 @@ engine refuses to start without `TECHVAL_SEC_EMAIL`.
 
 ## Usage
 
-Fourteen commands in five groups.
+Fifteen commands in six groups.
 
 ```bash
 # Core valuation
@@ -1401,6 +1436,9 @@ uv run techval signal --config assumptions.yaml         # test a score against f
 # M&A
 uv run techval precedents RAMP,PAYO,IRDM,SLAB --config assumptions.yaml
 uv run techval targets --dataset tests/fixtures/mna --config assumptions.yaml
+
+# Results
+uv run techval dashboard --config docs/dashboard/assumptions.yaml --collect   # the results page, from the fixtures
 ```
 
 `--as-of` is accepted by every command that reads a company. It discards every
