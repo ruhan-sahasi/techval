@@ -37,11 +37,26 @@ streams carry one risk. That is right when the debt schedule is FIXED IN
 DOLLARS, a term loan amortising on a stated schedule, because then next year's
 interest is known today whatever happens to the enterprise.
 
-Discounting the shield at the UNLEVERED COST OF EQUITY is Harris-Pringle, and
-Miles-Ezzell for the first year only. It says the shield is as risky as the
-firm. That is right when debt is REBALANCED to a constant percentage of firm
-value, because then the debt balance, and with it the interest and the shield,
-moves with the enterprise and inherits its risk.
+Discounting the shield at the UNLEVERED COST OF EQUITY is Harris-Pringle. It
+says the shield is as risky as the firm. That is right when debt is REBALANCED
+to a constant percentage of firm value continuously, because then the debt
+balance, and with it the interest and the shield, moves with the enterprise and
+inherits its risk.
+
+Miles-Ezzell is the same policy with the rebalancing done once a year, and it is
+neither of the two above. The balance is reset at each year end, so every year's
+interest, and the shield on it, is known one year before it is paid. Every
+year's shield is therefore discounted at the cost of debt for its final year and
+at the unlevered cost of equity for each year before that:
+
+    PV(TS_t) = TS_t / ((1 + Ku)^(t-1) * (1 + Kd))
+
+Set beside Harris-Pringle's ``TS_t / (1 + Ku)^t``, that is the Harris-Pringle
+value of each year's shield, the first year's included, multiplied by
+``(1 + Ku) / (1 + Kd)``, and so, on year-end timing, the whole Harris-Pringle
+shield, terminal included, scaled by the same factor. This module computes
+Modigliani-Miller and Harris-Pringle. It does not compute Miles-Ezzell, and
+``apv.shield_discount_rate`` does not offer it.
 
 A constant-WACC model already assumes constant leverage. That is what a single
 discount rate applied to every year means: the weights never move, so the debt is
@@ -599,9 +614,9 @@ def _conventions(
     else:
         out.append(
             f"The shield is discounted at the {ku:.2%} unlevered cost of equity, the "
-            "Harris-Pringle treatment, and Miles-Ezzell for the first year. It says "
-            "the shield is as risky as the firm, which is right when debt is "
-            "rebalanced to a constant percentage of firm value. That is the policy a "
+            "Harris-Pringle treatment. It says the shield is as risky as the firm, "
+            "which is right when debt is rebalanced to a constant percentage of firm "
+            "value. That is the policy a "
             "constant-WACC model already assumes, so this is the setting under which "
             "the two valuations are supposed to agree."
         )
