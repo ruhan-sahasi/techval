@@ -159,7 +159,7 @@ def test_no_asset_contains_an_em_dash():
     offenders = [
         str(p.relative_to(ROOT))
         for p in _asset_files()
-        if "—" in p.read_text(encoding="utf-8")
+        if "\u2014" in p.read_text(encoding="utf-8")
     ]
     assert not offenders, f"em-dash in {offenders}"
 
@@ -324,3 +324,110 @@ def test_app_reads_the_snapshot_block_and_draws_every_state():
         assert re.search(rf'status [!=]== "{status}"', text), status
     # A snapshot the page cannot read is a refusal, not a blank page.
     assert "readSnapshot" in text and "read.error" in text
+
+
+# Gallery -------------------------------------------------------------------------
+
+
+GALLERY = ROOT / "src" / "techval" / "dashboard" / "gallery.py"
+
+
+@pytest.fixture(scope="module")
+def gallery():
+    # Loaded by path: the gallery must work without the rest of the dashboard package.
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("techval_dashboard_gallery", GALLERY)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture(scope="module")
+def gallery_page(gallery) -> str:
+    return gallery.render_gallery()
+
+
+def _snapshot_block(page: str):
+    import json
+
+    match = re.search(r'<script type="application/json" id="tv-snapshot">(.*?)</script>', page, flags=re.S)
+    assert match, "the gallery has no snapshot block"
+    return json.loads(match.group(1))
+
+
+def test_gallery_imports_nothing_from_the_package():
+    source = GALLERY.read_text(encoding="utf-8")
+    assert not re.search(r"^\s*from\s+\.|^\s*(from|import)\s+techval", source, flags=re.M)
+
+
+def test_gallery_follows_the_page_order(gallery):
+    assert tuple(gallery.PAGE_ORDER) == SECTION_IDS
+
+
+def test_gallery_inlines_every_asset_in_contract_order(gallery, gallery_page):
+    names = gallery.asset_names()
+    assert names == ["tokens.css", "layout.css", "kit.js", "app.js", *(f"sections/{s}.js" for s in SECTION_IDS)]
+    style = re.search(r"<style>\n(.*?)</style>", gallery_page, flags=re.S).group(1)
+    tokens = (ASSETS / "tokens.css").read_text(encoding="utf-8").rstrip("\n")
+    layout = (ASSETS / "layout.css").read_text(encoding="utf-8").rstrip("\n")
+    assert style == tokens + "\n" + layout + "\n"
+    inlined = re.findall(r'<script data-asset="([^"]+)">\n(.*?)</script>', gallery_page, flags=re.S)
+    assert [name for name, _ in inlined] == names[2:]
+    for name, text in inlined:
+        assert text == (ASSETS / name).read_text(encoding="utf-8").rstrip("\n") + "\n", name
+    assert gallery_page.index('id="tv-snapshot"') < gallery_page.index('data-asset="kit.js"')
+
+
+def test_gallery_is_deterministic_and_self_contained(gallery, gallery_page):
+    assert gallery.render_gallery() == gallery_page
+    # Nothing is loaded by src; the only links are the Plex stylesheet and its font host.
+    assert not re.search(r"\ssrc=", gallery_page)
+    external = re.findall(r'href="(https?:[^"]+)"', gallery_page)
+    assert external and all(
+        url.startswith(("https://fonts.googleapis.com", "https://fonts.gstatic.com")) for url in external
+    )
+    assert "IBM+Plex+Sans:wght@400;500;600" in gallery_page
+    assert "IBM+Plex+Mono:wght@400;500" in gallery_page
+    assert "\u2014" not in GALLERY.read_text(encoding="utf-8")
+
+
+def test_gallery_snapshot_escapes_closing_tags(gallery):
+    assert gallery._embed_json({"why": "a </script> and <!-- in a filing"}) == (
+        '{"why":"a <\\/script> and \\u003c!-- in a filing"}'
+    )
+
+
+def test_gallery_exercises_every_chart_every_chip_and_every_state(gallery_page, kit_source):
+    snapshot = _snapshot_block(gallery_page)
+    assert snapshot["schema"] == 1
+    sections = list(snapshot["sections"].values())
+    kinds = {f["kind"] for s in sections for f in s["figures"].values()}
+    assert kinds == _object_keys(kit_source, "TV.charts")
+
+    statuses = {s["headline"]["verdict_status"] for s in sections if s["headline"]}
+    for s in sections:
+        for f in s["figures"].values():
+            if f["kind"] == "tiles":
+                statuses |= {t["status"] for t in f["data"]["tiles"] if t.get("status")}
+    assert statuses == _object_keys(kit_source, "var STATUS")
+
+    assert {s["status"] for s in sections} == {"ok", "refused", "not_built"}
+    # A refusal inside an ok section that names one of its figures.
+    assert any(r["what"] in s["figures"] for s in sections if s["status"] == "ok" for r in s["refusals"])
+    # The gallery never passes itself off as results.
+    assert snapshot["fixtures"] == {}
+    assert all(
+        p["entry_point"] == "techval.dashboard.gallery.render_gallery"
+        for s in sections
+        for p in s["provenance"]
+    )
+    assert 'id="tv-notice"' in gallery_page and "Synthetic data" in gallery_page
+
+
+def test_gallery_line_charts_stay_within_four_series(gallery_page):
+    snapshot = _snapshot_block(gallery_page)
+    for s in snapshot["sections"].values():
+        for fid, f in s["figures"].items():
+            if f["kind"] == "line":
+                assert len(f["data"]["series"]) <= 4, fid
