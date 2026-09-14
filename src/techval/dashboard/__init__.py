@@ -11,6 +11,7 @@ that cannot be reproduced offline is shown as a refusal with its reason.
 from __future__ import annotations
 
 from .collect import CollectContext, SectionRun, collect_snapshot
+from .render import render_dashboard, write_dashboard
 from .sections import COLLECT_ORDER, SECTION_IDS, section_module
 from .snapshot import (
     SCHEMA_VERSION,
@@ -32,6 +33,8 @@ __all__ = [
     "dump_snapshot",
     "fixture_digests",
     "load_snapshot",
+    "render_dashboard",
     "section_module",
     "to_jsonable",
+    "write_dashboard",
 ]
