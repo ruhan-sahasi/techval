@@ -47,6 +47,7 @@ from techval.ml.forecast import (
     DELISTED_CIKS,
     DELISTED_UNIVERSE,
     MATRIX_COLUMNS,
+    PERSISTENCE_BASELINE,
     FadeObservation,
     FadePanel,
     _growth,
@@ -423,6 +424,26 @@ def test_the_one_year_fit_does_not_beat_persistence_outside_the_noise(model):
     assert fit.baselines["persistence"] == pytest.approx(0.1510, abs=0.004)
     assert abs(fit.evaluation.lift) < fit.evaluation.fold_sd
     assert "inside the fold-to-fold noise" in fit.evaluation.verdict()
+
+
+def test_the_verdict_names_persistence_as_the_baseline_it_was_scored_against(model):
+    """The comparison is only readable if the sentence says what it compares.
+
+    ``evaluate_regression`` cannot know what an array handed to it as
+    ``baseline_pred`` means, so it calls it "supplied baseline". Left alone,
+    that is the phrase the model card and the dashboard print: 0.1510 for
+    supplied baseline, a number with no referent. The baseline here is this
+    year's growth carried forward, and the verdict has to say so at every
+    horizon.
+    """
+    for horizon, fit in model.fits.items():
+        verdict = fit.evaluation.verdict()
+        assert "supplied baseline" not in verdict, f"h={horizon}: {verdict}"
+        assert f"for {PERSISTENCE_BASELINE}" in verdict, f"h={horizon}: {verdict}"
+        assert fit.evaluation.baseline_score == pytest.approx(
+            fit.baselines["persistence"], abs=1e-12
+        )
+    assert f"for {PERSISTENCE_BASELINE}" in model.card.summary()
 
 
 def test_the_two_and_three_year_fits_beat_persistence_outside_the_noise(model):
