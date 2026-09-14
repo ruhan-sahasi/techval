@@ -664,7 +664,11 @@ class SignalResult:
                     "per rebalance, on a spread that is negative before any cost "
                     "at all, so there is nothing for a break-even cost to erase."
                 )
-        parts.append(self.evaluation.verdict())
+        # ``EvalResult.verdict`` opens on the metric's name in lower case, which
+        # is right for a line of its own and wrong after a full stop, so the
+        # first letter is raised here rather than in the protocol.
+        comparison = self.evaluation.verdict()
+        parts.append(comparison[:1].upper() + comparison[1:])
         return " ".join(parts)
 
     def rows(self) -> list[tuple[str, Any]]:
