@@ -432,6 +432,11 @@ details > summary:hover {
   width: 100%;
 }
 
+/* A grid with more columns than fit keeps its 24px cells and scrolls on its own. */
+.tv-chart--heat {
+  overflow-x: auto;
+}
+
 .tv-svg {
   display: block;
   overflow: visible;
@@ -452,10 +457,19 @@ details > summary:hover {
   font-size: var(--fs-small);
 }
 
+/* Value labels sit above reference rules; a surface halo keeps a rule from striking through them. */
 .tv-svg .tv-value {
   fill: var(--ink-2);
   font-size: var(--fs-micro);
   font-weight: var(--fw-medium);
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.tv-values {
+  pointer-events: none;
 }
 
 .tv-svg .tv-endlabel {
@@ -849,6 +863,18 @@ details > summary:hover {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
   gap: var(--space-4) var(--space-5);
+}
+
+.tv-tileset {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.tv-tileset__title {
+  color: var(--ink-2);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-medium);
 }
 
 .tv-tile {
