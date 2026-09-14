@@ -275,6 +275,13 @@ _RIDGE_ALPHAS = tuple(float(a) for a in np.logspace(-2.0, 4.0, 25))
 _INTERVAL_LOWER_PCT = 10.0
 _INTERVAL_UPPER_PCT = 90.0
 
+# What ``HorizonFit.evaluation`` is scored against, in the words its verdict
+# prints. ``evaluate_regression`` has no way to know what a supplied baseline
+# array means and calls it "supplied baseline", which is the right default and
+# the wrong thing for a reader to see: the model card and the dashboard quote
+# the verdict verbatim, and a lift against an unnamed baseline says nothing.
+PERSISTENCE_BASELINE = "persistence (this year's growth carried forward)"
+
 
 
 # --------------------------------------------------------------------------- #
@@ -2069,6 +2076,7 @@ def _fit_horizon(
     evaluation = evaluate_regression(
         labels, predictions, persistence, dates, folds, metric="mae"
     )
+    evaluation.baseline_name = PERSISTENCE_BASELINE
     scored = np.isfinite(predictions)
     absolute = lambda values: float(np.mean(np.abs(labels[scored] - values[scored])))
     baselines = {
