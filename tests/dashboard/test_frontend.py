@@ -10,12 +10,15 @@ The drawing itself is checked by rendering the gallery and looking at it.
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSETS = ROOT / "src" / "techval" / "dashboard" / "assets"
+KIT = ASSETS / "kit.js"
 
 SECTION_IDS = (
     "overview",
@@ -168,3 +171,117 @@ def test_no_dashed_strokes_anywhere_in_the_assets():
         assert "strokeDasharray" not in text, path.name
         assert not re.search(r"border[\w-]*\s*:[^;]*\bdashed\b", text), path.name
         assert not re.search(r"outline[\w-]*\s*:[^;]*\bdashed\b", text), path.name
+
+
+def _scripts() -> list[Path]:
+    return [p for p in _asset_files() if p.suffix == ".js"]
+
+
+def test_no_script_builds_markup_from_strings():
+    # Series names, tickers and refusal reasons are data. They enter the DOM as
+    # text nodes, so no script may hand a string to the HTML parser.
+    banned = re.compile(r"\.(innerHTML|outerHTML)\s*\+?=|insertAdjacentHTML|document\.write|createContextualFragment")
+    offenders = [
+        f"{p.relative_to(ROOT)}:{n}"
+        for p in _scripts()
+        for n, line in enumerate(p.read_text(encoding="utf-8").splitlines(), 1)
+        if banned.search(line)
+    ]
+    assert not offenders, f"markup built from a string at {offenders}"
+
+
+def test_no_asset_would_close_its_inlined_element_early():
+    # The page inlines every asset; a literal closing tag inside one would end
+    # its <script> or <style> element at that point.
+    for path in _asset_files():
+        text = path.read_text(encoding="utf-8").lower()
+        assert "</script" not in text, path.name
+        assert "</style" not in text, path.name
+        assert "<!--" not in text, path.name
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_every_script_parses():
+    for path in _scripts():
+        result = subprocess.run(
+            ["node", "--check", str(path)], capture_output=True, text=True, timeout=60
+        )
+        assert result.returncode == 0, f"{path.name}: {result.stderr}"
+
+
+# Chart kit -----------------------------------------------------------------------
+
+
+def _object_keys(source: str, name: str) -> set[str]:
+    """The keys of the object literal assigned to ``name`` in ``source``."""
+    start = source.index(f"{name} = {{")
+    depth = 0
+    for i in range(source.index("{", start), len(source)):
+        if source[i] == "{":
+            depth += 1
+        elif source[i] == "}":
+            depth -= 1
+            if depth == 0:
+                body = source[source.index("{", start) + 1 : i]
+                break
+    # Top-level keys only: blank out nested braces before reading them.
+    flat = body
+    while re.search(r"\{[^{}]*\}", flat):
+        flat = re.sub(r"\{[^{}]*\}", "", flat)
+    return set(re.findall(r"(?:^|,)\s*(\w+)\s*:", flat, flags=re.M))
+
+
+@pytest.fixture(scope="module")
+def kit_source() -> str:
+    return KIT.read_text(encoding="utf-8")
+
+
+def test_kit_exposes_the_contract_api(kit_source):
+    for name in (
+        "el", "svg", "fmt", "token", "scale", "chip", "figure",
+        "legend", "tooltip", "tableView", "charts", "sections",
+    ):
+        assert re.search(rf"\bTV\.{name}\s*=", kit_source), f"TV.{name} is not defined"
+    assert {"num", "pct", "signed", "compact", "mm"} <= _object_keys(kit_source, "TV.fmt")
+    assert {"linear", "band"} <= _object_keys(kit_source, "TV.scale")
+    assert {"register", "render"} <= _object_keys(kit_source, "TV.sections")
+    assert {"attach"} <= _object_keys(kit_source, "var tooltip")
+
+
+def test_kit_has_every_chart_the_contract_names(kit_source):
+    assert _object_keys(kit_source, "TV.charts") == {
+        "hbar", "column", "dot", "line", "heat", "hist", "range", "waterfall", "tiles",
+    }
+
+
+def test_chips_cover_every_verdict_status(kit_source):
+    assert _object_keys(kit_source, "var STATUS") == {
+        "beats", "inside_noise", "ties", "loses", "not_significant", "refused",
+    }
+
+
+def test_every_chart_builds_a_table_view(kit_source):
+    for chart in ("hbar", "column", "dot", "line", "heat", "hist", "range", "waterfall"):
+        match = re.search(rf"\n  function {chart}\(body, spec\) \{{(.*?)\n  \}}\n", kit_source, flags=re.S)
+        assert match, f"chart {chart} not found"
+        assert "tableFor(body" in match.group(1), f"{chart} has no table view"
+
+
+def test_kit_marks_follow_the_mark_specs(kit_source):
+    assert re.search(r"var BAR_MAX = 24;", kit_source)
+    assert re.search(r"var RADIUS = 4;", kit_source)
+    assert re.search(r"var GAP = 2;", kit_source)
+    assert re.search(r"var HIT_MIN = 24;", kit_source)
+    # The kit paints through tokens; a hex colour in it would not follow the theme.
+    assert not re.search(r"#[0-9a-fA-F]{3,8}\b", re.sub(r"/\*.*?\*/", "", kit_source, flags=re.S))
+    layout = _strip_comments((ASSETS / "layout.css").read_text(encoding="utf-8"))
+    line = next(body for prelude, body in _blocks(layout) if prelude == ".tv-line")
+    assert "stroke-width: 2" in line and "stroke-linejoin: round" in line and "stroke-linecap: round" in line
+    dot = next(body for prelude, body in _blocks(layout) if prelude == ".tv-dot")
+    assert "stroke: var(--surface)" in dot and "stroke-width: 2" in dot
+
+
+def test_reduced_motion_and_focus_are_respected():
+    layout = _strip_comments((ASSETS / "layout.css").read_text(encoding="utf-8"))
+    assert "@media (prefers-reduced-motion: no-preference)" in layout
+    assert re.search(r":focus-visible\s*\{[^}]*outline:\s*2px solid var\(--focus\)", layout)
