@@ -192,8 +192,8 @@ evidence of a harness grading its own homework.
 
 Cheapness on trailing EV/Revenue, 100 technology, media and telecommunications
 companies, 35 quarterly cross-sections from December 2016 to June 2025, twelve
-month forward returns, 2,604 scored company-dates. `ml.signals.test_signal` on
-the recorded panel prints:
+month forward returns, 2,604 scored company-dates on 98 of the 100 names.
+`ml.signals.test_signal` on the recorded panel prints:
 
 ```
 cheapness (negative trailing EV/Revenue): mean IC -0.0984 over 35 dates (2,604
@@ -272,14 +272,21 @@ machinery is built, tested and exercised, and on the real panel it finds nothing
 to do, because the data sources delete a company the day it stops trading. Five
 of the 110 names in the seed universe, EA, FI, FYBR, IPG and JNPR, are missing
 from the SEC's own `company_tickers.json` and return no rows from the price
-endpoint, and every one of the five left to an acquisition. Juniper's CIK still
-resolves through the committed former-tickers index, which is why the taxonomy
-section further down counts only four unresolved names, but a CIK is not a
-price history. None of the five is in the panel at all, so the harness cannot
-terminate them at a deal. The direction matters for reading the headline:
-the missing names are takeouts, takeouts earn a premium and skew cheap, so their
-absence flatters cheapness and the true coefficient is if anything more negative
-than -0.098.
+endpoint. That is what the five share, and it is not a shared exit: Fiserv
+still trades and the ticker file carries it under FISV, so at most four of them
+left to an acquisition. Juniper's CIK still resolves through the committed
+former-tickers index, which is why a live run of the taxonomy section further
+down counts only four unresolved names, but a CIK is not a price history. None
+of the five is in the panel at all, so the harness cannot terminate them at a
+deal.
+
+The direction matters for reading the headline, and it rests on an assumption.
+The score is cheapness and the coefficient is its rank correlation with the
+forward return. A cheap company taken out at a premium is a high score paired
+with a high return, so putting the missing takeouts back would raise the
+coefficient. If they skew cheap, the true figure is if anything *less* negative
+than -0.098, not more. The skew is assumed here rather than measured, so this is
+a direction and not a size.
 
 One correction to the received wisdom, and it is measured. Overlapping
 windows alone do not inflate the t-statistic. Overlapping windows plus a
@@ -363,7 +370,10 @@ the full model scores 0.4241 with a fold standard deviation of 0.0850; dropping
 the text tower costs 0.0643 against a dispersion of 0.0636, and dropping the
 fundamentals tower costs 0.0387 against 0.0690. So the text tower is the more
 important of the two, its edge over the noise is a hair, and the fundamentals
-tower is not shown to help but is not shown to hurt either. Part of its
+tower is not shown to help but is not shown to hurt either. Each dispersion is
+the ablated model's own, which carries fold-to-fold variation the full model
+shares, so a paired damage fold by fold would be the stronger test; the
+ablation does not return per-fold scores yet. Part of the fundamentals tower's
 weakness is the panel. It is built with no price feed at all, so 14 of the 50
 features are missing on every row, market capitalisation among them. The
 fundamentals tower is being judged on a degraded input and the model card says
@@ -438,8 +448,10 @@ those observations is understated by its whole split ratio.
 
 ### The revenue growth fade curve
 
-Fitted on 224 TMT filers, 2,798 fiscal years ending between 2007 and 2026, with
-an embargo of 365 days per year of horizon:
+Fitted on 223 TMT filers, 2,798 fiscal years ending between 2007 and 2026 and
+filed between 2009 and 2026, with an embargo of 365 days per year of horizon.
+The panel's own count below says 224 because it carries Atmel, whose revenue
+ladder builds no fiscal year at all, with the reason attached:
 
 ```
 Next year's growth = +0.0693 + 0.4719 x this year's, so growth fades 53% of the
@@ -493,9 +505,10 @@ handover is visible instead of blended away.
 
 The sample construction is worth as much as the model. Delisted TMT filers are
 in the panel, kept until the day they stop filing and keyed on CIK, which
-survives a delisting. They are 1,224 of the 2,798 observations, 44 percent of
-it. Their last observed year grows 9.8 percent against 15.8 percent for the
-filers still quoted, so dropping them lifts mean forward growth by 0.78 points
+survives a delisting. 118 of them contribute rows, 1,224 of the 2,798
+observations, 44 percent of it. Their last observed year grows 9.8 percent
+against 15.8 percent for the filers still quoted, so dropping them lifts mean
+forward growth by 0.78 points
 at one year and 1.52 points at three. The bias compounds with the horizon,
 exactly the wrong direction for a fade curve.
 
@@ -535,6 +548,13 @@ Dropped inside the gap               102
 Dropped after announcement           394
 Dropped with an unresolved window    1802
 ```
+
+Those counts are the labels before they meet the feature panel, and the
+report's distinct deals are distinct target companies. 2,081 of the
+observations have no feature row, so the design matrix holds 7,319 rows, 284
+positives and 86 targets. The rows the walk-forward folds actually score, which
+are what the AUC rests on, number 5,881, with 224 positives and **67 targets**.
+67 is the number to hold the result against.
 
 The model ties the size sort. The lift is a fifth of the fold-to-fold
 dispersion, and there is a harder reason not to believe it than that. Fixing two
@@ -683,8 +703,13 @@ confidence is not a probability and does not come out of a fitted model: it is
 the rung of the ladder the classification landed on, which is why the source
 travels with it and the number is only a sort key.
 
-103 of the 110 rows end in `no business text was read`, and that is the default.
-`tmt_universe` does not fetch a hundred 10-Ks for a screen that mostly does not
+The output above is a live run. Offline, over the 105 submissions payloads
+committed as the fixture, the same call classifies 105 of the 110: Juniper's CIK
+resolves through the former-ticker index, but no payload for it was ever
+committed, so it stays unresolved with the other four.
+
+103 of the 110 live rows end in `no business text was read` (102 offline), and
+that is the default. `tmt_universe` does not fetch a hundred 10-Ks for a screen that mostly does not
 need them, so most names in a default run are classified on the code plus a
 curated prior and say so on the record. Pass a `business_text` reader and the
 keyword evidence enters, the two sources are reconciled, and the string names
@@ -702,11 +727,14 @@ Roblox's CIK carries submissions from 2005 against a 2021 IPO, so admission keys
 on the first periodic report.
 
 The four unresolved names are left in with the reason recorded. A candidate pool
-that quietly loses names is a candidate pool nobody can check. All four left the
-tape to an acquisition, the same survivorship hole the signal harness flags,
-seen from the other end. Juniper used to be a fifth. It resolves now because
-`former_tickers.FORMER_TICKERS` carries 100 TMT registrants that left between
-2019 and 2026, Juniper among them at CIK 1043604 through 2025-05-09, and the
+that quietly loses names is a candidate pool nobody can check. What they share
+is absence from the SEC's ticker file, not a common exit. Fiserv still trades,
+under the FISV symbol the file carries, and the other three are gone from the
+file and the price endpoint alike, the same survivorship hole the signal
+harness flags, seen from the other end. Juniper used to be a fifth, and offline
+it still is. A live run resolves it because `former_tickers.FORMER_TICKERS`
+carries 100 former symbols for 97 TMT registrants that have left, each dated by
+the filings that carried it, Juniper at CIK 1043604 through 2025-05-09, and the
 resolver falls back to that index when the live ticker file has forgotten a
 symbol.
 
@@ -1729,7 +1757,7 @@ multiple, but it should not be printed in a table without being read.
 **A universe of today's survivors runs under every one of them.** The SEC's
 `company_tickers.json` is a snapshot of currently registered filers and the
 price sources delete a company the day it stops trading, so five seed names are
-missing on every date, including the dates on which they were live and cheap.
+missing on every date, including the dates on which they were live.
 Two separate losses sit under the peer models and they are worth keeping apart.
 
 The one you can measure: of the peers a proxy names and the resolver does
@@ -1777,9 +1805,9 @@ which measurement later contradicted: the endpoint serves ten years for every
 symbol tested, so the early panel dates could have carried prices and, as
 committed, do not. Re-recording the panel with the feed is the obvious next
 experiment. In the meantime 14 of the 50 features are missing on every row: market
-capitalisation and enterprise value, the five capital ratios struck against
-them, momentum at three, six and twelve months, relative momentum, the 52-week
-range position, beta and realised volatility. The size gate and the
+capitalisation and enterprise value, the five capital ratios that cannot be
+struck without a price, momentum at three, six and twelve months, relative
+momentum, the 52-week range position, beta and realised volatility. The size gate and the
 size-and-growth baseline fall back to log total assets, a different quantity.
 This is the single largest limitation on the peer encoder and it is very likely
 part of why its fundamentals tower is the weaker of the two in the ablation,

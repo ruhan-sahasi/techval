@@ -443,10 +443,13 @@ single-tag ladder cannot add its stack up without assuming the pieces do not
 overlap. T-Mobile tags its long-term debt under a dimension the `companyfacts`
 API does not return (§2.6). Both stop rather than print a fragment.
 
-What that was worth across the census: 81 filers carry a material debt balance,
-the old ladders reached 72 of them and these reach 80. The one they miss is
-Digital Realty, and it refuses. Microsoft's 66,594mm of finance leases, reported
-only under the combined concept, had been reading as zero.
+What that is worth across the committed census: 81 filers report a material
+long-term debt line or a debt total, and the ladders reach 80 of them. Counting
+any material debt line, current borrowings included, they reach 82 of 83. The
+one they miss is Digital Realty, and it refuses. Microsoft's 66,594mm of finance
+leases, reported only under the combined concept, had been reading as zero. No
+count for the ladders before the fix is quoted, because the census was recorded
+against today's ladders and no committed fixture holds the old ones.
 
 `tests/test_tags.py` is the guard against it recurring. It holds a committed
 census of which concepts the seed universe still reports, recorded per concept
@@ -1652,11 +1655,18 @@ instead, on the view that the shield is as risky as the firm itself. That is
 right when debt is **rebalanced** to a constant percentage of firm value,
 because then the debt balance, and with it the interest and the shield, moves
 with the enterprise and inherits its risk.
-**Miles-Ezzell** is the same view with one year of grace: next year's debt is
-already known, so the first year's shield is discounted at the cost of debt and
-everything after it at `Ku`. The difference between Miles-Ezzell and
-Harris-Pringle is one year of one rate on one stream, which is second order
-beside the choice of camp.
+**Miles-Ezzell** is the same view with the rebalancing done once a year. The
+debt behind each year's shield is set at the start of that year, so every
+year's shield is known one year ahead: it carries the cost of debt for its
+final year and `Ku` for every year before that,
+`TS_t / ((1 + Ku)^(t-1) * (1 + Kd))`. Set against Harris-Pringle's
+`TS_t / (1 + Ku)^t`, that is the same value scaled by `(1 + Ku) / (1 + Kd)`
+in every year alike. At Zscaler's rates below the factor is 1.035, which is
+second order beside the choice of camp.
+
+The engine computes the first two and not the third. The shield is discounted
+at `Kd` in every year, or at `Ku` in every year, and a Miles-Ezzell reading
+means scaling the Harris-Pringle figure by hand.
 
 **A constant-WACC model already assumes constant leverage.** That is what a
 single discount rate applied to every year means: the weights never move, so the
@@ -1957,6 +1967,12 @@ pre-2023 symbol. Worse than absence, symbols get reused: PARA now resolves to an
 unrelated small cap because Paramount files under a different one. Every record
 therefore carries its CIK and the symbol is only a label. This is §11.3
 appearing one layer up, for the same reason.
+
+The count depends on where it is run. Over the 105 submissions payloads
+committed as the fixture, `tmt_universe` classifies 105 of the 110 and all five
+come back unresolved. A live run classifies 106, because Juniper's CIK resolves
+through the former-ticker index and its payload can then be fetched; no payload
+for it is committed, so offline it stays with the other four.
 
 ### 12.2 Segment economics, and the double-counting trap
 
@@ -2633,7 +2649,7 @@ still loses is a baseline that lost properly.
 The baselines are also chosen to be the ones a reader would actually run instead,
 not straw men. The warranted multiple is scored against the existing OLS of §7.1
 refit on each date's sub-vertical peers, which is the incumbent in this very
-repository. The peer encoder is scored against five alternatives including raw
+repository. The peer encoder is scored against six alternatives including raw
 term-frequency cosine, which is the thing you get for free without any learning at
 all. The fade curve is scored against persistence, which is free and, at one year,
 unbeatable.
@@ -2727,9 +2743,10 @@ imputed-cell count is carried on the model card.
 
 ### 14.4 Survivorship, and which way it cuts for each model
 
-**Survivorship is the bias that flatters every model in this package**, and it
-arrives by a different route in each one. The universe is built from companies
-that exist today, because the sources delete a company the day it stops trading.
+**Survivorship is the bias under every model in this package**, and it arrives
+by a different route in each one and does not always cut the same way. The
+universe is built from companies that exist today, because the sources delete a
+company the day it stops trading.
 There is no point-in-time ticker file here and no delisting-complete vendor file,
 so this is a stated limitation rather than a solved problem. What is done instead
 is to measure the size and to name the direction, per model:
@@ -2737,10 +2754,10 @@ is to measure the size and to name the direction, per model:
 | Model | How the survivor bias enters | Direction |
 |---|---|---|
 | Peer encoder | a deregistered company cannot be resolved from the ticker file, so it never becomes a named peer at all; 18.4% of disclosed spans are lost, dominated by the M&A wave | lands entirely in recall, so every ranker is capped at the same ceiling and the *comparison* stays fair while the *level* is overstated |
-| Warranted multiple | five seed names have no price history at any date, including the dates on which they were live and cheap | biased by an amount nobody can estimate |
-| Revenue fade | 119 delisted filers are deliberately kept, 44% of the panel; their last observed year grows 9.8% against 15.8% for survivors | dropping them would lift mean forward growth by 0.78 points at one year, 1.34 at two and 1.52 at three, and the bias compounds with horizon, which is the worst possible direction for a fade curve |
+| Warranted multiple | five seed names have no price history at any date, including the dates on which they were live | biased by an amount nobody can estimate |
+| Revenue fade | 118 delisted filers are deliberately kept, 1,224 observations and 44% of the panel; their last observed year grows 9.8% against 15.8% for survivors | dropping them would lift mean forward growth by 0.78 points at one year, 1.34 at two and 1.52 at three, and the bias compounds with horizon, which is the worst possible direction for a fade curve |
 | M&A propensity | 77 of 107 deals are on companies that no longer file | not a bias but the destruction of the experiment: a survivor universe has almost no positive class left |
-| Value signal | not one name in the panel was acquired or delisted over the whole period | the missing names are takeouts, takeouts earn a premium and skew cheap, so their absence flatters cheapness and the true coefficient is if anything more negative than reported |
+| Value signal | not one name in the panel was acquired or delisted over the whole period | a cheap takeout at a premium is a high score with a high return, so if the missing names skew cheap, their absence makes cheapness look worse than it was and the true coefficient is if anything less negative than reported; the skew is assumed, not measured |
 
 **The propensity screen is where survivorship stops being a bias and becomes a
 category error.** A company that is acquired stops filing, is struck from the
@@ -3029,7 +3046,12 @@ Removing the text tower costs 0.0643 against a fold standard deviation of
 0.0636, so **the text tower clears its own noise bar, by 0.0007**, and a hair
 is a hair. Removing the fundamentals tower costs 0.0387 against 0.0690, inside
 the noise, so **the fundamentals tower is not shown to help**: its point
-estimate is positive and nothing more can be claimed for it. The fold cut
+estimate is positive and nothing more can be claimed for it. The bar itself is
+the weaker of the two available: each damage is set against the fold standard
+deviation of the ablated configuration's own score, which includes the
+fold-to-fold variation the full model shares, and the damage taken fold by fold
+on paired scores would be the stronger test. `evaluation.ablation` does not
+return per-fold scores, so that test is not run here. The fold cut
 matters enough to state: this table cuts folds on disclosed pairs, the
 ablation's default, and on the headline evaluation's own folds the damages come
 out 0.0694 and 0.0274 instead, with the same reading on both.
@@ -3273,8 +3295,11 @@ measured. This measures it: given what a technology company looks like on the da
 its 10-K is filed, how fast does its revenue growth actually decay?
 
 Mean absolute error on forward revenue growth, walk-forward by date with an
-embargo of 365 days per year of horizon, 224 TMT filers, 2009 to 2026, and the
-verdict is a tie at the horizon most people care about:
+embargo of 365 days per year of horizon, 223 TMT filers, observations filed
+2009 to 2026 on fiscal years ending 29 September 2007 to 31 July 2026, and the
+verdict is a tie at the horizon most people care about. The panel carries a
+224th filer, Atmel, with the reason attached, because its revenue ladder builds
+no fiscal year at all:
 
 | Horizon | Model | Persistence | Training mean | Sub-vertical mean | Fold sd | Verdict |
 |---|---:|---:|---:|---:|---:|---|
@@ -3401,7 +3426,7 @@ concept because the test is a ratio, and a ratio conveys nothing about a concept
 that passes through zero: on EBIT an order of magnitude is an ordinary year.
 
 The panel's depth overturned an expectation of its own: it was supposed to
-reach 15 to 18 years for mature names. Measured on 224 filers, the deepest is
+reach 15 to 18 years for mature names. Measured on 223 filers, the deepest is
 19 fiscal years, **the median is 12**, and only 34 reach 19. The consequence shows up in every fold table:
 the first walk-forward fold trains on **64 observations** and is asked about 521.
 
@@ -3413,8 +3438,13 @@ The headline is a walk-forward AUC of **0.5685** against **0.5474** for sorting
 the universe smallest first: a lift of **+0.0212** with a fold-to-fold standard
 deviation of **0.0910**, so `beat_baseline` is true and the honest reading is that
 **the model ties the size sort**. Sample: 493 registrants, 9,400 labelled
-observations, 336 positives over 97 distinct deals, base rate 3.57%, five folds, a
-462-day embargo.
+observations, 336 positives over 97 distinct targets, base rate 3.57%, five folds, a
+462-day embargo. Those are the labels before they meet the feature panel, and
+the label report's "distinct deals" counts target companies. 2,081 labelled
+observations have no feature row and are dropped rather than imputed, so the
+design matrix holds 7,319 rows, 284 positives and 86 targets; the rows the
+walk-forward folds score, and so the rows the AUC rests on, are 5,881, with 224
+positives and 67 targets.
 
 The part that is usable is the top of the list, which is the part a coverage
 banker reads. Precision and recall at twenty, both per-date means on the same
@@ -3530,9 +3560,9 @@ and the same error rate presumably runs through the other 100. It is shipped as 
 code produced it, because **a label set corrected by the author's opinion of which
 deals are real is the author's opinion wearing a label set's clothes.**
 
-The model is linear on purpose. On 97 deals anything with more capacity fits the
-noise, and it would have nothing to say when somebody asks why a name is on the
-list. Every ranked name carries an attribution whose contributions sum to the logit.
+The model is linear on purpose. On 86 targets, 67 of them behind the score,
+anything with more capacity fits the noise, and it would have nothing to say
+when somebody asks why a name is on the list. Every ranked name carries an attribution whose contributions sum to the logit.
 
 ### 15.5 The value signal: it is negative, and it is not significant
 
@@ -3546,7 +3576,7 @@ can be made to agree with it.**
 The demonstration signal is the obvious one: cheapness on trailing EV/Revenue, built
 from this engine's own bridge through a fact set pinned to each row date. 100 TMT
 companies, 35 quarterly cross-sections from December 2016 to June 2025, twelve month
-forward returns, 2,604 scored company-dates.
+forward returns, 2,604 scored company-dates on 98 of the 100 names.
 
 | | |
 |---|---|
@@ -3615,8 +3645,10 @@ one.
 **Survivorship could not be corrected here. It could only be measured, and the
 measurement is a flag.** The delisting machinery is built, tested and exercised, and
 on the real panel it finds nothing to do, because the data sources delete a company
-the day it stops trading. Five seed names return no CIK and no price rows, and every
-one of the five left to an acquisition. They are not in the panel at all, so the
+the day it stops trading. Five seed names, EA, FI, FYBR, IPG and JNPR, are absent
+from the SEC ticker file and have no price rows. That is what they share, not a
+common exit: Fiserv still trades, under the FISV symbol the file carries, so at
+most four of them left to an acquisition. They are not in the panel at all, so the
 harness cannot terminate them at a deal, and the sensitivity to the delisting return
 comes back flat because there are no delistings to be sensitive to. The check says so
 in terms:
@@ -3626,9 +3658,13 @@ in terms:
 > a list of today's survivors and every number here is biased upward by the outcomes
 > it cannot see.
 
-The direction matters for reading the headline. The missing names are takeouts,
-takeouts earn a premium, and takeouts skew cheap. **Their absence flatters cheapness,
-so the true coefficient is if anything more negative than -0.098, not less.**
+The direction matters for reading the headline, and it rests on an assumption. The
+score is cheapness and the coefficient is its rank correlation with the forward
+return, so a cheap company taken out at a premium is a high score paired with a high
+return, and putting it back raises the coefficient. **If the missing names skew
+cheap, their absence makes cheapness look worse than it was, and the true
+coefficient is if anything less negative than -0.098, not more.** The skew is
+assumed rather than measured, so that is a direction and not a size.
 
 **Point in time is refused rather than warned about.** A score whose knowledge date
 postdates its own date is an error, and so is a provenance carrying a filing later
@@ -3662,15 +3698,18 @@ are not the sample size.**
   carry a full twelve month forward. That is **8.5 non-overlapping annual periods**,
   and after the overlap correction it is **about 13 effective observations** against
   2,604 company-dates. Both counts are on the result, with the small one first.
-- The filing record is deeper but not by as much as expected. Measured across 224
+- The filing record is deeper but not by as much as expected. Measured across 223
   filers, the deepest history is 19 fiscal years, **the median is 12**, and only 34
   reach 19.
 - The warranted panel is 94 filers at 22 quarter ends. A feature vector barely moves
   in three months and neither does a relative multiple, so consecutive quarters of
   one company are close to one observation repeated. That is why the differenced
   number, +0.042, is quoted in the same paragraph as the pooled 0.84.
-- The propensity model rests on **97 distinct deals**. Seven of them moved the sign
-  of its conclusion.
+- The propensity model's labels hold 9,400 observations, 336 positives and 97
+  distinct targets, and that is not what the result rests on. Joined to the
+  feature panel they become 7,319 rows, 284 positives and 86 targets, and the rows
+  the walk-forward folds score are 5,881, with 224 positives. The AUC rests on
+  **67 distinct targets**. Seven recovered deals moved the sign of its conclusion.
 - The peer encoder trains on 2,534 directed pairs, and once both legs of a pair
   must be encodable at its own panel date those pairs come from 220 of the 320
   disclosed groups and 63 of the 75 filers. It is scored on 162 targets of which
@@ -3694,7 +3733,7 @@ No amount of care downstream fixes any of the following.
 1. **There is no point-in-time universe.** The SEC's ticker file is today's list, the
    price sources delete a company the day it stops trading, and this package has
    neither an archived ticker file per date nor a delisting-complete vendor file.
-   Every model in section 15 is biased upward by the outcomes it cannot see, by the
+   Every model in section 15 is biased by the outcomes it cannot see, by the
    amounts and in the directions tabulated in §14.4. The harnesses are built to
    consume a delisting file the day one exists.
 2. **The committed text corpus is an excerpt.** `peer_item1_tmt.json` keeps the
