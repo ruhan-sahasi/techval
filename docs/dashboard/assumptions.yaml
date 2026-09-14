@@ -1,0 +1,15 @@
+# Assumptions the committed dashboard is collected under.
+#
+# The dashboard runs offline from tests/fixtures, and the engine normally reads
+# the risk-free rate from the US Treasury daily curve, which offline it cannot
+# reach. The rate below is not a Treasury quote for any date. It is the rate the
+# test suite pins in tests/conftest.py so that no test touches the network, used
+# here so the valuation exhibits on the page reproduce the values the engine's
+# own tests are pinned to. The engine and fade sections label it on the page as
+# an assumption for that reason.
+#
+# Everything not set here is the engine's default, documented in
+# assumptions.example.yaml and docs/methodology.md.
+
+market:
+  risk_free_rate: 0.0483
