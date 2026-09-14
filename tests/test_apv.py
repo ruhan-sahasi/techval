@@ -126,6 +126,15 @@ def test_modigliani_miller_values_the_shield_above_harris_pringle(
     assert mm.pv_tax_shield > hp.pv_tax_shield
     assert mm.total_value > hp.total_value
 
+    # The note names the convention it priced and no other. Miles-Ezzell
+    # discounts every year's shield at the cost of debt for its final year,
+    # the first year's included, so no year of a shield discounted wholly at Ku
+    # is Miles-Ezzell, and the engine computes it nowhere.
+    stated = " ".join(hp.notes)
+    assert "Harris-Pringle treatment" in stated
+    assert "Miles-Ezzell for the first year" not in stated
+    assert "Miles-Ezzell" not in " ".join(mm.notes)
+
     # And the statement the module docstring makes: at the cost of debt, APV
     # comes out above the constant-WACC answer, because a constant WACC has
     # already assumed the rebalancing that makes the shield risky.
