@@ -702,10 +702,11 @@ def test_datadog_valued_on_the_assumed_fade_and_on_the_fitted_one(
 ):
     """The number an analyst can argue with.
 
-    The typed fade takes Datadog from 28% growth to 5% in a straight line over
-    five years and values the enterprise at 9,447mm, 36.65 a share. The fitted
-    fade holds growth near 20% for three years before handing over to the same
-    terminal assumption, and values it at 10,901mm, 40.61 a share, 15% higher.
+    The typed fade takes Datadog from the default 20% growth to 5% in a straight
+    line over five years, starting below the 28% its fiscal 2025 10-K reported,
+    and values the enterprise at 9,447mm, 36.65 a share. The fitted fade holds
+    growth near 20% for three years before handing over to the same terminal
+    assumption, and values it at 10,901mm, 40.61 a share, 15% higher.
 
     The band is the part worth reading. The 10th and 90th percentile paths value
     the same company at 26.97 and 66.69 a share, which is not a forecast, it is
