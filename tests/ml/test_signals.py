@@ -643,6 +643,27 @@ def test_a_pure_noise_score_does_not_beat_its_own_baseline():
     assert "NOT" in result.verdict() or "Not significant" in result.verdict()
 
 
+def test_the_baseline_comparison_opens_its_own_sentence_in_the_verdict():
+    """The evaluation's line is written to stand alone, and here it follows a full stop.
+
+    ``EvalResult.verdict`` opens on the metric's name in lower case, which reads
+    correctly as a line of its own and wrongly in the middle of a paragraph:
+    "... erases the spread. mean information coefficient of ...". The join
+    capitalises it and changes nothing else.
+    """
+    rng = np.random.default_rng(15)
+    dates = quarterly(date(2017, 3, 15), 32)
+    prices = make_prices(rng, [f"T{i:02d}" for i in range(50)], date(2016, 6, 1), date(2026, 6, 1))
+    result = run(make_scores(prices, dates, rng, strength=0.0), prices, label="noise")
+
+    line = result.evaluation.verdict()
+    opening = "mean information coefficient of "
+    assert line.startswith(opening)
+    text = result.verdict()
+    assert text.endswith(" Mean information coefficient of " + line.removeprefix(opening))
+    assert ". mean information coefficient" not in text
+
+
 def test_a_score_built_to_work_is_found_to_work():
     """If the harness cannot find skill that was put there deliberately, nothing it says means anything."""
     rng = np.random.default_rng(16)
