@@ -1,0 +1,236 @@
+/*
+ * techval dashboard tokens.
+ *
+ * The complete light palette lives on bare :root. The two dark blocks below
+ * redefine tokens and nothing else, so a component never has a colour that
+ * exists in only one theme. Components style through these names; none of
+ * them reaches for a hex value directly.
+ *
+ * Entity colours follow the thing measured, everywhere on the page: the fitted
+ * model is always --c-model, a baseline is always --c-baseline. Status colours
+ * are reserved for verdict chips and never stand in for a series.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Type. Plex Sans for everything a person reads, Plex Mono for identifiers. */
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --fs-micro: 11px;
+  --fs-small: 12px;
+  --fs-body: 14px;
+  --fs-lead: 16px;
+  --fs-h3: 15px;
+  --fs-h2: 24px;
+  --fs-h1: 32px;
+  --fs-figure: 26px;
+
+  --lh-tight: 1.25;
+  --lh-body: 1.5;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  --tracking-caps: 0.08em;
+
+  /* Space, on a 4px step. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+
+  --radius-card: 8px;
+  --radius-control: 6px;
+  --radius-chip: 999px;
+
+  --rail-width: 248px;
+  --main-max: 1180px;
+
+  /* Planes and ink. */
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink-1: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-3: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --wash: rgba(11, 11, 11, 0.04);
+  --wash-strong: rgba(11, 11, 11, 0.07);
+  --shadow-tip: 0 4px 16px rgba(11, 11, 11, 0.10);
+
+  /* Categorical series slots, in fixed order. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --deemph: #898781;
+
+  /* Entities. */
+  --c-model: var(--series-1);
+  --c-alt: var(--series-2);
+  --c-third: var(--series-3);
+  --c-baseline: var(--deemph);
+  --c-total: var(--ink-2);
+
+  /* Diverging: blue pole, red pole, grey neutral midpoint. Seven classes. */
+  --div-pos: #2a78d6;
+  --div-neg: #e34948;
+  --div-mid: #f0efec;
+  --div-neg-3: var(--div-neg);
+  --div-neg-2: color-mix(in oklab, var(--div-neg) 66%, var(--div-mid));
+  --div-neg-1: color-mix(in oklab, var(--div-neg) 33%, var(--div-mid));
+  --div-0: var(--div-mid);
+  --div-pos-1: color-mix(in oklab, var(--div-pos) 33%, var(--div-mid));
+  --div-pos-2: color-mix(in oklab, var(--div-pos) 66%, var(--div-mid));
+  --div-pos-3: var(--div-pos);
+  --on-div-3: #0b0b0b;
+  --on-div-2: #0b0b0b;
+  --on-div-1: #0b0b0b;
+  --on-div-0: #0b0b0b;
+
+  /* The blue ramp. Mode-invariant steps. */
+  --blue-100: #cde2fb;
+  --blue-150: #b7d3f6;
+  --blue-200: #9ec5f4;
+  --blue-250: #86b6ef;
+  --blue-300: #6da7ec;
+  --blue-350: #5598e7;
+  --blue-400: #3987e5;
+  --blue-450: #2a78d6;
+  --blue-500: #256abf;
+  --blue-550: #1c5cab;
+  --blue-600: #184f95;
+  --blue-650: #104281;
+  --blue-700: #0d366b;
+
+  /* Sequential: seven classes from least to most. In light mode more is darker. */
+  --seq-1: var(--blue-100);
+  --seq-2: var(--blue-200);
+  --seq-3: var(--blue-300);
+  --seq-4: var(--blue-400);
+  --seq-5: var(--blue-500);
+  --seq-6: var(--blue-600);
+  --seq-7: var(--blue-700);
+  --on-seq-1: #0b0b0b;
+  --on-seq-2: #0b0b0b;
+  --on-seq-3: #0b0b0b;
+  --on-seq-4: #ffffff;
+  --on-seq-5: #ffffff;
+  --on-seq-6: #ffffff;
+  --on-seq-7: #ffffff;
+  --missing: #efeee9;
+
+  /* Status: verdict chips only, always with an icon and a label. */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+  --status-neutral: #898781;
+  --on-status-good: #ffffff;
+  --on-status-warning: #0b0b0b;
+  --on-status-critical: #ffffff;
+  --on-status-neutral: #ffffff;
+  --text-good: #006300;
+  --text-critical: #d03b3b;
+
+  --focus: #0b0b0b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink-1: #ffffff;
+    --ink-2: #c3c2b7;
+    --ink-3: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --wash: rgba(255, 255, 255, 0.05);
+    --wash-strong: rgba(255, 255, 255, 0.09);
+    --shadow-tip: 0 4px 16px rgba(0, 0, 0, 0.50);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --deemph: #6b6a64;
+    --div-pos: #3987e5;
+    --div-neg: #e66767;
+    --div-mid: #383835;
+    --on-div-3: #0b0b0b;
+    --on-div-2: #ffffff;
+    --on-div-1: #ffffff;
+    --on-div-0: #ffffff;
+    --seq-1: var(--blue-700);
+    --seq-2: var(--blue-600);
+    --seq-3: var(--blue-500);
+    --seq-4: var(--blue-400);
+    --seq-5: var(--blue-300);
+    --seq-6: var(--blue-200);
+    --seq-7: var(--blue-100);
+    --on-seq-1: #ffffff;
+    --on-seq-2: #ffffff;
+    --on-seq-3: #ffffff;
+    --on-seq-4: #0b0b0b;
+    --on-seq-5: #0b0b0b;
+    --on-seq-6: #0b0b0b;
+    --on-seq-7: #0b0b0b;
+    --missing: #232322;
+    --on-status-neutral: #0d0d0d;
+    --text-good: #0ca30c;
+    --text-critical: #e66767;
+    --focus: #ffffff;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink-1: #ffffff;
+  --ink-2: #c3c2b7;
+  --ink-3: #898781;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --border: rgba(255, 255, 255, 0.10);
+  --wash: rgba(255, 255, 255, 0.05);
+  --wash-strong: rgba(255, 255, 255, 0.09);
+  --shadow-tip: 0 4px 16px rgba(0, 0, 0, 0.50);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --deemph: #6b6a64;
+  --div-pos: #3987e5;
+  --div-neg: #e66767;
+  --div-mid: #383835;
+  --on-div-3: #0b0b0b;
+  --on-div-2: #ffffff;
+  --on-div-1: #ffffff;
+  --on-div-0: #ffffff;
+  --seq-1: var(--blue-700);
+  --seq-2: var(--blue-600);
+  --seq-3: var(--blue-500);
+  --seq-4: var(--blue-400);
+  --seq-5: var(--blue-300);
+  --seq-6: var(--blue-200);
+  --seq-7: var(--blue-100);
+  --on-seq-1: #ffffff;
+  --on-seq-2: #ffffff;
+  --on-seq-3: #ffffff;
+  --on-seq-4: #0b0b0b;
+  --on-seq-5: #0b0b0b;
+  --on-seq-6: #0b0b0b;
+  --on-seq-7: #0b0b0b;
+  --missing: #232322;
+  --on-status-neutral: #0d0d0d;
+  --text-good: #0ca30c;
+  --text-critical: #e66767;
+  --focus: #ffffff;
+}
