@@ -62,16 +62,20 @@ that feature cannot be built honestly here. No public price source serves histor
 for a delisted symbol: Nasdaq returns no rows for SPLK, ZEN, WORK or MNDT, which
 was checked, and the precedents module says the same thing for the same reason.
 So every price-derived feature, market capitalisation and every multiple taken
-over it included, is missing for exactly the companies that were acquired and
-present for the companies that were not. Feed that to a classifier and the
-missing-value indicator is a perfect predictor. The model would score an AUC near
-one, and it would have learned that companies with no share price get bought,
-which is true, circular and useless. The feature set here is therefore built from
-the filings alone. Size is log revenue and log total assets, never market
-capitalisation. The cost is real and is stated rather than worked around: the
-valuation channel, which is the one a banker would most expect to matter, is
-absent, and this model cannot say anything about whether cheap companies get
-bought.
+over it included, is missing for the companies that have left, most of which
+left because they were acquired, and present for the companies still listed.
+Feed that to a classifier and the missing-value indicator does much of its
+separating for it. Not all of it, because a quarter to a third of the positive
+rows are on companies that still file: on the committed fixtures the indicator
+alone, whether a company has since left the filing record, scores an AUC of
+about 0.8, depending on which rows are scored. That is still far above anything
+the filings-only model reaches, and a model handed it would have learned that
+companies with no share price get bought, which is true, circular and useless.
+The feature set here is therefore built from the filings alone. Size is log
+revenue and log total assets, never market capitalisation. The cost is real and
+is stated rather than worked around: the valuation channel, which is the one a
+banker would most expect to matter, is absent, and this model cannot say
+anything about whether cheap companies get bought.
 
 **The gap between the feature date and the announcement.** Prices move on rumour
 in the weeks before a deal is signed, so a feature sitting inside that window

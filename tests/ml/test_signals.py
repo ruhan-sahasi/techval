@@ -1149,9 +1149,11 @@ def test_the_recorded_universe_contains_no_failures_at_all_and_is_flagged_for_it
     Not one of the hundred companies in this panel was acquired or delisted over
     nine years, which is not what happens to a technology universe over nine
     years. Five names that were in the seed universe are missing from the panel
-    entirely, because both the SEC ticker file and the price vendor drop a
-    company the day it stops trading, and every one of the five left to an
-    acquisition. The bias therefore runs one way and the check says so.
+    entirely, absent from the SEC ticker file and with no price rows. Not all
+    five stopped trading: Fiserv is still listed, and the seed names it FI where
+    the ticker file carries FISV. The other four are the kind of company a
+    universe built from today's listings loses, and the check says the sample is
+    survivors.
     """
     scores, prices = recorded
     result = signals.test_signal(scores, prices, baseline_draws=40)
