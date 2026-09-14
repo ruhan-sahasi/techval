@@ -198,9 +198,11 @@ class APVAssumptions(_Base):
         description=(
             "What the tax shield is worth turns on how safe it is. Discounting at the "
             "cost of debt (Modigliani-Miller) assumes a fixed debt schedule; "
-            "discounting at the unlevered cost of equity (Miles-Ezzell, Harris-Pringle) "
-            "assumes debt rebalances with firm value, which is what a constant-WACC "
-            "model already implies."
+            "discounting at the unlevered cost of equity (Harris-Pringle) assumes debt "
+            "rebalances continuously with firm value, which is what a constant-WACC "
+            "model already implies. Miles-Ezzell, rebalancing once a year, discounts "
+            "each year's shield at the cost of debt for its final year and at the "
+            "unlevered cost of equity before that; it is not offered."
         ),
     )
 
