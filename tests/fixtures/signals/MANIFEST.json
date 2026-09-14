@@ -1,7 +1,7 @@
 {
  "retrieved": "2026-09-11",
  "note": "The point-in-time trailing EV/Revenue panel this package's signal harness is demonstrated on, and the daily closes it is scored against. Recorded once from SEC EDGAR and the Nasdaq daily quote endpoint on the date above and read from these files afterwards, so two runs of the test suite agree byte for byte. Nothing here was edited by hand: a fixture adjusted to suit a result is no longer evidence of anything.",
- "universe": "techval.tmt.taxonomy.SEED, the 110 name technology, media and telecommunications seed universe, less the five names the sources could no longer serve. EA, FI, FYBR, IPG and JNPR are absent from the SEC company_tickers.json file and return no rows from the Nasdaq endpoint, every one of them having left the tape to an acquisition. That absence is itself the survivorship finding and is recorded here rather than quietly worked around.",
+ "universe": "techval.tmt.taxonomy.SEED, the 110 name technology, media and telecommunications seed universe, less the five names the sources could no longer serve. EA, FI, FYBR, IPG and JNPR are absent from the SEC company_tickers.json file and have no rows in closes.csv.gz, and that is all the five are known to have in common. They did not all leave the tape: Fiserv still trades, and the ticker file carries it under FISV, as techval.tmt.taxonomy records, so at most four of the five went to an acquisition, and neither source records the route the other four took. That absence is itself a survivorship finding and is recorded here rather than quietly worked around.",
  "companies_scored": 100,
  "rebalance_dates": 39,
  "company_dates": 2992,
