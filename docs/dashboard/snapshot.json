@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-09-14",
+  "collected_at": "2026-09-15",
   "fixtures": {
     "tests/fixtures/companyfacts_CRWD.json": "9b6ef8e8890e3f8058caf6623556708ff8043a9a944f40c94bdc11f45fc570b3",
     "tests/fixtures/companyfacts_DDOG.json": "91bcfb0dc7160923243c8b816e508c57c5a8b1c4bafe10f46dffb2ccb6799211",
@@ -2825,7 +2825,7 @@
             "tests/fixtures/share_basis_facts.json",
             "tests/fixtures/companyfacts_CRWD.json"
           ],
-          "seconds": 0.01
+          "seconds": 0.0
         },
         {
           "entry_point": "techval.edgar.CompanyFacts._split_adjust",
@@ -2834,7 +2834,7 @@
             "tests/fixtures/share_basis_facts.json",
             "tests/fixtures/companyfacts_CRWD.json"
           ],
-          "seconds": 0.01
+          "seconds": 0.0
         },
         {
           "entry_point": "techval.dashboard.sections.datalayer.split_consistency",
@@ -2843,7 +2843,7 @@
             "tests/fixtures/share_basis_facts.json",
             "tests/fixtures/companyfacts_CRWD.json"
           ],
-          "seconds": 0.01
+          "seconds": 0.0
         },
         {
           "entry_point": "techval.edgar.CompanyFacts._split_adjust",
@@ -2852,7 +2852,7 @@
             "tests/fixtures/share_basis_facts.json",
             "tests/fixtures/companyfacts_CRWD.json"
           ],
-          "seconds": 0.01
+          "seconds": 0.0
         },
         {
           "entry_point": "techval.dashboard.sections.datalayer.nvda_split_evidence",
@@ -2861,7 +2861,7 @@
             "tests/fixtures/signals/closes.csv.gz",
             "tests/fixtures/share_basis_facts.json"
           ],
-          "seconds": 0.5
+          "seconds": 0.41
         },
         {
           "entry_point": "techval.edgar.CompanyFacts._split_brackets",
@@ -2870,7 +2870,7 @@
             "tests/fixtures/signals/closes.csv.gz",
             "tests/fixtures/share_basis_facts.json"
           ],
-          "seconds": 0.5
+          "seconds": 0.41
         },
         {
           "entry_point": "techval.tmt.taxonomy.tmt_universe",
@@ -2878,7 +2878,7 @@
           "inputs": [
             "tests/fixtures/submissions_tmt.json"
           ],
-          "seconds": 0.02
+          "seconds": 0.01
         },
         {
           "entry_point": "techval.tmt.taxonomy.classify",
@@ -2912,7 +2912,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.08
+          "seconds": 0.04
         },
         {
           "entry_point": "techval.commands_peers._load_groups",
@@ -2922,7 +2922,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.08
+          "seconds": 0.04
         },
         {
           "entry_point": "techval.commands_peers._load_panel",
@@ -2932,7 +2932,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.08
+          "seconds": 0.04
         },
         {
           "entry_point": "techval.commands_peers._load_corpora",
@@ -2942,7 +2942,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.08
+          "seconds": 0.04
         },
         {
           "entry_point": "techval.ml.encoder.build_dataset",
@@ -2952,7 +2952,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.09
+          "seconds": 0.04
         },
         {
           "entry_point": "techval.commands_peers._load_groups",
@@ -2962,7 +2962,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.09
+          "seconds": 0.04
         },
         {
           "entry_point": "techval.commands_peers._load_panel",
@@ -2972,7 +2972,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.09
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.commands_peers._load_corpora",
@@ -2982,7 +2982,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.09
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.ml.encoder.build_dataset",
@@ -2992,7 +2992,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.09
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.commands_peers._load_groups",
@@ -3002,7 +3002,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.09
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.commands_peers._load_panel",
@@ -3012,7 +3012,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.09
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.commands_peers._load_corpora",
@@ -3022,7 +3022,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.09
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.edgar.EdgarClient.resolve_ticker",
@@ -3033,7 +3033,7 @@
             "tests/fixtures/sec_tickers_tmt.json",
             "tests/fixtures/submissions_tmt.json"
           ],
-          "seconds": 0.01
+          "seconds": 0.0
         },
         {
           "entry_point": "techval.former_tickers.resolve",
@@ -4328,7 +4328,8 @@
               }
             ],
             "roleLabels": {
-              "baseline": "Market-based",
+              "alt": "Trading comps",
+              "baseline": "Trading range, for reference only",
               "model": "DCF"
             },
             "rows": [
@@ -4344,14 +4345,14 @@
                 "label": "Comps, EV/Revenue",
                 "lo": 103.054348,
                 "mid": null,
-                "role": "baseline"
+                "role": "alt"
               },
               {
                 "hi": 288.556695,
                 "label": "Comps, EV/Gross Profit",
                 "lo": 109.358723,
                 "mid": null,
-                "role": "baseline"
+                "role": "alt"
               },
               {
                 "hi": 38.792483,
@@ -4374,7 +4375,7 @@
             "Comps, EV/EBITDA",
             "DCF, exit multiple"
           ],
-          "subtitle": "DDOG, USD per share at the 2026-09-09 close. DCF bands span WACC 11.5% to 14.5% and terminal growth 1.5% to 3.5%, ticked at the base case. Comps bands apply the 25th to 75th percentile peer multiple (CRWD, MDB, ZS).",
+          "subtitle": "DDOG, USD per share at the 2026-09-09 close. DCF bands span WACC 11.47% to 14.47% and terminal growth 1.5% to 3.5%, ticked at the base case. Comps bands apply the 25th to 75th percentile peer multiple (CRWD, MDB, ZS).",
           "title": "Every DCF band tops out below 18% of the price; every market-based range contains it",
           "wide": true
         },
@@ -4499,6 +4500,11 @@
         },
         "sensitivity": {
           "data": {
+            "base": [
+              2,
+              2
+            ],
+            "colTitle": "Terminal growth",
             "cols": [
               "1.5%",
               "2.0%",
@@ -4509,14 +4515,13 @@
             "format": "num:2",
             "rowHeader": "WACC",
             "rows": [
-              "11.5%",
-              "12.2%",
-              "13.0%",
-              "13.7%",
-              "14.5%"
+              "11.47%",
+              "12.22%",
+              "12.97%",
+              "13.72%",
+              "14.47%"
             ],
-            "scale": "sequential",
-            "scaleLabel": "Value per share, USD",
+            "scale": "plain",
             "valueLabel": "Value per share",
             "values": [
               [
@@ -4587,7 +4592,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.08
+          "seconds": 0.07
         },
         {
           "entry_point": "techval.wacc.compute_wacc",
@@ -4675,7 +4680,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.02
+          "seconds": 0.01
         },
         {
           "entry_point": "techval.apv.run_apv",
@@ -4705,7 +4710,7 @@
         },
         {
           "what": "APV, Miles-Ezzell",
-          "why": "The engine prices the shield at two rates, the cost of debt (Modigliani-Miller) and the unlevered cost of equity (Harris-Pringle), and files Miles-Ezzell under the second. Miles-Ezzell proper discounts each year's shield at the cost of debt for its last year and at Ku before that. No engine function computes that, and the page draws only what the engine computes."
+          "why": "The engine computes two shield conventions, the cost of debt (Modigliani-Miller) and the unlevered cost of equity (Harris-Pringle), and does not compute Miles-Ezzell. Miles-Ezzell discounts each year's shield at the cost of debt for its last year and at Ku before that, which scales the Harris-Pringle value by (1 + Ku) / (1 + Kd). This is a convention the engine does not offer, not a figure the fixtures cannot reproduce, and the page draws only what the engine computes."
         }
       ],
       "status": "ok",
@@ -4745,7 +4750,7 @@
             ]
           },
           "kind": "tiles",
-          "subtitle": "USD per share, the same DCF on each growth path, prices to 2026-09-09.",
+          "subtitle": "USD per share, prices to 2026-09-09. Every path is discounted at 11.28%, on Datadog's own regression beta of 1.30 and a 4.83% risk-free rate that is an assumption pinned for offline runs, not a Treasury quote. The engine section values on a peer-median beta, so its per-share figure differs by the discount rate, not by the growth path.",
           "title": "The fitted path moves Datadog's DCF by +3.96 a share, inside a band of 26.97 to 66.69"
         },
         "ddog_paths": {
@@ -5174,7 +5179,7 @@
           "inputs": [
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 4.2
+          "seconds": 4.42
         },
         {
           "entry_point": "techval.ml.forecast.fit_fade",
@@ -5182,7 +5187,7 @@
           "inputs": [
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 0.73
+          "seconds": 0.51
         },
         {
           "entry_point": "techval.ml.forecast.fit_fade",
@@ -5222,7 +5227,7 @@
       ],
       "refusals": [],
       "status": "ok",
-      "takeaway": "At one year out the fitted fade ties last year's growth: a mean absolute error of 0.1474 against 0.1510, a lift of +0.0035 inside a fold standard deviation of 0.0242. At two and three years it beats persistence by +0.0407 and +0.0530, outside the fold noise. Against the strongest baseline at each horizon the lift is inside the fold noise, and from two years out that baseline is the sub-vertical mean. On Datadog the same DCF is worth 40.61 a share on the fitted path and 36.65 on the typed one.",
+      "takeaway": "At one year out the fitted fade ties last year's growth: a mean absolute error of 0.1474 against 0.1510, a lift of +0.0035 inside the fold noise (a mean fold lift of +0.0040 against a fold-to-fold standard deviation of 0.0216). At two and three years it beats persistence by +0.0407 and +0.0530, outside the fold noise. Against the strongest baseline at each horizon the gap is smaller than one fold standard deviation of the model's own error, and from two years out that baseline is the sub-vertical mean. Discounted at 11.28% on its own beta, Datadog is worth 40.61 a share on the fitted path and 36.65 on the typed one.",
       "title": "Revenue fade"
     },
     "overview": {
@@ -5885,7 +5890,7 @@
           },
           "kind": "dot",
           "subtitle": "Out-of-sample stated probability against the share announced as a target within 12 months, by bucket; hollow marks hold fewer than 10 rows; n = 5,881",
-          "title": "Every stated probability above 10% over-promises, by up to 37 points"
+          "title": "Every well-populated bucket above 10% over-promises, by up to 37 points; thin buckets run to 76"
         },
         "coefficient_signs": {
           "data": {
@@ -6542,7 +6547,7 @@
             "valueLabel": "Stated probability"
           },
           "kind": "hbar",
-          "subtitle": "Final model fitted on every labelled row, ranked across 331 registrants with no deal announced by that date; the last column names the three features contributing most to each score. Out of sample, stated probabilities of 30% or more were realised at 4.0% to 9.1%",
+          "subtitle": "Final model fitted on every labelled row, ranked across 331 registrants with no deal announced by that date; the last column names the three features contributing most to each score. Out of sample, in buckets of at least 10 rows, stated probabilities of 30% or more were realised at 4.0% to 9.1%",
           "title": "10 of the top 20 on 30 June 2026 are application software"
         }
       },
@@ -6568,7 +6573,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 2.63
+          "seconds": 2.67
         },
         {
           "entry_point": "techval.ml.evaluation.evaluate_classification",
@@ -6590,7 +6595,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 4.74
+          "seconds": 4.81
         },
         {
           "entry_point": "techval.ml.mna.PropensityResult.coefficient_stability",
@@ -6656,7 +6661,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 1.25
+          "seconds": 1.28
         },
         {
           "entry_point": "techval.ml.evaluation.evaluate_classification",
@@ -6673,7 +6678,7 @@
       ],
       "refusals": [],
       "status": "ok",
-      "takeaway": "The screen's walk-forward AUC of 0.5685 beats sorting companies smallest first (0.5474) by +0.0212, inside a fold standard deviation of 0.0910, and it rests on 67 companies announced as targets. 9 of its 15 coefficients change sign between folds, and removing the 7 deals a later extraction fix recovered flips the verdict.",
+      "takeaway": "The screen's walk-forward AUC of 0.5685 beats sorting companies smallest first (0.5474) by +0.0212, inside the fold noise (a mean fold lift of +0.0012 against a fold-to-fold standard deviation of 0.0692), and it rests on 67 companies announced as targets. 9 of its 15 coefficients change sign between folds, and removing the 7 deals a later extraction fix recovered flips the verdict.",
       "title": "M&A propensity"
     },
     "sample": {
@@ -8190,8 +8195,8 @@
             ]
           },
           "kind": "tiles",
-          "subtitle": "",
-          "title": ""
+          "subtitle": "Deals, offer prices and premia as the extractor read them from the targets' own filings",
+          "title": "8 of 9 deals read from merger filings carry an offer price, and 4 carry both premia"
         },
         "premia": {
           "data": {
@@ -8385,7 +8390,7 @@
           "inputs": [
             "tests/fixtures/merger"
           ],
-          "seconds": 0.12
+          "seconds": 0.11
         },
         {
           "entry_point": "techval.tmt.precedents.build_precedents",
@@ -8452,7 +8457,7 @@
             "tests/fixtures/companyfacts_DDOG.json",
             "tests/fixtures/filing_text_DDOG_2025.json.gz"
           ],
-          "seconds": 0.16
+          "seconds": 0.15
         }
       ],
       "refusals": [
@@ -9326,8 +9331,8 @@
             ]
           },
           "kind": "tiles",
-          "subtitle": "",
-          "title": "The panel behind every figure here"
+          "subtitle": "The committed panel: 22 quarter ends, each refusal kept with its reason",
+          "title": "1,764 company-quarters from 94 companies stand behind every figure here, with 546 refused"
         },
         "rerating": {
           "data": {
@@ -9663,7 +9668,7 @@
             "tests/fixtures/warranted/ev_audit.json.gz",
             "tests/fixtures/warranted/observations.json.gz"
           ],
-          "seconds": 0.01
+          "seconds": 0.0
         },
         {
           "entry_point": "techval.dashboard.sections.warranted.affected_filers",
@@ -9733,6 +9738,6 @@
       "title": "Warranted multiple"
     }
   },
-  "techval_commit": "813e6ad",
-  "title": "techval Results"
+  "techval_commit": "c5797b6",
+  "title": "Valuation engine and model results"
 }
