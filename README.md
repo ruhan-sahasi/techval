@@ -401,7 +401,7 @@ inside them: a model given the date and nothing else scores an R-squared of
 statement about any company. warranted EV/Revenue (mlp): fitted EV/Revenue
 from fundamentals across the TMT universe, and the out-of-sample residual
 against it, fitted on 1,509 observations through 2025-09-30 across 25
-features. spearman of 0.7651 against 0.6313 for comps.py OLS refit on the
+features. Spearman of 0.7651 against 0.6313 for comps.py OLS refit on the
 date, sub-vertical peers, a lift of +0.1339 on 888 observations. Fold standard
 deviation 0.0841, so the lift is outside the fold-to-fold noise. Differenced
 against each company's own previous observation the rank correlation is
@@ -451,6 +451,27 @@ the 1,764 observations carry a share count on a pre-split basis against a price
 series the vendor has already restated, so the equity value was converted onto
 the price's basis before the multiple was struck. Without the conversion each of
 those observations is understated by its whole split ratio.
+
+The panel is older than the debt-ladder fix, and by how much has been measured
+rather than assumed. It was recorded before the ladders stopped reading
+Verizon's long-term debt as zero, so every enterprise value in it went through
+the old ones. `tests/fixtures/warranted/record_ev_audit.py` rebuilds each
+observation with today's code at its own date, the recorded equity value plus
+today's net debt, and its output is committed beside the panel. 1,713 of the
+1,764 observations rebuild: 1,337 are identical, 188 move by more than 1
+percent and 106 by more than 5 percent, at 13 filers, Verizon and Warner Bros.
+Discovery at every quarter. Today's code refuses the other 51 outright, because
+its debt cross-check finds more debt than the ladders resolve, and it would
+admit all 97 rows the panel skipped for debt outside the ladder. The screen's
+rich and cheap calls are what that touches most, since a residual is a distance
+from a fit on the whole panel: refitting with only the enterprise values
+rebuilt swaps one of the sixteen names at the ends of the 30 June 2026 screen,
+and the results dashboard refuses to draw that screen for that reason. The
+headline correlation is touched least, 0.7651 against 0.7720 on the same
+partial refit, and that refit understates the change, because the features,
+debt to capital among them, came from the same old ladder. Re-recording the
+panel with today's ladders is the outstanding fix, and until it is made every
+number in this section is the panel as recorded.
 
 ### The revenue growth fade curve
 
