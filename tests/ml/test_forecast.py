@@ -59,6 +59,7 @@ from techval.ml.forecast import (
     growth_path_for_dcf,
     is_delisted,
 )
+from techval.ml.protocol import EvalResult, ModelCard
 from techval.wacc import compute_wacc
 
 FIXTURES = Path(__file__).parent.parent / "fixtures"
@@ -443,7 +444,46 @@ def test_the_verdict_names_persistence_as_the_baseline_it_was_scored_against(mod
         assert fit.evaluation.baseline_score == pytest.approx(
             fit.baselines["persistence"], abs=1e-12
         )
-    assert f"for {PERSISTENCE_BASELINE}" in model.card.summary()
+    summary = model.card.summary()
+    assert f"for {PERSISTENCE_BASELINE}" in summary
+    # The verdict follows the card's own full stop, so it opens a sentence.
+    assert " features. MAE of " in summary and ". mae of" not in summary
+
+
+@pytest.mark.parametrize(
+    "metric, opens",
+    [
+        ("mae", "MAE of"),
+        ("rmse", "RMSE of"),
+        ("auc", "AUC of"),
+        ("ndcg@10", "NDCG@10 of"),
+        ("ic", "IC of"),
+        ("spearman", "Spearman of"),
+        ("mean information coefficient", "Mean information coefficient of"),
+    ],
+)
+def test_the_card_opens_the_verdict_as_a_sentence_with_initialisms_in_capitals(metric, opens):
+    """``ModelCard.summary`` joins ``EvalResult.verdict`` after a full stop.
+
+    The verdict opens on the metric in lower case, which is right where it is
+    printed alone and wrong mid-paragraph: "across 25 features. mae of 0.1230".
+    The join sentence-cases it, an initialism in capitals rather than "Mae", and
+    leaves ``EvalResult.verdict`` itself exactly as it was.
+    """
+    evaluation = EvalResult(
+        metric=metric, score=0.123, baseline_name="the baseline", baseline_score=0.151,
+        n_observations=400, higher_is_better=False,
+    )
+    card = ModelCard(
+        name="m", task="a task", trained_through=date(2025, 6, 30), n_train=900,
+        features=["a", "b"], evaluation=evaluation,
+    )
+    line = evaluation.verdict()
+    assert line.startswith(f"{metric} of ")
+    assert card.summary() == (
+        "m: a task, fitted on 900 observations through 2025-06-30 across 2 features. "
+        f"{opens} {line.removeprefix(f'{metric} of ')}"
+    )
 
 
 def test_the_two_and_three_year_fits_beat_persistence_outside_the_noise(model):
