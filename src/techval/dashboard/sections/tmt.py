@@ -269,8 +269,11 @@ def shape_precedents(
 
     figures["precedent_tiles"] = _figure(
         "tiles",
-        "",
-        "",
+        (
+            f"{len(priced)} of {n_deals} deals read from merger filings carry an offer "
+            f"price, and {len(both)} carry both premia"
+        ),
+        "Deals, offer prices and premia as the extractor read them from the targets' own filings",
         {
             "tiles": [
                 {

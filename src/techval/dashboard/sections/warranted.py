@@ -1106,7 +1106,15 @@ def build_panel(inp: Inputs) -> dict[str, Any]:
                 ),
             }
         ]
-    return _figure("tiles", "The panel behind every figure here", "", data)
+    return _figure(
+        "tiles",
+        (
+            f"{inp.n_observations:,} company-quarters from {inp.n_companies} companies "
+            f"stand behind every figure here, with {inp.n_refused:,} refused"
+        ),
+        f"The committed panel: {inp.n_dates} quarter ends, each refusal kept with its reason",
+        data,
+    )
 
 
 def _audit_found_anything(audit: Audit) -> bool:
