@@ -16,6 +16,17 @@ and the number that governs the evidence is smaller still: the distinct
 companies among the scored positives. The sample tiles carry all of them, so no
 count stands in for another.
 
+**A target is not a deal, and the page never calls one by the other's name.**
+``events.json`` holds announced deals, 107 of them as its manifest records.
+``LabelReport.n_distinct_deals`` counts something else despite its name: the
+distinct companies with a positive label. On this fixture every deal has its
+own target, and still only 97 are labelled, because a deal announced before
+any panel date's window could reach it, or after the last window that has
+closed, labels no company. The targets among the scored rows are fewer again.
+So the tiles say targets labelled and targets scored, the label sets in the
+recovered-deals figure are counted in announced deals, and one sub-line puts
+the three side by side.
+
 **The recovered deals are identified from the fixture's own audit.**
 ``MANIFEST.json`` names the seven transactions the dual-class extraction fix
 recovered and splits them into four sales and three it doubts. The names are
@@ -24,7 +35,7 @@ collection time; if either no longer agrees, the figure is refused rather than
 drawn from a guessed subset.
 
 **Colour follows the entity.** The fitted model is blue and the size-only sort
-grey everywhere. What actually happened (the share of companies acquired) is
+grey everywhere. What actually happened (the share announced as targets) is
 orange, in the base rate by year and in the calibration dumbbell, where it is
 the second entity of a literal comparison. The base rate as a benchmark for a
 list is a reference rule, not a series.
@@ -128,10 +139,16 @@ class Evaluation:
 class Sample:
     n_labelled: int
     positives: int
+    # Distinct TARGETS with a positive label, read from
+    # ``LabelReport.n_distinct_deals``; the field keeps the library's name so the
+    # published count keeps its key.
     distinct_deals: int
     base_rate: float
     scored_positives: int
+    # Distinct targets among the scored positives, under the same naming rule.
     scored_deals: int
+    # Announced deals in ``events.json``: the one count here that is of deals.
+    announced_deals: int
 
 
 @dataclass(frozen=True)
@@ -345,13 +362,13 @@ def _takeaway(facts: Facts) -> str:
         first = (
             f"The screen's walk-forward AUC of {ev.score:.4f} beats sorting companies "
             f"smallest first ({ev.baseline_score:.4f}) by {ev.lift:+.4f}{noise}, "
-            f"and it rests on {sample.scored_deals} acquired companies."
+            f"and it rests on {sample.scored_deals} companies announced as targets."
         )
     else:
         first = (
             f"The screen's walk-forward AUC of {ev.score:.4f} does not beat sorting "
             f"companies smallest first ({ev.baseline_score:.4f}), on "
-            f"{sample.scored_deals} acquired companies."
+            f"{sample.scored_deals} companies announced as targets."
         )
     rest = []
     coefs = facts.coefficients
@@ -376,12 +393,13 @@ def _sample_figure(facts: Facts) -> dict[str, Any]:
     ev, s = facts.evaluation, facts.sample
     tiles = [
         {
-            "label": "Acquired companies behind the score",
+            "label": "Targets scored",
             "value": s.scored_deals,
             "format": "int",
             "sub": (
                 f"{s.scored_positives} positive rows among {ev.n_scored:,} scored; "
-                f"{s.distinct_deals} deals are labelled in all"
+                f"{s.distinct_deals} targets labelled of the "
+                f"{s.announced_deals} announced deals in the fixture"
             ),
         },
         {
@@ -411,7 +429,7 @@ def _sample_figure(facts: Facts) -> dict[str, Any]:
             }
         )
     title = (
-        f"{s.scored_deals} acquired companies stand behind an AUC computed on "
+        f"{s.scored_deals} targets stand behind an AUC computed on "
         f"{ev.n_scored:,} rows"
     )
     return {
@@ -427,6 +445,7 @@ def _sample_figure(facts: Facts) -> dict[str, Any]:
                 "n_scored": ev.n_scored,
                 "scored_positives": s.scored_positives,
                 "scored_deals": s.scored_deals,
+                "announced_deals": s.announced_deals,
             },
         },
     }
@@ -505,12 +524,13 @@ def _recovered_figure(rec: Recovered) -> dict[str, Any]:
     return _figure(
         "dot",
         title,
-        "Walk-forward AUC refitted on three label sets, the recovered deals as named "
-        "in the fixture manifest; the label is the model's lift",
+        "Walk-forward AUC refitted on three label sets, each counted in announced "
+        "deals, the recovered deals as named in the fixture manifest; the label is "
+        "the model's lift",
         {
             "rows": [
                 {
-                    "label": f"{label}, {refit.events} deals",
+                    "label": f"{label}, {refit.events} announced deals",
                     "values": {"model": refit.score, "size": refit.baseline_score},
                     # The sign of the lift is the verdict, so every row carries it.
                     "gap": refit.score - refit.baseline_score,
@@ -641,7 +661,8 @@ def _calibration_figure(cal: Calibration) -> dict[str, Any]:
     return _figure(
         "dot",
         title,
-        f"Out-of-sample stated probability against the share acquired within 12 months, "
+        "Out-of-sample stated probability against the share announced as a target "
+        "within 12 months, "
         f"by bucket; hollow marks hold fewer than {cal.thin_below} rows; n = {cal.n:,}",
         {
             "rows": [
@@ -897,7 +918,7 @@ def _scored(result) -> np.ndarray:
     return np.isfinite(result.out_of_sample)
 
 
-def _sample(result) -> Sample:
+def _sample(result, events: list) -> Sample:
     labels = result.labels
     scored = _scored(result)
     y = result.matrix.y
@@ -909,6 +930,7 @@ def _sample(result) -> Sample:
         base_rate=float(labels.base_rate),
         scored_positives=int(y[scored].sum()),
         scored_deals=len({t for t, keep, lab in zip(tickers, scored, y) if keep and lab}),
+        announced_deals=len(events),
     )
 
 
@@ -1209,7 +1231,7 @@ def collect(ctx) -> dict[str, Any]:
             panel, universe, events, ctx.assumptions, as_of=as_of, extras=extras
         )
         evaluation = _evaluation(result)
-        sample = _sample(result)
+        sample = _sample(result, events)
 
     folds = _attempt(
         ctx, "auc_by_fold", "techval.ml.evaluation.evaluate_classification", FIT_INPUTS,
