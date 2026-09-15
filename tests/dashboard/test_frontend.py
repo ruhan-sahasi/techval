@@ -1,14 +1,21 @@
 """Tests for the dashboard front end: the stylesheets, the chart kit and the gallery.
 
-None of these start a browser. They read the asset files as text and hold them
-to the rules a browser cannot enforce for us: the theme structure that keeps a
-colour from existing in only one mode, the ban on markup built from strings,
-the ban on dashed strokes, and the ban on em-dashes in anything a reader sees.
-The drawing itself is checked by rendering the gallery and looking at it.
+Most of these read the asset files as text and hold them to the rules a browser
+cannot enforce for us: the theme structure that keeps a colour from existing in
+only one mode, the ban on markup built from strings, the ban on dashed strokes,
+and the ban on em-dashes in anything a reader sees.
+
+The rest draw the gallery in headless Chrome and measure what landed on the
+page: that a direct label names the value of the dot beside it, that a reference
+label touches no mark, that coincident points are drawn apart. They are
+skipped where Chrome is not installed.
 """
 
 from __future__ import annotations
 
+import html
+import json
+import os
 import re
 import shutil
 import subprocess
@@ -250,8 +257,29 @@ def test_kit_exposes_the_contract_api(kit_source):
 
 def test_kit_has_every_chart_the_contract_names(kit_source):
     assert _object_keys(kit_source, "TV.charts") == {
-        "hbar", "column", "dot", "line", "heat", "hist", "range", "waterfall", "tiles",
+        "hbar", "column", "dot", "line", "heat", "hist", "range", "waterfall", "table", "tiles",
     }
+
+
+def test_kit_exports_the_helpers_the_sections_used_to_copy(kit_source):
+    # A section that needs a resize-aware container, axis ticks or a text measure
+    # reaches for the kit's, so no section carries its own copy.
+    for name in (
+        "frame", "axis", "tickFormat", "measure", "wrapText", "thinLabels",
+        "markGroup", "chartSvg", "crisp", "cautionNote", "refusalNote",
+    ):
+        assert re.search(rf"\bTV\.{name}\s*=", kit_source), f"TV.{name} is not exported"
+    assert {"x", "y", "yWidth"} <= _object_keys(kit_source, "TV.axis")
+
+
+def test_kit_header_documents_the_options_it_reads(kit_source):
+    header = kit_source[: kit_source.index("(function (global)")]
+    for option in (
+        "legend", "table", "tableHeaders", "reference", "lo and hi", "labels", "dodge",
+        "aside", "yScale", "yTitle", "shade", "points", "breaks", "mono", "groups",
+        "colTitle", "order", "card", "part", "note or notes", "refusals", "parts",
+    ):
+        assert option in header, f"the kit header does not document {option}"
 
 
 def test_chips_cover_every_verdict_status(kit_source):
@@ -264,7 +292,7 @@ def test_every_chart_builds_a_table_view(kit_source):
     for chart in ("hbar", "column", "dot", "line", "heat", "hist", "range", "waterfall"):
         match = re.search(rf"\n  function {chart}\(body, spec\) \{{(.*?)\n  \}}\n", kit_source, flags=re.S)
         assert match, f"chart {chart} not found"
-        assert "tableFor(body" in match.group(1), f"{chart} has no table view"
+        assert re.search(r"tableFor\(\s*body", match.group(1)), f"{chart} has no table view"
 
 
 def test_kit_marks_follow_the_mark_specs(kit_source):
@@ -418,11 +446,55 @@ def test_gallery_exercises_every_chart_every_chip_and_every_state(gallery_page, 
     # The gallery never passes itself off as results.
     assert snapshot["fixtures"] == {}
     assert all(
-        p["entry_point"] == "techval.dashboard.gallery.render_gallery"
+        p["entry_point"].startswith("techval.dashboard.gallery.")
         for s in sections
         for p in s["provenance"]
     )
     assert 'id="tv-notice"' in gallery_page and "Synthetic data" in gallery_page
+
+
+def _figures(snapshot):
+    return {fid: f for s in snapshot["sections"].values() for fid, f in s["figures"].items()}
+
+
+def test_gallery_exercises_what_the_kit_absorbed_from_the_sections(gallery_page):
+    snapshot = _snapshot_block(gallery_page)
+    figures = _figures(snapshot)
+    of_kind = lambda kind: [f for f in figures.values() if f["kind"] == kind]  # noqa: E731
+    rows = lambda kind: [r for f in of_kind(kind) for r in f["data"].get("rows", [])]  # noqa: E731
+
+    assert any(isinstance(f.get("order"), (int, float)) for f in figures.values()), "a figure order"
+    assert any("lo" in r and "hi" in r for r in rows("dot")), "whiskers on a dot"
+    assert any("lo" in r and "hi" in r for r in rows("hbar")), "whiskers on a bar"
+    assert any(r.get("group") for r in rows("dot")) and any(r.get("text") for r in rows("dot"))
+    assert any(isinstance(f["data"].get("labels"), dict) for f in of_kind("dot")), "explicit dot labels"
+    assert any(
+        len(set(r["values"].values())) == 1 and len(r["values"]) > 1 for r in rows("dot")
+    ), "a row whose points coincide"
+    assert any(
+        all(r["values"][f["data"]["series"][0]["key"]] == 0 for r in f["data"]["rows"]) for f in of_kind("dot")
+    ), "a dot chart with nothing that stands out"
+    assert any(f["data"].get("legend") is False for f in figures.values()), "a legend turned off"
+    assert any("tableHeaders" in f["data"] for f in figures.values())
+    assert any(isinstance(f["data"].get("table"), dict) for f in figures.values()), "a fuller table"
+    assert any(isinstance(f["data"].get("table"), list) for f in figures.values()), "two fuller tables"
+    assert any(all(s["value"] >= 0 for s in f["data"]["steps"]) for f in of_kind("waterfall"))
+    heat = [f["data"] for f in of_kind("heat")]
+    for option in ("mono", "groups", "breaks", "colTitle", "rowNotes", "rowTips", "labelAlign", "cellMax"):
+        assert any(option in d for d in heat), f"heat {option}"
+    line = [f["data"] for f in of_kind("line")]
+    assert any(d.get("yScale") == "log" and d.get("x", {}).get("type") == "date" for d in line)
+    for option in ("shade", "shadeLegend", "points", "yTitle", "endLabels"):
+        assert any(option in d for d in line), f"line {option}"
+    for kind in ("column", "line"):
+        assert any(f["data"].get("reference") for f in of_kind(kind)), f"a reference rule on a {kind}"
+    assert any(f.get("note") for f in figures.values()), "a caution under a figure"
+    assert any(f.get("card") for f in of_kind("tiles")) and any(f.get("part") for f in figures.values())
+    entry_points = {}
+    for s in snapshot["sections"].values():
+        for p in s["provenance"]:
+            entry_points.setdefault(p["figure"], set()).add(p["entry_point"])
+    assert any(len(e) > 1 for e in entry_points.values()), "a figure with two entry points"
 
 
 def test_gallery_line_charts_stay_within_four_series(gallery_page):
@@ -431,3 +503,312 @@ def test_gallery_line_charts_stay_within_four_series(gallery_page):
         for fid, f in s["figures"].items():
             if f["kind"] == "line":
                 assert len(f["data"]["series"]) <= 4, fid
+
+
+# The gallery, drawn ----------------------------------------------------------------
+#
+# One headless Chrome run draws the gallery at 1440 by 900 and a probe script
+# measures the page once the charts have redrawn for their fonts. Each check is
+# caught on its own, so one failure reports itself rather than hiding the rest.
+
+CHROME_CANDIDATES = (
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "google-chrome",
+    "google-chrome-stable",
+    "chromium",
+    "chromium-browser",
+    "chrome",
+)
+
+
+def _chrome() -> str | None:
+    if os.environ.get("TECHVAL_CHROME"):
+        return os.environ["TECHVAL_CHROME"]
+    for candidate in CHROME_CANDIDATES:
+        found = shutil.which(candidate) or (candidate if Path(candidate).is_file() else None)
+        if found:
+            return found
+    return None
+
+
+PROBE = r"""<script>
+(function () {
+  function fig(id) { return document.querySelector('[data-figure-id="' + id + '"]'); }
+  function box(node) { var b = node.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; }
+  function overlap(a, b) { return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; }
+  function figureOf(node) { var f = node.closest('[data-figure-id]'); return f ? f.getAttribute('data-figure-id') : null; }
+  var checks = {
+    dotLabels: function () {
+      var out = [];
+      document.querySelectorAll('.tv-chart--dot svg').forEach(function (chart) {
+        var circles = Array.prototype.slice.call(chart.querySelectorAll('circle[data-series]'));
+        chart.querySelectorAll('text.tv-value[data-series]').forEach(function (label) {
+          var b = box(label);
+          var nearest = null;
+          var distance = Infinity;
+          circles.forEach(function (c) {
+            var cx = +c.getAttribute('cx'), cy = +c.getAttribute('cy'), r = +c.getAttribute('r');
+            var dx = Math.max(b.x - (cx + r), cx - r - (b.x + b.w), 0);
+            var dy = Math.max(b.y - (cy + r), cy - r - (b.y + b.h), 0);
+            var d = Math.sqrt(dx * dx + dy * dy);
+            if (d < distance) { distance = d; nearest = c; }
+          });
+          out.push({
+            figure: figureOf(label), text: label.textContent, series: label.getAttribute('data-series'),
+            nearestSeries: nearest && nearest.getAttribute('data-series'), nearestValue: nearest && nearest.getAttribute('data-value'),
+          });
+        });
+      });
+      return out;
+    },
+    foldScoreLabels: function () {
+      // Every value label on the fold chart, with the paint of the dot nearest to it.
+      var chart = fig('fold_scores').querySelector('svg');
+      var circles = Array.prototype.slice.call(chart.querySelectorAll('circle'));
+      return Array.prototype.map.call(chart.querySelectorAll('text.tv-value'), function (label) {
+        var b = box(label);
+        var nearest = null;
+        var distance = Infinity;
+        circles.forEach(function (c) {
+          var cx = +c.getAttribute('cx'), cy = +c.getAttribute('cy');
+          var dx = Math.max(b.x - cx, cx - (b.x + b.w), 0);
+          var dy = Math.max(b.y - cy, cy - (b.y + b.h), 0);
+          var d = Math.sqrt(dx * dx + dy * dy);
+          if (d < distance) { distance = d; nearest = c; }
+        });
+        return { text: label.textContent, paint: nearest ? nearest.style.fill : null };
+      });
+    },
+    misdatedLabels: function () { return fig('misdated').querySelectorAll('text.tv-value').length; },
+    coincident: function () {
+      var out = [];
+      document.querySelectorAll('.tv-chart--dot g.tv-markg').forEach(function (g) {
+        var cs = Array.prototype.slice.call(g.querySelectorAll('circle'));
+        for (var i = 0; i < cs.length; i++) for (var j = i + 1; j < cs.length; j++) {
+          var dx = +cs[i].getAttribute('cx') - +cs[j].getAttribute('cx');
+          var dy = +cs[i].getAttribute('cy') - +cs[j].getAttribute('cy');
+          if (Math.sqrt(dx * dx + dy * dy) < 8) out.push(figureOf(g) + ': ' + g.getAttribute('aria-label'));
+        }
+      });
+      return out;
+    },
+    crowding: function () {
+      // Points in different rows of one chart closer than a marker and a gap.
+      var out = [];
+      document.querySelectorAll('.tv-chart--dot svg').forEach(function (chart) {
+        var groups = Array.prototype.slice.call(chart.querySelectorAll('g.tv-markg'));
+        var points = [];
+        groups.forEach(function (g, row) {
+          g.querySelectorAll('circle').forEach(function (c) {
+            points.push({ row: row, x: +c.getAttribute('cx'), y: +c.getAttribute('cy'), label: g.getAttribute('aria-label') });
+          });
+        });
+        for (var i = 0; i < points.length; i++) for (var j = i + 1; j < points.length; j++) {
+          if (points[i].row === points[j].row) continue;
+          var dx = points[i].x - points[j].x, dy = points[i].y - points[j].y;
+          if (Math.sqrt(dx * dx + dy * dy) < 18) out.push(figureOf(chart) + ': ' + points[i].label + ' / ' + points[j].label);
+        }
+      });
+      return out;
+    },
+    refLabels: function () {
+      var out = { labels: 0, overlaps: [] };
+      document.querySelectorAll('svg.tv-svg').forEach(function (chart) {
+        var marks = Array.prototype.slice.call(chart.querySelectorAll('path.tv-mark, rect.tv-mark')).map(box).filter(function (m) { return m.w > 0 && m.h > 0; });
+        var lines = Array.prototype.slice.call(chart.querySelectorAll('path.tv-line'));
+        chart.querySelectorAll('text.tv-ref-label').forEach(function (label) {
+          out.labels++;
+          var b = box(label);
+          if (marks.some(function (m) { return overlap(b, m); })) out.overlaps.push(figureOf(label) + ': "' + label.textContent + '" on a bar');
+          lines.forEach(function (path) {
+            var length = path.getTotalLength();
+            for (var s = 0; s <= length; s += 2) {
+              var p = path.getPointAtLength(s);
+              if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
+                out.overlaps.push(figureOf(label) + ': "' + label.textContent + '" on a line');
+                break;
+              }
+            }
+          });
+        });
+      });
+      return out;
+    },
+    foldTicks: function () {
+      return Array.prototype.map.call(fig('ic_lift_by_fold').querySelectorAll('text.tv-tick'), function (t) { return t.textContent; });
+    },
+    waterfallLegend: function () {
+      return Array.prototype.map.call(fig('segment_income').querySelectorAll('.tv-legend__item'), function (li) { return li.textContent; });
+    },
+    tilesCard: function () {
+      var card = fig('year_five');
+      return {
+        tag: card.tagName.toLowerCase(),
+        part: !!card.querySelector('.tv-figure__part[data-figure-id="year_five_value"]'),
+        tables: card.querySelectorAll('.tv-figure__table table').length,
+        toggle: !card.querySelector('.tv-figure__foot .tv-btn').hidden,
+        source: card.querySelector('.tv-figure__source').textContent,
+      };
+    },
+    overviewOrder: function () {
+      return Array.prototype.map.call(document.querySelectorAll('#overview [data-figure-id]'), function (f) { return f.getAttribute('data-figure-id'); });
+    },
+    legendOff: function () { return fig('precision').querySelectorAll('.tv-legend__item').length; },
+    heatLabels: function () {
+      var chart = fig('coefficients').querySelector('svg');
+      var cellLeft = Math.min.apply(null, Array.prototype.map.call(chart.querySelectorAll('rect.tv-mark'), function (r) { return +r.getAttribute('x'); }));
+      return Array.prototype.map.call(chart.querySelectorAll('text.tv-label'), function (t) {
+        var b = box(t);
+        return { text: t.textContent, left: b.x, right: b.x + b.w, cellLeft: cellLeft };
+      });
+    },
+    absorbed: function () {
+      var ablation = fig('ablation');
+      var closes = fig('closes');
+      return {
+        whiskers: ablation.querySelectorAll('.tv-whisker').length + fig('ndcg_by_method').querySelectorAll('.tv-whisker').length,
+        groups: ablation.querySelectorAll('text.tv-group-label').length,
+        cautions: document.querySelectorAll('.tv-note--caution').length,
+        tableFigure: fig('zz_ledger').querySelectorAll('.tv-figure__body table tbody tr').length,
+        shades: closes.querySelectorAll('rect.tv-shade').length,
+        closeTicks: Array.prototype.map.call(closes.querySelectorAll('text.tv-tick'), function (t) { return t.textContent; }),
+        fullerTables: closes.querySelectorAll('.tv-figure__table table').length,
+      };
+    },
+    failures: function () {
+      return Array.prototype.map.call(document.querySelectorAll('.tv-note'), function (n) { return n.textContent; }).filter(function (t) {
+        return /renderer for this section failed|has no chart named/.test(t);
+      });
+    },
+  };
+  function run() {
+    var out = {};
+    Object.keys(checks).forEach(function (name) {
+      try { out[name] = checks[name](); } catch (err) { out[name] = { error: String(err) }; }
+    });
+    var pre = document.createElement('pre');
+    pre.id = 'tv-probe';
+    pre.textContent = JSON.stringify(out);
+    document.body.appendChild(pre);
+  }
+  window.addEventListener('load', function () { setTimeout(run, 3000); });
+})();
+</script>"""
+
+
+@pytest.fixture(scope="module")
+def drawn(gallery, tmp_path_factory):
+    chrome = _chrome()
+    if chrome is None:
+        pytest.skip("Chrome is not installed, so the gallery cannot be drawn")
+    work = tmp_path_factory.mktemp("drawn")
+    page = work / "gallery.html"
+    page.write_text(gallery.render_gallery().replace("</body>", PROBE + "</body>"), encoding="utf-8")
+    command = [
+        chrome,
+        "--headless=new",
+        "--disable-gpu",
+        "--hide-scrollbars",
+        "--window-size=1440,900",
+        "--virtual-time-budget=15000",
+        "--dump-dom",
+        page.as_uri() + "?theme=light",
+    ]
+    # A private --user-data-dir makes Chrome on macOS dump the page and then never
+    # exit, so the run uses headless Chrome's own throwaway profile. Should a run
+    # still hang after the dump, what it printed is enough.
+    try:
+        result = subprocess.run(command, capture_output=True, timeout=180)
+        out, err = result.stdout, result.stderr
+    except subprocess.TimeoutExpired as hung:
+        out, err = hung.stdout or b"", hung.stderr or b""
+    out = out.decode("utf-8", "replace")
+    match = re.search(r'<pre id="tv-probe">(.*?)</pre>', out, flags=re.S)
+    assert match, f"the probe did not report: {err.decode('utf-8', 'replace')[-2000:]}"
+    return json.loads(html.unescape(match.group(1)))
+
+
+def _checked(drawn, name):
+    value = drawn[name]
+    assert not (isinstance(value, dict) and "error" in value), f"{name}: {value}"
+    return value
+
+
+def test_the_drawn_gallery_has_no_renderer_failure(drawn):
+    assert _checked(drawn, "failures") == []
+
+
+def test_a_dot_label_names_only_the_value_of_the_dot_beside_it(drawn):
+    labels = _checked(drawn, "dotLabels")
+    assert any(label["figure"] == "fold_scores" for label in labels), "the fold chart carries no label"
+    for label in labels:
+        assert label["nearestSeries"] == label["series"], label
+        assert label["nearestValue"] == label["text"], label
+
+
+def test_the_fold_label_sits_beside_the_model_not_the_baseline_it_trails(drawn):
+    # Fold 2 has the widest gap and the model sits left of the median there. The
+    # label reads the model's 0.352, so the dot nearest it must be the model's,
+    # judged by paint alone so the check does not lean on the kit's own markup.
+    labels = _checked(drawn, "foldScoreLabels")
+    assert [label["text"] for label in labels] == ["0.352"], labels
+    assert labels[0]["paint"] == "var(--c-model)", labels
+
+
+def test_a_dot_chart_where_nothing_stands_out_carries_no_label(drawn):
+    assert _checked(drawn, "misdatedLabels") == 0
+
+
+def test_coincident_points_are_drawn_apart(drawn):
+    assert _checked(drawn, "coincident") == []
+
+
+def test_points_drawn_apart_stay_clear_of_the_next_row(drawn):
+    assert _checked(drawn, "crowding") == []
+
+
+def test_reference_labels_touch_no_bar_and_no_line(drawn):
+    refs = _checked(drawn, "refLabels")
+    assert refs["labels"] >= 4
+    assert refs["overlaps"] == []
+
+
+def test_column_labels_keep_the_first_and_the_last(drawn):
+    # Twelve fold labels do not all fit the card, so some are dropped, never the ends.
+    ticks = [t for t in _checked(drawn, "foldTicks") if t.startswith("Fold")]
+    assert len(ticks) < 12, ticks
+    assert ticks[0] == "Fold 1" and ticks[-1] == "Fold 12", ticks
+
+
+def test_a_waterfall_legend_lists_only_the_steps_it_draws(drawn):
+    assert _checked(drawn, "waterfallLegend") == ["Segment operating income", "Operating income"]
+
+
+def test_tiles_in_a_card_carry_a_table_a_part_and_every_entry_point(drawn):
+    card = _checked(drawn, "tilesCard")
+    assert card["tag"] == "figure" and card["part"] and card["toggle"]
+    assert card["tables"] == 2
+    assert "render_gallery" in card["source"] and "gallery_snapshot" in card["source"]
+
+
+def test_figures_follow_their_order_number_not_their_key(drawn):
+    assert _checked(drawn, "overviewOrder") == ["verdicts", "zz_ledger", "collect_seconds"]
+
+
+def test_a_legend_turned_off_draws_no_legend(drawn):
+    assert _checked(drawn, "legendOff") == 0
+
+
+def test_heat_row_labels_are_never_clipped(drawn):
+    for label in _checked(drawn, "heatLabels"):
+        assert label["left"] >= 0 and label["right"] <= label["cellLeft"], label
+
+
+def test_the_kit_draws_what_the_sections_used_to_draw_locally(drawn):
+    absorbed = _checked(drawn, "absorbed")
+    assert absorbed["whiskers"] >= 24  # three strokes a whisker, four on the ablation, four on the bars
+    assert absorbed["groups"] == 2
+    assert absorbed["cautions"] >= 1
+    assert absorbed["tableFigure"] == 3
+    assert absorbed["shades"] == 2 and absorbed["fullerTables"] == 2
+    assert {"2022", "2023", "2024"} <= set(absorbed["closeTicks"])

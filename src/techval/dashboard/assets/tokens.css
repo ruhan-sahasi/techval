@@ -74,6 +74,8 @@
 
   /* Entities. */
   --c-model: var(--series-1);
+  /* A second reading of the same model, drawn behind the first. Mixed on :root, so it follows the theme. */
+  --c-model-muted: color-mix(in oklab, var(--c-model) 38%, var(--surface));
   --c-alt: var(--series-2);
   --c-third: var(--series-3);
   --c-baseline: var(--deemph);

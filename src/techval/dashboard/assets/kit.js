@@ -8,13 +8,81 @@
  * Colours are never hex values here. Marks are painted with var(--token)
  * references, so a theme change repaints a chart without redrawing it, and
  * colour follows the entity: a series with role "model" is --c-model wherever
- * it appears.
+ * it appears. The roles are model, model-muted (a tint of the model, for a
+ * second reading of the same model), baseline, alt (the one named
+ * comparison), third, total, and pos and neg for diverging bars.
  *
  * Mark rules the kit enforces rather than suggests: bars at most 24px thick
  * with a 4px rounded data end and a square baseline end, 2px lines with round
  * joins, markers of radius 4 with a 2px surface ring, solid 1px hairlines for
  * grids and references, one y axis, a legend only for two or more series, and
  * a table view for every chart so no value is reachable only by hover.
+ *
+ * Options every chart reads, beyond its own data:
+ *
+ *   legend        false (or []) draws no legend; a list of {label, role or
+ *                 color, shape} draws exactly that list.
+ *   table         a fuller table view in place of the drawn series: one
+ *                 {columns, rows, caption} or a list of them. A cell may be a
+ *                 string, a number, a node, or {text, sub, chip, mono, muted}.
+ *   tableHeaders  {key: header} renames a column of the chart's own table.
+ *   reference     rules at a value, labelled. A horizontal rule's label is
+ *                 measured and set where it touches no mark: the right end
+ *                 above or below the rule, then the left end, then outside
+ *                 the plot beyond its right edge.
+ *   labelWidth    where hbar, dot and range wrap their row labels: pixels, or
+ *                 a share of the chart's width when at most 1 (default 0.34).
+ *
+ * Chart by chart, what is not obvious from the data:
+ *
+ *   hbar    rows [{label, value, role, note, lo, hi}]; lo and hi draw a whisker.
+ *   column  rows [{label, value, role}]; diverging colours by sign. Column
+ *           labels are thinned to fit and the first and last always stay.
+ *   dot     series [{key, name, role}] and rows [{label, values, lo, hi,
+ *           intervals: {key: {lo, hi}}, group, text, tip, role, hollow,
+ *           aside, asideStrong, labelled, gap}]. A value label names only the
+ *           value of the dot it sits beside. labels: "none", "all", or
+ *           {series, rows: "auto" | "all" | "flagged" | [index], text: "value"
+ *           | "gap"}; by default the row that stands out (largest gap for two
+ *           series, largest value otherwise) is labelled, and a row that
+ *           carries text is labelled with that text instead. Points closer
+ *           than a marker are drawn apart vertically, the row growing to hold
+ *           them, unless dodge is false.
+ *           aside is a column of text at the right edge, under asideHeader.
+ *   line    series [{name, role, values: [{x, y, lo, hi}]}]; x {label,
+ *           format, type: "date"}; yScale "log"; yTitle; shade [{from, to,
+ *           label, tip}] with shadeLegend; points [{x, y, label, tip}].
+ *   heat    rows, cols, values; scale "diverging" or sequential; breaks [a, b]
+ *           for fixed diverging classes; mono and labelAlign for row labels,
+ *           which are never clipped (labelWidth wraps them); groups [{label,
+ *           count}]; colTitle; cellMax; rowNotes; rowTips.
+ *   hist    edges and series [{name, role, counts}], at most two series.
+ *   range   rows [{label, lo, mid, hi, role}], the football field.
+ *   waterfall start, steps [{label, value}] and total; its legend lists only
+ *           the kinds of step it draws.
+ *   table   columns and rows, drawn as the figure itself.
+ *   tiles   tiles [{label, value, format, sub, delta, status}]. Inside a
+ *           figure card they carry their own table view.
+ *
+ * Figures in a section: TV.sections.figures(root, data, opts) draws each
+ * figure by its kind, in reading order. A figure may carry order (a number),
+ * wide, card (tiles drawn in a card), part (the id of the card it is drawn
+ * inside), note or notes (a caution: the figure stands but is fragile), and
+ * refusals (the names of section refusals that belong under it). opts:
+ *
+ *   order     a list of ids, lists of ids, or {title, ids}; each list starts
+ *             a new group, a titled group gets a heading. Unnamed figures
+ *             follow in their own order.
+ *   figures   {id: override} merged over the snapshot's figure; its data may
+ *             be a function of the figure's data, and draw or after a
+ *             function of (handle, figure).
+ *   parts     {childId: parentId}, the same as part on the figure.
+ *   refusals  function (id, figure) returning more refusal names.
+ *
+ * Helpers the sections share: TV.frame (a chart container redrawn when its
+ * width changes), TV.axis.x, TV.axis.y and TV.axis.yWidth, TV.tickFormat,
+ * TV.measure (sans or mono), TV.wrapText, TV.thinLabels, TV.markGroup,
+ * TV.chartSvg, TV.crisp, TV.barPath, TV.refusalNote and TV.cautionNote.
  */
 (function (global) {
   "use strict";
@@ -25,6 +93,7 @@
   var RADIUS = 4;
   var GAP = 2;
   var HIT_MIN = 24;
+  var GROUP_ROW = 26;
 
   var TV = global.TV || {};
   global.TV = TV;
@@ -61,8 +130,22 @@
     return seen;
   }
 
+  function maxOf(list, floor) {
+    return Math.max.apply(null, [isNum(floor) ? floor : 0].concat(finite(list)));
+  }
+
   function crisp(v) {
     return Math.round(v) + 0.5;
+  }
+
+  TV.crisp = crisp;
+
+  /* An ISO date, 2016-09-16, as UTC milliseconds; NaN for anything else. */
+  function parseDay(text) {
+    var s = String(isNil(text) ? "" : text);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return NaN;
+    var t = Date.parse(s + "T00:00:00Z");
+    return isFinite(t) ? t : NaN;
   }
 
   /* Element builders ------------------------------------------------------ */
@@ -117,6 +200,10 @@
   function clear(node) {
     while (node.firstChild) node.removeChild(node.firstChild);
     return node;
+  }
+
+  function isNode(v) {
+    return !!v && typeof v === "object" && typeof v.nodeType === "number";
   }
 
   TV.el = el;
@@ -198,6 +285,12 @@
     return num(v, dpOr(dp, 1)) + "x";
   }
 
+  /* A difference of two probabilities in percentage points: +30.5 pts. */
+  function points(v, dp) {
+    if (!isNum(v)) return "n/a";
+    return signed(v * 100, dpOr(dp, 1)) + " pts";
+  }
+
   function auto(v) {
     if (!isNum(v)) return "n/a";
     var abs = Math.abs(v);
@@ -215,6 +308,7 @@
     compact: compact,
     mm: mm,
     mult: mult,
+    points: points,
     int: function (v) {
       return num(v, 0);
     },
@@ -223,7 +317,7 @@
 
   /*
    * Figure data arrives as JSON, so a format is usually a string: "num:4",
-   * "pct:1", "signed:4", "compact", "mm", "mult:1". A function also works.
+   * "pct:1", "signed:4", "compact", "mm", "mult:1", "points". A function also works.
    */
   function format(spec, v) {
     if (typeof spec === "function") return spec(v);
@@ -265,6 +359,8 @@
     };
   }
 
+  TV.tickFormat = tickFormatter;
+
   /* Tokens and colour ----------------------------------------------------- */
 
   TV.token = function (name) {
@@ -274,6 +370,7 @@
 
   var ROLE_VARS = {
     model: "var(--c-model)",
+    "model-muted": "var(--c-model-muted)",
     baseline: "var(--c-baseline)",
     alt: "var(--c-alt)",
     third: "var(--c-third)",
@@ -284,6 +381,7 @@
 
   var ROLE_LABELS = {
     model: "Model",
+    "model-muted": "Model",
     baseline: "Baseline",
     alt: "Comparison",
     third: "Third",
@@ -362,6 +460,53 @@
     return scale;
   }
 
+  /* A log scale on 1, 2 and 5 times a power of ten, between two positive bounds. */
+  function niceLogBound(v, up) {
+    var k = Math.floor(Math.log10(v));
+    var steps = [1, 2, 5, 10];
+    var base = Math.pow(10, k);
+    if (up) {
+      for (var i = 0; i < steps.length; i++) if (steps[i] * base >= v * 0.999999) return steps[i] * base;
+    } else {
+      for (var j = steps.length - 1; j >= 0; j--) if (steps[j] * base <= v * 1.000001) return steps[j] * base;
+    }
+    return v;
+  }
+
+  function logTicks(lo, hi, maxCount) {
+    var out = [];
+    var k0 = Math.floor(Math.log10(lo));
+    var k1 = Math.ceil(Math.log10(hi));
+    [[1, 2, 5], [1]].some(function (mults) {
+      out = [];
+      for (var k = k0; k <= k1; k++) {
+        mults.forEach(function (m) {
+          var v = m * Math.pow(10, k);
+          if (v >= lo * 0.999 && v <= hi * 1.001) out.push(parseFloat(v.toPrecision(6)));
+        });
+      }
+      return out.length <= maxCount;
+    });
+    return out;
+  }
+
+  function logScale(lo, hi, range) {
+    var d0 = niceLogBound(lo, false);
+    var d1 = niceLogBound(hi, true);
+    if (d0 === d1) d1 = d0 * 10;
+    var inner = linear([Math.log10(d0), Math.log10(d1)], range);
+    var scale = function (v) {
+      return inner(Math.log10(v));
+    };
+    scale.domain = [d0, d1];
+    scale.range = range.slice();
+    scale.ticks = function (n) {
+      return logTicks(d0, d1, n || 8);
+    };
+    scale.log = true;
+    return scale;
+  }
+
   function band(keys, range, opts) {
     opts = opts || {};
     var padding = isNum(opts.padding) ? clamp(opts.padding, 0, 0.95) : 0.2;
@@ -387,31 +532,38 @@
     return scale;
   }
 
-  TV.scale = { linear: linear, band: band };
+  TV.scale = { linear: linear, band: band, log: logScale };
 
   /* Text measurement and wrapping ----------------------------------------- */
 
   var measureCtx = null;
   var fontFamily = null;
+  var monoFamily = null;
 
-  function measure(text, size, weight) {
+  /* family "mono" measures in the mono face; anything else in the sans face. */
+  function measure(text, size, weight, family) {
     if (!measureCtx) {
       measureCtx = document.createElement("canvas").getContext("2d");
     }
-    if (!fontFamily) {
-      fontFamily = TV.token("--font-sans") || "system-ui, sans-serif";
+    var face;
+    if (family === "mono") {
+      if (!monoFamily) monoFamily = TV.token("--font-mono") || "monospace";
+      face = monoFamily;
+    } else {
+      if (!fontFamily) fontFamily = TV.token("--font-sans") || "system-ui, sans-serif";
+      face = fontFamily;
     }
-    measureCtx.font = (weight || 400) + " " + (size || 12) + "px " + fontFamily;
+    measureCtx.font = (weight || 400) + " " + (size || 12) + "px " + face;
     return Math.ceil(measureCtx.measureText(String(text)).width * 1.04) + 1;
   }
 
-  function wrapText(text, maxWidth, size, maxLines, weight) {
+  function wrapText(text, maxWidth, size, maxLines, weight, family) {
     var words = String(isNil(text) ? "" : text).split(/\s+/).filter(Boolean);
     var lines = [];
     var line = "";
     words.forEach(function (word) {
       var next = line ? line + " " + word : word;
-      if (!line || measure(next, size, weight) <= maxWidth) {
+      if (!line || measure(next, size, weight, family) <= maxWidth) {
         line = next;
       } else {
         lines.push(line);
@@ -428,13 +580,47 @@
     var width = Math.max.apply(
       null,
       lines.map(function (l) {
-        return measure(l, size, weight);
+        return measure(l, size, weight, family);
       })
     );
     return { lines: lines, width: width };
   }
 
   TV.measure = measure;
+  TV.wrapText = wrapText;
+
+  /*
+   * Which labels along an axis to show: items are {center, width} in order.
+   * The first label and the last always stay; a middle label is dropped only
+   * when it would touch a label already kept or the last one.
+   */
+  function thinLabels(items, gap) {
+    var n = items.length;
+    if (!n) return [];
+    gap = isNum(gap) ? gap : 6;
+    function left(i) {
+      return items[i].center - items[i].width / 2;
+    }
+    function right(i) {
+      return items[i].center + items[i].width / 2;
+    }
+    var kept = [0];
+    if (n === 1) return kept;
+    for (var i = 1; i < n - 1; i++) {
+      if (left(i) >= right(kept[kept.length - 1]) + gap && right(i) + gap <= left(n - 1)) kept.push(i);
+    }
+    if (left(n - 1) >= right(kept[kept.length - 1]) + gap) {
+      kept.push(n - 1);
+    } else if (kept.length > 1) {
+      kept.pop();
+      kept.push(n - 1);
+    } else if (left(n - 1) >= right(0)) {
+      kept.push(n - 1);
+    }
+    return kept;
+  }
+
+  TV.thinLabels = thinLabels;
 
   /* Draw a multi-line label with its block centred on y. */
   function textBlock(parent, lines, x, y, attrs, lineHeight) {
@@ -447,6 +633,49 @@
     node.removeAttribute("dy");
     parent.appendChild(node);
     return node;
+  }
+
+  TV.textBlock = textBlock;
+
+  /* Geometry for placing labels clear of marks ---------------------------- */
+
+  function rectsOverlap(a, b, pad) {
+    pad = pad || 0;
+    return a.x < b.x + b.w + pad && b.x < a.x + a.w + pad && a.y < b.y + b.h + pad && b.y < a.y + a.h + pad;
+  }
+
+  function segmentHitsRect(s, r, pad) {
+    var x0 = r.x - pad;
+    var x1 = r.x + r.w + pad;
+    var y0 = r.y - pad;
+    var y1 = r.y + r.h + pad;
+    if (Math.max(s[0], s[2]) < x0 || Math.min(s[0], s[2]) > x1 || Math.max(s[1], s[3]) < y0 || Math.min(s[1], s[3]) > y1) {
+      return false;
+    }
+    var len = Math.max(Math.abs(s[2] - s[0]), Math.abs(s[3] - s[1]));
+    var n = Math.max(1, Math.ceil(len / 2));
+    for (var i = 0; i <= n; i++) {
+      var t = i / n;
+      var px = s[0] + (s[2] - s[0]) * t;
+      var py = s[1] + (s[3] - s[1]) * t;
+      if (px >= x0 && px <= x1 && py >= y0 && py <= y1) return true;
+    }
+    return false;
+  }
+
+  /* obstacles are {rect: {x, y, w, h}} or {seg: [x1, y1, x2, y2]}. */
+  function hits(box, obstacles) {
+    return obstacles.some(function (o) {
+      if (o.rect) return rectsOverlap(box, o.rect, 3);
+      if (o.seg) return segmentHitsRect(o.seg, box, 2);
+      return false;
+    });
+  }
+
+  /* An 11px label's box around its baseline. */
+  function labelBox(x, base, w, anchor) {
+    var left = anchor === "end" ? x - w : anchor === "middle" ? x - w / 2 : x;
+    return { x: left, y: base - 9, w: w, h: 12 };
   }
 
   /* Status chips ---------------------------------------------------------- */
@@ -514,7 +743,7 @@
   };
   TV.STATUS = STATUS;
 
-  /* Figure cards ---------------------------------------------------------- */
+  /* Notes ------------------------------------------------------------------ */
 
   function refusalNote(refusal) {
     var what = refusal && refusal.what;
@@ -532,7 +761,73 @@
     );
   }
 
+  /*
+   * A caution: the figure above it stands, but a limit of its input makes it
+   * fragile. It carries the warning glyph, never the refusal chip. A string, or
+   * {what, why} for a caution with a name.
+   */
+  function cautionNote(note) {
+    var what = typeof note === "string" ? "" : note && note.what;
+    var why = typeof note === "string" ? note : note && note.why;
+    return el(
+      "div",
+      { class: "tv-note tv-note--caution", role: "note" },
+      chipIcon("inside_noise"),
+      el("p", null, what ? el("strong", null, what) : null, what && why ? ". " : "", why || "")
+    );
+  }
+
   TV.refusalNote = refusalNote;
+  TV.cautionNote = cautionNote;
+
+  /* Figure cards ---------------------------------------------------------- */
+
+  function provenanceRows(provenance) {
+    var list = Array.isArray(provenance) ? provenance : isNil(provenance) ? [] : [provenance];
+    return list
+      .map(function (p) {
+        return typeof p === "string" ? { entry_point: p, inputs: [] } : p;
+      })
+      .filter(function (p) {
+        return p && p.entry_point;
+      });
+  }
+
+  /*
+   * Every entry point behind a figure, compactly: entry points in one module
+   * share its path, so techval.commands_peers._load_groups, _load_panel.
+   */
+  function compactEntries(rows) {
+    var groups = [];
+    distinct(
+      rows.map(function (p) {
+        return String(p.entry_point);
+      })
+    ).forEach(function (entry) {
+      var cut = entry.lastIndexOf(".");
+      var mod = cut > 0 ? entry.slice(0, cut) : "";
+      var name = cut > 0 ? entry.slice(cut + 1) : entry;
+      var group = groups.filter(function (g) {
+        return g.mod === mod;
+      })[0];
+      if (group) group.names.push(name);
+      else groups.push({ mod: mod, names: [name] });
+    });
+    return groups
+      .map(function (g) {
+        return (g.mod ? g.mod + "." : "") + g.names.join(", ");
+      })
+      .join(" · ");
+  }
+
+  function sourceTitle(rows) {
+    return rows
+      .map(function (p) {
+        var inputs = p.inputs && p.inputs.length ? p.inputs.join(", ") : "no inputs";
+        return p.entry_point + ": " + inputs;
+      })
+      .join("\n");
+  }
 
   TV.figure = function (parent, opts) {
     opts = opts || {};
@@ -548,22 +843,19 @@
     var table = el("div", { class: "tv-figure__table", hidden: true });
     var notes = el("div", { class: "tv-figure__notes" });
     var toggle = el("button", { class: "tv-btn", type: "button", hidden: true }, "View table");
-
-    var provenance = opts.provenance;
-    var entry = null;
-    if (typeof provenance === "string") entry = provenance;
-    else if (provenance && provenance.entry_point) entry = provenance.entry_point;
-    var source = entry
-      ? el(
-          "span",
-          {
-            class: "tv-figure__source",
-            title: provenance && provenance.inputs ? provenance.inputs.join("\n") : null,
-          },
-          entry
-        )
-      : el("span");
+    var source = el("span", { class: "tv-figure__source" });
     var foot = el("footer", { class: "tv-figure__foot" }, toggle, source);
+    var entries = [];
+
+    function addProvenance(provenance) {
+      entries = entries.concat(provenanceRows(provenance));
+      clear(source);
+      if (entries.length) {
+        source.appendChild(document.createTextNode(compactEntries(entries)));
+        source.setAttribute("title", sourceTitle(entries));
+      }
+    }
+    addProvenance(opts.provenance);
 
     var root = el(
       "figure",
@@ -591,13 +883,56 @@
       toggle: toggle,
       title: opts.title || "",
       addNote: function (refusal) {
-        var key = (refusal && refusal.what) + " " + (refusal && refusal.why);
+        var key = (refusal && refusal.what) + " " + (refusal && refusal.why);
         if (noted.indexOf(key) >= 0) return;
         noted.push(key);
         notes.appendChild(refusalNote(refusal));
       },
       hasNote: function (refusal) {
-        return noted.indexOf((refusal && refusal.what) + " " + (refusal && refusal.why)) >= 0;
+        return noted.indexOf((refusal && refusal.what) + " " + (refusal && refusal.why)) >= 0;
+      },
+      addCaution: function (note) {
+        notes.appendChild(cautionNote(note));
+      },
+      addProvenance: addProvenance,
+      /*
+       * A second figure drawn inside this card, under its own heading. Its table
+       * view joins the card's, its entry points join the card's source line.
+       */
+      part: function (o) {
+        o = o || {};
+        var partLegend = el("div", { class: "tv-figure__legend" });
+        var partBody = el("div", { class: "tv-figure__body" });
+        var block = el(
+          "div",
+          { class: "tv-figure__part", "data-figure-id": o.id || null },
+          el(
+            "div",
+            { class: "tv-figure__head" },
+            el("h4", { class: "tv-figure__title" }, o.title || ""),
+            o.subtitle ? el("p", { class: "tv-figure__subtitle" }, o.subtitle) : null
+          ),
+          partLegend,
+          partBody
+        );
+        body.appendChild(block);
+        addProvenance(o.provenance);
+        var sub = {
+          root: block,
+          body: partBody,
+          legend: partLegend,
+          footer: foot,
+          table: table,
+          notes: notes,
+          toggle: toggle,
+          title: o.title || "",
+          addNote: handle.addNote,
+          hasNote: handle.hasNote,
+          addCaution: handle.addCaution,
+          addProvenance: addProvenance,
+        };
+        block.__tvHandle = sub;
+        return sub;
       },
     };
 
@@ -615,12 +950,15 @@
         handle.addNote(typeof n === "string" ? { what: "", why: n } : n);
       });
     }
+    if (opts.caution) {
+      (Array.isArray(opts.caution) ? opts.caution : [opts.caution]).forEach(handle.addCaution);
+    }
     if (parent) parent.appendChild(root);
     return handle;
   };
 
   function handleFor(body) {
-    var fig = body && body.closest ? body.closest(".tv-figure") : null;
+    var fig = body && body.closest ? body.closest(".tv-figure__part, .tv-figure") : null;
     return fig && fig.__tvHandle ? fig.__tvHandle : null;
   }
 
@@ -628,8 +966,9 @@
 
   TV.legend = function (slot, items) {
     clear(slot);
+    if (!items || !items.length) return null;
     var list = el("ul", { class: "tv-legend" });
-    (items || []).forEach(function (item) {
+    items.forEach(function (item) {
       list.appendChild(
         el(
           "li",
@@ -656,6 +995,25 @@
       body.appendChild(slot);
       TV.legend(slot, items);
     }
+  }
+
+  function legendOff(spec) {
+    return spec.legend === false || (Array.isArray(spec.legend) && !spec.legend.length);
+  }
+
+  /* A chart's legend: none when the spec turns it off, the spec's own list when it gives one. */
+  function chartLegend(body, spec, items, shape) {
+    if (legendOff(spec)) return;
+    if (Array.isArray(spec.legend)) {
+      legendFor(
+        body,
+        spec.legend.map(function (item) {
+          return { label: item.label, color: item.role || item.color, shape: item.shape || shape };
+        })
+      );
+      return;
+    }
+    if (items && items.length > 1) legendFor(body, items);
   }
 
   /* Tooltip --------------------------------------------------------------- */
@@ -758,7 +1116,40 @@
 
   TV.tooltip = tooltip;
 
+  /* Extra tooltip rows a figure's data carries: [{label, value, format}]. */
+  function tipRows(list) {
+    return (Array.isArray(list) ? list : list ? [list] : [])
+      .filter(function (t) {
+        return t && !isNil(t.label);
+      })
+      .map(function (t) {
+        return { label: t.label, value: typeof t.value === "string" ? t.value : format(t.format, t.value) };
+      });
+  }
+
   /* Table view ------------------------------------------------------------ */
+
+  /*
+   * A cell is a string, a number (formatted by its column), a node, or
+   * {text, sub, chip, chipText, mono, muted}: a first line, a muted second line
+   * and a status chip.
+   */
+  function cellContent(raw, column) {
+    if (isNode(raw)) return raw;
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+      var first = null;
+      if (raw.chip) {
+        first = TV.chip(raw.chip, isNil(raw.chipText) ? null : raw.chipText, { compact: true });
+      } else if (!isNil(raw.text)) {
+        var text = isNum(raw.text) ? format(column.format, raw.text) : String(raw.text);
+        first = raw.mono || raw.muted ? el("span", { class: (raw.mono ? "tv-mono" : "") + (raw.muted ? " tv-muted" : "") }, text) : text;
+      }
+      if (isNil(raw.sub) || raw.sub === "") return first;
+      return [el("div", null, first), el("div", { class: "tv-muted" }, String(raw.sub))];
+    }
+    if (column.format || isNum(raw)) return format(column.format, raw);
+    return isNil(raw) ? "n/a" : String(raw);
+  }
 
   TV.tableView = function (handle, spec) {
     spec = spec || {};
@@ -781,14 +1172,13 @@
           "tr",
           null,
           columns.map(function (c, i) {
-            var raw = row[c.key];
-            var text = c.format || isNum(raw) ? format(c.format, raw) : isNil(raw) ? "n/a" : String(raw);
-            var cls = [c.align === "right" ? "tv-num" : null, c.mono ? "tv-mono" : null]
+            var cls = [c.align === "right" ? "tv-num" : null, c.mono ? "tv-mono" : null, c.nowrap ? "tv-nowrap" : null]
               .filter(Boolean)
               .join(" ");
+            var content = cellContent(row ? row[c.key] : null, c);
             return i === 0
-              ? el("th", { scope: "row", class: cls || null }, text)
-              : el("td", { class: cls || null }, text);
+              ? el("th", { scope: "row", class: cls || null }, content)
+              : el("td", { class: cls || null }, content);
           })
         );
       })
@@ -803,20 +1193,43 @@
     );
     var wrap = el("div", { class: "tv-table-wrap", tabindex: "0", role: "region", "aria-label": label }, table);
     target.appendChild(wrap);
-    if (handle && handle.toggle) handle.toggle.hidden = false;
+    if (handle && handle.toggle && handle.table) handle.toggle.hidden = false;
     return wrap;
   };
 
-  function tableFor(body, spec) {
+  /*
+   * A chart's table view: the spec's fuller table when it gives one, otherwise
+   * the chart's own columns with any headers the spec renames.
+   */
+  function tableFor(body, def, spec) {
     var handle = handleFor(body);
-    if (handle) TV.tableView(handle, spec);
+    if (!handle) return;
+    var custom = spec && spec.table;
+    var list = (Array.isArray(custom) ? custom : custom ? [custom] : []).filter(function (t) {
+      return t && Array.isArray(t.columns);
+    });
+    if (list.length) {
+      list.forEach(function (t) {
+        TV.tableView(handle, t);
+      });
+      return;
+    }
+    var headers = (spec && spec.tableHeaders) || {};
+    TV.tableView(
+      handle,
+      Object.assign({}, def, {
+        columns: def.columns.map(function (c) {
+          return Object.prototype.hasOwnProperty.call(headers, c.key) ? Object.assign({}, c, { label: headers[c.key] }) : c;
+        }),
+      })
+    );
   }
 
   /* Chart frame: one container, redrawn when its width changes ------------- */
 
   var liveCharts = [];
 
-  function frame(body, spec, kind, draw) {
+  function frame(body, kind, draw) {
     var wrap = el("div", { class: "tv-chart tv-chart--" + kind });
     body.appendChild(wrap);
     var lastWidth = -1;
@@ -846,8 +1259,11 @@
     return wrap;
   }
 
+  TV.frame = frame;
+
   function redrawAll() {
     fontFamily = null;
+    monoFamily = null;
     liveCharts.forEach(function (wrap) {
       if (wrap.isConnected) wrap.__tvRender(true);
     });
@@ -865,9 +1281,11 @@
       height: height,
       viewBox: "0 0 " + width + " " + height,
       role: "img",
-      "aria-label": spec.ariaLabel || spec.title || kind + " chart",
+      "aria-label": (spec && (spec.ariaLabel || spec.title)) || kind + " chart",
     });
   }
+
+  TV.chartSvg = chartSvg;
 
   function empty(body, text) {
     body.appendChild(el("p", { class: "tv-empty" }, text || "No values to draw."));
@@ -936,7 +1354,9 @@
     return g;
   }
 
-  function xAxisTicks(g, scale, y0, y1, fmt, count, maxWidth) {
+  TV.markGroup = markGroup;
+
+  function xAxisTicks(g, scale, y0, y1, fmt, count) {
     var ticks = scale.ticks(count);
     ticks.forEach(function (t) {
       var x = crisp(scale(t));
@@ -985,6 +1405,20 @@
     );
   }
 
+  /*
+   * How many ticks to ask a horizontal axis for: one per 90px and at least
+   * three, so a chart in a half-width card still reads its scale, and never so
+   * few that a finely niced domain is left with a single label. Labels that
+   * would touch are dropped as they are drawn.
+   */
+  function labelTickCount(scale, plotWidth) {
+    var count = Math.max(3, Math.floor(plotWidth / 90));
+    while (scale.ticks(count).length < 2 && count < 10) count++;
+    return count;
+  }
+
+  TV.axis = { x: xAxisTicks, y: yAxisTicks, yWidth: yTickWidth, count: labelTickCount };
+
   function referenceValues(spec) {
     return (spec.reference || [])
       .map(function (r) {
@@ -1013,40 +1447,105 @@
     return refs.length ? refs.length * 14 + 6 : 0;
   }
 
-  function horizontalRefs(g, spec, y, left, right) {
+  /*
+   * Where each horizontal reference label goes. Tried in turn: the right end
+   * above the rule, the right end below it, the left end above and the left
+   * end below; the first spot that touches no obstacle (a bar, a value label,
+   * a line, another reference label) wins. With none free the label goes
+   * outside the plot beyond its right edge, and outside is how much room that
+   * needs. forced keeps a label outside once a caller has made room for it.
+   */
+  function placeHorizontalRefs(spec, y, left, right, top, bottom, obstacles, forced) {
+    var list = [];
+    var outside = 0;
+    var taken = [];
     (spec.reference || []).forEach(function (ref) {
       if (!ref || !isNum(ref.value)) return;
+      var index = list.length;
       var py = crisp(y(ref.value));
-      g.appendChild(svg("line", { class: "tv-ref", x1: left, x2: right, y1: py, y2: py }));
-      if (ref.label) {
-        g.appendChild(svg("text", { class: "tv-ref-label", x: left + 4, y: py - 6 }, ref.label));
+      var item = { ref: ref, py: py, text: ref.label ? String(ref.label) : "", outside: false };
+      list.push(item);
+      if (!item.text) return;
+      var w = measure(item.text, 11, 500);
+      item.width = w;
+      var spots = [
+        { x: right - 4, anchor: "end", base: py - 5 },
+        { x: right - 4, anchor: "end", base: py + 13 },
+        { x: left + 4, anchor: "start", base: py - 5 },
+        { x: left + 4, anchor: "start", base: py + 13 },
+      ];
+      var chosen = null;
+      if (!(forced && forced[index])) {
+        for (var k = 0; k < spots.length && !chosen; k++) {
+          var box = labelBox(spots[k].x, spots[k].base, w, spots[k].anchor);
+          if (box.y < 0 || box.y + box.h > bottom + 2) continue;
+          if (hits(box, obstacles) || hits(box, taken)) continue;
+          chosen = spots[k];
+          taken.push({ rect: box });
+        }
       }
+      if (chosen) {
+        item.x = chosen.x;
+        item.y = chosen.base;
+        item.anchor = chosen.anchor;
+      } else {
+        item.outside = true;
+        item.x = right + 6;
+        item.y = py + 4;
+        item.anchor = "start";
+        outside = Math.max(outside, w + 12);
+      }
+    });
+    /* Outside labels never sit on each other. */
+    var out = list
+      .filter(function (d) {
+        return d.outside && d.text;
+      })
+      .sort(function (a, b) {
+        return a.y - b.y;
+      });
+    for (var i = 1; i < out.length; i++) {
+      if (out[i].y - out[i - 1].y < 13) out[i].y = out[i - 1].y + 13;
+    }
+    return { list: list, outside: outside };
+  }
+
+  function drawHorizontalRefs(g, placed, left, right) {
+    placed.list.forEach(function (item) {
+      g.appendChild(svg("line", { class: "tv-ref", x1: left, x2: right, y1: item.py, y2: item.py }));
+    });
+    placed.list.forEach(function (item) {
+      if (!item.text) return;
+      g.appendChild(
+        svg("text", { class: "tv-ref-label", x: item.x, y: item.y, "text-anchor": item.anchor }, item.text)
+      );
     });
   }
 
   function roleLegend(body, spec, roles, shape) {
-    if (spec.legend) {
-      legendFor(
-        body,
-        spec.legend.map(function (item) {
-          return { label: item.label, color: item.role || item.color, shape: item.shape || shape };
-        })
-      );
-      return;
-    }
-    if (roles.length < 2) return;
     var names = spec.roleLabels || {};
-    legendFor(
+    chartLegend(
       body,
+      spec,
       roles.map(function (role) {
         return { label: names[role] || ROLE_LABELS[role] || role, color: role, shape: shape };
-      })
+      }),
+      shape
     );
   }
 
-  /* Category rows with wrapped labels, shared by hbar, dot and range. */
-  function rowLabels(rows, width) {
-    var maxWidth = Math.min(Math.max(80, width * 0.34), 240);
+  /*
+   * Category rows with wrapped labels, shared by hbar, dot and range. cap is the
+   * spec's labelWidth: pixels, or a share of the chart's width when at most 1,
+   * so a chart that redraws on resize keeps its proportions.
+   */
+  function rowLabels(rows, width, cap) {
+    var maxWidth =
+      isNum(cap) && cap > 0 && cap <= 1
+        ? Math.min(Math.max(80, width * cap), 240)
+        : isNum(cap)
+          ? cap
+          : Math.min(Math.max(80, width * 0.34), 240);
     var wrapped = rows.map(function (r) {
       return wrapText(r.label, maxWidth, 12, 2);
     });
@@ -1061,19 +1560,33 @@
     return { wrapped: wrapped, width: Math.min(labelWidth, width * 0.5) };
   }
 
+  /* A whisker from lo to hi with end caps, centred on cy. */
+  function whisker(x0, x1, cy, cap, stroke) {
+    return [
+      svg("line", { class: "tv-whisker tv-mark", x1: x0, x2: x1, y1: cy, y2: cy, style: { stroke: stroke } }),
+      svg("line", { class: "tv-whisker tv-mark", x1: x0, x2: x0, y1: cy - cap, y2: cy + cap, style: { stroke: stroke } }),
+      svg("line", { class: "tv-whisker tv-mark", x1: x1, x2: x1, y1: cy - cap, y2: cy + cap, style: { stroke: stroke } }),
+    ];
+  }
+
   /* hbar ------------------------------------------------------------------ */
 
   function hbar(body, spec) {
     spec = spec || {};
     var rows = (spec.rows || []).filter(Boolean);
     var valueName = spec.valueLabel || "Value";
-    tableFor(body, {
-      columns: [
-        { key: "label", label: spec.labelHeader || "Label" },
-        { key: "value", label: valueName, align: "right", format: spec.format },
-      ],
-      rows: rows,
+    var hasInterval = rows.some(function (r) {
+      return isNum(r.lo) && isNum(r.hi);
     });
+    var columns = [
+      { key: "label", label: spec.labelHeader || "Label" },
+      { key: "value", label: valueName, align: "right", format: spec.format },
+    ];
+    if (hasInterval) {
+      columns.push({ key: "lo", label: "Low", align: "right", format: spec.format });
+      columns.push({ key: "hi", label: "High", align: "right", format: spec.format });
+    }
+    tableFor(body, { columns: columns, rows: rows }, spec);
     if (!rows.length) return empty(body);
     roleLegend(
       body,
@@ -1086,17 +1599,17 @@
       "rect"
     );
 
-    frame(body, spec, "hbar", function (wrap, W) {
-      var values = finite(
-        rows.map(function (r) {
-          return r.value;
-        })
-      );
+    frame(body, "hbar", function (wrap, W) {
+      var values = [];
+      rows.forEach(function (r) {
+        values.push(r.value, r.lo, r.hi);
+      });
+      values = finite(values);
       var refs = referenceValues(spec);
       var dom = spec.domain || [];
       var lo = isNum(dom[0]) ? dom[0] : Math.min.apply(null, [0].concat(values, refs));
       var hi = isNum(dom[1]) ? dom[1] : Math.max.apply(null, [0].concat(values, refs));
-      var labels = rowLabels(rows, W);
+      var labels = rowLabels(rows, W, spec.labelWidth);
       var mode = spec.labels || (rows.length <= 12 ? "all" : "extreme");
       var valueWidth =
         mode === "none"
@@ -1131,7 +1644,7 @@
       var thick = Math.min(BAR_MAX, y.bandwidth());
       var root = chartSvg(W, H, spec, "Bar");
       var grid = svg("g");
-      xAxisTicks(grid, x, m.top, m.top + plotH, spec.format, Math.max(2, Math.floor((W - m.left - m.right) / 90)));
+      xAxisTicks(grid, x, m.top, m.top + plotH, spec.format, labelTickCount(x, W - m.left - m.right));
       root.appendChild(grid);
       var zero = crisp(x(clamp(0, x.domain[0], x.domain[1])));
       root.appendChild(svg("line", { class: "tv-axisline", x1: zero, x2: zero, y1: m.top, y2: m.top + plotH }));
@@ -1150,19 +1663,23 @@
         textBlock(marks, labels.wrapped[i].lines, labels.width + 2, cy, { class: "tv-label", "text-anchor": "end" });
         var fill = color(r.role || "model");
         var parts = [];
+        var interval = isNum(r.lo) && isNum(r.hi);
         if (isNum(r.value)) {
           var d = barPath("h", x(clamp(0, x.domain[0], x.domain[1])), x(r.value), cy - thick / 2, thick);
           if (d) parts.push(svg("path", { class: "tv-mark", d: d, style: { fill: fill } }));
+        }
+        if (interval) {
+          parts = parts.concat(whisker(x(r.lo), x(r.hi), cy, Math.max(3, thick / 2 - 4), "var(--ink-1)"));
         }
         var g = markGroup(
           marks,
           { x: 0, y: m.top + y.step() * i, width: W, height: y.step() },
           parts,
-          r.label + ": " + format(spec.format, r.value)
+          r.label + ": " + format(spec.format, r.value) + (interval ? ", " + format(spec.format, r.lo) + " to " + format(spec.format, r.hi) : "")
         );
         if (isNum(r.value) && (mode === "all" || (mode === "extreme" && i === extremeIndex))) {
-          var tip = x(r.value);
           var right = r.value >= 0;
+          var tip = right ? Math.max(x(r.value), interval ? x(r.hi) : -Infinity) : Math.min(x(r.value), interval ? x(r.lo) : Infinity);
           valueLayer.appendChild(
             svg(
               "text",
@@ -1173,11 +1690,14 @@
         }
         tooltip.attach(g, function () {
           var out = [{ label: valueName, value: format(spec.format, r.value), color: r.role || "model", shape: "rect" }];
+          if (interval) {
+            out.push({ label: spec.intervalLabel || "Interval", value: format(spec.format, r.lo) + " to " + format(spec.format, r.hi) });
+          }
           (spec.reference || []).forEach(function (ref) {
             if (ref && isNum(ref.value)) out.push({ label: ref.label || "Reference", value: format(spec.format, ref.value) });
           });
           if (r.note) out.push({ label: r.note, value: "" });
-          return { title: r.label, rows: out };
+          return { title: r.label, rows: out.concat(tipRows(r.tip)) };
         });
       });
       root.appendChild(marks);
@@ -1195,16 +1715,20 @@
     spec = spec || {};
     var rows = (spec.rows || []).filter(Boolean);
     var valueName = spec.valueLabel || "Value";
-    tableFor(body, {
-      columns: [
-        { key: "label", label: spec.labelHeader || "Label" },
-        { key: "value", label: valueName, align: "right", format: spec.format },
-      ],
-      rows: rows,
-    });
+    tableFor(
+      body,
+      {
+        columns: [
+          { key: "label", label: spec.labelHeader || "Label" },
+          { key: "value", label: valueName, align: "right", format: spec.format },
+        ],
+        rows: rows,
+      },
+      spec
+    );
     if (!rows.length) return empty(body);
     if (spec.diverging) {
-      if (spec.legend) roleLegend(body, spec, [], "rect");
+      if (Array.isArray(spec.legend)) roleLegend(body, spec, [], "rect");
     } else {
       roleLegend(
         body,
@@ -1218,7 +1742,7 @@
       );
     }
 
-    frame(body, spec, "column", function (wrap, W) {
+    frame(body, "column", function (wrap, W) {
       var values = finite(
         rows.map(function (r) {
           return r.value;
@@ -1229,29 +1753,12 @@
       var lo = isNum(dom[0]) ? dom[0] : Math.min.apply(null, [0].concat(values, refs));
       var hi = isNum(dom[1]) ? dom[1] : Math.max.apply(null, [0].concat(values, refs));
       var H = spec.height || 260;
-      var m = { top: 20, right: 8, bottom: 30, left: 0 };
-      var y = linear([lo, hi], [H - m.bottom, m.top], { nice: !spec.domain });
-      m.left = yTickWidth(y, spec.format, 5) + 14;
-      var n = rows.length;
-      var x = band(
-        rows.map(function (_, i) {
-          return i;
-        }),
-        [m.left, W - m.right],
-        { padding: 0.25 }
-      );
-      var thick = Math.min(BAR_MAX, x.bandwidth(), Math.max(1, x.step() - GAP));
-      var root = chartSvg(W, H, spec, "Column");
-      var grid = svg("g");
-      yAxisTicks(grid, y, m.left, W - m.right, spec.format, 5);
-      root.appendChild(grid);
+      var top = 20;
+      var bottom = 30;
+      var y = linear([lo, hi], [H - bottom, top], { nice: !spec.domain });
+      var left = yTickWidth(y, spec.format, 5) + 14;
       var zeroV = clamp(0, y.domain[0], y.domain[1]);
       var base = y(zeroV);
-
-      var labelWidths = rows.map(function (r) {
-        return measure(r.label, 11);
-      });
-      var every = Math.max(1, Math.ceil((Math.max.apply(null, labelWidths) + 8) / x.step()));
 
       var maxI = -1;
       var minI = -1;
@@ -1261,11 +1768,76 @@
         if (minI < 0 || r.value < rows[minI].value) minI = i;
       });
       var mode = spec.labels || "extreme";
+      function labelled(i) {
+        return mode === "all" || (mode === "extreme" && (i === maxI || (i === minI && rows[minI].value < 0)));
+      }
+
+      function geometry(extraRight) {
+        var right = 8 + extraRight;
+        var x = band(
+          rows.map(function (_, i) {
+            return i;
+          }),
+          [left, W - right],
+          { padding: 0.25 }
+        );
+        var thick = Math.min(BAR_MAX, x.bandwidth(), Math.max(1, x.step() - GAP));
+        var items = rows.map(function (r, i) {
+          var cx = x.step() * i + left + x.step() / 2;
+          var item = { cx: cx, bar: null, value: null };
+          if (isNum(r.value)) {
+            var yv = y(r.value);
+            item.bar = { x: cx - thick / 2, y: Math.min(yv, base), w: thick, h: Math.abs(base - yv) };
+            if (labelled(i)) {
+              var up = r.value >= 0;
+              var text = format(spec.format, r.value);
+              var ty = yv + (up ? -6 : 14);
+              item.value = { text: text, y: ty, box: labelBox(cx, ty, measure(text, 11, 500), "middle") };
+            }
+          }
+          return item;
+        });
+        return { right: right, x: x, thick: thick, items: items };
+      }
+
+      var geo = null;
+      var placed = null;
+      var extra = 0;
+      var forced = {};
+      for (var pass = 0; pass < 3; pass++) {
+        geo = geometry(extra);
+        var obstacles = [];
+        geo.items.forEach(function (it) {
+          if (it.bar) obstacles.push({ rect: it.bar });
+          if (it.value) obstacles.push({ rect: it.value.box });
+        });
+        placed = placeHorizontalRefs(spec, y, left, W - geo.right, top, H - bottom, obstacles, forced);
+        if (placed.outside <= extra) break;
+        extra = placed.outside;
+        placed.list.forEach(function (p, i) {
+          if (p.outside) forced[i] = true;
+        });
+      }
+
+      var x = geo.x;
+      var thick = geo.thick;
+      var plotRight = W - geo.right;
+      var root = chartSvg(W, H, spec, "Column");
+      var grid = svg("g");
+      yAxisTicks(grid, y, left, plotRight, spec.format, 5);
+      root.appendChild(grid);
+
+      var shown = thinLabels(
+        rows.map(function (r, i) {
+          return { center: geo.items[i].cx, width: measure(r.label, 11) };
+        }),
+        8
+      );
 
       var marks = svg("g");
       var valueLayer = svg("g", { class: "tv-values" });
       rows.forEach(function (r, i) {
-        var cx = x.step() * i + m.left + x.step() / 2;
+        var cx = geo.items[i].cx;
         var fill = spec.diverging ? color(r.value >= 0 ? "pos" : "neg") : color(r.role || "model");
         var parts = [];
         if (isNum(r.value)) {
@@ -1274,36 +1846,29 @@
         }
         var g = markGroup(
           marks,
-          { x: m.left + x.step() * i, y: m.top, width: x.step(), height: H - m.top - m.bottom },
+          { x: left + x.step() * i, y: top, width: x.step(), height: H - top - bottom },
           parts,
           r.label + ": " + format(spec.format, r.value)
         );
-        var labelled = mode === "all" || (mode === "extreme" && (i === maxI || (i === minI && rows[minI].value < 0)));
-        if (isNum(r.value) && labelled) {
-          var up = r.value >= 0;
-          valueLayer.appendChild(
-            svg(
-              "text",
-              { class: "tv-value", x: cx, y: y(r.value) + (up ? -6 : 14), "text-anchor": "middle" },
-              format(spec.format, r.value)
-            )
-          );
+        var v = geo.items[i].value;
+        if (v) {
+          valueLayer.appendChild(svg("text", { class: "tv-value", x: cx, y: v.y, "text-anchor": "middle" }, v.text));
         }
-        if (i % every === 0) {
-          marks.appendChild(svg("text", { class: "tv-tick", x: cx, y: H - m.bottom + 16, "text-anchor": "middle" }, r.label));
+        if (shown.indexOf(i) >= 0) {
+          marks.appendChild(svg("text", { class: "tv-tick", x: cx, y: H - bottom + 16, "text-anchor": "middle" }, r.label));
         }
         tooltip.attach(g, function () {
           return {
             title: r.label,
-            rows: [{ label: valueName, value: format(spec.format, r.value), color: fill, shape: "rect" }],
+            rows: [{ label: valueName, value: format(spec.format, r.value), color: fill, shape: "rect" }].concat(tipRows(r.tip)),
           };
         });
       });
-      root.appendChild(svg("line", { class: "tv-axisline", x1: m.left, x2: W - m.right, y1: crisp(base), y2: crisp(base) }));
+      root.appendChild(svg("line", { class: "tv-axisline", x1: left, x2: plotRight, y1: crisp(base), y2: crisp(base) }));
       root.appendChild(marks);
-      var refs2 = svg("g");
-      horizontalRefs(refs2, spec, y, m.left, W - m.right);
-      root.appendChild(refs2);
+      var refLayer = svg("g");
+      drawHorizontalRefs(refLayer, placed, left, plotRight);
+      root.appendChild(refLayer);
       root.appendChild(valueLayer);
       wrap.appendChild(root);
     });
@@ -1311,45 +1876,191 @@
 
   /* dot: a dot plot, or a dumbbell when there are two series --------------- */
 
+  /* Points closer than a marker along x, in runs: items carry px. */
+  function clusters(points) {
+    var sorted = points.slice().sort(function (a, b) {
+      return a.px - b.px;
+    });
+    var out = [];
+    var current = [];
+    sorted.forEach(function (p) {
+      if (current.length && p.px - current[current.length - 1].px >= 9) {
+        out.push(current);
+        current = [];
+      }
+      current.push(p);
+    });
+    if (current.length) out.push(current);
+    return out;
+  }
+
+  /* The most points one row has to draw apart, from their x positions. */
+  function clusterSize(pxs) {
+    return maxOf(
+      clusters(
+        pxs.map(function (px) {
+          return { px: px };
+        })
+      ).map(function (c) {
+        return c.length;
+      }),
+      1
+    );
+  }
+
+  /* Points in one row closer than a marker are moved apart across the row. */
+  function dodge(points, rowH) {
+    clusters(points).forEach(function (cluster) {
+      if (cluster.length < 2) return;
+      /* Centres at least a marker apart, and a gap left to the next row's markers. */
+      var step = cluster.length === 2 ? 10 : clamp((rowH - 14) / (cluster.length - 1), 8, 10);
+      cluster
+        .sort(function (a, b) {
+          return a.k - b.k;
+        })
+        .forEach(function (p, j) {
+          p.dy = (j - (cluster.length - 1) / 2) * step;
+        });
+    });
+  }
+
   function dot(body, spec) {
     spec = spec || {};
     var rows = (spec.rows || []).filter(Boolean);
     var series = (spec.series || [{ key: "value", name: spec.valueLabel || "Value", role: "model" }]).slice(0, 3);
+    var two = series.length === 2;
+    var gapFormat = spec.gapFormat || "signed:" + (spec.gapDp || 2);
+    var valueFormat = spec.tableFormat || spec.format;
+
+    function valueOf(r, s) {
+      return r.values ? r.values[s.key] : null;
+    }
+    function intervalOf(r, s, k) {
+      var iv = r.intervals && r.intervals[s.key];
+      if (iv && isNum(iv.lo) && isNum(iv.hi)) return iv;
+      if (k === 0 && isNum(r.lo) && isNum(r.hi)) return { lo: r.lo, hi: r.hi };
+      return null;
+    }
+    /* A row's gap is the collector's when it gives one, otherwise first less second. */
+    function gapOf(r) {
+      if (!two) return null;
+      if (isNum(r.gap)) return r.gap;
+      var a = valueOf(r, series[0]);
+      var b = valueOf(r, series[1]);
+      return isNum(a) && isNum(b) ? a - b : null;
+    }
+    var hasGroups = rows.some(function (r) {
+      return !isNil(r.group) && r.group !== "";
+    });
+    var hasAside = rows.some(function (r) {
+      return !isNil(r.aside) && r.aside !== "";
+    });
+
     var columns = [{ key: "label", label: spec.labelHeader || "Label" }];
-    series.forEach(function (s) {
-      columns.push({ key: "s:" + s.key, label: s.name, align: "right", format: spec.format });
+    if (hasGroups) columns.push({ key: "group", label: spec.groupHeader || "Group" });
+    series.forEach(function (s, k) {
+      columns.push({ key: "s:" + s.key, label: s.name, align: "right", format: valueFormat });
+      if (
+        rows.some(function (r) {
+          return intervalOf(r, s, k);
+        })
+      ) {
+        columns.push({ key: "lo:" + s.key, label: s.name + ", low", align: "right", format: valueFormat });
+        columns.push({ key: "hi:" + s.key, label: s.name + ", high", align: "right", format: valueFormat });
+      }
     });
-    if (series.length === 2) columns.push({ key: "gap", label: spec.gapLabel || "Difference", align: "right", format: spec.gapFormat || "signed:" + (spec.gapDp || 2) });
-    tableFor(body, {
-      columns: columns,
-      rows: rows.map(function (r) {
-        var out = { label: r.label };
-        series.forEach(function (s) {
-          out["s:" + s.key] = r.values ? r.values[s.key] : null;
-        });
-        if (series.length === 2) {
-          var a = out["s:" + series[0].key];
-          var b = out["s:" + series[1].key];
-          out.gap = isNum(a) && isNum(b) ? a - b : null;
-        }
-        return out;
-      }),
-    });
+    if (two) columns.push({ key: "gap", label: spec.gapLabel || "Difference", align: "right", format: gapFormat });
+    if (hasAside) columns.push({ key: "aside", label: spec.asideHeader || "Note" });
+    tableFor(
+      body,
+      {
+        columns: columns,
+        rows: rows.map(function (r) {
+          var out = { label: r.label, group: r.group, gap: gapOf(r), aside: r.aside };
+          series.forEach(function (s, k) {
+            out["s:" + s.key] = valueOf(r, s);
+            var iv = intervalOf(r, s, k);
+            out["lo:" + s.key] = iv ? iv.lo : null;
+            out["hi:" + s.key] = iv ? iv.hi : null;
+          });
+          return out;
+        }),
+      },
+      spec
+    );
     if (!rows.length) return empty(body);
-    if (series.length > 1) {
-      legendFor(
-        body,
-        series.map(function (s) {
+    var legendItems = series.length > 1
+      ? series.map(function (s) {
           return { label: s.name, color: s.role, shape: "dot" };
         })
-      );
+      : [];
+    if (
+      spec.hollowLegend &&
+      rows.some(function (r) {
+        return r.hollow;
+      })
+    ) {
+      if (!legendItems.length) legendItems = [{ label: series[0].name, color: series[0].role, shape: "dot" }];
+      legendItems.push({ label: spec.hollowLegend, color: "--ink-3", shape: "ring" });
+    }
+    chartLegend(body, spec, legendItems, "dot");
+
+    /* Which rows carry a label, and what the label says. */
+    function labelPlan() {
+      var cfg = spec.labels;
+      if (cfg === "none" || cfg === false) return null;
+      var anyText = rows.some(function (r) {
+        return typeof r.text === "string" && r.text;
+      });
+      if (isNil(cfg) && anyText) return null;
+      if (typeof cfg === "string" || isNil(cfg)) cfg = { rows: cfg === "all" ? "all" : "auto" };
+      var sIndex = 0;
+      series.forEach(function (s, k) {
+        if (s.key === cfg.series) sIndex = k;
+      });
+      var text = cfg.text === "gap" && two ? "gap" : "value";
+      function score(r) {
+        return text === "gap" || (two && cfg.series === undefined) ? gapOf(r) : valueOf(r, series[sIndex]);
+      }
+      var picked = {};
+      var flagged = rows.some(function (r) {
+        return typeof r.labelled === "boolean";
+      });
+      if (Array.isArray(cfg.rows)) {
+        cfg.rows.forEach(function (i) {
+          if (isNum(i)) picked[i] = true;
+        });
+      } else if (cfg.rows === "all") {
+        rows.forEach(function (_, i) {
+          picked[i] = true;
+        });
+      } else if (cfg.rows === "flagged" || (cfg.rows !== "all" && flagged)) {
+        rows.forEach(function (r, i) {
+          if (r.labelled === true) picked[i] = true;
+        });
+      } else {
+        /* The row that stands out; none when nothing does, so an all-zero chart carries no stray label. */
+        var best = -1;
+        var bestScore = 0;
+        rows.forEach(function (r, i) {
+          var s = score(r);
+          if (isNum(s) && Math.abs(s) > bestScore) {
+            best = i;
+            bestScore = Math.abs(s);
+          }
+        });
+        if (best >= 0) picked[best] = true;
+      }
+      return { text: text, sIndex: sIndex, rows: picked };
     }
 
-    frame(body, spec, "dot", function (wrap, W) {
+    frame(body, "dot", function (wrap, W) {
       var all = [];
       rows.forEach(function (r) {
-        series.forEach(function (s) {
-          all.push(r.values ? r.values[s.key] : null);
+        series.forEach(function (s, k) {
+          all.push(valueOf(r, s));
+          var iv = intervalOf(r, s, k);
+          if (iv) all.push(iv.lo, iv.hi);
         });
       });
       var ext = extent(all.concat(referenceValues(spec))) || [0, 1];
@@ -1357,87 +2068,269 @@
       var dom = spec.domain || [];
       var lo = isNum(dom[0]) ? dom[0] : ext[0];
       var hi = isNum(dom[1]) ? dom[1] : ext[1];
-      var labels = rowLabels(rows, W);
-      var extremeText = 0;
-      var extremeIndex = -1;
-      var first = series[0];
-      rows.forEach(function (r, i) {
-        var a = r.values ? r.values[first.key] : null;
-        if (!isNum(a)) return;
-        var score = a;
-        if (series.length === 2) {
-          var b = r.values[series[1].key];
-          score = isNum(b) ? Math.abs(a - b) : -Infinity;
+      var labels = rowLabels(rows, W, spec.labelWidth);
+      var plan = labelPlan();
+
+      var texts = rows.map(function (r, i) {
+        if (typeof r.text === "string" && r.text) return { text: r.text, kind: "text" };
+        if (!plan || !plan.rows[i]) return null;
+        if (plan.text === "gap") {
+          var g = gapOf(r);
+          return isNum(g) ? { text: format(gapFormat, g), kind: "gap" } : null;
         }
-        if (extremeIndex < 0 || score > extremeText) {
-          extremeText = score;
-          extremeIndex = i;
-        }
+        var v = valueOf(r, series[plan.sIndex]);
+        return isNum(v) ? { text: format(spec.format, v), kind: "value", k: plan.sIndex } : null;
       });
-      var labelW = extremeIndex >= 0 ? measure(format(spec.format, rows[extremeIndex].values[first.key]), 11, 500) + 12 : 0;
-      var refBand = (spec.reference || []).length * 14 + ((spec.reference || []).length ? 8 : 0);
-      var m = { top: 8 + refBand, right: 12 + labelW, bottom: 26, left: labels.width + 16 };
+      var labelW = maxOf(
+        texts.map(function (t) {
+          return t ? measure(t.text, 11, 500) : 0;
+        })
+      );
+      labelW = labelW ? labelW + 12 : 0;
+      var asideTexts = rows.map(function (r) {
+        return isNil(r.aside) ? "" : String(r.aside);
+      });
+      var asideW = hasAside
+        ? maxOf(
+            asideTexts.map(function (t, i) {
+              return measure(t, 11, rows[i].asideStrong ? 600 : 400);
+            }).concat(spec.asideHeader ? [measure(spec.asideHeader, 11)] : [])
+          ) + 20
+        : 0;
+      var refCount = (spec.reference || []).length;
+      var refBand = refCount * 14 + (refCount ? 8 : 0);
+      var m = { top: 8 + refBand, right: 12 + labelW + asideW, bottom: 26, left: labels.width + 16 };
+      if (hasAside && spec.asideHeader) m.top = Math.max(m.top, 24);
+
+      var lines = [];
+      var lastGroup = null;
+      rows.forEach(function (r, i) {
+        if (hasGroups && !isNil(r.group) && r.group !== lastGroup) {
+          lines.push({ group: r.group });
+          lastGroup = r.group;
+        }
+        lines.push({ i: i });
+      });
+      var groupCount = lines.length - rows.length;
       var n = rows.length;
-      var rowH = spec.height ? Math.max(HIT_MIN, (spec.height - m.top - m.bottom) / n) : 30;
-      var plotH = rowH * n;
-      var H = Math.round(m.top + plotH + m.bottom);
+      var baseH = spec.height
+        ? Math.max(HIT_MIN, (spec.height - m.top - m.bottom - groupCount * GROUP_ROW) / n)
+        : isNum(spec.rowHeight)
+          ? Math.max(HIT_MIN, spec.rowHeight)
+          : 30;
       var x = linear([lo, hi], [m.left + 6, W - m.right], { nice: !spec.domain });
+      /*
+       * A row whose label wraps gets the height its lines need, and a row whose
+       * points are drawn apart gets the height they take, so three coincident
+       * points never run into the next row's.
+       */
+      var heights = rows.map(function (r, i) {
+        var h = Math.max(baseH, labels.wrapped[i].lines.length * 14 + 12);
+        if (spec.dodge !== false) {
+          var pxs = [];
+          series.forEach(function (s) {
+            var v = valueOf(r, s);
+            if (isNum(v)) pxs.push(x(v));
+          });
+          h = Math.max(h, (clusterSize(pxs) - 1) * 10 + 22);
+        }
+        return h;
+      });
+      var plotH =
+        heights.reduce(function (s, h) {
+          return s + h;
+        }, 0) +
+        groupCount * GROUP_ROW;
+      var H = Math.round(m.top + plotH + m.bottom);
+      var tickCount = labelTickCount(x, W - m.left - m.right);
       var root = chartSvg(W, H, spec, "Dot");
       var grid = svg("g");
-      xAxisTicks(grid, x, m.top, m.top + plotH, spec.format, Math.max(2, Math.floor((W - m.left - m.right) / 90)));
+      xAxisTicks(grid, x, m.top, m.top + plotH, spec.format, tickCount);
+      if (spec.zeroLine && x.domain[0] <= 0 && x.domain[1] >= 0) {
+        var zx = crisp(x(0));
+        grid.appendChild(svg("line", { class: "tv-axisline", x1: zx, x2: zx, y1: m.top, y2: m.top + plotH }));
+      }
+      if (hasAside && spec.asideHeader) {
+        grid.appendChild(
+          svg(
+            "text",
+            spec.asideAlign === "end"
+              ? { class: "tv-tick", x: W, y: m.top - 8, "text-anchor": "end" }
+              : { class: "tv-tick", x: W - asideW + 14, y: m.top - 8, "text-anchor": "start" },
+            spec.asideHeader
+          )
+        );
+      }
       root.appendChild(grid);
       var marks = svg("g");
       var valueLayer = svg("g", { class: "tv-values" });
-      rows.forEach(function (r, i) {
-        var cy = m.top + rowH * i + rowH / 2;
-        textBlock(marks, labels.wrapped[i].lines, labels.width + 2, cy, { class: "tv-label", "text-anchor": "end" });
-        var parts = [];
-        var vals = series.map(function (s) {
-          return r.values ? r.values[s.key] : null;
+      var top = m.top;
+      lines.forEach(function (line) {
+        if (line.group) {
+          marks.appendChild(svg("text", { class: "tv-group-label", x: 0, y: top + GROUP_ROW / 2 + 2, dy: "0.35em" }, String(line.group)));
+          top += GROUP_ROW;
+          return;
+        }
+        var i = line.i;
+        var r = rows[i];
+        var rowH = heights[i];
+        var cy = top + rowH / 2;
+        var rowTop = top;
+        top += rowH;
+        textBlock(marks, labels.wrapped[i].lines, labels.width + 2, cy, {
+          class: "tv-label",
+          "text-anchor": "end",
+          style: r.hollow ? { fill: "var(--ink-3)" } : null,
         });
-        var present = finite(vals);
-        if (present.length > 1) {
+        var pts = [];
+        series.forEach(function (s, k) {
+          var v = valueOf(r, s);
+          if (!isNum(v)) return;
+          var iv = intervalOf(r, s, k);
+          pts.push({ k: k, s: s, v: v, px: x(v), dy: 0, iv: iv, paint: color(r.role || s.role) });
+        });
+        if (spec.dodge !== false) dodge(pts, rowH);
+        var parts = [];
+        if (pts.length > 1) {
+          var pxs = pts.map(function (p) {
+            return p.px;
+          });
           parts.push(
             svg("line", {
               class: "tv-hairline",
-              x1: x(Math.min.apply(null, present)),
-              x2: x(Math.max.apply(null, present)),
+              x1: Math.min.apply(null, pxs),
+              x2: Math.max.apply(null, pxs),
               y1: crisp(cy),
               y2: crisp(cy),
             })
           );
         }
-        for (var k = series.length - 1; k >= 0; k--) {
-          if (isNum(vals[k])) {
-            parts.push(svg("circle", { class: "tv-mark tv-dot", cx: x(vals[k]), cy: cy, r: 4 + (k === 0 ? 0.5 : 0), style: { fill: color(series[k].role) } }));
-          }
-        }
-        var g = markGroup(
-          marks,
-          { x: 0, y: m.top + rowH * i, width: W, height: rowH },
-          parts,
-          r.label +
-            ": " +
-            series
-              .map(function (s, k) {
-                return s.name + " " + format(spec.format, vals[k]);
+        pts.forEach(function (p) {
+          if (p.iv) parts = parts.concat(whisker(x(p.iv.lo), x(p.iv.hi), cy + p.dy, 5, p.paint));
+        });
+        /* The first series is drawn last and a half pixel larger, so it wins a tie. */
+        pts
+          .slice()
+          .sort(function (a, b) {
+            return b.k - a.k;
+          })
+          .forEach(function (p) {
+            var radius = 4 + (p.k === 0 ? 0.5 : 0);
+            parts.push(
+              svg("circle", {
+                class: r.hollow ? "tv-mark" : "tv-mark tv-dot",
+                cx: p.px,
+                cy: cy + p.dy,
+                r: r.hollow ? radius - 0.75 : radius,
+                "data-series": p.s.key,
+                "data-value": format(spec.format, p.v),
+                style: r.hollow ? { fill: "var(--surface)", stroke: p.paint, strokeWidth: "1.5" } : { fill: p.paint },
               })
-              .join(", ")
-        );
-        if (i === extremeIndex) {
-          var right = series.length === 2 && isNum(vals[1]) && vals[1] > vals[0] ? vals[1] : vals[0];
-          valueLayer.appendChild(
-            svg("text", { class: "tv-value", x: x(Math.max(right, vals[0])) + 9, y: cy, dy: "0.35em" }, format(spec.format, vals[0]))
+            );
+          });
+        var t = texts[i];
+        var aria =
+          r.label +
+          (hasGroups && r.group ? ", " + r.group : "") +
+          ": " +
+          series
+            .map(function (s) {
+              return s.name + " " + format(spec.format, valueOf(r, s));
+            })
+            .join(", ") +
+          (t && t.kind !== "value" ? ", " + t.text : "");
+        var g = markGroup(marks, { x: 0, y: rowTop, width: W, height: rowH }, parts, aria);
+
+        if (t) {
+          var w = measure(t.text, 11, 500);
+          var extentOf = function (p) {
+            return [
+              Math.min(p.px - 5, p.iv ? x(p.iv.lo) : Infinity),
+              Math.max(p.px + 5, p.iv ? x(p.iv.hi) : -Infinity),
+            ];
+          };
+          var rowRight = maxOf(
+            pts.map(function (p) {
+              return extentOf(p)[1];
+            }),
+            -Infinity
+          );
+          var attrs = null;
+          if (t.kind === "value") {
+            var own = pts.filter(function (p) {
+              return p.k === t.k;
+            })[0];
+            if (own) {
+              var ex = extentOf(own);
+              var others = pts
+                .filter(function (p) {
+                  return p !== own;
+                })
+                .map(extentOf);
+              var free = function (a, b) {
+                return others.every(function (o) {
+                  return b + 2 <= o[0] || a - 2 >= o[1];
+                });
+              };
+              var baseY = cy + own.dy;
+              var rightSpot = free(ex[1] + 4, ex[1] + 4 + w) && ex[1] + 4 + w <= W
+                ? { x: ex[1] + 4, y: baseY, dy: "0.35em", "text-anchor": "start" }
+                : null;
+              var leftSpot = free(ex[0] - 4 - w, ex[0] - 4) && ex[0] - 4 - w >= m.left
+                ? { x: ex[0] - 4, y: baseY, dy: "0.35em", "text-anchor": "end" }
+                : null;
+              /* A dot left of every other point in its row takes its label on the outside, off the connecting rule. */
+              var outsideLeft =
+                others.length > 0 &&
+                others.every(function (o) {
+                  return o[0] >= ex[1];
+                });
+              attrs = (outsideLeft ? leftSpot || rightSpot : rightSpot || leftSpot) || {
+                x: own.px,
+                y: baseY - 9,
+                "text-anchor": "middle",
+              };
+              attrs["data-series"] = own.s.key;
+            }
+          } else if (isFinite(rowRight)) {
+            attrs = { x: rowRight + 4, y: cy, dy: "0.35em", "text-anchor": "start" };
+          }
+          if (attrs) valueLayer.appendChild(svg("text", Object.assign({ class: "tv-value" }, attrs), t.text));
+        }
+        if (hasAside && asideTexts[i]) {
+          marks.appendChild(
+            svg(
+              "text",
+              Object.assign(
+                {
+                  class: r.asideStrong ? "tv-value" : "tv-tick",
+                  y: cy,
+                  dy: "0.35em",
+                  style: Object.assign(r.asideStrong ? { fontWeight: "600" } : {}, r.hollow ? { fill: "var(--ink-3)" } : {}),
+                },
+                spec.asideAlign === "end" ? { x: W, "text-anchor": "end" } : { x: W - asideW + 14, "text-anchor": "start" }
+              ),
+              asideTexts[i]
+            )
           );
         }
         tooltip.attach(g, function () {
-          var out = series.map(function (s, k) {
-            return { label: s.name, value: format(spec.format, vals[k]), color: s.role, shape: "dot" };
+          var out = [];
+          series.forEach(function (s, k) {
+            var v = valueOf(r, s);
+            out.push({ label: s.name, value: format(valueFormat, v), color: r.role || s.role, shape: "dot" });
+            var iv = intervalOf(r, s, k);
+            if (iv) {
+              out.push({
+                label: spec.intervalLabel || "Interval",
+                value: format(valueFormat, iv.lo) + " to " + format(valueFormat, iv.hi),
+              });
+            }
           });
-          if (series.length === 2 && isNum(vals[0]) && isNum(vals[1])) {
-            out.push({ label: spec.gapLabel || "Difference", value: format(spec.gapFormat || "signed:" + (spec.gapDp || 2), vals[0] - vals[1]) });
-          }
-          return { title: r.label, rows: out };
+          var gap = gapOf(r);
+          if (two && isNum(gap)) out.push({ label: spec.gapLabel || "Difference", value: format(gapFormat, gap) });
+          if (hasAside && asideTexts[i]) out.push({ label: spec.asideHeader || "Note", value: asideTexts[i] });
+          return { title: hasGroups && r.group ? r.label + ", " + r.group : r.label, rows: out.concat(tipRows(r.tip)) };
         });
       });
       root.appendChild(marks);
@@ -1456,24 +2349,37 @@
     var allSeries = (spec.series || []).filter(Boolean);
     var series = allSeries.slice(0, 4);
     var xSpec = spec.x || {};
+    var dates = xSpec.type === "date";
     var xs = [];
     allSeries.forEach(function (s) {
       (s.values || []).forEach(function (p) {
         if (p && !isNil(p.x) && xs.indexOf(p.x) < 0) xs.push(p.x);
       });
     });
-    var numericX = xs.length > 0 && xs.every(isNum);
-    if (numericX) xs.sort(function (a, b) {
-      return a - b;
+    var numericX = xs.length > 0 && (dates ? xs.every(function (v) { return isFinite(parseDay(v)); }) : xs.every(isNum));
+    function xNum(v) {
+      return dates ? parseDay(v) : v;
+    }
+    if (numericX) {
+      xs.sort(function (a, b) {
+        return xNum(a) - xNum(b);
+      });
+    }
+    var lookups = allSeries.map(function (s) {
+      var map = {};
+      (s.values || []).forEach(function (p) {
+        if (p && !isNil(p.x)) map[String(p.x)] = p;
+      });
+      return map;
     });
-
-    function valueAt(s, xv) {
-      var vals = s.values || [];
-      for (var i = 0; i < vals.length; i++) if (vals[i] && vals[i].x === xv) return vals[i];
-      return null;
+    function valueAt(k, xv) {
+      return lookups[k][String(xv)] || null;
+    }
+    function xText(xv) {
+      return xSpec.format ? format(xSpec.format, xv) : String(xv);
     }
 
-    var columns = [{ key: "x", label: xSpec.label || "x", format: xSpec.format }];
+    var columns = [{ key: "x", label: xSpec.label || "x", format: xSpec.format, mono: dates }];
     allSeries.forEach(function (s, k) {
       columns.push({ key: "y" + k, label: s.name, align: "right", format: spec.format });
       if (s.values && s.values.some(function (p) { return p && isNum(p.lo); })) {
@@ -1481,34 +2387,54 @@
         columns.push({ key: "hi" + k, label: s.name + " high", align: "right", format: spec.format });
       }
     });
-    tableFor(body, {
-      columns: columns,
-      rows: xs.map(function (xv) {
-        var row = { x: xSpec.format ? xv : String(xv) };
-        allSeries.forEach(function (s, k) {
-          var p = valueAt(s, xv);
-          row["y" + k] = p ? p.y : null;
-          row["lo" + k] = p ? p.lo : null;
-          row["hi" + k] = p ? p.hi : null;
-        });
-        return row;
-      }),
-    });
+    tableFor(
+      body,
+      {
+        columns: columns,
+        rows: xs.map(function (xv) {
+          var row = { x: xSpec.format ? xv : String(xv) };
+          allSeries.forEach(function (s, k) {
+            var p = valueAt(k, xv);
+            row["y" + k] = p ? p.y : null;
+            row["lo" + k] = p ? p.lo : null;
+            row["hi" + k] = p ? p.hi : null;
+          });
+          return row;
+        }),
+      },
+      spec
+    );
     if (!xs.length || !series.length) return empty(body);
-    if (allSeries.length > 4) {
-      var handle = handleFor(body);
-      if (handle) handle.addNote({ what: "Series beyond four", why: "The chart draws the first four series; the table lists all " + allSeries.length + "." });
+    var handle = handleFor(body);
+    if (allSeries.length > 4 && handle) {
+      handle.addNote({ what: "Series beyond four", why: "The chart draws the first four series; the table lists all " + allSeries.length + "." });
     }
-    if (series.length > 1) {
-      legendFor(
-        body,
-        series.map(function (s) {
-          return { label: s.name, color: s.role, shape: "line" };
-        })
-      );
+    var logY = spec.yScale === "log";
+    if (logY) {
+      var positive = true;
+      series.forEach(function (s) {
+        (s.values || []).forEach(function (p) {
+          if (p && isNum(p.y) && p.y <= 0) positive = false;
+        });
+      });
+      if (!positive) {
+        logY = false;
+        if (handle) handle.addNote({ what: "Log scale", why: "A log scale needs every value above zero, so the chart is drawn on a linear scale." });
+      }
     }
+    var shades = (spec.shade || []).filter(function (s) {
+      return s && !isNil(s.from) && !isNil(s.to);
+    });
+    var legendItems = [];
+    if (series.length > 1 || spec.shadeLegend) {
+      legendItems = series.map(function (s) {
+        return { label: s.name, color: s.role, shape: "line" };
+      });
+    }
+    if (spec.shadeLegend && shades.length) legendItems.push({ label: spec.shadeLegend, color: "--wash-strong", shape: "rect" });
+    chartLegend(body, spec, legendItems, "line");
 
-    frame(body, spec, "line", function (wrap, W) {
+    frame(body, "line", function (wrap, W) {
       var ys = [];
       series.forEach(function (s) {
         (s.values || []).forEach(function (p) {
@@ -1516,102 +2442,281 @@
           ys.push(p.y, p.lo, p.hi);
         });
       });
-      var ext = extent(ys.concat(referenceValues(spec))) || [0, 1];
-      if (spec.zero) ext = [Math.min(0, ext[0]), Math.max(0, ext[1])];
+      var ext = extent(ys.concat(logY ? [] : referenceValues(spec))) || [0, 1];
+      if (spec.zero && !logY) ext = [Math.min(0, ext[0]), Math.max(0, ext[1])];
       var dom = spec.domain || [];
       var lo = isNum(dom[0]) ? dom[0] : ext[0];
       var hi = isNum(dom[1]) ? dom[1] : ext[1];
       var H = spec.height || 280;
-      var m = { top: 14, right: 16, bottom: 30, left: 0 };
-      var y = linear([lo, hi], [H - m.bottom, m.top], { nice: !spec.domain });
-      m.left = yTickWidth(y, spec.format, 5) + 14;
+      var bottom = H - 30;
+      function makeY(top) {
+        return logY ? logScale(lo, hi, [bottom, top]) : linear([lo, hi], [bottom, top], { nice: !spec.domain });
+      }
+      var probe = makeY(14);
+      var tickCount = logY ? Math.max(3, Math.floor((bottom - 14) / 22)) : 5;
+      var left = yTickWidth(probe, spec.format, tickCount) + 14;
+      var plotL = left + 4;
+      var yTitleH = spec.yTitle ? 18 : 0;
 
-      /* End labels only when every series ends clear of its neighbours. */
-      var ends = series
-        .map(function (s, k) {
-          var vals = (s.values || []).filter(function (p) {
-            return p && isNum(p.y);
-          });
-          return vals.length ? { k: k, name: s.name, y: y(vals[vals.length - 1].y) } : null;
-        })
-        .filter(Boolean)
-        .sort(function (a, b) {
-          return a.y - b.y;
-        });
-      var endLabels = spec.endLabels !== false && ends.length > 0;
-      for (var e = 1; e < ends.length; e++) if (ends[e].y - ends[e - 1].y < 14) endLabels = false;
-      var endWidth = endLabels
-        ? Math.max.apply(
-            null,
-            ends.map(function (d) {
-              return measure(d.name, 12, 500);
-            })
-          ) + 14
-        : 0;
-      m.right = Math.max(m.right, endWidth);
-      var plotL = m.left + 4;
-      var plotR = W - m.right - (endLabels ? 0 : 4);
-      var xAt;
-      if (numericX) {
-        var xScale = linear([xs[0], xs[xs.length - 1]], [plotL, plotR]);
-        xAt = function (xv) {
-          return xScale(xv);
-        };
-      } else {
+      /* Where a date or number sits along x. */
+      function xAtFor(plotR) {
+        if (numericX) {
+          var scale = linear([xNum(xs[0]), xNum(xs[xs.length - 1])], [plotL, plotR]);
+          return function (xv) {
+            var v = xNum(xv);
+            return isFinite(v) ? scale(v) : NaN;
+          };
+        }
         var stepX = xs.length > 1 ? (plotR - plotL) / (xs.length - 1) : 0;
-        xAt = function (xv) {
+        return function (xv) {
           var i = xs.indexOf(xv);
+          if (i < 0) return NaN;
           return xs.length > 1 ? plotL + i * stepX : (plotL + plotR) / 2;
         };
       }
 
-      var root = chartSvg(W, H, spec, "Line");
-      var grid = svg("g");
-      yAxisTicks(grid, y, m.left, W - m.right, spec.format, 5);
-      root.appendChild(grid);
-      var baseV = clamp(0, y.domain[0], y.domain[1]);
-      if (y.domain[0] <= 0 && y.domain[1] >= 0) {
-        root.appendChild(svg("line", { class: "tv-axisline", x1: m.left, x2: W - m.right, y1: crisp(y(baseV)), y2: crisp(y(baseV)) }));
-      } else {
-        root.appendChild(svg("line", { class: "tv-axisline", x1: m.left, x2: W - m.right, y1: crisp(H - m.bottom), y2: crisp(H - m.bottom) }));
-      }
-
-      /* x tick labels, thinned to fit */
-      var xLabels = xs.map(function (xv) {
-        return xSpec.format ? format(xSpec.format, xv) : String(xv);
-      });
-      var widest = Math.max.apply(
-        null,
-        xLabels.map(function (t) {
-          return measure(t, 11);
-        })
-      );
-      var spacing = xs.length > 1 ? Math.abs(xAt(xs[1]) - xAt(xs[0])) : Infinity;
-      var every = numericX ? 1 : Math.max(1, Math.ceil((widest + 10) / spacing));
-      var tickXs = xs;
-      if (numericX && xs.length > 8) {
-        tickXs = linear([xs[0], xs[xs.length - 1]], [0, 1]).ticks(Math.max(2, Math.floor((plotR - plotL) / (widest + 24))));
-      }
-      tickXs.forEach(function (xv, i) {
-        if (i % every !== 0) return;
-        var px = xAt(xv);
-        var label = xSpec.format ? format(xSpec.format, xv) : String(xv);
-        var w = measure(label, 11);
-        var anchor = px - w / 2 < 0 ? "start" : px + w / 2 > W ? "end" : "middle";
-        grid.appendChild(svg("text", { class: "tv-tick", x: px, y: H - m.bottom + 16, "text-anchor": anchor }, label));
-      });
-
-      var layer = svg("g");
-      series.forEach(function (s) {
-        var pts = xs
-          .map(function (xv) {
-            var p = valueAt(s, xv);
-            return p ? { x: xAt(xv), p: p } : null;
+      function layout(extraRight) {
+        var provisional = makeY(14 + yTitleH);
+        var ends = series
+          .map(function (s, k) {
+            var vals = (s.values || []).filter(function (p) {
+              return p && isNum(p.y);
+            });
+            return vals.length ? { k: k, name: s.name, last: vals[vals.length - 1] } : null;
           })
           .filter(Boolean);
-        var bandPts = pts.filter(function (d) {
-          return isNum(d.p.lo) && isNum(d.p.hi);
+        var endLabels = spec.endLabels !== false && ends.length > 0;
+        function collide(scale) {
+          var sorted = ends
+            .map(function (d) {
+              return scale(d.last.y);
+            })
+            .sort(function (a, b) {
+              return a - b;
+            });
+          for (var e = 1; e < sorted.length; e++) if (sorted[e] - sorted[e - 1] < 14) return true;
+          return false;
+        }
+        if (endLabels && collide(provisional)) endLabels = false;
+        var endWidth = endLabels
+          ? maxOf(
+              ends.map(function (d) {
+                return measure(d.name, 12, 500);
+              })
+            ) + 14
+          : 0;
+        var right = Math.max(16, endWidth) + extraRight;
+        var plotR = W - right - (endLabels ? 0 : 4);
+        var xAt = xAtFor(plotR);
+
+        /* Shaded ranges, their names stacked above the plot. */
+        var shadeRows = 0;
+        var lastRight = [];
+        var shadeBoxes = shades.map(function (sh) {
+          var x0 = clamp(xAt(sh.from), plotL, plotR);
+          var x1 = clamp(xAt(sh.to), plotL, plotR);
+          if (!isFinite(x0) || !isFinite(x1)) return null;
+          if (x1 - x0 < 1) x1 = x0 + 1;
+          var box = { x0: x0, x1: x1, text: sh.label ? String(sh.label) : "", row: 0 };
+          if (box.text) {
+            var tw = measure(box.text, 11, 500);
+            box.cx = clamp((x0 + x1) / 2, plotL + tw / 2, plotR - tw / 2);
+            var row = 0;
+            while (!isNil(lastRight[row]) && box.cx - tw / 2 < lastRight[row] + 6) row++;
+            lastRight[row] = box.cx + tw / 2;
+            box.row = row;
+            shadeRows = Math.max(shadeRows, row + 1);
+          }
+          return box;
         });
+        var top = 14 + yTitleH + (shadeRows ? shadeRows * 13 + 8 : 0);
+        var y = makeY(top);
+        if (endLabels && collide(y)) endLabels = false;
+
+        var obstacles = [];
+        var segments = [];
+        series.forEach(function (s, k) {
+          var prev = null;
+          xs.forEach(function (xv) {
+            var p = valueAt(k, xv);
+            if (p && isNum(p.y)) {
+              var pt = [xAt(xv), y(p.y)];
+              if (prev) segments.push([prev[0], prev[1], pt[0], pt[1]]);
+              prev = pt;
+            } else {
+              prev = null;
+            }
+          });
+          var vals = (s.values || []).filter(function (p) {
+            return p && isNum(p.y);
+          });
+          if (vals.length) {
+            var last = vals[vals.length - 1];
+            obstacles.push({ rect: { x: xAt(last.x) - 5, y: y(last.y) - 5, w: 10, h: 10 } });
+          }
+        });
+        segments.forEach(function (sg) {
+          obstacles.push({ seg: sg });
+        });
+
+        /* Labelled points: beside the dot, below the line where there is room. */
+        var pointItems = (spec.points || [])
+          .filter(function (pt) {
+            return pt && !isNil(pt.x);
+          })
+          .map(function (pt) {
+            var px = xAt(pt.x);
+            var first = valueAt(0, pt.x);
+            var yv = isNum(pt.y) ? pt.y : first && isNum(first.y) ? first.y : null;
+            if (!isFinite(px) || !isNum(yv) || (logY && yv <= 0)) return null;
+            var py = y(yv);
+            var item = { pt: pt, px: px, py: py };
+            obstacles.push({ rect: { x: px - 5, y: py - 5, w: 10, h: 10 } });
+            if (pt.label) {
+              var tw = measure(pt.label, 11, 500);
+              var spots = [
+                { x: px + 8, base: py + 16, anchor: "start" },
+                { x: px + 8, base: py - 10, anchor: "start" },
+                { x: px - 8, base: py + 16, anchor: "end" },
+                { x: px - 8, base: py - 10, anchor: "end" },
+              ];
+              var lines = segments.map(function (sg) {
+                return { seg: sg };
+              });
+              var chosen = null;
+              /* Clear of the lines and inside the plot; failing that, inside the plot. */
+              [true, false].forEach(function (clearOfLines) {
+                spots.forEach(function (sp) {
+                  if (chosen) return;
+                  var box = labelBox(sp.x, sp.base, tw, sp.anchor);
+                  if (box.x < plotL || box.x + box.w > plotR || box.y < top || box.y + box.h > bottom) return;
+                  if (clearOfLines && hits(box, lines)) return;
+                  chosen = sp;
+                  item.box = box;
+                });
+              });
+              chosen = chosen || spots[0];
+              item.label = { x: chosen.x, y: chosen.base, anchor: chosen.anchor };
+              item.box = item.box || labelBox(chosen.x, chosen.base, tw, chosen.anchor);
+            }
+            return item;
+          })
+          .filter(Boolean);
+        pointItems.forEach(function (it) {
+          if (it.box) obstacles.push({ rect: it.box });
+        });
+
+        return {
+          right: right,
+          plotR: plotR,
+          xAt: xAt,
+          y: y,
+          top: top,
+          endLabels: endLabels,
+          endWidth: endWidth,
+          ends: ends,
+          shadeBoxes: shadeBoxes,
+          pointItems: pointItems,
+          obstacles: obstacles,
+        };
+      }
+
+      var geo = null;
+      var placed = null;
+      var extra = 0;
+      var forced = {};
+      for (var pass = 0; pass < 3; pass++) {
+        geo = layout(extra);
+        var refRight = W - geo.right + (geo.endLabels ? 0 : 0);
+        placed = placeHorizontalRefs(spec, geo.y, left, refRight, geo.top, bottom, geo.obstacles, forced);
+        if (placed.outside <= extra) break;
+        extra = placed.outside;
+        placed.list.forEach(function (p, i) {
+          if (p.outside) forced[i] = true;
+        });
+      }
+      /* An outside label sits past the end labels, not on them. */
+      placed.list.forEach(function (p) {
+        if (p.outside) p.x = W - extra + 6;
+      });
+
+      var y = geo.y;
+      var xAt = geo.xAt;
+      var plotR = geo.plotR;
+      var top = geo.top;
+      var gridRight = W - geo.right;
+      var root = chartSvg(W, H, spec, "Line");
+      var grid = svg("g");
+      yAxisTicks(grid, y, left, gridRight, spec.format, tickCount);
+      if (spec.yTitle) {
+        grid.appendChild(svg("text", { class: "tv-tick", x: 0, y: 11, "text-anchor": "start" }, spec.yTitle));
+      }
+      root.appendChild(grid);
+      if (!logY && y.domain[0] <= 0 && y.domain[1] >= 0) {
+        root.appendChild(svg("line", { class: "tv-axisline", x1: left, x2: gridRight, y1: crisp(y(0)), y2: crisp(y(0)) }));
+      } else {
+        root.appendChild(svg("line", { class: "tv-axisline", x1: left, x2: gridRight, y1: crisp(bottom), y2: crisp(bottom) }));
+      }
+
+      /* x tick labels, thinned to fit, the first and last kept */
+      var tickItems = [];
+      if (dates) {
+        var t0 = parseDay(xs[0]);
+        var t1 = parseDay(xs[xs.length - 1]);
+        for (var yr = new Date(t0).getUTCFullYear(); yr <= new Date(t1).getUTCFullYear() + 1; yr++) {
+          var jan = Date.UTC(yr, 0, 1);
+          if (jan >= t0 && jan <= t1) {
+            var label = String(yr);
+            var pos = linear([t0, t1], [plotL, plotR])(jan);
+            tickItems.push({ center: pos, width: measure(label, 11), text: label });
+          }
+        }
+        if (tickItems.length < 2) {
+          tickItems = [xs[0], xs[xs.length - 1]].map(function (xv) {
+            return { center: xAt(xv), width: measure(String(xv), 11), text: String(xv) };
+          });
+        }
+      } else {
+        var tickXs = xs;
+        if (numericX && xs.length > 8) {
+          var widest = maxOf(
+            xs.map(function (v) {
+              return measure(xText(v), 11);
+            })
+          );
+          tickXs = linear([xs[0], xs[xs.length - 1]], [0, 1]).ticks(Math.max(2, Math.floor((plotR - plotL) / (widest + 24))));
+        }
+        tickItems = tickXs.map(function (xv) {
+          var text = xText(xv);
+          return { center: xAt(xv), width: measure(text, 11), text: text };
+        });
+      }
+      thinLabels(tickItems, 10).forEach(function (i) {
+        var it = tickItems[i];
+        var anchor = it.center - it.width / 2 < 0 ? "start" : it.center + it.width / 2 > W ? "end" : "middle";
+        grid.appendChild(svg("text", { class: "tv-tick", x: it.center, y: bottom + 16, "text-anchor": anchor }, it.text));
+      });
+
+      var shadeLayer = svg("g");
+      geo.shadeBoxes.forEach(function (box) {
+        if (!box) return;
+        shadeLayer.appendChild(svg("rect", { class: "tv-shade", x: box.x0, y: top, width: box.x1 - box.x0, height: bottom - top }));
+        if (box.text) {
+          shadeLayer.appendChild(
+            svg("text", { class: "tv-ref-label", x: box.cx, y: top - 8 - box.row * 13, "text-anchor": "middle" }, box.text)
+          );
+        }
+      });
+      root.appendChild(shadeLayer);
+
+      var layer = svg("g");
+      series.forEach(function (s, k) {
+        var bandPts = xs
+          .map(function (xv) {
+            var p = valueAt(k, xv);
+            return p && isNum(p.lo) && isNum(p.hi) ? { x: xAt(xv), p: p } : null;
+          })
+          .filter(Boolean);
         if (bandPts.length > 1) {
           var dArea =
             "M" +
@@ -1633,43 +2738,58 @@
         }
       });
       series
-        .slice()
+        .map(function (s, k) {
+          return { s: s, k: k };
+        })
         .reverse()
-        .forEach(function (s) {
-          var d = "";
+        .forEach(function (d) {
+          var path = "";
           var pen = false;
           xs.forEach(function (xv) {
-            var p = valueAt(s, xv);
+            var p = valueAt(d.k, xv);
             if (p && isNum(p.y)) {
-              d += (pen ? "L" : "M") + xAt(xv) + "," + y(p.y);
+              path += (pen ? "L" : "M") + xAt(xv).toFixed(1) + "," + y(p.y).toFixed(1);
               pen = true;
             } else {
               pen = false;
             }
           });
-          layer.appendChild(svg("path", { class: "tv-line", d: d, style: { stroke: color(s.role) } }));
-          var vals = (s.values || []).filter(function (p) {
+          layer.appendChild(svg("path", { class: "tv-line", d: path, style: { stroke: color(d.s.role) } }));
+          var vals = (d.s.values || []).filter(function (p) {
             return p && isNum(p.y);
           });
           if (vals.length) {
             var last = vals[vals.length - 1];
-            layer.appendChild(svg("circle", { class: "tv-dot", cx: xAt(last.x), cy: y(last.y), r: 4, style: { fill: color(s.role) } }));
+            layer.appendChild(svg("circle", { class: "tv-dot", cx: xAt(last.x), cy: y(last.y), r: 4, style: { fill: color(d.s.role) } }));
           }
         });
       root.appendChild(layer);
 
-      if (endLabels) {
-        ends.forEach(function (d) {
-          root.appendChild(svg("text", { class: "tv-endlabel", x: plotR + 10, y: d.y, dy: "0.35em" }, d.name));
+      if (geo.endLabels) {
+        geo.ends.forEach(function (d) {
+          root.appendChild(svg("text", { class: "tv-endlabel", x: plotR + 10, y: y(d.last.y), dy: "0.35em" }, d.name));
         });
       }
-      var refs2 = svg("g");
-      horizontalRefs(refs2, spec, y, m.left, W - m.right);
-      root.appendChild(refs2);
+      var refLayer = svg("g");
+      drawHorizontalRefs(refLayer, placed, left, gridRight);
+      root.appendChild(refLayer);
+
+      var pointLayer = svg("g", { class: "tv-values" });
+      geo.pointItems.forEach(function (it) {
+        root.appendChild(
+          svg("circle", { class: "tv-dot", cx: it.px, cy: it.py, r: 4, style: { fill: color(it.pt.role || series[0].role) } })
+        );
+        if (it.label) {
+          pointLayer.appendChild(
+            svg("text", { class: "tv-value", x: it.label.x, y: it.label.y, "text-anchor": it.label.anchor }, it.pt.label)
+          );
+        }
+      });
+      root.appendChild(pointLayer);
 
       /* Crosshair: the pointer finds the nearest x; arrows move it. */
       var hover = svg("g", { hidden: true });
-      var hair = svg("line", { class: "tv-crosshair", x1: 0, x2: 0, y1: m.top, y2: H - m.bottom });
+      var hair = svg("line", { class: "tv-crosshair", x1: 0, x2: 0, y1: top, y2: bottom });
       hover.appendChild(hair);
       var hoverDots = series.map(function (s) {
         var c = svg("circle", { class: "tv-dot", r: 4, style: { fill: color(s.role) } });
@@ -1681,24 +2801,40 @@
         tabindex: "0",
         "aria-label": (spec.title || "Line chart") + ". Use the arrow keys to read each point.",
       });
-      plot.appendChild(svg("rect", { class: "tv-hit", x: m.left, y: m.top, width: Math.max(0, W - m.left - m.right + (endLabels ? endWidth : 0)), height: H - m.top - m.bottom }));
+      plot.appendChild(
+        svg("rect", {
+          class: "tv-hit",
+          x: left,
+          y: top,
+          width: Math.max(0, gridRight - left + (geo.endLabels ? geo.endWidth : 0)),
+          height: Math.max(HIT_MIN, bottom - top),
+        })
+      );
       root.appendChild(hover);
       root.appendChild(plot);
       var current = -1;
 
       function content(i) {
         var xv = xs[i];
-        return {
-          title: xSpec.format ? format(xSpec.format, xv) : String(xv),
-          rows: series.map(function (s) {
-            var p = valueAt(s, xv);
-            var text = p ? format(spec.format, p.y) : "n/a";
-            if (p && isNum(p.lo) && isNum(p.hi)) {
-              text += " (" + format(spec.format, p.lo) + " to " + format(spec.format, p.hi) + ")";
-            }
-            return { label: s.name, value: text, color: s.role, shape: "line" };
-          }),
-        };
+        var out = series.map(function (s, k) {
+          var p = valueAt(k, xv);
+          var text = p ? format(spec.format, p.y) : "n/a";
+          if (p && isNum(p.lo) && isNum(p.hi)) {
+            text += " (" + format(spec.format, p.lo) + " to " + format(spec.format, p.hi) + ")";
+          }
+          return { label: s.name, value: text, color: s.role, shape: "line" };
+        });
+        var at = xNum(xv);
+        shades.forEach(function (sh) {
+          var from = xNum(sh.from);
+          var to = xNum(sh.to);
+          var inside = numericX ? at > from && at <= to : xs.indexOf(xv) > xs.indexOf(sh.from) && xs.indexOf(xv) <= xs.indexOf(sh.to);
+          if (inside) out = out.concat(tipRows(sh.tip));
+        });
+        (spec.points || []).forEach(function (pt) {
+          if (pt && String(pt.x) === String(xv)) out = out.concat(tipRows(pt.tip));
+        });
+        return { title: xText(xv), rows: out };
       }
 
       function showAt(i, clientX, clientY) {
@@ -1707,7 +2843,7 @@
         hair.setAttribute("x1", crisp(px));
         hair.setAttribute("x2", crisp(px));
         series.forEach(function (s, k) {
-          var p = valueAt(s, xs[current]);
+          var p = valueAt(k, xs[current]);
           if (p && isNum(p.y)) {
             hoverDots[k].removeAttribute("hidden");
             hoverDots[k].setAttribute("cx", px);
@@ -1720,7 +2856,7 @@
         if (isNil(clientX)) {
           var box = root.getBoundingClientRect();
           clientX = box.left + px;
-          clientY = box.top + m.top;
+          clientY = box.top + top;
         }
         tooltip.show(content(current), clientX, clientY, plot);
       }
@@ -1777,22 +2913,33 @@
     var values = spec.values || [];
     var diverging = spec.scale === "diverging";
     var valueName = spec.valueLabel || "Value";
+    var breaks =
+      diverging && Array.isArray(spec.breaks) && spec.breaks.length === 2 && isNum(spec.breaks[0]) && isNum(spec.breaks[1])
+        ? [Math.abs(spec.breaks[0]), Math.abs(spec.breaks[1])].sort(function (a, b) {
+            return a - b;
+          })
+        : null;
+    var family = spec.mono ? "mono" : null;
 
-    var tableCols = [{ key: "row", label: spec.rowHeader || "Row" }].concat(
+    var tableCols = [{ key: "row", label: spec.rowHeader || "Row", mono: !!spec.mono }].concat(
       colsL.map(function (c, j) {
         return { key: "c" + j, label: String(c), align: "right", format: spec.format };
       })
     );
-    tableFor(body, {
-      columns: tableCols,
-      rows: rowsL.map(function (r, i) {
-        var out = { row: r };
-        colsL.forEach(function (_, j) {
-          out["c" + j] = values[i] ? values[i][j] : null;
-        });
-        return out;
-      }),
-    });
+    tableFor(
+      body,
+      {
+        columns: tableCols,
+        rows: rowsL.map(function (r, i) {
+          var out = { row: r };
+          colsL.forEach(function (_, j) {
+            out["c" + j] = values[i] ? values[i][j] : null;
+          });
+          return out;
+        }),
+      },
+      spec
+    );
     if (!rowsL.length || !colsL.length) return empty(body);
 
     var flat = [];
@@ -1809,13 +2956,21 @@
     var hasMissing = flat.some(function (v) {
       return !isNum(v);
     });
+    var hasZero = flat.some(function (v) {
+      return v === 0;
+    });
 
     function classOf(v) {
       if (!isNum(v)) return null;
+      if (diverging && breaks) {
+        if (v === 0) return 0;
+        var a = Math.abs(v);
+        var c = a < breaks[0] ? 1 : a < breaks[1] ? 2 : 3;
+        return v > 0 ? c : -c;
+      }
       if (diverging) {
         var bound = Math.max(Math.abs(lo), Math.abs(hi)) || 1;
-        var k = clamp(Math.round((v / bound) * 3), -3, 3);
-        return k;
+        return clamp(Math.round((v / bound) * 3), -3, 3);
       }
       if (hi === lo) return 4;
       return clamp(Math.floor(((v - lo) / (hi - lo)) * 7) + 1, 1, 7);
@@ -1832,32 +2987,65 @@
       return diverging ? "var(--on-div-" + Math.abs(k) + ")" : "var(--on-seq-" + k + ")";
     }
 
-    frame(body, spec, "heat", function (wrap, W) {
-      var labelMax = Math.min(Math.max(60, W * 0.28), 200);
+    /* Rows under group headings, in order; rows no group counts come last, unheaded. */
+    var blocks = [];
+    var cursor = 0;
+    (Array.isArray(spec.groups) ? spec.groups : []).forEach(function (g) {
+      if (!g || !isNum(g.count) || g.count <= 0 || cursor >= rowsL.length) return;
+      var count = Math.min(Math.round(g.count), rowsL.length - cursor);
+      blocks.push({ label: g.label ? String(g.label) : "", from: cursor, count: count });
+      cursor += count;
+    });
+    if (cursor < rowsL.length) blocks.push({ label: "", from: cursor, count: rowsL.length - cursor, bare: true });
+
+    frame(body, "heat", function (wrap, W) {
+      /* Row labels are never clipped: wrapped at labelWidth when given, otherwise at full length. */
+      var cap = isNum(spec.labelWidth) ? spec.labelWidth : null;
       var rowWrapped = rowsL.map(function (r) {
-        return wrapText(r, labelMax, 12, 1);
+        return cap ? wrapText(r, cap, 12, 2, 400, family) : { lines: [String(r)], width: measure(r, 12, 400, family) };
       });
-      var rowW = Math.max.apply(
-        null,
-        [30].concat(
-          rowWrapped.map(function (w) {
-            return w.width;
-          })
-        )
+      var rowW = maxOf(
+        rowWrapped.map(function (w) {
+          return w.width;
+        }),
+        30
       );
-      var m = { top: 24, right: 4, bottom: 4, left: Math.min(rowW, labelMax) + 12 };
-      var cellW = Math.max(HIT_MIN, (W - m.left - m.right) / colsL.length);
+      var colTitleH = spec.colTitle ? 16 : 0;
+      var m = { top: 24 + colTitleH, right: 4, bottom: 4, left: rowW + 12 };
+      var notes = Array.isArray(spec.rowNotes) ? spec.rowNotes : [];
+      var notesW = maxOf(
+        notes.map(function (t) {
+          return t ? measure(t, 11, 500) : 0;
+        })
+      );
+      notesW = notesW ? notesW + 12 : 0;
+      function cellWidth(reserve) {
+        var w = Math.max(HIT_MIN, (W - m.left - m.right - reserve) / colsL.length);
+        return isNum(spec.cellMax) ? Math.min(Math.max(HIT_MIN, spec.cellMax), w) : w;
+      }
+      var cellW = cellWidth(notesW);
+      if (notesW && m.left + cellW * colsL.length + notesW > W) {
+        notesW = 0;
+        cellW = cellWidth(0);
+      }
       var cellH = Math.max(HIT_MIN, spec.cellHeight || 30);
+      var groupH = 24;
       var gridW = cellW * colsL.length;
-      var H = Math.round(m.top + cellH * rowsL.length + m.bottom);
-      var root = chartSvg(Math.max(W, m.left + gridW + m.right), H, spec, "Heat map");
-      var colWidths = colsL.map(function (c) {
-        return measure(c, 11);
+      var headed = blocks.filter(function (b) {
+        return b.label;
+      }).length;
+      var H = Math.round(m.top + headed * groupH + cellH * rowsL.length + m.bottom);
+      var root = chartSvg(Math.max(W, m.left + gridW + notesW + m.right), H, spec, "Heat map");
+      if (spec.colTitle) {
+        root.appendChild(
+          svg("text", { class: "tv-group-label", x: m.left + gridW / 2, y: 11, "text-anchor": "middle" }, String(spec.colTitle))
+        );
+      }
+      var colItems = colsL.map(function (c, j) {
+        return { center: m.left + cellW * j + cellW / 2, width: measure(c, 11) };
       });
-      var every = Math.max(1, Math.ceil((Math.max.apply(null, colWidths) + 6) / cellW));
-      colsL.forEach(function (c, j) {
-        if (j % every !== 0) return;
-        root.appendChild(svg("text", { class: "tv-tick", x: m.left + cellW * j + cellW / 2, y: m.top - 9, "text-anchor": "middle" }, String(c)));
+      thinLabels(colItems, 6).forEach(function (j) {
+        root.appendChild(svg("text", { class: "tv-tick", x: colItems[j].center, y: m.top - 9, "text-anchor": "middle" }, String(colsL[j])));
       });
       var showLabels =
         spec.cellLabels !== false &&
@@ -1865,9 +3053,31 @@
           return measure(format(spec.format, v), 11) + 8 <= cellW - GAP;
         });
       var marks = svg("g");
-      rowsL.forEach(function (r, i) {
-        var cy = m.top + cellH * i + cellH / 2;
-        marks.appendChild(svg("text", { class: "tv-label", x: m.left - 10, y: cy, dy: "0.35em", "text-anchor": "end" }, rowWrapped[i].lines[0]));
+      var labelStyle = spec.mono ? { fontFamily: "var(--font-mono)" } : null;
+      var startAligned = spec.labelAlign === "start";
+      var top = m.top;
+      blocks.forEach(function (b) {
+        if (b.label) {
+          marks.appendChild(svg("text", { class: "tv-group-label", x: 0, y: top + groupH - 8 }, b.label));
+          marks.appendChild(
+            svg("line", { class: "tv-axisline", x1: 0, x2: m.left + gridW, y1: crisp(top + groupH - 2), y2: crisp(top + groupH - 2) })
+          );
+          top += groupH;
+        }
+        for (var i = b.from; i < b.from + b.count; i++) {
+          drawRow(i, top);
+          top += cellH;
+        }
+      });
+
+      function drawRow(i, rowTop) {
+        var r = rowsL[i];
+        var cy = rowTop + cellH / 2;
+        textBlock(marks, rowWrapped[i].lines, startAligned ? 0 : m.left - 10, cy, {
+          class: "tv-label",
+          "text-anchor": startAligned ? "start" : "end",
+          style: labelStyle,
+        }, 13);
         colsL.forEach(function (c, j) {
           var v = values[i] ? values[i][j] : null;
           var k = classOf(v);
@@ -1875,18 +3085,13 @@
           var cell = svg("rect", {
             class: "tv-mark",
             x: cx + GAP / 2,
-            y: m.top + cellH * i + GAP / 2,
+            y: rowTop + GAP / 2,
             width: Math.max(0, cellW - GAP),
             height: Math.max(0, cellH - GAP),
             rx: 2,
             style: { fill: fillOf(k) },
           });
-          var g = markGroup(
-            marks,
-            { x: cx, y: m.top + cellH * i, width: cellW, height: cellH },
-            cell,
-            r + ", " + c + ": " + format(spec.format, v)
-          );
+          var g = markGroup(marks, { x: cx, y: rowTop, width: cellW, height: cellH }, cell, r + ", " + c + ": " + format(spec.format, v));
           if (showLabels) {
             g.appendChild(
               svg(
@@ -1899,26 +3104,40 @@
           tooltip.attach(g, function () {
             return {
               title: r + " · " + c,
-              rows: [{ label: valueName, value: format(spec.format, v), color: fillOf(k), shape: "rect" }],
+              rows: [{ label: valueName, value: format(spec.format, v), color: fillOf(k), shape: "rect" }].concat(
+                tipRows(Array.isArray(spec.rowTips) ? spec.rowTips[i] : null)
+              ),
             };
           });
         });
-      });
+        if (notesW && notes[i]) {
+          marks.appendChild(svg("text", { class: "tv-value", x: m.left + gridW + 10, y: cy, dy: "0.35em" }, notes[i]));
+        }
+      }
       root.appendChild(marks);
       wrap.appendChild(root);
 
       /* The scale legend: one swatch per class, with its bounds in text. */
-      var classes = diverging ? [-3, -2, -1, 0, 1, 2, 3] : [1, 2, 3, 4, 5, 6, 7];
-      var ticks = diverging
-        ? [format(spec.format, -Math.max(Math.abs(lo), Math.abs(hi))), format(spec.format, 0), format(spec.format, Math.max(Math.abs(lo), Math.abs(hi)))]
-        : [format(spec.format, lo), format(spec.format, hi)];
+      var classes;
+      var ticks;
+      var title = spec.scaleLabel || null;
+      if (breaks) {
+        classes = hasZero ? [-3, -2, -1, 0, 1, 2, 3] : [-3, -2, -1, 1, 2, 3];
+        ticks = [format("signed:1", -breaks[1]) + " or less", "0", format("signed:1", breaks[1]) + " or more"];
+        title = (spec.scaleLabel || valueName) + ", classes break at " + format("num:1", breaks[0]) + " and " + format("num:1", breaks[1]);
+      } else {
+        classes = diverging ? [-3, -2, -1, 0, 1, 2, 3] : [1, 2, 3, 4, 5, 6, 7];
+        ticks = diverging
+          ? [format(spec.format, -Math.max(Math.abs(lo), Math.abs(hi))), format(spec.format, 0), format(spec.format, Math.max(Math.abs(lo), Math.abs(hi)))]
+          : [format(spec.format, lo), format(spec.format, hi)];
+      }
       var scaleNode = el(
         "div",
         { class: "tv-scale" },
         el(
           "div",
           { class: "tv-scale__ramp" },
-          spec.scaleLabel ? el("span", { class: "tv-scale__title" }, spec.scaleLabel) : null,
+          title ? el("span", { class: "tv-scale__title" }, title) : null,
           el(
             "div",
             { class: "tv-scale__swatches", "aria-hidden": "true" },
@@ -1969,18 +3188,18 @@
       });
       tableRows.push(row);
     }
-    tableFor(body, { columns: columns, rows: tableRows });
+    tableFor(body, { columns: columns, rows: tableRows }, spec);
     if (!nBins || !series.length) return empty(body);
-    if (series.length > 1) {
-      legendFor(
-        body,
-        series.map(function (s) {
-          return { label: s.name, color: s.role, shape: "rect" };
-        })
-      );
-    }
+    chartLegend(
+      body,
+      spec,
+      series.map(function (s) {
+        return { label: s.name, color: s.role, shape: "rect" };
+      }),
+      "rect"
+    );
 
-    frame(body, spec, "hist", function (wrap, W) {
+    frame(body, "hist", function (wrap, W) {
       var counts = [];
       series.forEach(function (s) {
         counts = counts.concat(s.counts || []);
@@ -2082,7 +3301,7 @@
     ];
     if (hasMid) columns.push({ key: "mid", label: "Mid", align: "right", format: spec.format });
     columns.push({ key: "hi", label: "High", align: "right", format: spec.format });
-    tableFor(body, { columns: columns, rows: rows });
+    tableFor(body, { columns: columns, rows: rows }, spec);
     if (!rows.length) return empty(body);
     roleLegend(
       body,
@@ -2095,7 +3314,7 @@
       "rect"
     );
 
-    frame(body, spec, "range", function (wrap, W) {
+    frame(body, "range", function (wrap, W) {
       var all = [];
       rows.forEach(function (r) {
         all.push(r.lo, r.hi, r.mid);
@@ -2105,7 +3324,7 @@
       var dom = spec.domain || [];
       var lo = isNum(dom[0]) ? dom[0] : ext[0];
       var hi = isNum(dom[1]) ? dom[1] : ext[1];
-      var labels = rowLabels(rows, W);
+      var labels = rowLabels(rows, W, spec.labelWidth);
       var endW = Math.max.apply(
         null,
         [0].concat(
@@ -2121,10 +3340,11 @@
       var plotH = rowH * n;
       var H = Math.round(m.top + plotH + m.bottom);
       var x = linear([lo, hi], [m.left, W - m.right], { nice: !spec.domain });
+      var tickCount = labelTickCount(x, W - m.left - m.right);
       var thick = Math.min(BAR_MAX, 18, rowH * 0.6);
       var root = chartSvg(W, H, spec, "Range");
       var grid = svg("g");
-      xAxisTicks(grid, x, m.top, m.top + plotH, spec.format, Math.max(2, Math.floor((W - m.left - m.right) / 90)));
+      xAxisTicks(grid, x, m.top, m.top + plotH, spec.format, tickCount);
       root.appendChild(grid);
       var marks = svg("g");
       var valueLayer = svg("g", { class: "tv-values" });
@@ -2158,7 +3378,7 @@
           (spec.reference || []).forEach(function (ref) {
             if (ref && isNum(ref.value)) out.push({ label: ref.label || "Reference", value: format(spec.format, ref.value) });
           });
-          return { title: r.label, rows: out };
+          return { title: r.label, rows: out.concat(tipRows(r.tip)) };
         });
       });
       root.appendChild(marks);
@@ -2190,14 +3410,18 @@
     var reported = spec.total && isNum(spec.total.value) ? spec.total.value : null;
     items.push({ label: totalLabel, kind: "total", from: 0, to: running, value: running });
 
-    tableFor(body, {
-      columns: [
-        { key: "label", label: spec.labelHeader || "Component" },
-        { key: "value", label: spec.valueLabel || "Value", align: "right", format: spec.format },
-        { key: "to", label: "Running total", align: "right", format: spec.format },
-      ],
-      rows: items,
-    });
+    tableFor(
+      body,
+      {
+        columns: [
+          { key: "label", label: spec.labelHeader || "Component" },
+          { key: "value", label: spec.valueLabel || "Value", align: "right", format: spec.format },
+          { key: "to", label: "Running total", align: "right", format: spec.format },
+        ],
+        rows: items,
+      },
+      spec
+    );
     if (!steps.length) return empty(body);
     var handle = handleFor(body);
     if (handle && reported !== null && Math.abs(reported - running) > Math.max(1e-6, Math.abs(running) * 1e-6)) {
@@ -2206,13 +3430,26 @@
         why: "The components sum to " + format(spec.format, running) + " but the total supplied is " + format(spec.format, reported) + "; the bridge draws the sum.",
       });
     }
-    legendFor(body, [
-      { label: spec.upLabel || "Adds", color: "pos", shape: "rect" },
-      { label: spec.downLabel || "Subtracts", color: "neg", shape: "rect" },
-      { label: spec.totalLegend || "Total", color: "total", shape: "rect" },
-    ]);
+    /* A legend entry for each kind of bar the bridge draws, and no other. */
+    var legendItems = [];
+    if (
+      steps.some(function (s) {
+        return isNum(s.value) && s.value > 0;
+      })
+    ) {
+      legendItems.push({ label: spec.upLabel || "Adds", color: "pos", shape: "rect" });
+    }
+    if (
+      steps.some(function (s) {
+        return isNum(s.value) && s.value < 0;
+      })
+    ) {
+      legendItems.push({ label: spec.downLabel || "Subtracts", color: "neg", shape: "rect" });
+    }
+    legendItems.push({ label: spec.totalLegend || "Total", color: "total", shape: "rect" });
+    chartLegend(body, spec, legendItems, "rect");
 
-    frame(body, spec, "waterfall", function (wrap, W) {
+    frame(body, "waterfall", function (wrap, W) {
       var levels = [0];
       items.forEach(function (it) {
         levels.push(it.from, it.to);
@@ -2299,6 +3536,19 @@
     return (v > 0 ? "+" : MINUS) + body;
   }
 
+  /* table: the figure is the table ---------------------------------------- */
+
+  function table(body, spec) {
+    spec = spec || {};
+    var rows = (spec.rows || []).filter(Boolean);
+    if (!rows.length || !(spec.columns || []).length) return empty(body, "No rows to show.");
+    var handle = handleFor(body);
+    return TV.tableView(
+      { table: body, title: handle ? handle.title : spec.title },
+      { columns: spec.columns, rows: rows, caption: spec.caption || spec.title }
+    );
+  }
+
   /* tiles: stat tiles ----------------------------------------------------- */
 
   function deltaNode(delta) {
@@ -2323,18 +3573,20 @@
     );
   }
 
+  function tileValue(t) {
+    return isNum(t.value) ? format(t.format, t.value) : isNil(t.value) ? "n/a" : String(t.value);
+  }
+
   function tiles(body, input) {
-    var list = Array.isArray(input) ? input : (input && input.tiles) || [];
+    var list = (Array.isArray(input) ? input : (input && input.tiles) || []).filter(Boolean);
     var grid = el("div", { class: "tv-tiles" });
     list.forEach(function (t) {
-      if (!t) return;
-      var value = isNum(t.value) ? format(t.format, t.value) : isNil(t.value) ? "n/a" : String(t.value);
       grid.appendChild(
         el(
           t.href ? "a" : "div",
           { class: "tv-tile", href: t.href || null },
           el("p", { class: "tv-tile__label" }, t.label),
-          el("p", { class: "tv-tile__value" }, value),
+          el("p", { class: "tv-tile__value" }, tileValue(t)),
           deltaNode(t.delta),
           t.sub ? el("p", { class: "tv-tile__sub" }, t.sub) : null,
           t.status ? TV.chip(t.status, t.statusText) : null
@@ -2342,6 +3594,20 @@
       );
     });
     body.appendChild(grid);
+    /* Inside a figure card the tiles are a figure, so they get a table view like any other. */
+    var handle = handleFor(body);
+    if (handle && list.length) {
+      TV.tableView(handle, {
+        columns: [
+          { key: "label", label: "Measure" },
+          { key: "value", label: "Value", align: "right" },
+          { key: "sub", label: "Detail" },
+        ],
+        rows: list.map(function (t) {
+          return { label: t.label, value: tileValue(t), sub: t.sub || "" };
+        }),
+      });
+    }
     return grid;
   }
 
@@ -2354,6 +3620,7 @@
     hist: hist,
     range: range,
     waterfall: waterfall,
+    table: table,
     tiles: tiles,
   };
 
@@ -2361,6 +3628,141 @@
 
   var renderers = {};
   var registered = [];
+
+  /* A snapshot figure with a section's override merged over it. */
+  function resolveFigure(figure, override) {
+    var f = Object.assign({}, figure || {});
+    if (!override) return f;
+    Object.keys(override).forEach(function (key) {
+      if (key === "data") return;
+      f[key] = override[key];
+    });
+    if (typeof override.data === "function") {
+      f.data = override.data(Object.assign({}, f.data || {}), f) || f.data;
+    } else if (override.data && typeof override.data === "object") {
+      f.data = Object.assign({}, f.data || {}, override.data);
+    }
+    return f;
+  }
+
+  function cautionsOf(f) {
+    var out = [];
+    [f.note, f.notes, f.data && f.data.note, f.data && f.data.notes].forEach(function (n) {
+      (Array.isArray(n) ? n : [n]).forEach(function (x) {
+        if (typeof x === "string" ? x : x && (x.what || x.why)) out.push(x);
+      });
+    });
+    return out;
+  }
+
+  /* Figures in reading order, as groups: each group is one run of cards and tiles. */
+  function figureGroups(ids, figs, order) {
+    function byOrder(list) {
+      return list
+        .map(function (id, i) {
+          return { id: id, i: i, o: isNum(figs[id].order) ? figs[id].order : Infinity };
+        })
+        .sort(function (a, b) {
+          return a.o === b.o ? a.i - b.i : a.o < b.o ? -1 : 1;
+        })
+        .map(function (d) {
+          return d.id;
+        });
+    }
+    if (Array.isArray(order) && order.length) {
+      var groups = [];
+      var loose = null;
+      order.forEach(function (item) {
+        if (typeof item === "string") {
+          if (!loose) {
+            loose = { title: null, ids: [] };
+            groups.push(loose);
+          }
+          loose.ids.push(item);
+          return;
+        }
+        loose = null;
+        if (Array.isArray(item)) groups.push({ title: null, ids: item.slice() });
+        else if (item && Array.isArray(item.ids)) groups.push({ title: item.title || null, ids: item.ids.slice() });
+      });
+      var named = {};
+      groups.forEach(function (g) {
+        g.ids = g.ids.filter(function (id) {
+          if (named[id] || ids.indexOf(id) < 0) return false;
+          named[id] = true;
+          return true;
+        });
+      });
+      groups = groups.filter(function (g) {
+        return g.ids.length;
+      });
+      var rest = byOrder(
+        ids.filter(function (id) {
+          return !named[id];
+        })
+      );
+      if (rest.length) groups.push({ title: null, ids: rest });
+      return groups;
+    }
+    if (
+      ids.some(function (id) {
+        return isNum(figs[id].order);
+      })
+    ) {
+      return [{ title: null, ids: byOrder(ids) }];
+    }
+    var tileIds = ids.filter(function (id) {
+      return figs[id].kind === "tiles" && !figs[id].card;
+    });
+    return [
+      {
+        title: null,
+        ids: tileIds.concat(
+          ids.filter(function (id) {
+            return tileIds.indexOf(id) < 0;
+          })
+        ),
+      },
+    ];
+  }
+
+  function drawFigure(handle, id, f) {
+    var spec = Object.assign({ title: f.title }, f.data || {});
+    if (typeof f.draw === "function") {
+      f.draw(handle, f);
+    } else if (f.kind === "tiles") {
+      tiles(handle.body, spec);
+    } else if (Object.prototype.hasOwnProperty.call(TV.charts, f.kind)) {
+      TV.charts[f.kind](handle.body, spec);
+    } else {
+      handle.addNote({ what: id, why: "The chart kit has no chart named " + JSON.stringify(String(f.kind)) + "." });
+    }
+    cautionsOf(f).forEach(function (n) {
+      handle.addCaution(n);
+    });
+    if (typeof f.after === "function") f.after(handle, f);
+  }
+
+  function tileset(parent, id, f) {
+    var set = el(
+      "div",
+      { class: "tv-tileset", "data-figure-id": id },
+      f.title ? el("h3", { class: "tv-tileset__title" }, f.title) : null,
+      f.subtitle ? el("p", { class: "tv-figure__subtitle" }, f.subtitle) : null
+    );
+    parent.appendChild(set);
+    return {
+      root: set,
+      body: set,
+      title: f.title || "",
+      addNote: function (r) {
+        set.appendChild(refusalNote(r));
+      },
+      addCaution: function (n) {
+        set.appendChild(cautionNote(n));
+      },
+    };
+  }
 
   TV.sections = {
     /* Section scripts are inlined in page order, so registration order is page order. */
@@ -2381,58 +3783,94 @@
     },
 
     /*
-     * The default drawing of a section's figures, in the snapshot's key order.
-     * Stat tiles sit on the page plane; every other kind gets a card drawn by
-     * the kit chart it names. A kind the kit does not have becomes a note on
-     * its card, never a guess. Returns {figureId: handle} so the caller can
-     * hang refusal notes under the figures they affect.
+     * The drawing of a section's figures, in reading order (see the header for
+     * opts). Stat tiles sit on the page plane unless a figure asks for a card;
+     * every other kind gets a card drawn by the kit chart it names. A kind the
+     * kit does not have becomes a note on its card, never a guess. Returns
+     * {figureId or refusal name: handle} so app.js can hang refusal notes under
+     * the figures they affect.
      */
-    figures: function (root, data) {
-      var figures = (data && data.figures) || {};
-      var ids = Object.keys(figures);
+    figures: function (root, data, opts) {
+      opts = opts || {};
+      var source = (data && data.figures) || {};
+      var ids = Object.keys(source);
       var handles = {};
       if (!ids.length) return handles;
       var provenance = (data && data.provenance) || [];
-      var tileIds = ids.filter(function (id) {
-        return figures[id] && figures[id].kind === "tiles";
+      var overrides = opts.figures || {};
+      var figs = {};
+      ids.forEach(function (id) {
+        figs[id] = resolveFigure(source[id], overrides[id]);
       });
-      tileIds.forEach(function (id) {
-        var f = figures[id];
-        var set = el(
-          "div",
-          { class: "tv-tileset", "data-figure-id": id },
-          f.title ? el("h3", { class: "tv-tileset__title" }, f.title) : null
-        );
-        root.appendChild(set);
-        tiles(set, f.data || {});
-        handles[id] = { root: set, body: set, title: f.title || "", addNote: function (r) { set.appendChild(refusalNote(r)); } };
-      });
-      var cardIds = ids.filter(function (id) {
-        return tileIds.indexOf(id) < 0;
-      });
-      if (!cardIds.length) return handles;
-      var grid = el("div", { class: "tv-grid" });
-      root.appendChild(grid);
-      cardIds.forEach(function (id) {
-        var f = figures[id] || {};
-        var prov = provenance.filter(function (p) {
+      function provenanceOf(id) {
+        return provenance.filter(function (p) {
           return p && p.figure === id;
-        })[0];
-        var handle = TV.figure(grid, {
-          id: id,
-          anchor: data && data.id ? "fig-" + data.id + "-" + id : null,
-          title: f.title,
-          subtitle: f.subtitle,
-          provenance: prov,
-          wide: !!(f.wide || (f.data && f.data.wide)),
         });
-        handles[id] = handle;
-        var chart = TV.charts[f.kind];
-        if (!chart) {
-          handle.addNote({ what: id, why: "The chart kit has no chart named " + JSON.stringify(String(f.kind)) + "." });
-          return;
+      }
+      function inCard(f) {
+        return f.kind !== "tiles" || !!f.card;
+      }
+      var parentOf = {};
+      ids.forEach(function (id) {
+        var parent = (opts.parts && opts.parts[id]) || figs[id].part;
+        if (typeof parent === "string" && parent !== id && figs[parent] && inCard(figs[parent]) && !figs[parent].part) {
+          parentOf[id] = parent;
         }
-        chart(handle.body, Object.assign({ title: f.title }, f.data || {}));
+      });
+      var topIds = ids.filter(function (id) {
+        return !parentOf[id];
+      });
+
+      figureGroups(topIds, figs, opts.order).forEach(function (group) {
+        var block = root;
+        if (group.title) {
+          block = el("div", { class: "tv-section__body tv-figure-group" }, el("h3", { class: "tv-eyebrow" }, group.title));
+          root.appendChild(block);
+        }
+        var grid = null;
+        group.ids.forEach(function (id) {
+          var f = figs[id];
+          var handle;
+          if (!inCard(f)) {
+            handle = tileset(block, id, f);
+            grid = null;
+            drawFigure(handle, id, f);
+          } else {
+            if (!grid) {
+              grid = el("div", { class: "tv-grid" });
+              block.appendChild(grid);
+            }
+            handle = TV.figure(grid, {
+              id: id,
+              anchor: data && data.id ? "fig-" + data.id + "-" + id : null,
+              title: f.title,
+              subtitle: f.subtitle,
+              provenance: provenanceOf(id),
+              wide: !!(f.wide || (f.data && f.data.wide)),
+            });
+            drawFigure(handle, id, f);
+          }
+          handles[id] = handle;
+          ids.forEach(function (child) {
+            if (parentOf[child] !== id) return;
+            var cf = figs[child];
+            var part = handle.part({ id: child, title: cf.title, subtitle: cf.subtitle, provenance: provenanceOf(child) });
+            drawFigure(part, child, cf);
+            handles[child] = part;
+          });
+        });
+      });
+
+      ids.forEach(function (id) {
+        var f = figs[id];
+        var names = [].concat(
+          (opts.refusals && opts.refusals(id, f)) || [],
+          f.refusals || [],
+          (f.data && f.data.refusals) || []
+        );
+        names.forEach(function (name) {
+          if (typeof name === "string" && name && handles[id] && !handles[name]) handles[name] = handles[id];
+        });
       });
       return handles;
     },
