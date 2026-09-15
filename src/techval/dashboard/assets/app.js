@@ -475,10 +475,44 @@
     var updateRail = spy(nav);
     if (global.location && global.location.hash) {
       var target = document.getElementById(decodeURIComponent(global.location.hash.slice(1)));
-      if (target) target.scrollIntoView();
+      if (target) {
+        target.scrollIntoView();
+        holdAnchor(target, updateRail);
+      }
       updateRail();
     }
     document.documentElement.setAttribute("data-tv-ready", "true");
+  }
+
+  /*
+   * Charts draw inside the kit's resize-aware frame, after the first layout, so
+   * every section above a linked one grows once the page has already scrolled to
+   * it and the link lands somewhere above its target. Hold the target in place
+   * while the page settles, and let go the moment the reader moves, so a deep
+   * link reaches its section without ever fighting a scroll.
+   */
+  var LET_GO = ["wheel", "touchstart", "keydown", "pointerdown"];
+  function holdAnchor(target, onMove) {
+    if (!global.ResizeObserver) return;
+    var done = false;
+    var watcher = new global.ResizeObserver(function () {
+      if (done) return;
+      target.scrollIntoView();
+      onMove();
+    });
+    function stop() {
+      if (done) return;
+      done = true;
+      watcher.disconnect();
+      LET_GO.forEach(function (name) {
+        global.removeEventListener(name, stop, true);
+      });
+    }
+    watcher.observe(document.body);
+    LET_GO.forEach(function (name) {
+      global.addEventListener(name, stop, true);
+    });
+    global.setTimeout(stop, 4000);
   }
 
   TV.boot = boot;
