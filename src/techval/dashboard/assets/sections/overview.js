@@ -189,12 +189,12 @@
   }
 
   function toggleTable(root, view, table) {
-    var btn = el("button", { class: "tv-btn", type: "button" }, "View table");
+    var btn = el("button", { class: "tv-btn", type: "button" }, "Show data");
     btn.addEventListener("click", function () {
       var showTable = table.hidden;
       table.hidden = !showTable;
       view.hidden = showTable;
-      btn.textContent = showTable ? "View tiles" : "View table";
+      btn.textContent = showTable ? "Show scores" : "Show data";
     });
     root.appendChild(el("div", null, btn));
   }
