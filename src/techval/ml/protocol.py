@@ -22,11 +22,35 @@ hindsight, and the failure is silent because the fit looks excellent.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
 import numpy as np
+
+#: Metric names that are initialisms. ``EvalResult.verdict`` opens on the metric
+#: in lower case because it is a line of its own wherever it is printed alone; a
+#: sentence built from it after a full stop keeps these in capitals rather than
+#: raising one letter and printing "Mae" or "Ndcg@10".
+_INITIALISM = re.compile(r"(?:mae|rmse|auc|ic|ndcg)(?=@\d|\b)", re.IGNORECASE)
+
+
+def sentence_case(line: str) -> str:
+    """``line`` opening a sentence: an initialism in capitals, anything else with
+    its first letter raised, and the rest of the line untouched.
+
+    >>> sentence_case("mae of 0.1230 against 0.1510")
+    'MAE of 0.1230 against 0.1510'
+    >>> sentence_case("ndcg@10 of 0.5407")
+    'NDCG@10 of 0.5407'
+    >>> sentence_case("spearman of 0.7651")
+    'Spearman of 0.7651'
+    """
+    opening = _INITIALISM.match(line)
+    if opening is not None:
+        return opening.group(0).upper() + line[opening.end():]
+    return line[:1].upper() + line[1:]
 
 
 @dataclass
@@ -211,7 +235,7 @@ class ModelCard:
         )
         if self.evaluation is None:
             return head + " Not evaluated."
-        return head + " " + self.evaluation.verdict()
+        return head + " " + sentence_case(self.evaluation.verdict())
 
 
 def spearman(x: np.ndarray, y: np.ndarray) -> float | None:
