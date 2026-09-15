@@ -386,7 +386,7 @@ def _football(m: Measured) -> dict[str, Any] | None:
     if m.sensitivity is not None and dcf:
         s = m.sensitivity
         parts.append(
-            f"DCF bands span WACC {s.wacc_low:.1%} to {s.wacc_high:.1%} and terminal "
+            f"DCF bands span WACC {s.wacc_low:.2%} to {s.wacc_high:.2%} and terminal "
             f"growth {s.growth_low:.1%} to {s.growth_high:.1%}, ticked at the base case."
         )
     if any(b.label.startswith("Comps") for b in market):
