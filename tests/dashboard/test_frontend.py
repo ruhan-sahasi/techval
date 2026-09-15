@@ -940,3 +940,15 @@ def test_the_kit_draws_what_the_sections_used_to_draw_locally(drawn):
     assert absorbed["tableFigure"] == 3
     assert absorbed["shades"] == 2 and absorbed["fullerTables"] == 2
     assert {"2022", "2023", "2024"} <= set(absorbed["closeTicks"])
+
+
+def test_a_deep_link_is_held_while_the_charts_above_it_draw():
+    # Charts draw after the first layout, so a section linked by #id drifts
+    # down the page unless the anchor is held until the layout settles, and
+    # released the moment the reader moves so it never fights a scroll.
+    text = APP.read_text(encoding="utf-8")
+    assert "function holdAnchor(" in text
+    assert re.search(r"holdAnchor\(target,", text)
+    assert "watcher.observe(document.body)" in text
+    for name in ("wheel", "touchstart", "keydown", "pointerdown"):
+        assert f'"{name}"' in text
