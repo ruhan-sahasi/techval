@@ -329,10 +329,17 @@ details > summary:hover {
   max-width: 96ch;
 }
 
+/* The verdict's first sentence, with the rest of the model's own text behind a disclosure. */
 .tv-headline__text {
+  display: grid;
   flex: 1 1 32ch;
+  gap: var(--space-1);
   color: var(--ink-2);
   font-size: var(--fs-body);
+}
+
+.tv-headline__more > p {
+  margin-top: var(--space-1);
 }
 
 /* Figure grid and cards. */
