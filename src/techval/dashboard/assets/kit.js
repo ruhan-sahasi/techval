@@ -842,9 +842,9 @@
     var body = el("div", { class: "tv-figure__body" });
     var table = el("div", { class: "tv-figure__table", hidden: true });
     var notes = el("div", { class: "tv-figure__notes" });
-    var toggle = el("button", { class: "tv-btn", type: "button", hidden: true }, "View table");
+    var toggle = el("button", { class: "tv-btn", type: "button", hidden: true }, "Show data");
     var source = el("span", { class: "tv-figure__source" });
-    var foot = el("footer", { class: "tv-figure__foot" }, toggle, source);
+    var foot = el("footer", { class: "tv-figure__foot" }, source, toggle);
     var entries = [];
 
     function addProvenance(provenance) {
@@ -941,7 +941,7 @@
       table.hidden = !showTable;
       body.hidden = showTable;
       legend.hidden = showTable;
-      toggle.textContent = showTable ? "View chart" : "View table";
+      toggle.textContent = showTable ? "Show chart" : "Show data";
     });
 
     root.__tvHandle = handle;

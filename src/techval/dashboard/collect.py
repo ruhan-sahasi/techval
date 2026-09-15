@@ -68,7 +68,7 @@ from .snapshot import (
 )
 
 DEFAULT_ROOT = Path("tests/fixtures")
-DEFAULT_TITLE = "techval Results"
+DEFAULT_TITLE = "Valuation engine and model results"
 
 # Bumped when the cached payload's layout or meaning changes, which invalidates
 # every entry at once.

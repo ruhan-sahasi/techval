@@ -97,9 +97,40 @@
     return !!(section && section.headline);
   }
 
-  /* Header ---------------------------------------------------------------- */
+  /* Header and basis of preparation ------------------------------------- */
+
+  var STANDFIRST =
+    "techval values technology, media and telecom companies on free public data: SEC filings, public quotes and " +
+    "the Treasury curve. This note sets out what it computes, from the DCF engine, trading comps and a precedent " +
+    "deal database to five models built on the same filings, each scored out of sample against a baseline it has " +
+    "to beat. Every figure is recomputed offline from committed fixtures; where one could not be reproduced, a " +
+    "note says so in its place.";
 
   function header(snapshot) {
+    var dateline = el(
+      "p",
+      { class: "tv-dateline" },
+      el("span", null, "techval"),
+      el("span", null, snapshot.collected_at ? "Collected " + snapshot.collected_at : "Collection date not recorded"),
+      el("span", null, el("a", { href: "#tv-basis" }, "Basis of preparation"))
+    );
+    var node = el(
+      "header",
+      { class: "tv-header" },
+      dateline,
+      el("h1", { class: "tv-title" }, snapshot.title || "techval Results"),
+      el("p", { class: "tv-standfirst" }, STANDFIRST)
+    );
+    /* A page may carry its own notice (the gallery says its data is synthetic). */
+    var notice = document.getElementById("tv-notice");
+    if (notice) {
+      notice.hidden = false;
+      node.appendChild(notice);
+    }
+    return node;
+  }
+
+  function basis(snapshot) {
     var fixtures = snapshot.fixtures || {};
     var paths = Object.keys(fixtures).sort();
     var meta = el(
@@ -107,14 +138,7 @@
       { class: "tv-meta" },
       el("span", null, el("span", { class: "tv-meta__label" }, "Commit"), el("code", null, snapshot.techval_commit || "n/a")),
       el("span", null, el("span", { class: "tv-meta__label" }, "Collected"), snapshot.collected_at || "n/a"),
-      el("span", null, paths.length === 1 ? "1 fixture" : paths.length + " fixtures"),
-      el(
-        "span",
-        null,
-        paths.length
-          ? "All figures computed offline from committed fixtures"
-          : "No fixture digests recorded, so no figure here is tied to a committed input"
-      )
+      el("span", null, paths.length === 1 ? "1 fixture" : paths.length + " fixtures")
     );
     var list = null;
     if (paths.length) {
@@ -137,34 +161,29 @@
         )
       );
     }
-    var node = el("header", { class: "tv-header" }, el("h1", { class: "tv-title" }, snapshot.title || "techval Results"), meta, list);
-    /* A page may carry its own notice (the gallery says its data is synthetic). */
-    var notice = document.getElementById("tv-notice");
-    if (notice) {
-      notice.hidden = false;
-      node.appendChild(notice);
-    }
-    return node;
+    return el(
+      "footer",
+      { class: "tv-basis", id: "tv-basis" },
+      el("h2", { class: "tv-basis__title" }, "Basis of preparation"),
+      el(
+        "p",
+        null,
+        paths.length
+          ? "All figures were computed offline from the committed fixtures listed below, at the commit shown. Each exhibit's source line names the functions that produced it; each section's provenance lists their inputs and run times. Where a function refused to produce a figure, the refusal is printed as a note and no number stands in for it."
+          : "No fixture digests were recorded, so no figure on this page is tied to a committed input."
+      ),
+      meta,
+      list
+    );
   }
 
   /* Rail ------------------------------------------------------------------ */
 
   function railItem(id, section) {
-    var state = null;
-    if (!section) {
-      state = el("span", { class: "tv-rail__state" }, "Not collected");
-    } else if (section.status === "refused") {
-      state = TV.chip("refused", null, { compact: true });
-    } else if (section.status === "not_built") {
-      state = el("span", { class: "tv-rail__state" }, "Not collected");
-    } else if (isModelSection(section) && section.headline.verdict_status) {
-      state = TV.chip(section.headline.verdict_status, null, { compact: true });
-    }
     var link = el(
       "a",
       { class: "tv-rail__link", href: "#" + id, "data-section": id },
-      el("span", null, (section && section.title) || sentenceCase(id)),
-      state
+      el("span", null, (section && section.title) || sentenceCase(id))
     );
     return el("li", null, link);
   }
@@ -176,8 +195,8 @@
     });
     return el(
       "nav",
-      { class: "tv-rail", "aria-label": "Sections" },
-      el("p", { class: "tv-rail__title", "aria-hidden": "true" }, "Sections"),
+      { class: "tv-rail", "aria-label": "Contents" },
+      el("p", { class: "tv-rail__title", "aria-hidden": "true" }, "Contents"),
       list
     );
   }
@@ -379,7 +398,6 @@
     var head = el(
       "header",
       { class: "tv-section__head" },
-      el("p", { class: "tv-eyebrow" }, id),
       el("h2", { class: "tv-section__title", id: id + "-title" }, (section && section.title) || sentenceCase(id)),
       section && section.takeaway ? el("p", { class: "tv-takeaway" }, section.takeaway) : null
     );
@@ -472,6 +490,7 @@
     order.forEach(function (id) {
       main.appendChild(sectionNode(id, sections[id], snapshot));
     });
+    main.appendChild(basis(snapshot));
     var updateRail = spy(nav);
     if (global.location && global.location.hash) {
       var target = document.getElementById(decodeURIComponent(global.location.hash.slice(1)));

@@ -158,7 +158,7 @@ def test_collects_every_section_in_order(sections, root, assumptions):
     assert order == list(COLLECT_ORDER)
     assert list(snap.sections) == list(SECTION_IDS)
     assert snap.collected_at == "2026-09-14" and snap2.collected_at == "2026-09-14"
-    assert snap.title == "techval Results"
+    assert snap.title == "Valuation engine and model results"
     for sid, section in snap.sections.items():
         assert section["id"] == sid
         assert section["title"] == sid.title()
