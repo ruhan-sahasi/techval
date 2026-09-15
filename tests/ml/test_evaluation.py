@@ -332,6 +332,26 @@ def test_regression_reports_fold_dispersion_beside_the_lift():
     assert any("beat the baseline in" in note for note in result.notes)
 
 
+def test_regression_carries_each_folds_lift_beside_the_fold_scores():
+    """The lift on each fold, not only the model's fold scores.
+
+    The dashboard's chips decide "inside the noise" by comparing the mean fold
+    lift with the spread of those lifts. That number used to exist only inside a
+    note string, so a caller either parsed prose or rebuilt the folds by hand.
+    """
+    dates, _, y = forward_panel()
+    rng = np.random.default_rng(11)
+    pred = y + rng.normal(scale=0.05, size=y.size)
+    result = evaluate_regression(
+        y, pred, None, dates=dates, n_folds=5, min_train=200, embargo_days=365
+    )
+    assert len(result.fold_lifts) == len(result.folds) == 5
+    mean = float(np.mean(result.fold_lifts))
+    assert any(f"{mean:+.4f}" in note for note in result.notes)
+    pooled = evaluate_regression(y, pred, None)
+    assert pooled.fold_lifts == []
+
+
 def test_regression_refuses_rather_than_scoring_around_a_gap():
     """Missing rows are dropped by the caller with a reason, never silently."""
     dates, _, y = forward_panel()

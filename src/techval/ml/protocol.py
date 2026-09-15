@@ -91,6 +91,13 @@ class EvalResult:
     against. ``"query"`` means per-query scores from a ranking task, and their
     dispersion is how much targets differ, which is not an error bar on the
     lift: ``paired``, when the producer supplies it, is.
+
+    ``fold_lifts`` holds the lift on each walk-forward fold, where the producer
+    scored the baseline fold by fold. The spread of the model's own fold scores
+    and the spread of its lift across folds are different yardsticks: the first
+    includes variation the baseline shares, the second does not. A chip that says
+    whether a lift clears the noise should use the second, and a result that
+    carries only ``folds`` cannot supply it.
     """
 
     metric: str
@@ -103,6 +110,7 @@ class EvalResult:
     notes: list[str] = field(default_factory=list)
     fold_unit: str = "fold"
     paired: PairedDelta | None = None
+    fold_lifts: list[float] = field(default_factory=list)
 
     def __setstate__(self, state: dict) -> None:
         """Backfill the fields this class gained after caches began storing it.
@@ -116,6 +124,7 @@ class EvalResult:
         self.__dict__.update(state)
         self.__dict__.setdefault("fold_unit", "fold")
         self.__dict__.setdefault("paired", None)
+        self.__dict__.setdefault("fold_lifts", [])
 
     @property
     def beat_baseline(self) -> bool:

@@ -216,9 +216,14 @@ def test_the_headline_is_the_verdict_verbatim_with_its_rule_applied():
     head = P.shape(_facts())["headline"]
     assert head["verdict_text"] == "The model's own sentence, carried verbatim."
     assert head["score"] == 0.61 and head["baseline_score"] == 0.55 and head["n"] == 512
-    assert head["verdict_status"] == "beats"
-    noisy = P.shape(_facts(evaluation=_evaluation(fold_sd=0.09)))["headline"]
-    assert noisy["verdict_status"] == "inside_noise"
+    # The fake folds' lifts over the size sort swing (-0.06, +0.12, +0.06), so the
+    # stricter test calls the pooled +0.06 inside the noise.
+    assert head["verdict_status"] == "inside_noise"
+    steady = tuple(
+        P.FoldScore(i, date(2020 + i, 3, 31), date(2020 + i, 12, 31), 150, 6, 0.60 + d, 0.55)
+        for i, d in enumerate((0.0, 0.01, 0.005))
+    )
+    assert P.shape(_facts(folds=steady))["headline"]["verdict_status"] == "beats"
 
 
 @pytest.mark.parametrize(
@@ -239,7 +244,7 @@ def test_verdict_status_rule(lift, sd, status):
 def test_the_takeaway_is_built_from_the_values_it_was_given():
     text = P.shape(_facts())["takeaway"]
     assert "0.6100" in text and "0.5500" in text and "+0.0600" in text
-    assert "outside a fold standard deviation of 0.0200" in text
+    assert "inside the fold noise (a mean fold lift of +0.0400 against a fold-to-fold standard deviation of 0.0917)" in text
     assert "11 companies announced as targets" in text
     assert "2 of its 3 coefficients change sign" in text
     assert "removing the 5 deals" in text and "flips the verdict" in text
@@ -256,7 +261,10 @@ def test_the_takeaway_is_built_from_the_values_it_was_given():
             ),
         )
     )["takeaway"]
-    assert "inside a fold standard deviation of 0.2000" in quiet
+    # With fold scores present the noise is judged on the lift across folds, so the
+    # model's own fold spread no longer decides the sentence.
+    assert "inside the fold noise (a mean fold lift of +0.0400" in quiet
+    assert "0.2000" not in quiet
     assert "flips" not in quiet
 
     losing = P.shape(_facts(evaluation=_evaluation(score=0.5, lift=-0.05, beat_baseline=False)))
@@ -475,3 +483,13 @@ def test_pinned_recovered_deals_flip(section):
     assert rows[0]["beats"] and not rows[-1]["beats"]
     assert rows[0]["label"].endswith("107 announced deals")
     assert rows[-1]["label"].endswith("100 announced deals")
+
+
+def test_the_chip_judges_the_noise_on_the_lift_over_the_size_sort_across_folds():
+    """The warranted multiple's stricter test, applied here too, so the scoreboard compares like with like."""
+    swinging = (0.10, -0.08, 0.09, -0.07, 0.02)
+    assert P.verdict_status(0.02, 0.01) == "beats"
+    assert P.verdict_status(0.02, 0.01, swinging) == "inside_noise"
+    steady = (0.03, 0.025, 0.02, 0.03, 0.028)
+    assert P.verdict_status(0.02, 0.01, steady) == "beats"
+    assert P.verdict_status(-0.02, 0.01, steady) == "loses"

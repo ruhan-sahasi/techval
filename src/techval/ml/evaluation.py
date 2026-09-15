@@ -318,6 +318,7 @@ def evaluate_regression(
         )
         score = _regression_score(metric, y, p)
         fold_scores: list[float] = []
+        fold_lifts: list[float] = []
         n_scored = y.size
         if base is None and metric in _RANK_METRICS:
             baseline_name = _NO_ORDERING_BASELINE
@@ -403,6 +404,7 @@ def evaluate_regression(
         higher_is_better=higher,
         folds=fold_scores,
         notes=notes,
+        fold_lifts=fold_lifts,
     )
 
 
