@@ -396,6 +396,14 @@
 
   TV.color = color;
 
+  /* A reference line's tooltip row; a label that already ends in the value ("Price 225.27") is not made to say it twice. */
+  function refTipRow(ref, fmt) {
+    var value = format(fmt, ref.value);
+    var label = String(ref.label || "Reference");
+    if (label.length > value.length && label.slice(-value.length) === value) label = label.slice(0, -value.length).trim();
+    return { label: label, value: value };
+  }
+
   /* Scales ---------------------------------------------------------------- */
 
   function tickStep(start, stop, count) {
@@ -1297,12 +1305,14 @@
    * (v) edge of the bar across its thickness.
    */
   function barPath(orient, base, end, cross, thickness, roundBoth) {
+    if (end === base) return "";
+    var s = end > base ? 1 : -1;
+    /* A value too small for a pixel still draws one, so a -0.003 is never an empty slot beside its neighbours. */
+    if (Math.abs(end - base) < 1) end = base + s;
     var len = Math.abs(end - base);
     var r = Math.min(RADIUS, thickness / 2, roundBoth ? len / 2 : len);
-    var s = end >= base ? 1 : -1;
     var t = thickness;
     var c = cross;
-    if (len < 0.5) return "";
     if (orient === "h") {
       if (roundBoth) {
         var x0 = Math.min(base, end);
@@ -1356,7 +1366,9 @@
 
   TV.markGroup = markGroup;
 
-  function xAxisTicks(g, scale, y0, y1, fmt, count) {
+  /* limit is the right edge a label may reach, the svg's own width where the caller knows it. */
+  function xAxisTicks(g, scale, y0, y1, fmt, count, limit) {
+    var edge = isNum(limit) ? limit : scale.range[1] + 12;
     var ticks = scale.ticks(count);
     ticks.forEach(function (t) {
       var x = crisp(scale(t));
@@ -1370,7 +1382,7 @@
       var x = scale(t);
       var anchor = "middle";
       var left = x - w / 2;
-      if (i === ticks.length - 1 && x + w / 2 > scale.range[1] + 12) {
+      if (i === ticks.length - 1 && x + w / 2 > edge) {
         anchor = "end";
         left = x - w;
       }
@@ -1644,7 +1656,7 @@
       var thick = Math.min(BAR_MAX, y.bandwidth());
       var root = chartSvg(W, H, spec, "Bar");
       var grid = svg("g");
-      xAxisTicks(grid, x, m.top, m.top + plotH, spec.format, labelTickCount(x, W - m.left - m.right));
+      xAxisTicks(grid, x, m.top, m.top + plotH, spec.format, labelTickCount(x, W - m.left - m.right), W - 1);
       root.appendChild(grid);
       var zero = crisp(x(clamp(0, x.domain[0], x.domain[1])));
       root.appendChild(svg("line", { class: "tv-axisline", x1: zero, x2: zero, y1: m.top, y2: m.top + plotH }));
@@ -1694,7 +1706,7 @@
             out.push({ label: spec.intervalLabel || "Interval", value: format(spec.format, r.lo) + " to " + format(spec.format, r.hi) });
           }
           (spec.reference || []).forEach(function (ref) {
-            if (ref && isNum(ref.value)) out.push({ label: ref.label || "Reference", value: format(spec.format, ref.value) });
+            if (ref && isNum(ref.value)) out.push(refTipRow(ref, spec.format));
           });
           if (r.note) out.push({ label: r.note, value: "" });
           return { title: r.label, rows: out.concat(tipRows(r.tip)) };
@@ -2145,7 +2157,7 @@
       var tickCount = labelTickCount(x, W - m.left - m.right);
       var root = chartSvg(W, H, spec, "Dot");
       var grid = svg("g");
-      xAxisTicks(grid, x, m.top, m.top + plotH, spec.format, tickCount);
+      xAxisTicks(grid, x, m.top, m.top + plotH, spec.format, tickCount, hasAside ? W - asideW : W - 1);
       if (spec.zeroLine && x.domain[0] <= 0 && x.domain[1] >= 0) {
         var zx = crisp(x(0));
         grid.appendChild(svg("line", { class: "tv-axisline", x1: zx, x2: zx, y1: m.top, y2: m.top + plotH }));
@@ -2426,7 +2438,8 @@
       return s && !isNil(s.from) && !isNil(s.to);
     });
     var legendItems = [];
-    if (series.length > 1 || spec.shadeLegend) {
+    /* One series needs no key: the title names it. A shaded window still does. */
+    if (series.length > 1) {
       legendItems = series.map(function (s) {
         return { label: s.name, color: s.role, shape: "line" };
       });
@@ -2694,7 +2707,8 @@
       thinLabels(tickItems, 10).forEach(function (i) {
         var it = tickItems[i];
         var anchor = it.center - it.width / 2 < 0 ? "start" : it.center + it.width / 2 > W ? "end" : "middle";
-        grid.appendChild(svg("text", { class: "tv-tick", x: it.center, y: bottom + 16, "text-anchor": anchor }, it.text));
+        /* Set a little lower than other charts' ticks, so the first clears the lowest y label in the corner. */
+        grid.appendChild(svg("text", { class: "tv-tick", x: it.center, y: bottom + 19, "text-anchor": anchor }, it.text));
       });
 
       var shadeLayer = svg("g");
@@ -3166,17 +3180,21 @@
           title ? el("span", { class: "tv-scale__title" }, title) : null,
           el(
             "div",
-            { class: "tv-scale__swatches", "aria-hidden": "true" },
-            classes.map(function (k) {
-              return el("span", { class: "tv-scale__swatch", style: { background: fillOf(k) } });
-            })
-          ),
-          el(
-            "div",
-            { class: "tv-scale__ticks" },
-            ticks.map(function (t) {
-              return el("span", null, t);
-            })
+            { class: "tv-scale__bar" },
+            el(
+              "div",
+              { class: "tv-scale__swatches", "aria-hidden": "true" },
+              classes.map(function (k) {
+                return el("span", { class: "tv-scale__swatch", style: { background: fillOf(k) } });
+              })
+            ),
+            el(
+              "div",
+              { class: "tv-scale__ticks" },
+              ticks.map(function (t) {
+                return el("span", null, t);
+              })
+            )
           )
         ),
         hasMissing
@@ -3355,7 +3373,13 @@
         null,
         [0].concat(
           rows.map(function (r) {
-            return Math.max(measure(format(spec.format, r.lo), 11, 500), measure(format(spec.format, r.hi), 11, 500));
+            var loT = format(spec.format, Math.min(r.lo, r.hi));
+            var hiT = format(spec.format, Math.max(r.lo, r.hi));
+            /* A bar starting right of a reference line may carry both ends on its right. */
+            var joins = referenceValues(spec).some(function (v) {
+              return Math.min(r.lo, r.hi) >= v;
+            });
+            return Math.max(measure(loT, 11, 500), measure(joins ? loT + " to " + hiT : hiT, 11, 500));
           })
         )
       ) + 8;
@@ -3370,7 +3394,7 @@
       var thick = Math.min(BAR_MAX, 18, rowH * 0.6);
       var root = chartSvg(W, H, spec, "Range");
       var grid = svg("g");
-      xAxisTicks(grid, x, m.top, m.top + plotH, spec.format, tickCount);
+      xAxisTicks(grid, x, m.top, m.top + plotH, spec.format, tickCount, W - 1);
       root.appendChild(grid);
       var marks = svg("g");
       var valueLayer = svg("g", { class: "tv-values" });
@@ -3392,8 +3416,20 @@
           r.label + ": " + format(spec.format, r.lo) + " to " + format(spec.format, r.hi)
         );
         if (isNum(r.lo) && isNum(r.hi)) {
-          valueLayer.appendChild(svg("text", { class: "tv-value", x: x(Math.min(r.lo, r.hi)) - 6, y: cy, dy: "0.35em", "text-anchor": "end" }, format(spec.format, Math.min(r.lo, r.hi))));
-          valueLayer.appendChild(svg("text", { class: "tv-value", x: x(Math.max(r.lo, r.hi)) + 6, y: cy, dy: "0.35em" }, format(spec.format, Math.max(r.lo, r.hi))));
+          var loText = format(spec.format, Math.min(r.lo, r.hi));
+          var hiText = format(spec.format, Math.max(r.lo, r.hi));
+          var loRight = x(Math.min(r.lo, r.hi)) - 6;
+          var loLeft = loRight - measure(loText, 11, 500) - 3;
+          /* A low label that would sit across a reference line (the zero of a lift) joins the high one instead. */
+          var crossesRef = referenceValues(spec).some(function (v) {
+            return x(v) > loLeft && x(v) < loRight + 6;
+          });
+          if (!crossesRef) {
+            valueLayer.appendChild(svg("text", { class: "tv-value", x: loRight, y: cy, dy: "0.35em", "text-anchor": "end" }, loText));
+          }
+          valueLayer.appendChild(
+            svg("text", { class: "tv-value", x: x(Math.max(r.lo, r.hi)) + 6, y: cy, dy: "0.35em" }, crossesRef ? loText + " to " + hiText : hiText)
+          );
         }
         tooltip.attach(g, function () {
           var out = [
@@ -3402,7 +3438,7 @@
           if (isNum(r.mid)) out.push({ label: "Mid", value: format(spec.format, r.mid) });
           out.push({ label: "High", value: format(spec.format, r.hi) });
           (spec.reference || []).forEach(function (ref) {
-            if (ref && isNum(ref.value)) out.push({ label: ref.label || "Reference", value: format(spec.format, ref.value) });
+            if (ref && isNum(ref.value)) out.push(refTipRow(ref, spec.format));
           });
           return { title: r.label, rows: out.concat(tipRows(r.tip)) };
         });
