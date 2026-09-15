@@ -3261,8 +3261,10 @@ wrong place to change what a ladder returns.
   correction has since landed where it belongs, in the resolution path: the
   concept now ranks second in the non-current ladder, marked as bundling its
   finance leases so the bridge suppresses the separate lease line instead of
-  counting the same obligation twice. The committed panel records the run that
-  exposed the hole: 97 observations refused.
+  counting the same obligation twice. The committed panel predates that fix and
+  still carries the 97 rows it skipped as debt outside the ladder; today's code
+  admits every one of them, which is part of what the enterprise-value audit in
+  this section measures.
 - *A price vendor returns the wrong security.* The series for Booking runs 71.39 at
   the start of 2018 to 174.33 in September 2026, against a share that traded near
   1,750 and 5,500 on those days. The ratio is not constant, so it is not a split
