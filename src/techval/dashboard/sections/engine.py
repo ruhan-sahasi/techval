@@ -1058,12 +1058,13 @@ def collect(ctx) -> dict:
         refusals.append(
             Refusal(
                 "APV, Miles-Ezzell",
-                "The engine prices the shield at two rates, the cost of debt "
+                "The engine computes two shield conventions, the cost of debt "
                 "(Modigliani-Miller) and the unlevered cost of equity (Harris-Pringle), "
-                "and files Miles-Ezzell under the second. Miles-Ezzell proper discounts "
-                "each year's shield at the cost of debt for its last year and at Ku "
-                "before that. No engine function computes that, and the page draws "
-                "only what the engine computes.",
+                "and does not compute Miles-Ezzell. Miles-Ezzell discounts each year's "
+                "shield at the cost of debt for its last year and at Ku before that, "
+                "which scales the Harris-Pringle value by (1 + Ku) / (1 + Kd). This is "
+                "a convention the engine does not offer, not a figure the fixtures "
+                "cannot reproduce, and the page draws only what the engine computes.",
                 "apv",
             )
         )
