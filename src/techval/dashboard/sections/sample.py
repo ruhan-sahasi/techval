@@ -351,13 +351,14 @@ def count_ladders(results: Mapping[str, Any]) -> tuple[Ladder, ...]:
             "propensity",
             _title(r, "propensity"),
             "An AUC ranks the acquired rows against the rest, and each deal labels several "
-            "quarters of its target, so the deals are the unit that varies",
+            "quarters of its target, so the targets are the unit that varies",
             (
                 _rung("labelled", "Labelled company-quarters", "labelled company-quarters", "nominal",
                       lambda: data_field(r, "propensity", "sample", "counts", "n_labelled")),
                 _rung("scored", "Rows scored out of sample, the headline's n", "rows scored", "headline",
                       lambda: data_field(r, "propensity", "sample", "counts", "n_scored")),
-                _rung("deals", "Deals behind the AUC", "deals", "limiting",
+                # scored_deals counts distinct targets, not announcements.
+                _rung("targets", "Targets behind the AUC", "targets", "limiting",
                       lambda: data_field(r, "propensity", "sample", "counts", "scored_deals")),
             ),
         ),
