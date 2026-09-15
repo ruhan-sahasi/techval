@@ -381,6 +381,11 @@ def test_the_collector_runs_offline_on_the_fixtures_and_holds_to_the_schema(tmp_
     assert steps["Convertible notes"] == pytest.approx(985.545, abs=1e-3)
     assert 1.15 < section["figures"]["montecarlo"]["data"]["sd"]["ratio"] < 1.30
     assert "4.83% risk-free rate" in section["takeaway"]
+    # The engine stopped filing Miles-Ezzell under Harris-Pringle (see apv.py);
+    # the refusal has to say what the engine does now, not what it once claimed.
+    miles = next(r for r in section["refusals"] if r["what"] == "APV, Miles-Ezzell")
+    assert "does not compute Miles-Ezzell" in miles["why"]
+    assert "files Miles-Ezzell" not in miles["why"]
 
 
 def test_the_renderer_orders_every_figure_the_collector_returns():
