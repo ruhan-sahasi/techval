@@ -1,6 +1,6 @@
 {
  "retrieved": "2026-09-11",
- "note": "Every file here was pulled from SEC EDGAR or the Nasdaq daily quote endpoint on the date above and pruned as each entry records. The filing text is the primary document with its markup stripped by techval.edgar.strip_markup and is otherwise verbatim, punctuation included, because a fixture edited to suit a house style is no longer evidence of what the filer wrote.",
+ "note": "Every file here was pulled from SEC EDGAR or the Nasdaq daily quote endpoint on the date above, or on the later date its own entry records, and pruned as each entry records. The companyfacts files are pruned by record_companyfacts.py beside them, which re-applies each entry's rule against the current techval.tags; run it with --check after any change to a ladder. The filing text is the primary document with its markup stripped by techval.edgar.strip_markup and is otherwise verbatim, punctuation included, because a fixture edited to suit a house style is no longer evidence of what the filer wrote.",
  "files": {
   "company_tickers.json": {
    "source": "https://www.sec.gov/files/company_tickers.json",
@@ -45,17 +45,17 @@
   },
   "companyfacts_SLAB.json": {
    "source": "https://data.sec.gov/api/xbrl/companyfacts/CIK0001038074.json",
-   "retrieved": "2026-09-11",
+   "retrieved": "2026-09-14",
    "pruned": "us-gaap reduced to the tags in techval.tags; every fact with a period ending before 2022-12-12 or filed after 2026-12-01 dropped, and every row key techval does not read dropped. Facts filed after the deal announcement are deliberately kept so that knowledge dating has something to exclude.",
-   "tags": 36,
-   "bytes": 84396
+   "tags": 38,
+   "bytes": 85522
   },
   "companyfacts_SPLK.json": {
    "source": "https://data.sec.gov/api/xbrl/companyfacts/CIK0001353283.json",
-   "retrieved": "2026-09-11",
+   "retrieved": "2026-09-14",
    "pruned": "us-gaap reduced to the tags in techval.tags; every fact with a period ending before 2020-07-28 or filed after 2024-07-17 dropped, and every row key techval does not read dropped. Facts filed after the deal announcement are deliberately kept so that knowledge dating has something to exclude.",
-   "tags": 37,
-   "bytes": 92052
+   "tags": 39,
+   "bytes": 93188
   },
   "companyfacts_WORK.json": {
    "source": "https://data.sec.gov/api/xbrl/companyfacts/CIK0001764925.json",
