@@ -155,7 +155,8 @@ def test_body_takes_its_background_from_a_token():
 
 def test_fonts_carry_real_fallback_stacks(token_blocks):
     root = token_blocks["root"]
-    assert '"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif' in root
+    assert '"Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif' in root
+    assert '"Newsreader", "Source Serif 4", Georgia, "Times New Roman", serif' in root
     assert '"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace' in root
 
 
@@ -469,7 +470,7 @@ def test_gallery_is_deterministic_and_self_contained(gallery, gallery_page):
     assert external and all(
         url.startswith(("https://fonts.googleapis.com", "https://fonts.gstatic.com")) for url in external
     )
-    assert "IBM+Plex+Sans:wght@400;500;600" in gallery_page
+    assert "Public+Sans:wght@400;500;650" in gallery_page
     assert "IBM+Plex+Mono:wght@400;500" in gallery_page
     assert "\u2014" not in GALLERY.read_text(encoding="utf-8")
 
