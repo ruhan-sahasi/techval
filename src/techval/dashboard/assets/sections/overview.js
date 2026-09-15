@@ -1,13 +1,17 @@
 /*
  * Section renderer: overview, the scoreboard at the top of the page.
  *
- * Three blocks. First one tile per model section, in page order, each linking
- * to its section: the verdict chip, the score, the metric and n, the baseline
- * score and the lift, then the baseline's name. The tiles share row tracks, so
- * every score sits on one line and every chip on another however long a
- * baseline's name runs, and the column count is chosen so no tile is left
- * alone in a row. Below them, every other section's state as a table beside
- * the tiles that say how the page was collected.
+ * Three blocks, drawn by the kit's figure loop in a fixed order. First one tile
+ * per model section, in page order, each linking to its section: the verdict
+ * chip, the score, the metric and n, the baseline score and the lift, then the
+ * baseline's name. Below them, every other section's state as the kit's table
+ * figure, beside the tiles that say how the page was collected, drawn in a card.
+ *
+ * The model tiles are laid out here, because the kit's tiles cannot share row
+ * tracks. Each tile spans six rows of the grid as a subgrid, so every score sits
+ * on one line and every chip on another however long a baseline's name runs,
+ * and the column count is chosen so no tile is left alone in a row. The grid is
+ * drawn in the kit's frame, which redraws it when its width changes.
  *
  * Every number drawn is in the snapshot. The scoreboard, the section table and
  * the assumptions come from this section's figures. The commit, the date, the
@@ -19,9 +23,10 @@
   "use strict";
 
   var el = TV.el;
-  var FIGURES = ["scoreboard", "sections", "collection"];
+  var ORDER = [["scoreboard"], ["sections", "collection"]];
   var TILE_MIN = 184;
   var GUTTER = 24;
+  var TRACKS = 6;
 
   function isNum(v) {
     return typeof v === "number" && isFinite(v);
@@ -51,12 +56,6 @@
     return "the " + rest;
   }
 
-  function provenanceFor(data, id) {
-    return (data.provenance || []).filter(function (p) {
-      return p && p.figure === id;
-    })[0];
-  }
-
   /*
    * The most columns that fit, short of any count that would leave one tile
    * alone on the last row: five tiles go 5, then 3 and 2, then one per row.
@@ -69,54 +68,7 @@
     return 1;
   }
 
-  /*
-   * Lay tiles on a grid whose rows each tile spans as a subgrid, with a spacer
-   * track between rows of tiles. Placement is recomputed when the width changes.
-   */
-  function tileGrid(parent, tiles, tracks) {
-    var grid = el("div", { class: "tv-overview-grid", style: { display: "grid", columnGap: GUTTER + "px", rowGap: "0" } });
-    tiles.forEach(function (tile) {
-      tile.style.display = "grid";
-      tile.style.gridTemplateRows = "subgrid";
-      tile.style.rowGap = "6px";
-      tile.style.alignContent = "stretch";
-      grid.appendChild(tile);
-    });
-    parent.appendChild(grid);
-    var last = -1;
-    function place() {
-      var width = Math.floor(grid.clientWidth);
-      if (!width || width === last) return;
-      last = width;
-      var cols = columnsFor(width, tiles.length);
-      var rows = Math.ceil(tiles.length / cols);
-      var template = [];
-      for (var r = 0; r < rows; r++) {
-        for (var t = 0; t < tracks; t++) template.push("auto");
-        if (r < rows - 1) template.push("var(--space-5)");
-      }
-      grid.style.gridTemplateColumns = "repeat(" + cols + ", minmax(0, 1fr))";
-      grid.style.gridTemplateRows = template.join(" ");
-      tiles.forEach(function (tile, i) {
-        var row = Math.floor(i / cols);
-        tile.style.gridColumn = String((i % cols) + 1);
-        tile.style.gridRow = row * (tracks + 1) + 1 + " / span " + tracks;
-      });
-    }
-    place();
-    if (typeof ResizeObserver !== "undefined") {
-      var pending = false;
-      new ResizeObserver(function () {
-        if (pending) return;
-        pending = true;
-        window.requestAnimationFrame(function () {
-          pending = false;
-          place();
-        });
-      }).observe(grid);
-    }
-    return grid;
-  }
+  /* scoreboard ------------------------------------------------------------- */
 
   function small(text, extra) {
     return el("p", { class: "tv-tile__sub", style: extra || null }, text);
@@ -197,9 +149,43 @@
         "data-section": t.section,
         "data-state": t.state,
         "aria-label": t.label + ": " + (t.state === "scored" ? TV.chip.label(t.verdict_status) + ", " + t.metric + " " + num(t.score) + " against " + num(t.baseline_score) : t.value),
+        style: { display: "grid", gridTemplateRows: "subgrid", rowGap: "6px", alignContent: "stretch" },
       },
       parts
     );
+  }
+
+  /*
+   * The tiles on a grid whose rows each tile spans as a subgrid, with a spacer
+   * track between rows of tiles, in the kit's frame so the columns follow the width.
+   */
+  function tileGrid(body, tiles) {
+    return TV.frame(body, "tiles", function (wrap, width) {
+      var cols = columnsFor(width, tiles.length);
+      var rows = Math.ceil(tiles.length / cols);
+      var template = [];
+      for (var r = 0; r < rows; r++) {
+        for (var t = 0; t < TRACKS; t++) template.push("auto");
+        if (r < rows - 1) template.push("var(--space-5)");
+      }
+      var grid = el("div", {
+        class: "tv-overview-grid",
+        style: {
+          display: "grid",
+          columnGap: GUTTER + "px",
+          rowGap: "0",
+          gridTemplateColumns: "repeat(" + cols + ", minmax(0, 1fr))",
+          gridTemplateRows: template.join(" "),
+        },
+      });
+      tiles.forEach(function (tile, i) {
+        var node = modelTile(tile);
+        node.style.gridColumn = String((i % cols) + 1);
+        node.style.gridRow = Math.floor(i / cols) * (TRACKS + 1) + 1 + " / span " + TRACKS;
+        grid.appendChild(node);
+      });
+      wrap.appendChild(grid);
+    });
   }
 
   function toggleTable(root, view, table) {
@@ -213,36 +199,29 @@
     root.appendChild(el("div", null, btn));
   }
 
-  function tileset(root, id, f) {
-    var set = el(
-      "div",
-      { class: "tv-tileset", "data-figure-id": id, id: "fig-overview-" + id },
-      el("h3", { class: "tv-tileset__title", style: { color: "var(--ink-1)", fontSize: "var(--fs-h3)", fontWeight: "var(--fw-semibold)" } }, f.title || ""),
-      f.subtitle ? el("p", { class: "tv-figure__subtitle", style: { marginTop: "-8px" } }, f.subtitle) : null
-    );
-    root.appendChild(set);
-    return {
-      root: set,
-      body: set,
-      title: f.title || "",
-      addNote: function (r) {
-        set.appendChild(TV.refusalNote(r));
-      },
-    };
-  }
-
-  /* scoreboard ------------------------------------------------------------- */
-
-  function drawScoreboard(root, data) {
-    var f = data.figures.scoreboard;
-    var handle = tileset(root, "scoreboard", f);
+  /*
+   * The scoreboard sits on the page plane, as tiles do, but it leads the page,
+   * so its heading is set as a figure title rather than the small label a set
+   * of tiles carries. The kit draws no heading for it (see the override below).
+   */
+  function drawScoreboard(handle, f) {
     var tiles = ((f.data && f.data.tiles) || []).filter(Boolean);
+    handle.root.id = "fig-overview-scoreboard";
+    handle.title = f.title || "";
+    handle.body.appendChild(
+      el(
+        "div",
+        { class: "tv-figure__head" },
+        el("h3", { class: "tv-figure__title" }, f.title || ""),
+        f.subtitle ? el("p", { class: "tv-figure__subtitle" }, f.subtitle) : null
+      )
+    );
     var view = el("div");
     handle.body.appendChild(view);
-    tileGrid(view, tiles.map(modelTile), 6);
+    tileGrid(view, tiles);
     var table = el("div", { hidden: true });
     handle.body.appendChild(table);
-    TV.tableView({ table: table }, {
+    TV.tableView({ table: table, title: f.title }, {
       caption: f.title,
       columns: [
         { key: "label", label: "Model" },
@@ -269,7 +248,6 @@
       }),
     });
     toggleTable(handle.body, view, table);
-    return handle;
   }
 
   /* sections --------------------------------------------------------------- */
@@ -284,85 +262,49 @@
     return el("span", { class: "tv-muted" }, String(row.status));
   }
 
+  /* A count, faint at zero; a refusal count that is not zero is set strong. */
   function count(v, strong) {
-    return el(
-      "td",
-      { class: "tv-num", style: strong && v ? { color: "var(--ink-1)", fontWeight: "var(--fw-semibold)" } : v ? null : { color: "var(--ink-3)" } },
-      TV.fmt.int(v)
-    );
+    var style = strong && v ? { color: "var(--ink-1)", fontWeight: "var(--fw-semibold)" } : v ? null : { color: "var(--ink-3)" };
+    return el("span", { style: style }, TV.fmt.int(v));
   }
 
-  function drawSections(grid, data) {
-    var f = data.figures.sections;
+  function total(v) {
+    return el("strong", { style: { fontWeight: "var(--fw-semibold)" } }, TV.fmt.int(v));
+  }
+
+  function drawSections(handle, f) {
     var d = f.data || {};
     var rows = (d.table || []).filter(Boolean);
     var totals = d.totals || {};
-    var handle = TV.figure(grid, {
-      id: "sections",
-      anchor: "fig-overview-sections",
-      title: f.title,
-      subtitle: f.subtitle,
-      provenance: provenanceFor(data, "sections"),
-    });
-    var cell = { paddingTop: "5px", paddingBottom: "5px", verticalAlign: "middle" };
-    var table = el(
-      "table",
-      { class: "tv-table" },
-      el("caption", { class: "tv-visually-hidden" }, f.title),
-      el(
-        "thead",
-        null,
-        el(
-          "tr",
-          null,
-          el("th", { scope: "col" }, "Section"),
-          el("th", { scope: "col" }, "State"),
-          el("th", { scope: "col", class: "tv-num" }, "Figures"),
-          el("th", { scope: "col", class: "tv-num" }, "Refusals")
-        )
-      ),
-      el(
-        "tbody",
-        null,
-        rows.map(function (r) {
-          return el(
-            "tr",
-            null,
-            el("th", { scope: "row", style: cell }, el("a", { href: r.href || "#" + r.id, style: { textDecoration: "none" } }, r.title)),
-            el("td", { style: cell }, statusCell(r)),
-            count(r.figures, false),
-            count(r.refusals, true)
-          );
+    TV.charts.table(handle.body, {
+      caption: f.title,
+      columns: [
+        { key: "section", label: "Section" },
+        { key: "state", label: "State" },
+        { key: "figures", label: "Figures", align: "right" },
+        { key: "refusals", label: "Refusals", align: "right" },
+      ],
+      rows: rows
+        .map(function (r) {
+          return {
+            section: el("a", { href: r.href || "#" + r.id, style: { textDecoration: "none" } }, r.title),
+            state: statusCell(r),
+            figures: count(r.figures, false),
+            refusals: count(r.refusals, true),
+          };
         })
-      ),
-      el(
-        "tfoot",
-        null,
-        el(
-          "tr",
-          null,
-          el("th", { scope: "row", style: { borderBottom: "0" } }, "All " + (totals.sections || rows.length)),
-          el("td", { class: "tv-muted", style: { borderBottom: "0" } }, (totals.collected || 0) + " collected"),
-          el("td", { class: "tv-num", style: { borderBottom: "0", fontWeight: "var(--fw-semibold)" } }, TV.fmt.int(totals.figures)),
-          el("td", { class: "tv-num", style: { borderBottom: "0", fontWeight: "var(--fw-semibold)" } }, TV.fmt.int(totals.refusals))
-        )
-      )
-    );
-    handle.body.appendChild(el("div", { class: "tv-table-wrap", tabindex: "0", role: "region", "aria-label": f.title }, table));
-    return handle;
+        .concat([
+          {
+            section: "All " + (totals.sections || rows.length),
+            state: { text: (totals.collected || 0) + " collected", muted: true },
+            figures: total(totals.figures),
+            refusals: total(totals.refusals),
+          },
+        ]),
+    });
   }
 
   /* collection ------------------------------------------------------------- */
-
-  function plainTile(label, value, sub, mono) {
-    return el(
-      "div",
-      { class: "tv-tile" },
-      el("p", { class: "tv-tile__label" }, label),
-      el("p", { class: "tv-tile__value", style: mono ? { fontFamily: "var(--font-mono)", fontSize: "22px", fontWeight: "var(--fw-medium)" } : { fontVariantNumeric: "tabular-nums" } }, value),
-      el("p", { class: "tv-tile__sub" }, sub || "")
-    );
-  }
 
   function readCollection(snapshot) {
     var sections = (snapshot && snapshot.sections) || {};
@@ -401,54 +343,49 @@
 
   TV.overviewCollection = readCollection;
 
-  function drawCollection(grid, data, snapshot) {
-    var f = data.figures.collection;
+  /* The collector's tiles, after the ones read from the snapshot as it is drawn. */
+  function collectionData(d, snapshot) {
     var c = readCollection(snapshot);
-    var holder = el("div", { style: { display: "grid", gap: "var(--space-3)", alignContent: "start", minWidth: "0" } });
-    grid.appendChild(holder);
-    var handle = tileset(holder, "collection", f);
-    var secondsText = TV.fmt.num(c.seconds, c.seconds >= 100 ? 0 : 1);
-    var tiles = [
-      plainTile("Commit", c.commit, "The techval commit every section ran at", true),
-      plainTile("Collected", c.collected, "The date this snapshot is stamped with", true),
-      plainTile(
-        "Fixtures digested",
-        TV.fmt.int(c.fixtures),
-        c.fixtures ? "Each file's sha256 is recorded, so a changed byte shows" : "No fixture digest is recorded"
-      ),
-      plainTile("Provenance rows", TV.fmt.int(c.rows), "Each names the entry point behind a figure and the inputs it read"),
-      plainTile(
-        "Seconds of computation",
-        secondsText,
-        "An upper bound, since a block timed for two figures counts twice." + topShare(c)
-      ),
+    var read = [
+      { label: "Commit", value: c.commit, sub: "The techval commit every section ran at" },
+      { label: "Collected", value: c.collected, sub: "The date this snapshot is stamped with" },
+      {
+        label: "Fixtures digested",
+        value: c.fixtures,
+        format: "int",
+        sub: c.fixtures ? "Each file's sha256 is recorded, so a changed byte shows" : "No fixture digest is recorded",
+      },
+      { label: "Provenance rows", value: c.rows, format: "int", sub: "Each names the entry point behind a figure and the inputs it read" },
+      {
+        label: "Seconds of computation",
+        value: TV.fmt.num(c.seconds, c.seconds >= 100 ? 0 : 1),
+        sub: "An upper bound, since a block timed for two figures counts twice." + topShare(c),
+      },
     ];
-    ((f.data && f.data.tiles) || []).forEach(function (t) {
-      tiles.push(plainTile(t.label, isNum(t.value) ? TV.format(t.format, t.value) : String(t.value), t.sub));
-    });
-    tileGrid(handle.body, tiles, 3);
-    return handle;
+    return Object.assign({}, d, { tiles: read.concat((d && d.tiles) || []) });
   }
 
   TV.sections.register("overview", function (root, data, snapshot) {
-    var figures = data.figures || {};
-    var handles = {};
-    if (figures.scoreboard) handles.scoreboard = drawScoreboard(root, data);
-    if (figures.sections || figures.collection) {
-      var grid = el("div", { class: "tv-grid" });
-      root.appendChild(grid);
-      if (figures.sections) handles.sections = drawSections(grid, data);
-      if (figures.collection) handles.collection = drawCollection(grid, data, snapshot);
-    }
-    /* Anything a later collector adds still reaches the page. */
-    var rest = {};
-    Object.keys(figures).forEach(function (id) {
-      if (FIGURES.indexOf(id) < 0) rest[id] = figures[id];
+    var scoreboard = (data && data.figures && data.figures.scoreboard) || {};
+    return TV.sections.figures(root, data, {
+      order: ORDER,
+      figures: {
+        /* No heading from the kit: drawScoreboard sets its own, from the snapshot's figure. */
+        scoreboard: {
+          title: null,
+          subtitle: null,
+          draw: function (handle) {
+            drawScoreboard(handle, scoreboard);
+          },
+        },
+        sections: { draw: drawSections },
+        collection: {
+          card: true,
+          data: function (d) {
+            return collectionData(d, snapshot);
+          },
+        },
+      },
     });
-    var more = TV.sections.figures(root, { id: data.id, figures: rest, provenance: data.provenance || [] });
-    Object.keys(more).forEach(function (id) {
-      handles[id] = more[id];
-    });
-    return handles;
   });
 })(window.TV);
