@@ -201,8 +201,8 @@ REPORTS_CURRENT_DEBT = frozenset(
 # A total covers both legs, so a filer that publishes only a total still carries
 # debt on each leg. The guard in test_tags.py counts the total on the reaching
 # side only, which leaves a total-only filer (Super Micro, on the census) out of
-# the denominator; counting it on both sides is what "carries debt" means, and it
-# is the count the guard's own docstring states (81 filers, 80 reached).
+# the denominator (its docstring states its own count, 80 filers with 79 reached);
+# counting a total on both sides is what "carries debt" means, and gives 81 and 80.
 REPORTS_TOTAL_DEBT = frozenset(
     {
         "DebtLongtermAndShorttermCombinedAmount",
