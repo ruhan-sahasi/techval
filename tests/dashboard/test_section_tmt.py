@@ -502,6 +502,18 @@ def test_the_collector_produces_a_valid_section_with_every_figure_sourced(collec
     )
 
 
+def test_the_splunk_multiple_counts_the_current_debt_on_file_at_the_announcement(collected):
+    """7.1x from the fixtures, which is what the live filings give.
+
+    ``companyfacts_SPLK.json`` was pruned to the ladders as they stood before
+    ``DebtCurrent`` joined them, so it lacked the 776.456mm Splunk tagged at
+    2023-07-31 and the multiple came out 26,510 / 3,843.0 = 6.90x. Re-pruned by
+    ``tests/fixtures/merger/record_companyfacts.py`` it is 27,286.8 / 3,843.0.
+    """
+    splk = next(r for r in collected["figures"]["deals"]["data"]["rows"] if r["ticker"] == "SPLK")
+    assert splk["ev_revenue"] == pytest.approx(27_286.778 / 3_842.967, abs=5e-4)
+
+
 def test_the_sum_of_the_parts_refusal_is_what_the_module_itself_says(collected):
     """Not a paraphrase: the collector asks value_segments and quotes the answer."""
     from techval.config import Assumptions
@@ -544,15 +556,16 @@ def test_pinned_deal_prices_and_the_splunk_multiple(snapshot_tmt):
     assert splk["offer_price"] == pytest.approx(157.00, abs=0.005)
     assert splk["status"] == "completed"
     assert splk["acquirer"].startswith("Cisco")
-    # 6.9x, not the 7.1x an earlier audit carried. The enterprise value is the
-    # same 26,510; the revenue is not. Splunk's 10-Q for the quarter to
-    # 2023-07-31 reached EDGAR on 2023-08-24, before the 2023-09-21
-    # announcement, so the trailing twelve months run to July: 3,653.7 for the
-    # year to January less 1,472.8 for its first half plus 1,662.1 for the new
-    # one is 3,843.0, and 26,510 over that is 6.90x. Stop a quarter earlier, at
-    # April (3,731.1), and the multiple is 7.1x. The page pins what the code
-    # computes as of the announcement.
-    assert round(splk["ev_revenue"], 1) == 6.9
+    # 7.1x: 27,287 of enterprise value over 3,843.0 of trailing revenue.
+    # Splunk's 10-Q for the quarter to 2023-07-31 reached EDGAR on 2023-08-24,
+    # before the 2023-09-21 announcement, so the balance sheet and the trailing
+    # twelve months both run to July: 3,653.7 for the year to January less
+    # 1,472.8 for its first half plus 1,662.1 for the new one is 3,843.0. The
+    # same 10-Q tags 776.5 of DebtCurrent, and that is the whole of the gap to
+    # the 6.9x this page once printed: the fixture had been pruned before
+    # DebtCurrent joined the current-debt ladder, so it carried none of it and
+    # enterprise value read 26,510. The revenue was never the difference.
+    assert round(splk["ev_revenue"], 1) == 7.1
     assert _deal(snapshot_tmt, "SLAB")["offer_price"] == pytest.approx(231.00, abs=0.005)
     assert _deal(snapshot_tmt, "IRDM")["offer_price"] is None
     assert "collar" in _refusal(snapshot_tmt, "IRDM offer price")
