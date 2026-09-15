@@ -1254,3 +1254,19 @@ def test_the_missing_share_column_ignores_the_indicator_block(panel):
     expected = np.isnan(X).mean(axis=1)
     assert share == pytest.approx(expected)
     assert np.isfinite(Z).all()
+
+
+def test_the_comps_refusal_note_counts_company_quarters_and_cross_sections_apart(fitted, panel):
+    """The note once said 788 of 1,764 "sub-vertical cross-sections".
+
+    1,764 is company-quarters. A refusal is counted per company-quarter, so that is
+    the unit the first count belongs in, and how often a whole sub-vertical on a
+    date could not support a regression is a separate count over a separate
+    denominator. Both are recomputed here from the panel rather than trusted.
+    """
+    note = next(n for n in fitted.notes if n.startswith("comps.py refused"))
+    n_obs = len(panel.observations)
+    assert f"of {n_obs:,} company-quarters" in note
+    assert "sub-vertical cross-sections and on" not in note
+    groups = {(o.as_of, o.sub_vertical) for o in panel.observations}
+    assert f"of the {len(groups):,} date-by-sub-vertical cross-sections" in note
