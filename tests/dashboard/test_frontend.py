@@ -369,6 +369,45 @@ def test_app_reads_the_snapshot_block_and_draws_every_state():
     assert "readSnapshot" in text and "read.error" in text
 
 
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_a_verdict_opening_with_an_initialism_shows_it_in_capitals():
+    # A model's verdict() opens with its metric in lower case. Capitalising only
+    # the first letter printed "Mae of 0.1474", "Auc of 0.5685", "Ndcg@10 of 0.5407".
+    cases = {
+        "mae of 0.1474 against 0.1510": "MAE of 0.1474 against 0.1510",
+        "auc of 0.5685 against 0.5474": "AUC of 0.5685 against 0.5474",
+        "ndcg@10 of 0.5407 against 0.2213": "NDCG@10 of 0.5407 against 0.2213",
+        "ndcg@k of 0.5": "NDCG@k of 0.5",
+        "ic of 0.0412, rmse of 3.1": "IC of 0.0412, rmse of 3.1",
+        "rmse of 3.2 on 2,188 observations.": "RMSE of 3.2 on 2,188 observations.",
+        "Mae of 0.1": "MAE of 0.1",
+        # Anything else has its first letter capitalised and nothing more.
+        "cheapness (negative trailing EV/Revenue): mean IC -0.0984": "Cheapness (negative trailing EV/Revenue): mean IC -0.0984",
+        "icarus of 0.1": "Icarus of 0.1",
+        "maestro": "Maestro",
+        "log MAE of 0.4120": "Log MAE of 0.4120",
+        "spearman of 0.77": "Spearman of 0.77",
+        "2% of the variance": "2% of the variance",
+        "": "",
+    }
+    script = (
+        "const vm = require('vm');"
+        "const fs = require('fs');"
+        "const document = {readyState: 'loading', addEventListener: function () {},"
+        " documentElement: {setAttribute: function () {}}};"
+        "const window = {TV: {el: function () {}}, location: {search: ''}};"
+        "vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), {window: window, document: document});"
+        "const cases = JSON.parse(process.argv[2]);"
+        "process.stdout.write(JSON.stringify(cases.map(function (c) { return window.TV.app.verdictCase(c); })));"
+    )
+    out = subprocess.run(
+        ["node", "-e", script, str(APP), json.dumps(list(cases))],
+        capture_output=True, text=True, timeout=60,
+    )
+    assert out.returncode == 0, out.stderr
+    assert dict(zip(cases, json.loads(out.stdout))) == cases
+
+
 # Gallery -------------------------------------------------------------------------
 
 
@@ -453,6 +492,8 @@ def test_gallery_exercises_every_chart_every_chip_and_every_state(gallery_page, 
         for f in s["figures"].values():
             if f["kind"] == "tiles":
                 statuses |= {t["status"] for t in f["data"]["tiles"] if t.get("status")}
+    # A refused section draws the refused chip, in its refusal card and on the rail.
+    statuses |= {"refused" for s in sections if s["status"] == "refused"}
     assert statuses == _object_keys(kit_source, "var STATUS")
 
     assert {s["status"] for s in sections} == {"ok", "refused", "not_built"}
@@ -687,8 +728,21 @@ PROBE = r"""<script>
         source: card.querySelector('.tv-figure__source').textContent,
       };
     },
-    overviewOrder: function () {
-      return Array.prototype.map.call(document.querySelectorAll('#overview [data-figure-id]'), function (f) { return f.getAttribute('data-figure-id'); });
+    engineOrder: function () {
+      return Array.prototype.map.call(document.querySelectorAll('#engine [data-figure-id]'), function (f) { return f.getAttribute('data-figure-id'); });
+    },
+    scoreboard: function () {
+      var board = fig('scoreboard');
+      var sections = fig('sections');
+      var collection = fig('collection');
+      return {
+        order: Array.prototype.map.call(document.querySelectorAll('#overview [data-figure-id]'), function (f) { return f.getAttribute('data-figure-id'); }),
+        tiles: board.querySelectorAll('.tv-overview-grid a.tv-tile[data-state="scored"]').length,
+        chips: board.querySelectorAll('.tv-overview-grid .tv-chip').length,
+        tableRows: sections.querySelectorAll('.tv-figure__body table tbody tr').length,
+        collection: collection.tagName.toLowerCase(),
+        collectionTiles: collection.querySelectorAll('.tv-tile').length,
+      };
     },
     legendOff: function () { return fig('precision').querySelectorAll('.tv-legend__item').length; },
     heatLabels: function () {
@@ -706,7 +760,7 @@ PROBE = r"""<script>
         whiskers: ablation.querySelectorAll('.tv-whisker').length + fig('ndcg_by_method').querySelectorAll('.tv-whisker').length,
         groups: ablation.querySelectorAll('text.tv-group-label').length,
         cautions: document.querySelectorAll('.tv-note--caution').length,
-        tableFigure: fig('zz_ledger').querySelectorAll('.tv-figure__body table tbody tr').length,
+        tableFigure: fig('methods').querySelectorAll('.tv-figure__body table tbody tr').length,
         shades: closes.querySelectorAll('rect.tv-shade').length,
         closeTicks: Array.prototype.map.call(closes.querySelectorAll('text.tv-tick'), function (t) { return t.textContent; }),
         fullerTables: closes.querySelectorAll('.tv-figure__table table').length,
@@ -829,11 +883,17 @@ def test_a_headline_shows_its_first_sentence_and_keeps_the_rest_verbatim(drawn, 
     for sid, shown in headlines.items():
         verdict = snapshot["sections"][sid]["headline"]["verdict_text"]
         whole = shown["shown"] + (" " + shown["rest"] if shown["rest"] else "")
-        assert whole == verdict[:1].upper() + verdict[1:], sid
+        # Only the leading token is cased for display; everything after it is verbatim.
+        token = verdict.split(" ", 1)[0]
+        assert whole[: len(token)].lower() == token.lower(), sid
+        assert whole[len(token) :] == verdict[len(token) :], sid
         assert shown["open"] in (None, False), sid
     warranted = headlines["warranted"]
     assert warranted["shown"] == "Log MAE of 0.4120 against 0.4090 for the sector median, a lift of -0.0030 on 162 observations."
     assert warranted["rest"].endswith("Use the sector median.")
+    # A verdict that opens with an initialism shows it in capitals, not as "Ndcg@10" or "Auc".
+    assert headlines["encoder"]["shown"].startswith("NDCG@10 of 0.5407 against 0.2213")
+    assert headlines["propensity"]["shown"].startswith("AUC of 0.561 against 0.548")
 
 
 def test_a_waterfall_legend_lists_only_the_steps_it_draws(drawn):
@@ -848,7 +908,19 @@ def test_tiles_in_a_card_carry_a_table_a_part_and_every_entry_point(drawn):
 
 
 def test_figures_follow_their_order_number_not_their_key(drawn):
-    assert _checked(drawn, "overviewOrder") == ["verdicts", "zz_ledger", "collect_seconds"]
+    # The engine renderer names the football field; the rest follow their order numbers.
+    assert _checked(drawn, "engineOrder") == ["football", "sotp", "segment_income", "methods"]
+
+
+def test_the_gallery_overview_is_drawn_by_the_scoreboard_renderer(drawn, gallery_page):
+    # The collector's figure ids and shapes, so the real renderer draws them, not the kit's default.
+    board = _checked(drawn, "scoreboard")
+    snapshot = _snapshot_block(gallery_page)
+    assert board["order"] == ["scoreboard", "sections", "collection"]
+    assert board["tiles"] == board["chips"] == 5
+    # A row for every section but the overview, and one for the totals.
+    assert board["tableRows"] == (len(snapshot["sections"]) - 1) + 1
+    assert board["collection"] == "figure" and board["collectionTiles"] == 6
 
 
 def test_a_legend_turned_off_draws_no_legend(drawn):
