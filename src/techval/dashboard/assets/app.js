@@ -74,6 +74,25 @@
     return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
   }
 
+  /*
+   * A model's verdict() opens with its metric's name in lower case, "mae of
+   * 0.1474" or "ndcg@10 of 0.5407", and an initialism does not read as a word
+   * with a capital: "Mae of" is wrong where "MAE of" is right. So a leading token
+   * that is one of these, with or without an @k cutoff, is shown in capitals,
+   * and any other verdict has its first letter capitalised. Nothing after the
+   * leading token changes.
+   */
+  var INITIALISMS = ["AUC", "AUROC", "IC", "MAE", "MAPE", "MSE", "NDCG", "RMSE"];
+
+  function verdictCase(text) {
+    var s = String(isNil(text) ? "" : text);
+    var match = /^([A-Za-z]+)(?:@(?:\d+|k))?(?![A-Za-z0-9])/.exec(s);
+    if (match && INITIALISMS.indexOf(match[1].toUpperCase()) >= 0) {
+      return match[1].toUpperCase() + s.slice(match[1].length);
+    }
+    return sentenceCase(s);
+  }
+
   function isModelSection(section) {
     return !!(section && section.headline);
   }
@@ -249,13 +268,13 @@
     var metric = h.metric || "score";
     var n = typeof h.n === "number" && isFinite(h.n) ? ", n = " + TV.fmt.int(h.n) : "";
     var chip = TV.chip.known(h.verdict_status) ? TV.chip(h.verdict_status) : TV.chip("refused", "No verdict");
-    /* The verdict is the model's own sentence, kept verbatim; only its first letter is capitalised for display. */
+    /* The verdict is the model's own sentence, kept verbatim; only its leading token is cased for display. */
     var parts = splitVerdict(h.verdict_text);
     var text = parts[0]
       ? el(
           "div",
           { class: "tv-headline__text" },
-          el("p", null, sentenceCase(parts[0])),
+          el("p", null, verdictCase(parts[0])),
           parts[1]
             ? el("details", { class: "tv-headline__more" }, el("summary", null, "The rest of the verdict"), el("p", null, parts[1]))
             : null
@@ -463,7 +482,7 @@
   }
 
   TV.boot = boot;
-  TV.app = { splitVerdict: splitVerdict, activeSection: activeSection };
+  TV.app = { splitVerdict: splitVerdict, activeSection: activeSection, verdictCase: verdictCase };
 
   /* Section scripts follow this one, so wait for the whole document before drawing. */
   if (document.readyState === "loading") {
