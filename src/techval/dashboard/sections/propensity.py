@@ -671,14 +671,23 @@ def _calibration_figure(cal: Calibration) -> dict[str, Any]:
         else:
             break
     worst = min(solid, key=lambda b: b.gap) if solid else None
+    thin_over = [b for b in cal.buckets if b.thin and b.gap < 0]
+    deeper = (
+        f"; thin buckets run to {abs(min(b.gap for b in thin_over)) * 100:.0f}"
+        if thin_over and worst is not None and min(b.gap for b in thin_over) < worst.gap
+        else ""
+    )
     if over_from is not None and worst is not None and worst.gap < 0:
         where = f"above {over_from:.0%}" if over_from > 0 else "at every level"
         title = (
-            f"Every stated probability {where} over-promises, by up to "
-            f"{abs(worst.gap) * 100:.0f} points"
+            f"Every well-populated bucket {where} over-promises, by up to "
+            f"{abs(worst.gap) * 100:.0f} points{deeper}"
         )
     elif worst is not None and worst.gap < 0:
-        title = f"The stated probabilities over-promise by up to {abs(worst.gap) * 100:.0f} points"
+        title = (
+            f"The well-populated buckets over-promise by up to "
+            f"{abs(worst.gap) * 100:.0f} points{deeper}"
+        )
     else:
         title = "No well-populated bucket over-promises"
     return _figure(
@@ -816,8 +825,9 @@ def _screen_figure(screen: Screen, calibration: Calibration | Refused, price: Pr
         loud = [b for b in calibration.buckets if not b.thin and b.low >= LOUD]
         if loud:
             subtitle += (
-                f". Out of sample, stated probabilities of {min(b.low for b in loud):.0%} "
-                f"or more were realised at {_pct(min(b.realised for b in loud))} to "
+                f". Out of sample, in buckets of at least {calibration.thin_below} rows, "
+                f"stated probabilities of {min(b.low for b in loud):.0%} or more were "
+                f"realised at {_pct(min(b.realised for b in loud))} to "
                 f"{_pct(max(b.realised for b in loud))}"
             )
     notes = [_price_note(price, ev)] if isinstance(price, PriceLeak) else []

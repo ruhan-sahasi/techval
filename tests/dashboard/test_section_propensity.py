@@ -311,8 +311,11 @@ def test_titles_follow_the_numbers():
         "The base rate more than doubles from 2021 (2.00%) to 2022 (5.00%)"
     )
     assert "2023 holds 1 screen date of 4" in figs["base_rate_by_year"]["subtitle"]
+    # The headline gap covers buckets of at least ten rows; the thin bucket above
+    # them runs deeper, and the title says so instead of letting 25 read as the worst.
     assert figs["calibration"]["title"] == (
-        "Every stated probability above 10% over-promises, by up to 25 points"
+        "Every well-populated bucket above 10% over-promises, by up to 25 points; "
+        "thin buckets run to 65"
     )
     assert figs["precision_at_k"]["title"].startswith("One in 10 on the model's top 10")
     assert figs["recall_at_k"]["title"] == (
