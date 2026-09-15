@@ -152,7 +152,8 @@ def test_page_layout_follows_the_embedding_contract(tmp_path):
 
     stylesheet = [l for l in doc.links if l.get("rel") == "stylesheet"]
     assert [l["href"] for l in stylesheet] == [FONTS_HREF]
-    assert "IBM+Plex+Sans:wght@400;500;600" in FONTS_HREF
+    assert "Public+Sans:wght@400;500;650" in FONTS_HREF
+    assert "Newsreader:ital,wght@0,400;0,500;1,400" in FONTS_HREF
     assert "IBM+Plex+Mono:wght@400;500" in FONTS_HREF
 
     names = [a.get("data-asset") for a, _ in doc.scripts[1:]]

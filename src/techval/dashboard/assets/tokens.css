@@ -6,35 +6,50 @@
  * exists in only one theme. Components style through these names; none of
  * them reaches for a hex value directly.
  *
+ * The page is set as a research document, not an application, so there is one
+ * ground and no card surface: exhibits sit on the page and rules separate them.
+ * --surface is kept equal to --page so the kit's surface-gap rings and halos
+ * match the ground they sit on; --raised is the only lifted plane, for the
+ * tooltip.
+ *
  * Entity colours follow the thing measured, everywhere on the page: the fitted
- * model is always --c-model, a baseline is always --c-baseline. Status colours
- * are reserved for verdict chips and never stand in for a series.
+ * model is always --c-model (teal), a baseline is always --c-baseline (grey),
+ * the one named comparison is --c-alt (ochre). Every categorical and diverging
+ * set here passed the dataviz palette validator all-pairs, in both themes,
+ * against these grounds. Verdicts are words, so the status hues only colour a
+ * small mark beside a word, never carry meaning alone.
  */
 
 :root {
   color-scheme: light;
 
-  /* Type. Plex Sans for everything a person reads, Plex Mono for identifiers. */
-  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /*
+   * Type. Public Sans for everything read at working size, charts and tables
+   * included: institutional, with tabular and proportional figures both. A
+   * serif, Newsreader, for the document's own voice: its title, section
+   * titles and standfirsts. IBM Plex Mono only for code: entry points, paths.
+   */
+  --font-sans: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Newsreader", "Source Serif 4", Georgia, "Times New Roman", serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   --fs-micro: 11px;
-  --fs-small: 12px;
-  --fs-body: 14px;
-  --fs-lead: 16px;
+  --fs-small: 12.5px;
+  --fs-body: 14.5px;
+  --fs-lead: 17px;
   --fs-h3: 15px;
-  --fs-h2: 24px;
-  --fs-h1: 32px;
-  --fs-figure: 26px;
+  --fs-h2: 30px;
+  --fs-h1: 44px;
+  --fs-figure: 24px;
 
-  --lh-tight: 1.25;
-  --lh-body: 1.5;
+  --lh-tight: 1.2;
+  --lh-body: 1.55;
 
   --fw-regular: 400;
   --fw-medium: 500;
-  --fw-semibold: 600;
+  --fw-semibold: 650;
 
-  --tracking-caps: 0.08em;
+  --tracking-caps: 0.06em;
 
   /* Space, on a 4px step. */
   --space-1: 4px;
@@ -44,47 +59,54 @@
   --space-5: 24px;
   --space-6: 32px;
   --space-7: 48px;
-  --space-8: 64px;
+  --space-8: 72px;
 
-  --radius-card: 8px;
-  --radius-control: 6px;
-  --radius-chip: 999px;
+  /* Nothing on the page is a card; controls keep a small radius. */
+  --radius-card: 0;
+  --radius-control: 3px;
+  --radius-chip: 0;
 
-  --rail-width: 248px;
-  --main-max: 1180px;
+  --rail-width: 220px;
+  --main-max: 1120px;
 
-  /* Planes and ink. */
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --ink-1: #0b0b0b;
-  --ink-2: #52514e;
-  --ink-3: #898781;
-  --grid: #e1e0d9;
-  --axis: #c3c2b7;
-  --border: rgba(11, 11, 11, 0.10);
-  --wash: rgba(11, 11, 11, 0.04);
-  --wash-strong: rgba(11, 11, 11, 0.07);
-  --shadow-tip: 0 4px 16px rgba(11, 11, 11, 0.10);
+  /* Planes and ink. A cool neutral biased toward the teal. */
+  --page: #f4f6f5;
+  --surface: #f4f6f5;
+  --raised: #ffffff;
+  --ink-1: #111816;
+  --ink-2: #3f4946;
+  --ink-3: #5a6461;
+  --grid: #dfe5e3;
+  --axis: #b3bcb9;
+  --rule: #111816;
+  --border: rgba(17, 24, 22, 0.14);
+  --wash: rgba(17, 24, 22, 0.035);
+  --wash-strong: rgba(17, 24, 22, 0.07);
+  --shadow-tip: 0 6px 18px rgba(17, 24, 22, 0.12);
 
   /* Categorical series slots, in fixed order. */
-  --series-1: #2a78d6;
-  --series-2: #eb6834;
-  --series-3: #1baf7a;
-  --deemph: #898781;
+  --series-1: #099393;
+  --series-2: #b6770b;
+  --series-3: #8a3362;
+  --deemph: #7d8683;
 
   /* Entities. */
   --c-model: var(--series-1);
-  /* A second reading of the same model, drawn behind the first. Mixed on :root, so it follows the theme. */
-  --c-model-muted: color-mix(in oklab, var(--c-model) 38%, var(--surface));
+  /*
+   * A second reading of the same model drawn behind the first. A tint of the
+   * teal light enough to read as "behind" falls under 3:1 on this ground, so
+   * the second reading takes the baseline grey: emphasis, not a paler model.
+   */
+  --c-model-muted: var(--deemph);
   --c-alt: var(--series-2);
   --c-third: var(--series-3);
   --c-baseline: var(--deemph);
   --c-total: var(--ink-2);
 
-  /* Diverging: blue pole, red pole, grey neutral midpoint. Seven classes. */
-  --div-pos: #2a78d6;
-  --div-neg: #e34948;
-  --div-mid: #f0efec;
+  /* Diverging: teal pole, brick pole, a neutral midpoint. Seven classes. */
+  --div-pos: #099393;
+  --div-neg: #bc4b37;
+  --div-mid: #e3e9e7;
   --div-neg-3: var(--div-neg);
   --div-neg-2: color-mix(in oklab, var(--div-neg) 66%, var(--div-mid));
   --div-neg-1: color-mix(in oklab, var(--div-neg) 33%, var(--div-mid));
@@ -92,147 +114,155 @@
   --div-pos-1: color-mix(in oklab, var(--div-pos) 33%, var(--div-mid));
   --div-pos-2: color-mix(in oklab, var(--div-pos) 66%, var(--div-mid));
   --div-pos-3: var(--div-pos);
-  --on-div-3: #0b0b0b;
-  --on-div-2: #0b0b0b;
-  --on-div-1: #0b0b0b;
-  --on-div-0: #0b0b0b;
+  --on-div-3: #111816;
+  --on-div-2: #111816;
+  --on-div-1: #111816;
+  --on-div-0: #111816;
 
-  /* The blue ramp. Mode-invariant steps. */
-  --blue-100: #cde2fb;
-  --blue-150: #b7d3f6;
-  --blue-200: #9ec5f4;
-  --blue-250: #86b6ef;
-  --blue-300: #6da7ec;
-  --blue-350: #5598e7;
-  --blue-400: #3987e5;
-  --blue-450: #2a78d6;
-  --blue-500: #256abf;
-  --blue-550: #1c5cab;
-  --blue-600: #184f95;
-  --blue-650: #104281;
-  --blue-700: #0d366b;
+  /* The teal ramp, mixed in OKLab from the model hue toward white and black. */
+  --teal-100: #deeeed;
+  --teal-200: #b9dad9;
+  --teal-300: #90c4c3;
+  --teal-400: #5fadac;
+  --teal-500: #099393;
+  --teal-600: #046464;
+  --teal-700: #024040;
 
   /* Sequential: seven classes from least to most. In light mode more is darker. */
-  --seq-1: var(--blue-100);
-  --seq-2: var(--blue-200);
-  --seq-3: var(--blue-300);
-  --seq-4: var(--blue-400);
-  --seq-5: var(--blue-500);
-  --seq-6: var(--blue-600);
-  --seq-7: var(--blue-700);
-  --on-seq-1: #0b0b0b;
-  --on-seq-2: #0b0b0b;
-  --on-seq-3: #0b0b0b;
-  --on-seq-4: #ffffff;
-  --on-seq-5: #ffffff;
+  --seq-1: var(--teal-100);
+  --seq-2: var(--teal-200);
+  --seq-3: var(--teal-300);
+  --seq-4: var(--teal-400);
+  --seq-5: var(--teal-500);
+  --seq-6: var(--teal-600);
+  --seq-7: var(--teal-700);
+  --on-seq-1: #111816;
+  --on-seq-2: #111816;
+  --on-seq-3: #111816;
+  --on-seq-4: #111816;
+  --on-seq-5: #111816;
   --on-seq-6: #ffffff;
   --on-seq-7: #ffffff;
-  --missing: #efeee9;
+  --missing: #e5eae8;
 
-  /* Status: verdict chips only, always with an icon and a label. */
-  --status-good: #0ca30c;
-  --status-warning: #fab219;
-  --status-serious: #ec835a;
-  --status-critical: #d03b3b;
-  --status-neutral: #898781;
+  /* Status: a small mark beside a verdict word, never the word's only carrier. */
+  --status-good: #1d7a3c;
+  --status-warning: #a86b00;
+  --status-serious: #b5552f;
+  --status-critical: #b23a2e;
+  --status-neutral: #6f7875;
   --on-status-good: #ffffff;
-  --on-status-warning: #0b0b0b;
+  --on-status-warning: #ffffff;
   --on-status-critical: #ffffff;
   --on-status-neutral: #ffffff;
-  --text-good: #006300;
-  --text-critical: #d03b3b;
+  --text-good: #1d6b36;
+  --text-critical: #a3352a;
 
-  --focus: #0b0b0b;
+  --focus: #111816;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #1a1a19;
-    --ink-1: #ffffff;
-    --ink-2: #c3c2b7;
-    --ink-3: #898781;
-    --grid: #2c2c2a;
-    --axis: #383835;
-    --border: rgba(255, 255, 255, 0.10);
-    --wash: rgba(255, 255, 255, 0.05);
-    --wash-strong: rgba(255, 255, 255, 0.09);
-    --shadow-tip: 0 4px 16px rgba(0, 0, 0, 0.50);
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --deemph: #6b6a64;
-    --div-pos: #3987e5;
-    --div-neg: #e66767;
-    --div-mid: #383835;
-    --on-div-3: #0b0b0b;
-    --on-div-2: #ffffff;
-    --on-div-1: #ffffff;
-    --on-div-0: #ffffff;
-    --seq-1: var(--blue-700);
-    --seq-2: var(--blue-600);
-    --seq-3: var(--blue-500);
-    --seq-4: var(--blue-400);
-    --seq-5: var(--blue-300);
-    --seq-6: var(--blue-200);
-    --seq-7: var(--blue-100);
-    --on-seq-1: #ffffff;
-    --on-seq-2: #ffffff;
-    --on-seq-3: #ffffff;
-    --on-seq-4: #0b0b0b;
-    --on-seq-5: #0b0b0b;
-    --on-seq-6: #0b0b0b;
-    --on-seq-7: #0b0b0b;
-    --missing: #232322;
-    --on-status-neutral: #0d0d0d;
-    --text-good: #0ca30c;
-    --text-critical: #e66767;
-    --focus: #ffffff;
+    --page: #0f1514;
+    --surface: #0f1514;
+    --raised: #182120;
+    --ink-1: #e4ebe9;
+    --ink-2: #aab5b2;
+    --ink-3: #8d9895;
+    --grid: #232b2a;
+    --axis: #37403e;
+    --rule: #e4ebe9;
+    --border: rgba(228, 235, 233, 0.16);
+    --wash: rgba(228, 235, 233, 0.05);
+    --wash-strong: rgba(228, 235, 233, 0.09);
+    --shadow-tip: 0 6px 18px rgba(0, 0, 0, 0.55);
+    --series-1: #19a0a0;
+    --series-2: #bd8630;
+    --series-3: #9a4873;
+    --deemph: #707a77;
+    --div-pos: #19a0a0;
+    --div-neg: #d06551;
+    --div-mid: #2b3432;
+    --on-div-3: #0f1514;
+    --on-div-2: #e4ebe9;
+    --on-div-1: #e4ebe9;
+    --on-div-0: #e4ebe9;
+    --seq-1: var(--teal-700);
+    --seq-2: var(--teal-600);
+    --seq-3: color-mix(in oklab, var(--teal-500) 80%, var(--teal-600));
+    --seq-4: var(--teal-500);
+    --seq-5: var(--teal-400);
+    --seq-6: var(--teal-300);
+    --seq-7: var(--teal-200);
+    --on-seq-1: #e4ebe9;
+    --on-seq-2: #e4ebe9;
+    --on-seq-3: #0f1514;
+    --on-seq-4: #0f1514;
+    --on-seq-5: #0f1514;
+    --on-seq-6: #0f1514;
+    --on-seq-7: #0f1514;
+    --missing: #1f2625;
+    --status-good: #4fb06f;
+    --status-warning: #d39a3a;
+    --status-critical: #d9695b;
+    --status-neutral: #8d9895;
+    --on-status-warning: #0f1514;
+    --on-status-neutral: #0f1514;
+    --text-good: #6cc38a;
+    --text-critical: #e2806f;
+    --focus: #e4ebe9;
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0d0d0d;
-  --surface: #1a1a19;
-  --ink-1: #ffffff;
-  --ink-2: #c3c2b7;
-  --ink-3: #898781;
-  --grid: #2c2c2a;
-  --axis: #383835;
-  --border: rgba(255, 255, 255, 0.10);
-  --wash: rgba(255, 255, 255, 0.05);
-  --wash-strong: rgba(255, 255, 255, 0.09);
-  --shadow-tip: 0 4px 16px rgba(0, 0, 0, 0.50);
-  --series-1: #3987e5;
-  --series-2: #d95926;
-  --series-3: #199e70;
-  --deemph: #6b6a64;
-  --div-pos: #3987e5;
-  --div-neg: #e66767;
-  --div-mid: #383835;
-  --on-div-3: #0b0b0b;
-  --on-div-2: #ffffff;
-  --on-div-1: #ffffff;
-  --on-div-0: #ffffff;
-  --seq-1: var(--blue-700);
-  --seq-2: var(--blue-600);
-  --seq-3: var(--blue-500);
-  --seq-4: var(--blue-400);
-  --seq-5: var(--blue-300);
-  --seq-6: var(--blue-200);
-  --seq-7: var(--blue-100);
-  --on-seq-1: #ffffff;
-  --on-seq-2: #ffffff;
-  --on-seq-3: #ffffff;
-  --on-seq-4: #0b0b0b;
-  --on-seq-5: #0b0b0b;
-  --on-seq-6: #0b0b0b;
-  --on-seq-7: #0b0b0b;
-  --missing: #232322;
-  --on-status-neutral: #0d0d0d;
-  --text-good: #0ca30c;
-  --text-critical: #e66767;
-  --focus: #ffffff;
+  --page: #0f1514;
+  --surface: #0f1514;
+  --raised: #182120;
+  --ink-1: #e4ebe9;
+  --ink-2: #aab5b2;
+  --ink-3: #8d9895;
+  --grid: #232b2a;
+  --axis: #37403e;
+  --rule: #e4ebe9;
+  --border: rgba(228, 235, 233, 0.16);
+  --wash: rgba(228, 235, 233, 0.05);
+  --wash-strong: rgba(228, 235, 233, 0.09);
+  --shadow-tip: 0 6px 18px rgba(0, 0, 0, 0.55);
+  --series-1: #19a0a0;
+  --series-2: #bd8630;
+  --series-3: #9a4873;
+  --deemph: #707a77;
+  --div-pos: #19a0a0;
+  --div-neg: #d06551;
+  --div-mid: #2b3432;
+  --on-div-3: #0f1514;
+  --on-div-2: #e4ebe9;
+  --on-div-1: #e4ebe9;
+  --on-div-0: #e4ebe9;
+  --seq-1: var(--teal-700);
+  --seq-2: var(--teal-600);
+  --seq-3: color-mix(in oklab, var(--teal-500) 80%, var(--teal-600));
+  --seq-4: var(--teal-500);
+  --seq-5: var(--teal-400);
+  --seq-6: var(--teal-300);
+  --seq-7: var(--teal-200);
+  --on-seq-1: #e4ebe9;
+  --on-seq-2: #e4ebe9;
+  --on-seq-3: #0f1514;
+  --on-seq-4: #0f1514;
+  --on-seq-5: #0f1514;
+  --on-seq-6: #0f1514;
+  --on-seq-7: #0f1514;
+  --missing: #1f2625;
+  --status-good: #4fb06f;
+  --status-warning: #d39a3a;
+  --status-critical: #d9695b;
+  --status-neutral: #8d9895;
+  --on-status-warning: #0f1514;
+  --on-status-neutral: #0f1514;
+  --text-good: #6cc38a;
+  --text-critical: #e2806f;
+  --focus: #e4ebe9;
 }
