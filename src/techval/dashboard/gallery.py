@@ -9,7 +9,10 @@ apart, reference labels placed clear of the marks, a table figure and fuller
 table views, a legend turned off, a waterfall with no subtracting step, a heat
 grid of long identifiers on fixed breaks, a line on dates and a log scale with
 shaded ranges and a labelled point, a caution under a figure, and tiles in a
-card with a second part. It is a development tool for looking at the kit in
+card with a second part. The overview carries the three figures its collector
+returns, in the collector's shapes and read from the gallery's own headlines,
+so the page draws them with the real scoreboard renderer rather than the kit's
+default drawing of an unknown figure. It is a development tool for looking at the kit in
 both themes, not a results page: the page says so in a notice under its title,
 records no fixtures, and every provenance entry names this module rather than a
 model entry point.
@@ -228,78 +231,112 @@ def _headline(
 TICKERS = ("MSFT", "GOOGL", "META", "AMZN", "AAPL", "NFLX", "ORCL", "CRM")
 
 
-def _overview() -> dict[str, Any]:
-    tiles = [
-        {"label": "Signal rank IC", "value": 0.0412, "format": "num:4", "sub": "Momentum baseline 0.0300", "status": "inside_noise"},
+# The model sections, in page order, as the package's sections module names them.
+MODEL_SECTIONS = ("signal", "encoder", "warranted", "fade", "propensity")
+
+
+def _dp(v: float) -> int:
+    """Decimal places that follow the magnitude, as the page's headline strip formats."""
+    a = abs(v)
+    return 0 if a >= 100 else 1 if a >= 10 else 2 if a >= 1 else 4
+
+
+def _scoreboard_tile(section: dict[str, Any]) -> dict[str, Any]:
+    """A model's tile in the shape the overview collector gives it, read from the section."""
+    sid = section["id"]
+    tile: dict[str, Any] = {"section": sid, "href": f"#{sid}", "label": section["title"]}
+    h = section.get("headline")
+    if section["status"] == "ok" and h:
+        base = f"{h['baseline_score']:,.{_dp(h['baseline_score'])}f}"
+        tile.update(
+            {
+                "state": "scored",
+                "metric": h["metric"],
+                "score": h["score"],
+                "baseline_name": h["baseline_name"],
+                "baseline_score": h["baseline_score"],
+                "lift": h["lift"],
+                "n": h["n"],
+                "higher_is_better": h["higher_is_better"],
+                "verdict_status": h["verdict_status"],
+                "value": h["score"],
+                "format": f"num:{_dp(h['score'])}",
+                "sub": f"{h['metric']} against {base} for {h['baseline_name']}, n = {h['n']:,}",
+                "status": h["verdict_status"],
+                "delta": {"value": h["lift"], "format": f"signed:{_dp(h['lift'])}", "label": "lift"},
+            }
+        )
+    elif section["status"] == "refused":
+        first = (section.get("refusals") or [{"what": section["title"], "why": "No reason was recorded."}])[0]
+        tile.update({"state": "refused", "value": "Refused", "status": "refused", "reason": first, "sub": first["why"]})
+    elif section["status"] == "ok":
+        tile.update({"state": "no_headline", "value": "No score", "sub": "Collected without a headline score against a baseline"})
+    else:
+        tile.update({"state": "not_built", "value": "Not collected", "sub": "This snapshot holds no results for this model"})
+    return tile
+
+
+def _overview(sections: list[dict[str, Any]]) -> dict[str, Any]:
+    """The scoreboard's three figures, with the ids and shapes the overview collector returns."""
+    by_id = {s["id"]: s for s in sections}
+    tiles = [_scoreboard_tile(by_id[sid]) for sid in MODEL_SECTIONS]
+    counts = {v: sum(t.get("verdict_status") == v for t in tiles) for v in ("beats", "inside_noise", "ties", "not_significant", "loses")}
+    rows = [
         {
-            "label": "Peer encoder nDCG@10",
-            "value": 0.5407,
-            "format": "num:4",
-            "sub": "Popularity prior 0.2213",
-            "status": "beats",
-            "delta": {"value": 0.3194, "format": "signed:4", "label": "lift"},
-        },
-        {
-            "label": "Warranted multiple log MAE",
-            "value": 0.412,
-            "format": "num:3",
-            "sub": "Sector median 0.409",
-            "status": "ties",
-            "delta": {"value": 0.003, "format": "signed:3", "label": "vs baseline", "higher_is_better": False},
-        },
-        {
-            "label": "Growth fade MAE",
-            "value": 4.12,
-            "format": "num:2",
-            "sub": "Linear fade 3.87 points",
-            "status": "loses",
-            "delta": {"value": 0.25, "format": "signed:2", "label": "vs baseline", "higher_is_better": False},
-        },
-        {"label": "Propensity AUC", "value": 0.561, "format": "num:3", "sub": "Size-only logit 0.548", "status": "not_significant"},
-        {"label": "TMT operating KPIs", "value": None, "sub": "Subscriber tags absent from fixtures", "status": "refused"},
+            "id": s["id"],
+            "title": s["title"],
+            "href": f"#{s['id']}",
+            "status": s["status"],
+            "verdict_status": s["headline"]["verdict_status"] if s.get("headline") else None,
+            "figures": len(s["figures"]),
+            "refusals": len(s["refusals"]),
+            "provenance": len(s["provenance"]),
+        }
+        for s in sections
     ]
-    seconds = [("encoder", 37.1), ("fade", 22.4), ("signal", 18.9), ("warranted", 12.6), ("propensity", 9.3), ("engine", 4.8), ("datalayer", 1.7)]
-    refused = {"chip": "refused", "chipText": "Refused"}
-    ledger = [
-        {"section": {"text": "Peer encoder", "sub": "one caution under the ablation"}, "figures": 6, "refused": 0, "entry": "techval.ml.encoder", "note": "none"},
-        {"section": {"text": "Growth fade", "sub": "values drawn under a pinned rate"}, "figures": 6, "refused": 0, "entry": "techval.ml.forecast", "note": "none"},
-        {"section": {"text": "TMT operating metrics", "sub": "refused at collection"}, "figures": 0, "refused": 2, "entry": "techval.tmt.kpis", "note": refused},
-    ]
+    figures = sum(r["figures"] for r in rows)
+    refusals = sum(r["refusals"] for r in rows)
+    refusing = [r for r in rows if r["refusals"]]
     return _section(
         "overview",
-        "Overview",
-        "One model beats its baseline outside the noise; the others tie, sit inside the noise, lose, or refuse.",
+        "Scoreboard",
+        "One model beats its baseline outside the noise; the others tie, sit inside the noise, lose, or are not significant.",
         figures={
-            # Sorted by order, not by key: the tiles, the ledger, then the timings.
-            "verdicts": _figure("tiles", "Verdicts at a glance", "", {"tiles": tiles}, order=1),
-            "zz_ledger": _figure(
-                "table",
-                "Two of three sections draw every figure they collect",
-                "Figures per section, one offline run; a refused cell is one the section declined to fill",
-                {
-                    "columns": [
-                        {"key": "section", "label": "Section"},
-                        {"key": "figures", "label": "Figures", "align": "right", "format": "int"},
-                        {"key": "refused", "label": "Refused", "align": "right", "format": "int"},
-                        {"key": "entry", "label": "Module", "mono": True},
-                        {"key": "note", "label": "Figure", "nowrap": True},
-                    ],
-                    "rows": ledger,
-                },
-                order=2,
-                wide=True,
+            "scoreboard": _figure(
+                "tiles",
+                "One of five models beats its baseline outside the noise: the peer encoder",
+                "Each model's headline score against the baseline its section names",
+                {"tiles": tiles, "counts": counts, "returns_model": "signal"},
             ),
-            "collect_seconds": _figure(
+            "sections": _figure(
                 "hbar",
-                "The peer encoder takes longest to collect",
-                "Seconds per section, one offline run",
+                f"{figures} figures drawn and {refusals} refusals stated, across {len(refusing)} sections",
+                "Every other section, in page order, with the figures it drew and the refusals it stated",
                 {
-                    "rows": [{"label": name, "value": s} for name, s in seconds],
-                    "format": "num:1",
-                    "valueLabel": "Seconds",
+                    "rows": [{"label": r["title"], "value": r["refusals"], "role": "baseline"} for r in rows],
+                    "format": "int",
+                    "valueLabel": "Refusals",
                     "labelHeader": "Section",
+                    "table": rows,
+                    "totals": {
+                        "sections": len(rows),
+                        "collected": sum(r["status"] == "ok" for r in rows),
+                        "figures": figures,
+                        "refusals": refusals,
+                        "refusing_sections": len(refusing),
+                    },
                 },
-                order=3,
+            ),
+            "collection": _figure(
+                "tiles",
+                "Every assumption is the engine default",
+                "What every number on this page was computed from, and under what",
+                {
+                    "tiles": [
+                        {"label": "Assumptions changed from the defaults", "value": 0, "format": "int", "sub": "No setting differs from the defaults"}
+                    ],
+                    "overrides": [],
+                },
             ),
         },
     )
@@ -399,8 +436,9 @@ def _encoder() -> dict[str, Any]:
         "Peer encoder",
         "The encoder ranks true peers far above the popularity prior in every sector.",
         headline=_headline(
-            "nDCG@10", 0.5407, "popularity prior", 0.2213, 162, True, "beats",
-            "nDCG@10 of 0.5407 against 0.2213 for the popularity prior, outside the fold noise on 162 query filers.",
+            "NDCG@10", 0.5407, "popularity prior", 0.2213, 162, True, "beats",
+            # In lower case, as the model's verdict() names its metric: the strip shows NDCG@10.
+            "ndcg@10 of 0.5407 against 0.2213 for the popularity prior, outside the fold noise on 162 query filers.",
         ),
         figures={
             "ndcg_by_method": _figure(
@@ -677,7 +715,13 @@ def _fade() -> dict[str, Any]:
                 "Revenue in year five on each path, USD millions, from 1,000mm today",
                 {"tiles": [
                     {"label": "Linear fade", "value": 2210.4, "format": "mm", "sub": "Year 5 revenue"},
-                    {"label": "Learned fade", "value": 2031.9, "format": "mm", "sub": "8.1% below the line"},
+                    {
+                        "label": "Learned fade",
+                        "value": 2031.9,
+                        "format": "mm",
+                        "sub": "8.1% below the line",
+                        "delta": {"value": -0.081, "format": "pct:1", "label": "against the line"},
+                    },
                 ]},
                 card=True,
             ),
@@ -706,7 +750,7 @@ def _propensity() -> dict[str, Any]:
         "The model ranks targets slightly better than firm size alone, but not significantly so.",
         headline=_headline(
             "AUC", 0.561, "size-only logit", 0.548, 1840, True, "not_significant",
-            "AUC of 0.561 against 0.548 for a size-only logit; the DeLong test gives p = 0.21.",
+            "auc of 0.561 against 0.548 for a size-only logit; the DeLong test gives p = 0.21.",
         ),
         figures={
             "score_hist": _figure(
@@ -756,11 +800,36 @@ def _engine() -> dict[str, Any]:
         ("Precedent transactions", 360, 432, 520, "model"),
         ("52-week trading range", 309, None, 468, "baseline"),
     ]
+    refused = {"chip": "refused", "chipText": "Refused"}
+    ledger = [
+        {"method": {"text": "DCF", "sub": "one caution under the terminal value"}, "figures": 4, "refused": 0, "entry": "techval.dcf", "note": "none"},
+        {"method": {"text": "Comparable companies", "sub": "multiples drawn under a pinned date"}, "figures": 3, "refused": 0, "entry": "techval.comps", "note": "none"},
+        {"method": {"text": "Merger model", "sub": "refused at collection"}, "figures": 0, "refused": 2, "entry": "techval.merger", "note": refused},
+    ]
     return _section(
         "engine",
         "Valuation engine",
         "Four of five methods bracket the current price; precedent transactions sit above it on control premia.",
+        # The renderer names the football field first; the rest follow their order
+        # numbers, not their keys: the bridge, the segments, then the ledger.
         figures={
+            "methods": _figure(
+                "table",
+                "Two of three methods draw every figure they are asked for",
+                "Figures per valuation method, one offline run; a refused cell is one the method declined to fill",
+                {
+                    "columns": [
+                        {"key": "method", "label": "Method"},
+                        {"key": "figures", "label": "Figures", "align": "right", "format": "int"},
+                        {"key": "refused", "label": "Refused", "align": "right", "format": "int"},
+                        {"key": "entry", "label": "Module", "mono": True},
+                        {"key": "note", "label": "Figure", "nowrap": True},
+                    ],
+                    "rows": ledger,
+                },
+                order=3,
+                wide=True,
+            ),
             "football": _figure(
                 "range",
                 "Most methods bracket the price",
@@ -791,6 +860,7 @@ def _engine() -> dict[str, Any]:
                     "format": "num:0",
                     "valueLabel": "USD bn",
                 },
+                order=1,
             ),
             # No step subtracts, so the legend carries no entry for a kind of bar the bridge never draws.
             "segment_income": _figure(
@@ -811,6 +881,7 @@ def _engine() -> dict[str, Any]:
                     "downLabel": "Taken off outside the segments",
                     "totalLegend": "Operating income",
                 },
+                order=2,
             ),
         },
         also_from=("sotp",),
@@ -918,7 +989,8 @@ def _sample() -> dict[str, Any]:
 
 def gallery_snapshot() -> dict[str, Any]:
     """The synthetic snapshot the gallery page renders."""
-    sections = [_overview(), _signal(), _encoder(), _warranted(), _fade(), _propensity(), _engine(), _tmt(), _datalayer(), _sample()]
+    rest = [_signal(), _encoder(), _warranted(), _fade(), _propensity(), _engine(), _tmt(), _datalayer(), _sample()]
+    sections = [_overview(rest), *rest]
     return {
         "schema": 1,
         "title": "techval chart kit gallery",
