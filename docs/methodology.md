@@ -3280,6 +3280,28 @@ The cost of those three refusals is stated rather than absorbed: six filers
 leave the panel entirely, and the towers and fibre bucket falls from 105
 observations to 37.
 
+**The committed panel predates the debt-ladder fix, and an audit measures what
+that costs.** The panel was recorded before the ladders stopped reading
+Verizon's long-term debt as zero, so every enterprise value in it went through
+the old ones. `tests/fixtures/warranted/record_ev_audit.py` rebuilds each
+observation with today's code pinned to its own date, the recorded equity value
+plus today's net debt followed by today's row checks, and commits the result as
+`ev_audit.json.gz`. Of the 1,764 observations, 1,713 rebuild: 1,337 are
+identical, 188 move by more than 1% and **106 by more than 5%, at 13 filers**,
+Verizon and Warner Bros. Discovery at every quarter. Today's code refuses the
+other 51 outright, each because its debt cross-check finds more debt than the
+ladders resolve, and it would admit all 97 rows the panel skipped as debt
+outside the ladder. The damage is uneven. The screen's rich and cheap calls are
+the most exposed, because a residual is a distance from a model fitted on the
+whole panel: refitting with only the enterprise values rebuilt swaps one of the
+sixteen names at the ends of the 30 June 2026 screen, and the results dashboard
+refuses to draw that screen for that reason. The headline correlation is the
+least exposed, +0.7651 against +0.7720 on the same refit. That refit is partial
+and understates the change: the features, debt to capital among them, came from
+the same old ladder, and the refused and admitted rows stay as recorded.
+Re-recording the panel with today's ladders is the outstanding fix. Until it is
+made, every figure in this section is the panel as recorded.
+
 A measurement about the engine itself falls out of this panel: the OLS of
 §7.1 refuses to fit on **788 of 1,764** sub-vertical cross-sections, a 45% refusal
 rate. That is the engine behaving exactly as §7.1 documents, since a real comp set
