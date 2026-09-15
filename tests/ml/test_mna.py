@@ -24,8 +24,11 @@ announcement itself: a feature row built the day before a merger agreement must
 know nothing about it, and ``assert_point_in_time`` is run over real payloads to
 show it. The other is subtler and is the finding that shaped the feature set: a
 delisted company has no share price from any public source, so a price feature is
-present for the negatives and absent for the positives, and its absence alone
-separates the classes perfectly. That is measured here rather than asserted.
+present for most of the negatives and absent for most of the positives. Its
+absence alone scores an AUC of 0.82 on the labelled sample, far above anything
+the filings-only model reaches, though not a perfect separation, because about a
+quarter of the positive rows are on companies that still file. That is measured
+here rather than asserted.
 
 The labelling group proves that an unresolved window is dropped rather than
 counted as a negative, that an observation sitting inside the rumour gap is
@@ -367,7 +370,7 @@ def test_the_panel_carries_no_price_derived_feature(panel):
     assert not (set(priced) & set(FITTED_COLUMNS))
 
 
-def test_the_absence_of_a_price_would_separate_the_classes_perfectly(
+def test_the_absence_of_a_price_alone_scores_an_auc_above_three_quarters(
     panel, universe, events
 ):
     """Measure the leak rather than assert it.
@@ -376,6 +379,10 @@ def test_the_absence_of_a_price_would_separate_the_classes_perfectly(
     would-be price feature is missing for it and present for everybody else. A
     classifier handed only that indicator scores an AUC far above anything the
     real model reaches, which is the whole argument for leaving prices out.
+
+    Far above, not perfect: on the committed fixtures it is 0.82, with 73% of
+    the positive rows and 9% of the negatives on departed companies. The
+    positives on companies that still file are what keep it off 1.0.
     """
     dates = [d for d in panel.dates if d <= date(2025, 6, 30)]
     report = label_observations(universe, dates, events, as_of=AS_OF)
@@ -729,7 +736,8 @@ def test_the_model_card_records_the_deal_count_not_the_observation_count(result)
 def test_the_card_summary_carries_the_verdict(result):
     summary = result.model.card.summary()
     assert "mna.propensity" in summary
-    assert "auc" in summary
+    assert result.evaluation.verdict().startswith("auc of ")
+    assert " features. AUC of " in summary and ". auc of" not in summary
 
 
 def test_fit_refuses_a_sample_below_the_distinct_deal_floor(panel, universe, events):
