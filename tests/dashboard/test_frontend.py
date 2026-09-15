@@ -330,6 +330,21 @@ def test_every_section_has_a_renderer_that_registers_its_own_id():
         assert registered == [sid], f"sections/{sid}.js registers {registered}"
 
 
+def test_no_section_renderer_carries_a_copy_of_the_kit():
+    # The kit exports its frame, axes and measures; a section that copies them
+    # drifts from the kit the first time either changes.
+    copies = {
+        "a chart frame": re.compile(r"function frame\s*\(|new ResizeObserver"),
+        "a kind fallback": re.compile(r"has no chart named"),
+        "a text measure": re.compile(r"measureText\s*\("),
+        "a local table": re.compile(r'el\(\s*"table"'),
+    }
+    for sid in SECTION_IDS:
+        text = (ASSETS / "sections" / f"{sid}.js").read_text(encoding="utf-8")
+        for what, pattern in copies.items():
+            assert not pattern.search(text), f"sections/{sid}.js carries {what}"
+
+
 def test_app_stamps_the_theme_from_the_query_string():
     text = APP.read_text(encoding="utf-8")
     assert re.search(r"theme=\(dark\|light\)", text)
@@ -849,7 +864,7 @@ def test_the_kit_draws_what_the_sections_used_to_draw_locally(drawn):
     absorbed = _checked(drawn, "absorbed")
     assert absorbed["whiskers"] >= 24  # three strokes a whisker, four on the ablation, four on the bars
     assert absorbed["groups"] == 2
-    assert absorbed["cautions"] >= 1
+    assert absorbed["cautions"] >= 2
     assert absorbed["tableFigure"] == 3
     assert absorbed["shades"] == 2 and absorbed["fullerTables"] == 2
     assert {"2022", "2023", "2024"} <= set(absorbed["closeTicks"])
