@@ -35,13 +35,15 @@ body {
 h1,
 h2,
 h3,
+h4,
 p {
   margin: 0;
 }
 
 h1,
 h2,
-h3 {
+h3,
+h4 {
   text-wrap: balance;
   font-weight: var(--fw-semibold);
   line-height: var(--lh-tight);
@@ -382,6 +384,13 @@ details > summary:hover {
   min-width: 0;
 }
 
+/* A second figure inside a card, under its own heading. */
+.tv-figure__part {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
 .tv-figure__notes {
   display: grid;
   gap: var(--space-2);
@@ -488,6 +497,12 @@ details > summary:hover {
   stroke-linejoin: round;
 }
 
+.tv-svg .tv-group-label {
+  fill: var(--ink-2);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+}
+
 .tv-svg .tv-cell-label {
   font-size: var(--fs-micro);
   font-variant-numeric: tabular-nums;
@@ -539,6 +554,17 @@ details > summary:hover {
 .tv-band {
   fill-opacity: 0.1;
   stroke: none;
+}
+
+.tv-shade {
+  fill: var(--wash-strong);
+  stroke: none;
+}
+
+.tv-whisker {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 
 .tv-dot {
@@ -637,6 +663,15 @@ details > summary:hover {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+}
+
+/* A hollow marker, for rows drawn hollow. */
+.tv-key--ring {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--key, var(--ink-3));
 }
 
 .tv-scale {
@@ -783,6 +818,10 @@ details > summary:hover {
 .tv-table th.tv-mono {
   font-size: var(--fs-micro);
   overflow-wrap: anywhere;
+}
+
+.tv-table .tv-nowrap {
+  white-space: nowrap;
 }
 
 .tv-table :is(th, td):last-child {
