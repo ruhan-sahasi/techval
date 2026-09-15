@@ -468,3 +468,14 @@ def test_snapshot_apv_and_its_refusals(engine_section):
     assert {r["what"] for r in engine_section["refusals"]} == {
         "Comps, EV/EBITDA", "DCF, exit multiple", "APV, Miles-Ezzell"
     }
+
+
+def test_the_sensitivity_grid_is_plain_with_the_base_case_boxed_and_wacc_to_two_decimals():
+    s = _sensitivity(wacc_low=0.1047, wacc_high=0.1247, base_wacc=0.1147)
+    data = E._heat(_measured(sensitivity=s))["data"]
+    assert data["scale"] == "plain"
+    assert data["rows"] == ["10.47%", "11.47%", "12.47%"]
+    assert data["base"] == [1, 1]
+
+    moved = _sensitivity(values=[[22.0, 24.0, 26.0], [18.0, 20.5, 21.5], [15.0, 16.5, None]])
+    assert "base" not in E._heat(_measured(sensitivity=moved))["data"]

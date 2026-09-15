@@ -401,7 +401,7 @@ def _football(m: Measured) -> dict[str, Any] | None:
             "lo": b.low,
             "mid": b.mid,
             "hi": b.high,
-            "role": "model" if b.group == "dcf" else "baseline",
+            "role": _band_role(b),
         }
         for b in bands
     ]
@@ -413,11 +413,22 @@ def _football(m: Measured) -> dict[str, Any] | None:
             "rows": rows,
             "format": "num:2",
             "reference": [{"value": price, "label": f"Price {price:,.2f}"}],
-            "roleLabels": {"model": "DCF", "baseline": "Market-based"},
+            "roleLabels": {
+                "baseline": "Trading range, for reference only",
+                "alt": "Trading comps",
+                "model": "DCF",
+            },
             "labelHeader": "Method",
         },
         wide=True,
     )
+
+
+def _band_role(b: Band) -> str:
+    """The DCF is the engine's own; comps are the named comparison; the trading range is context, not a value."""
+    if b.group == "dcf":
+        return "model"
+    return "alt" if b.label.startswith("Comps") else "baseline"
 
 
 def _bridge(m: Measured) -> dict[str, Any]:
@@ -476,21 +487,39 @@ def _heat(m: Measured) -> dict[str, Any]:
         f"{s.base_wacc:.2%} WACC and {s.base_growth:.1%} terminal growth, gives "
         f"{s.base_value:,.2f} against a price of {m.price:,.2f}."
     )
-    return _figure(
-        "heat",
-        title,
-        subtitle,
-        {
-            "rows": s.wacc_labels,
-            "cols": s.growth_labels,
-            "values": s.values,
-            "scale": "sequential",
-            "format": "num:2",
-            "scaleLabel": "Value per share, USD",
-            "valueLabel": "Value per share",
-            "rowHeader": "WACC",
-        },
-    )
+    data: dict[str, Any] = {
+        "rows": _wacc_rows(s),
+        "cols": s.growth_labels,
+        "values": s.values,
+        "scale": "plain",
+        "format": "num:2",
+        "valueLabel": "Value per share",
+        "rowHeader": "WACC",
+        "colTitle": "Terminal growth",
+    }
+    base = _base_cell(s)
+    if base is not None:
+        data["base"] = base
+    return _figure("heat", title, subtitle, data)
+
+
+def _wacc_rows(s: Sensitivity) -> list[str]:
+    """WACC to two decimals, so the middle row reads as the base case it is (12.97%, not 13.0%)."""
+    n = len(s.wacc_labels)
+    if n < 2:
+        return list(s.wacc_labels)
+    step = (s.wacc_high - s.wacc_low) / (n - 1)
+    return [f"{s.wacc_low + i * step:.2%}" for i in range(n)]
+
+
+def _base_cell(s: Sensitivity) -> list[int] | None:
+    """The grid is struck symmetrically around the base case, so it is the middle cell, if that cell holds the base value."""
+    rows, cols = len(s.values), len(s.growth_labels)
+    if rows % 2 == 0 or cols % 2 == 0:
+        return None
+    i, j = rows // 2, cols // 2
+    v = s.values[i][j] if j < len(s.values[i]) else None
+    return [i, j] if v is not None and abs(v - s.base_value) < 0.005 else None
 
 
 def _hist(m: Measured) -> dict[str, Any]:
