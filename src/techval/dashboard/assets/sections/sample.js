@@ -198,7 +198,6 @@
               out.push({ label: "Largest count over this", value: TV.format("num:1", nominal / count) });
             }
             if (r.step === "limiting" && group && group.why) out.push({ label: group.why, value: "" });
-            out.push({ label: "Read from " + r.source, value: "" });
             return { title: group ? group.label : r.label, rows: out };
           });
         }
