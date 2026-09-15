@@ -143,7 +143,15 @@ class CompanyRevenue:
 
 @dataclass(frozen=True)
 class Valuation:
-    """The same DCF on each path, USD per share and USD millions."""
+    """One DCF run on each growth path, USD per share and USD millions.
+
+    Every path is discounted at the same cost of capital, so the gap between
+    them is the growth path and nothing else. That cost of capital is built from
+    Datadog's own regression beta, the construction ``tests/ml/test_forecast.py``
+    pins, which is not the peer-median beta the engine section values on. The
+    rate, the beta and the risk-free rate travel with the figure so a reader
+    comparing the two sections sees why their per-share values differ.
+    """
 
     per_share_typed: float
     per_share_fitted: float
@@ -152,6 +160,9 @@ class Valuation:
     ev_typed: float
     ev_fitted: float
     price_date: str
+    wacc: float
+    beta: float
+    risk_free_rate: float
 
 
 @dataclass(frozen=True)
@@ -440,7 +451,14 @@ def _valuation_figure(v: Valuation, name: str) -> dict[str, Any]:
             f"The fitted path moves {name}'s DCF by {gap:+,.2f} a share, inside a band "
             f"of {v.per_share_low:,.2f} to {v.per_share_high:,.2f}"
         ),
-        "subtitle": f"USD per share, the same DCF on each growth path, prices to {v.price_date}.",
+        "subtitle": (
+            f"USD per share, prices to {v.price_date}. Every path is discounted at "
+            f"{v.wacc:.2%}, on {name}'s own regression beta of {v.beta:.2f} and a "
+            f"{v.risk_free_rate:.2%} risk-free rate that is an assumption pinned for "
+            "offline runs, not a Treasury quote. The engine section values on a "
+            "peer-median beta, so its per-share figure differs by the discount rate, "
+            "not by the growth path."
+        ),
         "data": {
             "tiles": [
                 {"label": "Typed schedule", "value": v.per_share_typed, "format": "num:2", "sub": f"EV {v.ev_typed:,.0f}mm"},
@@ -536,8 +554,9 @@ def _takeaway(r: Results) -> str:
     if isinstance(r.paths, CompanyPaths) and isinstance(r.valuation, Valuation):
         v = r.valuation
         text += (
-            f" On {r.paths.name} the same DCF is worth {v.per_share_fitted:,.2f} a share "
-            f"on the fitted path and {v.per_share_typed:,.2f} on the typed one."
+            f" Discounted at {v.wacc:.2%} on its own beta, {r.paths.name} is worth "
+            f"{v.per_share_fitted:,.2f} a share on the fitted path and "
+            f"{v.per_share_typed:,.2f} on the typed one."
         )
     return text
 
@@ -753,6 +772,9 @@ def collect(ctx) -> dict:
                     ev_typed=comparison.assumed.enterprise_value,
                     ev_fitted=comparison.fitted.enterprise_value,
                     price_date=today.isoformat(),
+                    wacc=wacc.wacc,
+                    beta=wacc.levered_beta,
+                    risk_free_rate=wacc.risk_free_rate,
                 )
         except TechvalError as exc:
             valuation = Refusal(DCF_REFUSAL, str(exc))

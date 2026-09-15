@@ -98,6 +98,9 @@ VALUATION = Valuation(
     ev_typed=5000.0,
     ev_fitted=6000.0,
     price_date="2026-09-09",
+    wacc=0.1128,
+    beta=1.30,
+    risk_free_rate=0.0483,
 )
 
 
@@ -377,3 +380,21 @@ def test_committed_panel_and_filing_depth(committed):
     assert stats["median_years"] == 12
     assert stats["max_years"] == 19
     assert stats["at_max"] == 34
+
+
+
+def test_the_dcf_states_its_discount_rate_and_never_calls_itself_the_engine_dcf():
+    """The page carried two Datadog DCFs, 31.89 in the engine section and 36.65 here.
+
+    They differ because this one is discounted on Datadog's own regression beta and
+    the engine's on a peer median. The figure once called itself "the same DCF" and
+    named no rate, so a reader could only see a contradiction. It now states the
+    rate, the beta and that the risk-free rate is a pinned assumption.
+    """
+    section = shape(_results())
+    fig = section["figures"]["ddog_dcf"]
+    assert "same DCF" not in fig["subtitle"] and "same DCF" not in section["takeaway"]
+    assert "11.28%" in fig["subtitle"] and "beta of 1.30" in fig["subtitle"]
+    assert "4.83% risk-free rate that is an assumption" in fig["subtitle"]
+    assert "peer-median beta" in fig["subtitle"]
+    assert "11.28% on its own beta" in section["takeaway"]
