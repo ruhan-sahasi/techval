@@ -1664,6 +1664,26 @@ def _comps_ols(
     return out, refusals
 
 
+def _cross_section_refusals(
+    observations: Sequence[Observation], warranted: np.ndarray
+) -> dict[str, int]:
+    """Refusals counted in cross-sections, the unit a banker's comp set lives in.
+
+    ``_comps_ols`` counts a refusal per company-quarter, which is the right
+    denominator for how many rows lack a baseline and the wrong one for how often
+    a sub-vertical on a date could not support a regression at all. Both are
+    reported, so the note never states one count in the other's unit.
+    """
+    groups: dict[tuple[date, str], list[bool]] = {}
+    for obs, value in zip(observations, warranted):
+        groups.setdefault((obs.as_of, obs.sub_vertical), []).append(bool(np.isnan(value)))
+    return {
+        "cross_sections": len(groups),
+        "all_refused": sum(all(flags) for flags in groups.values()),
+        "any_refused": sum(any(flags) for flags in groups.values()),
+    }
+
+
 def _comps_baselines(
     panel: ObservationPanel,
     observations: Sequence[Observation],
@@ -2013,11 +2033,16 @@ def fit_warranted(
             "inherited from history rather than a view about the change. This "
             "number is the part that is not."
         )
+    sections = _cross_section_refusals(observations, comps_sub)
     notes.append(
         f"comps.py refused to fit on {refused_sub:,} of {len(observations):,} "
-        f"sub-vertical cross-sections and on {refused_all:,} of the whole-universe "
-        "ones. The sub-vertical refusals are the engine behaving as documented: a "
-        "real comp set is six to ten names and the floor is eight."
+        f"company-quarters against sub-vertical peers: every name in "
+        f"{sections['all_refused']:,} and at least one name in "
+        f"{sections['any_refused']:,} of the {sections['cross_sections']:,} "
+        f"date-by-sub-vertical cross-sections. Against the whole universe it "
+        f"refused on {refused_all:,} company-quarters. The sub-vertical refusals "
+        "are the engine behaving as documented: a real comp set is six to ten "
+        "names and the floor is eight."
     )
     if thin:
         notes.append(
