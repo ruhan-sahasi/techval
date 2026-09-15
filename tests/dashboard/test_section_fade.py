@@ -398,3 +398,18 @@ def test_the_dcf_states_its_discount_rate_and_never_calls_itself_the_engine_dcf(
     assert "4.83% risk-free rate that is an assumption" in fig["subtitle"]
     assert "peer-median beta" in fig["subtitle"]
     assert "11.28% on its own beta" in section["takeaway"]
+
+
+def test_the_chip_judges_the_noise_on_the_lift_across_folds():
+    """The same test the warranted multiple's chip applies, so the scoreboard compares like with like.
+
+    A pooled lift can clear the spread of the model's own fold errors while the
+    lift itself swings from fold to fold. That lift is inside the noise, and the
+    older comparison against the score's spread would have called it a win.
+    """
+    swinging = (0.09, -0.07, 0.08, -0.06, 0.05)
+    assert verdict_status(0.04, 0.02) == "beats"
+    assert verdict_status(0.04, 0.02, swinging) == "ties"
+    steady = (0.04, 0.05, 0.035, 0.045, 0.04)
+    assert verdict_status(0.04, 0.02, steady) == "beats"
+    assert verdict_status(-0.04, 0.02, tuple(-x for x in steady)) == "loses"

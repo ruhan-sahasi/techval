@@ -52,7 +52,8 @@ import re
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date
-from typing import Any
+from statistics import fmean, stdev
+from typing import Any, Sequence
 
 import numpy as np
 
@@ -282,8 +283,10 @@ class Facts:
 # --------------------------------------------------------------------------- #
 
 
-def verdict_status(lift: float, fold_sd: float | None) -> str:
-    """The chip for a model score, from its signed lift and its fold noise.
+def verdict_status(
+    lift: float, fold_sd: float | None, fold_lifts: Sequence[float] = ()
+) -> str:
+    """The chip for a model score, from its signed lift and the noise in that lift.
 
     ``lift`` is signed so that positive means better, as ``EvalResult.lift`` is.
     The rule, applied in this order:
@@ -291,8 +294,11 @@ def verdict_status(lift: float, fold_sd: float | None) -> str:
     1. a lift of exactly zero ties;
     2. a negative lift loses, whatever the noise, because the model's own
        verdict then says to use the baseline and the chip must not soften it;
-    3. a positive lift smaller than the fold standard deviation is inside the
-       noise, the same strict comparison ``EvalResult.verdict`` makes;
+    3. a positive lift is inside the noise when the mean of the per-fold lifts
+       over the size sort is smaller than their standard deviation, the stricter
+       test the warranted multiple's chip applies, so the scoreboard compares
+       like with like; with fewer than two fold lifts it falls back to the lift
+       against the fold standard deviation of the model's own AUC;
     4. anything else beats the baseline, including a positive lift with no
        fold dispersion to judge it against.
     """
@@ -300,6 +306,8 @@ def verdict_status(lift: float, fold_sd: float | None) -> str:
         return "ties"
     if lift < 0:
         return "loses"
+    if len(fold_lifts) >= 2:
+        return "inside_noise" if fmean(fold_lifts) < stdev(fold_lifts) else "beats"
     if fold_sd is not None and abs(lift) < fold_sd:
         return "inside_noise"
     return "beats"
@@ -338,7 +346,14 @@ def _one_in(p: float) -> str:
     return f"one in {1 / p:.0f}" if p > 0 else "none"
 
 
-def _headline(ev: Evaluation) -> dict[str, Any]:
+def _fold_lifts(folds: Any) -> tuple[float, ...]:
+    """Model AUC less the size sort's on each test fold, or none if the folds were refused."""
+    if isinstance(folds, Refused):
+        return ()
+    return tuple(f.model - f.size for f in folds)
+
+
+def _headline(ev: Evaluation, fold_lifts: Sequence[float] = ()) -> dict[str, Any]:
     return {
         "metric": ev.metric,
         "score": ev.score,
@@ -347,7 +362,7 @@ def _headline(ev: Evaluation) -> dict[str, Any]:
         "lift": ev.lift,
         "n": ev.n_scored,
         "higher_is_better": ev.higher_is_better,
-        "verdict_status": verdict_status(ev.lift, ev.fold_sd),
+        "verdict_status": verdict_status(ev.lift, ev.fold_sd, fold_lifts),
         "verdict_text": ev.verdict_text,
     }
 
@@ -356,7 +371,15 @@ def _takeaway(facts: Facts) -> str:
     ev, sample = facts.evaluation, facts.sample
     if ev.lift > 0:
         noise = ""
-        if ev.fold_sd is not None:
+        lifts = _fold_lifts(facts.folds)
+        if len(lifts) >= 2:
+            mean, sd = fmean(lifts), stdev(lifts)
+            where = "inside" if mean < sd else "outside"
+            noise = (
+                f", {where} the fold noise (a mean fold lift of {mean:+.4f} against a "
+                f"fold-to-fold standard deviation of {sd:.4f})"
+            )
+        elif ev.fold_sd is not None:
             where = "inside" if abs(ev.lift) < ev.fold_sd else "outside"
             noise = f", {where} a fold standard deviation of {ev.fold_sd:.4f}"
         first = (
@@ -875,7 +898,7 @@ def shape(facts: Facts) -> dict[str, Any]:
         "status": "ok",
         "takeaway": _takeaway(facts),
         "refusals": refusals,
-        "headline": _headline(ev),
+        "headline": _headline(ev, _fold_lifts(facts.folds)),
         "figures": figures,
     }
 

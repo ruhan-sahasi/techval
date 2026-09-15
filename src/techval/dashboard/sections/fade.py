@@ -36,7 +36,7 @@ import math
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from statistics import median
+from statistics import fmean, median, stdev
 from typing import Any, Sequence
 
 from ...commands_forecast import _recorded_panel, _truncate_panel
@@ -90,6 +90,7 @@ class HorizonScore:
     fold_sd: float | None
     n: int
     verdict_text: str
+    fold_lifts: tuple[float, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -195,15 +196,25 @@ class Results:
 # --------------------------------------------------------------------------- #
 
 
-def verdict_status(lift: float, fold_sd: float | None) -> str:
+def verdict_status(
+    lift: float, fold_sd: float | None, fold_lifts: Sequence[float] = ()
+) -> str:
     """``ties`` inside the fold noise, otherwise ``beats`` or ``loses`` by the sign.
 
-    ``lift`` is signed so that positive means the model is better. A lift whose
-    size is under one fold standard deviation is a tie whichever way it points:
-    calling a small negative lift a loss, or a small positive one a win, is
-    reading a sign off noise. With no fold spread there is no noise to be inside,
-    so the sign decides.
+    ``lift`` is signed so that positive means the model is better. The noise is
+    judged on the lift itself: the mean of the per-fold lifts against their
+    standard deviation, the same stricter test the warranted multiple's chip
+    applies, so the scoreboard compares like with like. The spread of the model's
+    own fold errors is the wrong yardstick for a chip, because much of it is
+    variation the baseline shares. A lift inside that noise is a tie whichever
+    way it points: calling a small negative lift a loss, or a small positive one
+    a win, is reading a sign off noise.
+
+    With fewer than two fold lifts the older comparison against ``fold_sd`` is
+    the only one available, and with no fold spread at all the sign decides.
     """
+    if len(fold_lifts) >= 2:
+        return "ties" if abs(fmean(fold_lifts)) < stdev(fold_lifts) else ("beats" if lift > 0 else "loses")
     if fold_sd is not None and abs(lift) < fold_sd:
         return "ties"
     return "beats" if lift > 0 else "loses"
@@ -237,7 +248,7 @@ def _check_finite(where: str, *values: float | None) -> None:
 
 
 def _status(h: HorizonScore) -> str:
-    return verdict_status(h.persistence - h.model, h.fold_sd)
+    return verdict_status(h.persistence - h.model, h.fold_sd, h.fold_lifts)
 
 
 def _strongest(h: HorizonScore) -> tuple[str, float]:
@@ -519,12 +530,19 @@ def _takeaway(r: Results) -> str:
     one = r.horizons[0]
     lift = one.persistence - one.model
     status = _status(one)
-    spread = (
-        "with no fold spread to judge it against"
-        if one.fold_sd is None
-        else f"{'inside' if abs(lift) < one.fold_sd else 'outside'} a fold standard "
-        f"deviation of {one.fold_sd:.4f}"
-    )
+    if len(one.fold_lifts) >= 2:
+        mean, sd = fmean(one.fold_lifts), stdev(one.fold_lifts)
+        spread = (
+            f"{'inside' if abs(mean) < sd else 'outside'} the fold noise (a mean fold "
+            f"lift of {mean:+.4f} against a fold-to-fold standard deviation of {sd:.4f})"
+        )
+    elif one.fold_sd is not None:
+        spread = (
+            f"{'inside' if abs(lift) < one.fold_sd else 'outside'} a fold standard "
+            f"deviation of {one.fold_sd:.4f}"
+        )
+    else:
+        spread = "with no fold spread to judge it against"
     text = (
         f"At {_years([one.horizon])} out the fitted fade {_VERB[status]} last year's "
         f"growth: a mean absolute error of {one.model:.4f} against {one.persistence:.4f}, "
@@ -546,7 +564,10 @@ def _takeaway(r: Results) -> str:
             )
     if all(h.fold_sd is not None for h in r.horizons):
         if all(abs(_strongest(h)[1] - h.model) < h.fold_sd for h in r.horizons):
-            text += " Against the strongest baseline at each horizon the lift is inside the fold noise"
+            text += (
+                " Against the strongest baseline at each horizon the gap is smaller than "
+                "one fold standard deviation of the model's own error"
+            )
             names = {_strongest(h)[0] for h in later}
             if len(names) == 1 and names != {"persistence"}:
                 text += f", and from {_word(later[0].horizon)} years out that baseline is {names.pop()}"
@@ -599,7 +620,7 @@ def shape(r: Results) -> dict[str, Any]:
         "lift": lift,
         "n": one.n,
         "higher_is_better": False,
-        "verdict_status": verdict_status(lift, one.fold_sd),
+        "verdict_status": verdict_status(lift, one.fold_sd, one.fold_lifts),
         "verdict_text": one.verdict_text,
     }
     return {
@@ -658,6 +679,7 @@ def collect(ctx) -> dict:
                 fold_sd=fit.evaluation.fold_sd,
                 n=fit.evaluation.n_observations,
                 verdict_text=fit.evaluation.verdict(),
+                fold_lifts=tuple(fit.evaluation.fold_lifts),
             )
             for h, fit in sorted(model.fits.items())
         )
