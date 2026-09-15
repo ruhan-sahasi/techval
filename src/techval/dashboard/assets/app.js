@@ -163,44 +163,84 @@
     );
   }
 
+  /*
+   * The section being read: the last one whose top has passed a reading line
+   * near the top of the viewport. The line is capped in pixels, so a very tall
+   * window does not skip the first sections. Scrolled to the very end of a page
+   * that scrolls, the last section whose top is on screen wins, so a short
+   * final section can be current even though its top never reaches the line.
+   * tops are [{id, top}] in page order, top relative to the viewport.
+   */
+  function activeSection(tops, view) {
+    var line = Math.min(view.height * 0.3, 240);
+    var current = tops.length ? tops[0].id : null;
+    tops.forEach(function (t) {
+      if (t.top <= line) current = t.id;
+    });
+    if (view.scrollable && view.atEnd) {
+      tops.forEach(function (t) {
+        if (t.top < view.height) current = t.id;
+      });
+    }
+    return current;
+  }
+
   function spy(nav) {
-    if (typeof IntersectionObserver === "undefined") return;
     var links = {};
+    var ids = [];
     Array.prototype.forEach.call(nav.querySelectorAll("[data-section]"), function (a) {
-      links[a.getAttribute("data-section")] = a;
+      var id = a.getAttribute("data-section");
+      links[id] = a;
+      ids.push(id);
     });
-    var visible = {};
-    var observer = new IntersectionObserver(
-      function (entries) {
-        entries.forEach(function (entry) {
-          visible[entry.target.id] = entry.isIntersecting;
-        });
-        var current = null;
-        Object.keys(links).some(function (id) {
-          if (visible[id]) {
-            current = id;
-            return true;
-          }
-          return false;
-        });
-        if (!current) return;
-        Object.keys(links).forEach(function (id) {
-          if (id === current) links[id].setAttribute("aria-current", "true");
-          else links[id].removeAttribute("aria-current");
-        });
-        var active = links[current];
-        var list = active.parentNode && active.parentNode.parentNode;
-        if (list && list.scrollWidth > list.clientWidth) {
-          var left = active.offsetLeft - list.clientWidth / 2 + active.offsetWidth / 2;
-          list.scrollLeft = Math.max(0, left);
-        }
-      },
-      { rootMargin: "-15% 0px -70% 0px" }
-    );
-    Object.keys(links).forEach(function (id) {
-      var target = document.getElementById(id);
-      if (target) observer.observe(target);
-    });
+    var shown = null;
+    function update() {
+      var doc = document.documentElement;
+      var height = global.innerHeight || doc.clientHeight;
+      var tops = [];
+      ids.forEach(function (id) {
+        var target = document.getElementById(id);
+        if (target) tops.push({ id: id, top: target.getBoundingClientRect().top });
+      });
+      var current = activeSection(tops, {
+        height: height,
+        scrollable: doc.scrollHeight > height + 1,
+        atEnd: (global.pageYOffset || doc.scrollTop) + height >= doc.scrollHeight - 2,
+      });
+      if (!current || current === shown) return;
+      shown = current;
+      ids.forEach(function (id) {
+        if (id === current) links[id].setAttribute("aria-current", "true");
+        else links[id].removeAttribute("aria-current");
+      });
+      var active = links[current];
+      var list = active.parentNode && active.parentNode.parentNode;
+      if (list && list.scrollWidth > list.clientWidth) {
+        var left = active.offsetLeft - list.clientWidth / 2 + active.offsetWidth / 2;
+        list.scrollLeft = Math.max(0, left);
+      }
+    }
+    global.addEventListener("scroll", update, { passive: true });
+    global.addEventListener("resize", update);
+    global.addEventListener("hashchange", update);
+    update();
+    return update;
+  }
+
+  /*
+   * A verdict as its first sentence and the rest. A sentence ends at a full
+   * stop, question or exclamation mark followed by a space, so the decimal
+   * point in 0.1474 never ends one. The two parts are the text verbatim.
+   */
+  function splitVerdict(text) {
+    var s = String(isNil(text) ? "" : text).trim();
+    var match = /[.!?](?=\s+\S)/.exec(s);
+    if (!match) return [s, ""];
+    return [s.slice(0, match.index + 1), s.slice(match.index + 1).trim()];
+  }
+
+  function isNil(v) {
+    return v === null || v === undefined;
   }
 
   /* Section states -------------------------------------------------------- */
@@ -209,16 +249,19 @@
     var metric = h.metric || "score";
     var n = typeof h.n === "number" && isFinite(h.n) ? ", n = " + TV.fmt.int(h.n) : "";
     var chip = TV.chip.known(h.verdict_status) ? TV.chip(h.verdict_status) : TV.chip("refused", "No verdict");
-    var strip = el(
-      "div",
-      { class: "tv-headline" },
-      el(
-        "div",
-        { class: "tv-headline__verdict" },
-        chip,
-        h.verdict_text ? el("p", { class: "tv-headline__text" }, h.verdict_text) : null
-      )
-    );
+    /* The verdict is the model's own sentence, kept verbatim; only its first letter is capitalised for display. */
+    var parts = splitVerdict(h.verdict_text);
+    var text = parts[0]
+      ? el(
+          "div",
+          { class: "tv-headline__text" },
+          el("p", null, sentenceCase(parts[0])),
+          parts[1]
+            ? el("details", { class: "tv-headline__more" }, el("summary", null, "The rest of the verdict"), el("p", null, parts[1]))
+            : null
+        )
+      : null;
+    var strip = el("div", { class: "tv-headline" }, el("div", { class: "tv-headline__verdict" }, chip, text));
     TV.charts.tiles(strip, [
       { label: "Model", value: score(h.score), sub: metric + n },
       { label: "Baseline", value: score(h.baseline_score), sub: h.baseline_name || "unnamed baseline" },
@@ -410,15 +453,17 @@
     order.forEach(function (id) {
       main.appendChild(sectionNode(id, sections[id], snapshot));
     });
-    spy(nav);
+    var updateRail = spy(nav);
     if (global.location && global.location.hash) {
       var target = document.getElementById(decodeURIComponent(global.location.hash.slice(1)));
       if (target) target.scrollIntoView();
+      updateRail();
     }
     document.documentElement.setAttribute("data-tv-ready", "true");
   }
 
   TV.boot = boot;
+  TV.app = { splitVerdict: splitVerdict, activeSection: activeSection };
 
   /* Section scripts follow this one, so wait for the whole document before drawing. */
   if (document.readyState === "loading") {
