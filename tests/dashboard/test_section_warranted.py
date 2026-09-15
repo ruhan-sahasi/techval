@@ -4,9 +4,14 @@ Nothing here fits the model. ``tests/ml/test_warranted.py`` pins the fit; these
 tests pin what the page makes of a fit. The first group feeds ``shape`` hand-built
 ``Inputs`` and checks that every figure is well formed, that the takeaway and the
 chip follow the values they were given, and that a figure the values cannot
-support becomes a refusal with a reason. The second group reads the committed
-snapshot and holds the section to the numbers the audited runs reproduced from
-the committed panel, so a change that moves one of them has to move this file too.
+support becomes a refusal with a reason. The enterprise-value audit gets its own
+fakes: a clean audit keeps the screen, and a flagged name on it, or a partial
+refit that moves it, refuses it with a reason naming what moved. A third group
+reads the committed audit against the committed panel without a fit, so its
+counts are held here even before a snapshot is committed. The last group reads
+the committed snapshot and holds the section to the numbers the audited runs
+reproduced from the committed panel, so a change that moves one of them has to
+move this file too.
 """
 
 from __future__ import annotations
@@ -58,6 +63,36 @@ def _folds(pairs):
     )
 
 
+SCREEN_DAY = date(2026, 6, 30)
+
+
+def _row(ticker, recorded, rebuilt, when=SCREEN_DAY, refused=None, sub_vertical="semiconductors"):
+    return S.AuditRow(ticker, when, sub_vertical, recorded, rebuilt, refused)
+
+
+def _audit(extra=(), skipped=()) -> S.Audit:
+    """An audit of the fake screen's names, all identical, plus one stale row on another date.
+
+    The stale row belongs to a name on the screen, but not on the screen's date,
+    so it must be counted without costing the screen.
+    """
+    rows = (
+        _row("AAA", 1000.0, 1000.0),
+        _row("BBB", 2000.0, 2000.001),
+        _row("CCC", 500.0, 500.0, sub_vertical="application_software"),
+        _row("DDD", 800.0, 800.0, sub_vertical="application_software"),
+        _row("EEE", 900.0, 900.0),
+        _row("AAA", 1000.0, 1100.0, when=date(2025, 12, 31)),
+        _row("AAA", 1000.0, 1030.0, when=date(2025, 9, 30)),
+    )
+    return S.Audit(
+        recorded="2026-09-14",
+        code_commit="0123456789abcdef",
+        observations=rows + tuple(extra),
+        skipped=tuple(skipped),
+    )
+
+
 def _inputs(**overrides) -> S.Inputs:
     values = dict(
         target_label="EV/Revenue",
@@ -90,6 +125,13 @@ def _inputs(**overrides) -> S.Inputs:
         n_companies=30,
         n_dates=3,
         n_refused=12,
+        audit=_audit(),
+        refit=S.PartialRefit(
+            score=0.71,
+            n=401,
+            swapped=2,
+            screen=(("AAA", True), ("BBB", True), ("CCC", False), ("DDD", False)),
+        ),
     )
     values.update(overrides)
     return S.Inputs(**values)
@@ -252,6 +294,160 @@ def test_provenance_is_recorded_only_for_the_figures_that_were_built():
     assert "screen" not in dict(recorded)
 
 
+def test_every_figure_input_is_declared():
+    for inputs in S.FIGURE_INPUTS.values():
+        assert set(inputs) <= set(S.INPUTS)
+    assert S.AUDIT in S.INPUTS
+
+
+# --------------------------------------------------------------------------- #
+# The enterprise-value audit, on fakes
+# --------------------------------------------------------------------------- #
+
+
+def test_the_audit_is_counted_the_way_the_page_quotes_it():
+    audit = _audit(
+        extra=(_row("FFF", 400.0, None, refused="not_built"), _row("GGG", 100.0, 101.5)),
+        skipped=(
+            S.SkippedRow("HHH", SCREEN_DAY, "admitted"),
+            S.SkippedRow("III", SCREEN_DAY, "debt_outside_the_ladder"),
+        ),
+    )
+    c = S.audit_counts(audit)
+    assert (c.observations, c.compared) == (9, 8)
+    # BBB's gap of a thousandth is rounding, not a difference.
+    assert c.identical == 5
+    # AAA +10% and +3%, GGG +1.5%: three past 1%, one past 5%.
+    assert (c.off_noted, c.off_stale, c.filers_stale) == (3, 1, 1)
+    assert (c.refused, c.skipped, c.admitted) == (1, 2, 1)
+
+    fig = S.build_audit(_inputs(audit=audit))
+    tiles = {t["key"]: t["value"] for t in fig["data"]["tiles"]}
+    assert tiles == {"compared": 8, "identical": 5, "off_noted": 3, "off_stale": 1, "refused": 1, "admitted": 1}
+    assert fig["title"].endswith("1 of the panel's enterprise values move by more than 5%, at 1 filer")
+    assert "0123456" in fig["subtitle"]
+
+
+def test_the_affected_filers_are_a_share_of_what_was_rebuilt_with_the_median_gap():
+    audit = _audit(extra=(_row("AAA", 1000.0, 900.0, when=date(2025, 6, 30)),))
+    (aaa,) = S.affected_filers(audit)
+    # AAA: four rebuilt observations, +10% and -10% past the threshold.
+    assert (aaa.ticker, aaa.compared, aaa.stale) == ("AAA", 4, 2)
+    assert aaa.share == pytest.approx(0.5)
+    assert aaa.median_gap == pytest.approx(0.0)
+    fig = S.build_audit_filers(_inputs(audit=audit))
+    (row,) = fig["data"]["rows"]
+    assert row["values"]["share"] == pytest.approx(0.5)
+    assert fig["data"]["series"][0]["role"] not in {"model", "model-muted"}
+    assert fig["data"]["table"]["rows"][0]["largest_gap"] in {"+10%", "−10%"}
+
+
+def test_a_clean_audit_keeps_the_screen_and_says_so_in_the_takeaway():
+    clean = S.Audit("2026-09-14", "0123456", (_row("AAA", 1000.0, 1000.0),), ())
+    section = S.shape(_inputs(audit=clean))
+    assert "screen" in section["figures"]
+    assert {r["what"] for r in section["refusals"]} == {"audit_filers"}
+    assert "within 5% of the one recorded" in section["takeaway"]
+    assert "notes" not in section["figures"]["audit"]["data"]
+    assert "notes" not in section["figures"]["panel"]["data"]
+
+    # Stale rows elsewhere, and a refit that moves nothing on the screen, keep it too.
+    kept = S.shape(_inputs())
+    assert "screen" in kept["figures"]
+    assert S.screen_refusal(_inputs()) is None
+
+
+@pytest.mark.parametrize(
+    "extra, skipped, words",
+    [
+        ((_row("CCC", 500.0, 560.0),), (), "CCC, its enterprise value rebuilds 12% higher"),
+        ((_row("DDD", 800.0, None, refused="not_built"),), (), "DDD, refused by today's code"),
+        ((), (S.SkippedRow("BBB", SCREEN_DAY, "admitted"),), "BBB, skipped when recorded and admitted"),
+    ],
+)
+def test_a_screen_name_the_audit_flags_refuses_the_screen_naming_it(extra, skipped, words):
+    # The audit's rows for the name on the screen's date replace the identical ones.
+    base = [r for r in _audit().observations if not any((r.ticker, r.as_of) == (e.ticker, e.as_of) for e in extra)]
+    audit = S.Audit("2026-09-14", "0123456", tuple(base) + extra, skipped)
+    section = S.shape(_inputs(audit=audit))
+    assert "screen" not in section["figures"]
+    why = {r["what"]: r["why"] for r in section["refusals"]}["screen"]
+    assert why.startswith("1 of the screen's 4 names on 2026-06-30 is flagged")
+    assert words in why
+    assert "re-recording the panel" in why
+    assert "the screen is not drawn" in section["takeaway"]
+
+
+def test_a_partial_refit_that_changes_the_screen_refuses_it_naming_the_change():
+    refit = S.PartialRefit(0.72, 400, 3, (("AAA", True), ("EEE", True), ("CCC", True), ("DDD", False)))
+    why = S.screen_refusal(_inputs(refit=refit))
+    assert why is not None
+    assert "None of the screen's 4 names on 2026-06-30 is itself flagged" in why
+    assert "changes 2 of its 4 names: BBB leaves it, EEE joins and CCC changes between rich and cheap" in why
+    assert "partial refit" in why
+
+
+def test_without_an_audit_the_audit_and_the_screen_refuse_and_the_headline_stays():
+    section = S.shape(_inputs(audit=None, audit_problem="the audit covers 3 company-dates", refit=None))
+    refused = {r["what"]: r["why"] for r in section["refusals"]}
+    assert set(refused) == {"audit", "audit_filers", "screen"}
+    assert "the audit covers 3 company-dates" in refused["audit"]
+    assert "cannot be checked" in refused["screen"]
+    assert section["headline"]["score"] == 0.70
+
+
+def test_the_caution_quotes_the_partial_refit_and_names_the_fix():
+    audit = _audit(extra=(_row("FFF", 400.0, None, refused="not_built"),))
+    fig = S.build_audit(_inputs(audit=audit))
+    (note,) = fig["data"]["notes"]
+    assert "0.7000 on 400 observations to 0.7100 on 401" in note["why"]
+    assert "partial refit" in note["why"] and "understates" in note["why"]
+    assert "Re-recording the panel" in note["why"]
+    unfitted = S.build_audit(_inputs(audit=audit, refit=None))
+    assert "No refit" in unfitted["data"]["notes"][0]["why"]
+
+
+# --------------------------------------------------------------------------- #
+# The committed audit against the committed panel, without a fit
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture(scope="module")
+def committed_audit() -> S.Audit:
+    from techval.commands_peers import _load_observations
+
+    fixtures = ROOT / "tests" / "fixtures"
+    panel = _load_observations(fixtures / S.PANEL)
+    audit, problem = S.read_audit(fixtures / S.AUDIT, panel)
+    assert problem is None
+    return audit
+
+
+def test_the_committed_audit_describes_the_committed_panel(committed_audit):
+    c = S.audit_counts(committed_audit)
+    assert (c.observations, c.compared, c.identical) == (1764, 1713, 1337)
+    assert (c.off_noted, c.off_stale, c.filers_stale) == (188, 106, 13)
+    assert (c.refused, c.skipped, c.admitted) == (51, 97, 97)
+    filers = {f.ticker: (f.stale, f.compared) for f in S.affected_filers(committed_audit)}
+    assert filers["VZ"] == (22, 22) and filers["WBD"] == (14, 14) and filers["TMUS"] == (2, 15)
+
+
+def test_an_audit_of_another_recording_is_not_read_as_evidence(committed_audit, tmp_path):
+    import gzip
+
+    from techval.commands_peers import _load_observations
+
+    panel = _load_observations(ROOT / "tests" / "fixtures" / S.PANEL)
+    with gzip.open(ROOT / "tests" / "fixtures" / S.AUDIT, "rt") as handle:
+        raw = json.load(handle)
+    raw["observations"][0]["ev_recorded"] += 50.0
+    moved = tmp_path / "ev_audit.json.gz"
+    with gzip.open(moved, "wt") as handle:
+        json.dump(raw, handle)
+    audit, problem = S.read_audit(moved, panel)
+    assert audit is None and "do not match" in problem
+
+
 # --------------------------------------------------------------------------- #
 # Pinned truths, against the committed snapshot
 # --------------------------------------------------------------------------- #
@@ -324,3 +520,34 @@ def test_the_panel_and_the_rerating_are_pinned(committed):
     rerating = committed["figures"]["rerating"]["data"]
     assert round(rerating["between_date_share"], 3) == pytest.approx(0.021)
     assert len(rerating["series"][0]["values"]) == 22
+
+
+def test_the_audit_opens_the_section_with_the_committed_counts(committed):
+    audit = committed["figures"]["audit"]
+    tiles = {t["key"]: t["value"] for t in audit["data"]["tiles"]}
+    assert tiles == {
+        "compared": 1713,
+        "identical": 1337,
+        "off_noted": 188,
+        "off_stale": 106,
+        "refused": 51,
+        "admitted": 97,
+    }
+    assert audit["title"].endswith("106 of the panel's enterprise values move by more than 5%, at 13 filers")
+    filers = {r["key"]: r["values"]["share"] for r in committed["figures"]["audit_filers"]["data"]["rows"]}
+    assert len(filers) == 13 and filers["VZ"] == 1.0 and filers["WBD"] == 1.0
+    assert "106 of its 1,713 enterprise values move by more than 5%" in committed["takeaway"]
+
+
+def test_the_caution_quotes_the_partial_refit_of_the_headline(committed):
+    (note,) = committed["figures"]["audit"]["data"]["notes"]
+    assert "from 0.7651 on 888 observations to 0.7720 on 889" in note["why"]
+    assert "partial refit" in note["why"]
+
+
+def test_the_screen_is_refused_because_the_partial_refit_moves_it(committed):
+    assert "screen" not in committed["figures"]
+    why = {r["what"]: r["why"] for r in committed["refusals"]}["screen"]
+    assert "None of the screen's 16 names on 2026-06-30 is itself flagged" in why
+    assert "(DLR, EBAY, TMUS, VZ and WBD)" in why
+    assert "changes 1 of its 16 names: TXN leaves it and PLTR joins" in why
