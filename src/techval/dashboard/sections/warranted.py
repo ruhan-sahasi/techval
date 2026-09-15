@@ -22,6 +22,21 @@ score and count, the card's fold scores, and the differenced rank correlation,
 to 1e-9. A rebuild that drifts from the model is a ``ValueError``, because a
 figure drawn from it would be a second model wearing the first one's name.
 
+**The panel predates the debt-ladder fix, and the section says so first.** The
+panel was recorded before the fix that stopped Verizon's long-term debt reading
+as zero, so its enterprise values were bridged with the old ladders.
+``ev_audit.json.gz`` rebuilds each of them with today's code, and the section
+reads it rather than trusting the panel: the audit's counts open the section,
+a caution under them says what they mean for the headline, and the screen is
+refused when the audit shows its rich and cheap calls rest on enterprise values
+now known to be wrong. Two things make that last call. A name on the screen
+whose own observation is flagged refuses it directly. And because every
+residual is measured against a model fitted on the whole panel, the section
+also refits once with only the enterprise values rebuilt, and refuses a screen
+whose names or sides that refit changes. That refit is partial, since the
+features came from the same old ladder, and every sentence quoting it says so;
+re-recording the panel is the fix, and it is not made here.
+
 The part that turns those results into figures is ``shape``, a pure function of
 an ``Inputs`` record, so the page can be tested on small fakes without a fit.
 Each figure builder either returns a figure or raises ``FigureRefused`` with a
@@ -30,17 +45,30 @@ reason, and ``shape`` records provenance only for the figures that exist.
 
 from __future__ import annotations
 
+import gzip
+import json
 import math
+import statistics
 from collections import Counter
 from contextlib import nullcontext
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from typing import Any, Callable, ContextManager
 
 ID = "warranted"
 TITLE = "Warranted multiple"
 PANEL = "warranted/observations.json.gz"
-INPUTS: list[str] = [PANEL]
+AUDIT = "warranted/ev_audit.json.gz"
+INPUTS: list[str] = [PANEL, AUDIT]
+
+# Both the recorded and the rebuilt enterprise value are rounded to a thousandth
+# of a million, so two figures within twice that step are the same figure.
+IDENTICAL_WITHIN_MM = 0.002
+
+# The audit's two thresholds: a gap worth counting, and a gap that makes an
+# observation stale for the screen.
+GAP_NOTED = 0.01
+GAP_STALE = 0.05
 
 # Names shown at each end of the screen.
 SCREEN_EACH_END = 8
@@ -57,6 +85,8 @@ ENTRY_FIT = "techval.ml.warranted.fit_warranted"
 ENTRY_EVALUATE = "techval.ml.evaluation.evaluate_regression"
 ENTRY_EXTREMES = "techval.ml.warranted.WarrantedModel.extremes"
 ENTRY_LOAD = "techval.commands_peers._load_observations"
+ENTRY_AUDIT = "techval.dashboard.sections.warranted.audit_counts"
+ENTRY_FILERS = "techval.dashboard.sections.warranted.affected_filers"
 
 # Short row labels for the model's baseline names. A name not listed here is
 # shown as the model wrote it, up to its first parenthesis.
@@ -144,6 +174,103 @@ class ScreenRow:
 
 
 @dataclass(frozen=True)
+class AuditRow:
+    """One recorded observation beside what today's code rebuilds it to.
+
+    ``ev_rebuilt`` is None when today's code refuses to build the row, and
+    ``refused`` then names the category; a row a check refuses after it built
+    carries both.
+    """
+
+    ticker: str
+    as_of: date
+    sub_vertical: str
+    ev_recorded: float
+    ev_rebuilt: float | None
+    refused: str | None
+
+    @property
+    def gap(self) -> float | None:
+        """The rebuilt enterprise value over the recorded one, less one."""
+        if self.ev_rebuilt is None:
+            return None
+        return self.ev_rebuilt / self.ev_recorded - 1.0
+
+    @property
+    def identical(self) -> bool:
+        return (
+            self.ev_rebuilt is not None
+            and abs(self.ev_rebuilt - self.ev_recorded) <= IDENTICAL_WITHIN_MM
+        )
+
+
+@dataclass(frozen=True)
+class SkippedRow:
+    """A row the panel skipped as debt outside the ladder, and what today's code makes of it."""
+
+    ticker: str
+    as_of: date
+    today: str
+
+    @property
+    def admitted(self) -> bool:
+        return self.today == "admitted"
+
+
+@dataclass(frozen=True)
+class Audit:
+    """The committed enterprise-value audit of the panel, as plain values."""
+
+    recorded: str
+    code_commit: str
+    observations: tuple[AuditRow, ...]
+    skipped: tuple[SkippedRow, ...]
+
+
+@dataclass(frozen=True)
+class AuditCounts:
+    observations: int
+    compared: int
+    identical: int
+    off_noted: int
+    off_stale: int
+    filers_stale: int
+    refused: int
+    skipped: int
+    admitted: int
+
+
+@dataclass(frozen=True)
+class FilerGap:
+    """One filer with an observation more than ``GAP_STALE`` off."""
+
+    ticker: str
+    sub_vertical: str
+    compared: int
+    stale: int
+    median_gap: float
+    largest_gap: float
+
+    @property
+    def share(self) -> float:
+        return self.stale / self.compared
+
+
+@dataclass(frozen=True)
+class PartialRefit:
+    """The model refitted with only the enterprise values rebuilt.
+
+    Partial by construction: the features, and the rows today's code would
+    refuse or admit, stay as recorded.
+    """
+
+    score: float
+    n: int
+    swapped: int
+    screen: tuple[tuple[str, bool], ...]  # (ticker, rich) on the screen's date
+
+
+@dataclass(frozen=True)
 class Inputs:
     """Plain values from one fit, which is everything ``shape`` needs."""
 
@@ -168,6 +295,10 @@ class Inputs:
     n_companies: int
     n_dates: int
     n_refused: int
+    # None when no audit describes this panel; ``audit_problem`` then says why.
+    audit: Audit | None = None
+    audit_problem: str | None = None
+    refit: PartialRefit | None = None
 
     @property
     def card(self) -> Comparison:
@@ -246,6 +377,188 @@ def fold_lifts(inp: Inputs) -> list[float]:
     ]
 
 
+# --------------------------------------------------------------------------- #
+# The enterprise-value audit
+# --------------------------------------------------------------------------- #
+
+
+def _pct(value: float, dp: int = 0) -> str:
+    """A signed percentage with a real minus sign."""
+    return _signed(value * 100, dp) + "%"
+
+
+def _names(items: list[str]) -> str:
+    if len(items) <= 2:
+        return " and ".join(items)
+    return ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def _count_word(n: int, one: str, many: str) -> str:
+    return f"{n:,} {one if n == 1 else many}"
+
+
+def audit_counts(audit: Audit) -> AuditCounts:
+    """What the audit found, counted the way the section quotes it."""
+    rebuilt = [r for r in audit.observations if r.ev_rebuilt is not None]
+    stale = [r for r in rebuilt if abs(r.gap) > GAP_STALE]
+    return AuditCounts(
+        observations=len(audit.observations),
+        compared=len(rebuilt),
+        identical=sum(1 for r in rebuilt if r.identical),
+        off_noted=sum(1 for r in rebuilt if abs(r.gap) > GAP_NOTED),
+        off_stale=len(stale),
+        filers_stale=len({r.ticker for r in stale}),
+        refused=sum(1 for r in audit.observations if r.refused is not None),
+        skipped=len(audit.skipped),
+        admitted=sum(1 for s in audit.skipped if s.admitted),
+    )
+
+
+def affected_filers(audit: Audit) -> list[FilerGap]:
+    """Each filer with an observation more than ``GAP_STALE`` off, most affected first.
+
+    The share is of the filer's observations today's code could rebuild, and the
+    median is of the gaps that crossed the threshold, since those are the ones
+    the screen treats as stale.
+    """
+    by_filer: dict[str, list[AuditRow]] = {}
+    for r in audit.observations:
+        if r.ev_rebuilt is not None:
+            by_filer.setdefault(r.ticker, []).append(r)
+    out = []
+    for ticker, rows in by_filer.items():
+        gaps = [r.gap for r in rows if abs(r.gap) > GAP_STALE]
+        if not gaps:
+            continue
+        out.append(
+            FilerGap(
+                ticker=ticker,
+                sub_vertical=rows[0].sub_vertical,
+                compared=len(rows),
+                stale=len(gaps),
+                median_gap=statistics.median(gaps),
+                largest_gap=max(gaps, key=abs),
+            )
+        )
+    return sorted(out, key=lambda f: (-f.share, -abs(f.median_gap), f.ticker))
+
+
+REFUSED_TODAY = "refused by today's code"
+ADMITTED_TODAY = "skipped when recorded and admitted by today's code"
+
+
+def flagged_on(audit: Audit, when: date) -> dict[str, str]:
+    """Every name the audit flags on one date, with how, in words.
+
+    An observation more than ``GAP_STALE`` off, one today's code refuses, and a
+    skipped row today's code would admit are all flagged: the first is priced
+    wrong, the second should not be in the panel, and the third should be.
+    """
+    out: dict[str, str] = {}
+    for r in audit.observations:
+        if r.as_of != when:
+            continue
+        if r.refused is not None:
+            out[r.ticker] = REFUSED_TODAY
+        elif abs(r.gap) > GAP_STALE:
+            way = "higher" if r.gap > 0 else "lower"
+            out[r.ticker] = f"its enterprise value rebuilds {abs(r.gap):.0%} {way}"
+    for s in audit.skipped:
+        if s.as_of == when and s.admitted:
+            out[s.ticker] = ADMITTED_TODAY
+    return out
+
+
+def screen_refusal(inp: Inputs) -> str | None:
+    """Why the screen may not be drawn, or None when the audit leaves it standing.
+
+    Refused when a name on it is flagged on the screen's date, and when the
+    partial refit changes which names are on it or which side they are on. The
+    second test exists because a residual is a distance from a model fitted on
+    the whole panel, so a screen whose own names are clean can still be ranked
+    by a fit the stale rows moved.
+    """
+    if not inp.screen or inp.screen_date is None:
+        return None
+    if inp.audit is None:
+        return (
+            "No enterprise-value audit describes this panel"
+            + (f" ({inp.audit_problem})" if inp.audit_problem else "")
+            + ", so whether its rich and cheap calls rest on enterprise values now "
+            "known to be wrong cannot be checked."
+        )
+    when = inp.screen_date
+    names = [r.ticker for r in sorted(inp.screen, key=lambda r: r.residual_log, reverse=True)]
+    flagged = flagged_on(inp.audit, when)
+    hit = [t for t in names if t in flagged]
+
+    left: list[str] = []
+    joined: list[str] = []
+    crossed: list[str] = []
+    if inp.refit is not None:
+        recorded = {r.ticker: r.residual_log > 0 for r in inp.screen}
+        refit = dict(inp.refit.screen)
+        left = [t for t in names if t not in refit]
+        joined = [t for t, _ in inp.refit.screen if t not in recorded]
+        crossed = [t for t in names if t in refit and refit[t] != recorded[t]]
+    if not hit and not (left or joined or crossed):
+        return None
+
+    parts: list[str] = []
+    if hit:
+        verb = "is" if len(hit) == 1 else "are"
+        parts.append(
+            f"{len(hit)} of the screen's {len(names)} names on {when.isoformat()} {verb} "
+            "flagged by the enterprise-value audit: "
+            + "; ".join(f"{t}, {flagged[t]}" for t in hit)
+            + "."
+        )
+    else:
+        ranked = [t for t in sorted(flagged) if flagged[t] != ADMITTED_TODAY]
+        missing = [t for t in sorted(flagged) if flagged[t] == ADMITTED_TODAY]
+        context = []
+        if ranked:
+            context.append(
+                f"{len(ranked):,} of the {inp.screen_names:,} names ranked that day "
+                f"({_names(ranked)})"
+            )
+        if missing:
+            context.append(
+                f"{_count_word(len(missing), 'row', 'rows')} today's code would admit "
+                f"and the ranking leaves out ({_names(missing)})"
+            )
+        parts.append(
+            f"None of the screen's {len(names)} names on {when.isoformat()} is itself "
+            "flagged by the enterprise-value audit, but every residual is measured "
+            "against a model fitted on the whole panel"
+            + (f", and on that date the audit flags {' and '.join(context)}" if context else "")
+            + "."
+        )
+    if left or joined or crossed:
+        changed = len(left) + len(crossed)
+        clauses = []
+        if left:
+            clauses.append(f"{_names(left)} {'leaves' if len(left) == 1 else 'leave'} it")
+        if joined:
+            clauses.append(f"{_names(joined)} {'joins' if len(joined) == 1 else 'join'}")
+        if crossed:
+            clauses.append(
+                f"{_names(crossed)} {'changes' if len(crossed) == 1 else 'change'} "
+                "between rich and cheap"
+            )
+        what = f"{changed} of its {len(names)} names" if changed else "the screen"
+        parts.append(
+            "Refitting with only the enterprise values rebuilt, a partial refit that "
+            f"leaves the features as recorded, changes {what}: {_names(clauses)}."
+        )
+    parts.append(
+        "A screen that calls a company rich or cheap on enterprise values now known "
+        "to be wrong is not drawn, and re-recording the panel with today's debt "
+        "ladders is the fix."
+    )
+    return " ".join(parts)
+
+
 def _excluded(inp: Inputs) -> list[Comparison]:
     """Baselines stronger than the card's that the card still does not use.
 
@@ -317,18 +630,46 @@ def takeaway(inp: Inputs) -> str:
         "observations."
     )
     if inp.change is None:
-        return (
-            first + " The differenced score could not be computed, so this page "
+        second = (
+            " The differenced score could not be computed, so this page "
             "cannot say how much of that ranking is company identity."
         )
-    if inp.change < IDENTITY_WORDING_THRESHOLD:
-        reading = "so almost all of the ranking is company identity inherited from history."
     else:
-        reading = "so a real part of the ranking survives differencing."
-    return (
-        f"{first} Differenced against each company's own previous observation it "
-        f"predicts the change at {_signed(inp.change, 4)} on {inp.n_changes:,}, {reading}"
-    )
+        if inp.change < IDENTITY_WORDING_THRESHOLD:
+            reading = "so almost all of the ranking is company identity inherited from history."
+        else:
+            reading = "so a real part of the ranking survives differencing."
+        second = (
+            " Differenced against each company's own previous observation it "
+            f"predicts the change at {_signed(inp.change, 4)} on {inp.n_changes:,}, {reading}"
+        )
+    return first + second + " " + audit_sentence(inp)
+
+
+def audit_sentence(inp: Inputs) -> str:
+    """The takeaway's last sentence: what the enterprise-value audit found, and what it costs."""
+    screen = screen_refusal(inp)
+    if inp.audit is None:
+        return (
+            "No enterprise-value audit describes this panel, so the screen is not drawn."
+            if screen
+            else "No enterprise-value audit describes this panel."
+        )
+    c = audit_counts(inp.audit)
+    if c.off_stale == 0 and c.refused == 0 and c.admitted == 0:
+        found = (
+            "Rebuilt with today's debt ladders, every enterprise value in the panel is "
+            f"within {GAP_STALE:.0%} of the one recorded"
+        )
+    else:
+        found = (
+            "The panel predates the debt-ladder fix: rebuilt with today's code, "
+            f"{c.off_stale:,} of its {c.compared:,} enterprise values move by more than "
+            f"{GAP_STALE:.0%}, at {_count_word(c.filers_stale, 'filer', 'filers')}"
+        )
+    if screen:
+        return found + ", so the screen is not drawn and every score here is the panel as recorded."
+    return found + "."
 
 
 # --------------------------------------------------------------------------- #
@@ -606,6 +947,9 @@ def build_screen(inp: Inputs) -> dict[str, Any]:
             "The fit holds no out-of-sample reads on its latest date, so there is no "
             "screen to draw.",
         )
+    stale = screen_refusal(inp)
+    if stale is not None:
+        raise FigureRefused("screen", stale)
     rows = sorted(inp.screen, key=lambda r: r.residual_log, reverse=True)
     rich = [r for r in rows if r.residual_log > 0]
     cheap = [r for r in rows if r.residual_log <= 0]
@@ -734,29 +1078,263 @@ def build_rerating(inp: Inputs) -> dict[str, Any]:
 
 
 def build_panel(inp: Inputs) -> dict[str, Any]:
+    data: dict[str, Any] = {
+        "tiles": [
+            {"key": "observations", "label": "Company-quarters", "value": inp.n_observations, "format": "int"},
+            {"key": "companies", "label": "Companies", "value": inp.n_companies, "format": "int"},
+            {"key": "dates", "label": "Quarter ends", "value": inp.n_dates, "format": "int"},
+            {
+                "key": "refused",
+                "label": "Company-dates refused",
+                "value": inp.n_refused,
+                "format": "int",
+                "sub": "Kept with their reasons in the panel's skips",
+            },
+        ]
+    }
+    if inp.audit is not None and _audit_found_anything(inp.audit):
+        c = audit_counts(inp.audit)
+        data["notes"] = [
+            {
+                "what": "Recorded before the debt-ladder fix",
+                "why": (
+                    f"These are the panel's counts as recorded. Rebuilt with today's code, "
+                    f"{c.off_stale:,} of its {c.compared:,} enterprise values move by more "
+                    f"than {GAP_STALE:.0%}, {c.refused:,} of its observations are refused "
+                    f"and {c.admitted:,} of its skips are admitted, so re-recorded it would "
+                    "hold different rows as well as different multiples."
+                ),
+            }
+        ]
+    return _figure("tiles", "The panel behind every figure here", "", data)
+
+
+def _audit_found_anything(audit: Audit) -> bool:
+    c = audit_counts(audit)
+    return bool(c.off_stale or c.refused or c.admitted)
+
+
+def _audit_caution(inp: Inputs) -> dict[str, str] | None:
+    """The caution under the audit: what the counts mean for the headline above them."""
+    audit = inp.audit
+    if audit is None or not _audit_found_anything(audit):
+        return None
+    c = audit_counts(audit)
+    card = inp.card
+    metric = _metric_name(inp.metric)
+    why = (
+        "The headline above and every figure below are fitted on the panel as recorded, "
+        f"in which {c.off_stale:,} enterprise values are more than {GAP_STALE:.0%} off at "
+        f"{_count_word(c.filers_stale, 'filer', 'filers')}, {c.refused:,} observations are "
+        f"ones today's code refuses, and {c.admitted:,} rows today's code admits are missing."
+    )
+    if inp.refit is not None:
+        why += (
+            " Refitting with only the enterprise values rebuilt moves the headline "
+            f"{metric} from {card.model_score:.4f} on {card.n:,} observations to "
+            f"{inp.refit.score:.4f} on {inp.refit.n:,}. That is a partial refit and it "
+            "understates the change: the features, the debt-to-capital ratio among "
+            "them, came from the same old ladder, and the refused and admitted rows "
+            "stay as recorded."
+        )
+    else:
+        why += " No refit on the rebuilt enterprise values was run, so how far the headline moves is not shown."
+    why += " Re-recording the panel with today's debt ladders is the fix, and it has not been made."
+    return {"what": "The panel predates the debt-ladder fix", "why": why}
+
+
+def build_audit(inp: Inputs) -> dict[str, Any]:
+    if inp.audit is None:
+        raise FigureRefused(
+            "audit",
+            "No enterprise-value audit describes this panel"
+            + (f": {inp.audit_problem}" if inp.audit_problem else "")
+            + ". Run tests/fixtures/warranted/record_ev_audit.py against it.",
+        )
+    audit = inp.audit
+    c = audit_counts(audit)
+    if _audit_found_anything(audit):
+        title = (
+            f"Rebuilt with today's debt ladders, {c.off_stale:,} of the panel's enterprise "
+            f"values move by more than {GAP_STALE:.0%}, at "
+            f"{_count_word(c.filers_stale, 'filer', 'filers')}"
+        )
+    else:
+        title = (
+            "Rebuilt with today's debt ladders, no enterprise value in the panel moves by "
+            f"more than {GAP_STALE:.0%}"
+        )
+    refused = Counter(r.refused for r in audit.observations if r.refused is not None)
+    words = {k: REFUSAL_WORDS.get(k, k.replace("_", " ")) for k in refused}
+    if not refused:
+        refused_sub = "Today's code admits every observation in the panel"
+    elif len(refused) == 1:
+        refused_sub = f"In the panel as recorded, all {next(iter(words.values()))}"
+    else:
+        refused_sub = "In the panel as recorded: " + _names(
+            [f"{n:,} {words[k]}" for k, n in sorted(refused.items())]
+        )
+    data: dict[str, Any] = {
+        "tiles": [
+            {
+                "key": "compared",
+                "label": "Enterprise values rebuilt",
+                "value": c.compared,
+                "format": "int",
+                "sub": f"Of {c.observations:,} observations in the panel",
+            },
+            {
+                "key": "identical",
+                "label": "Identical",
+                "value": c.identical,
+                "format": "int",
+                "sub": "Within the rounding both figures carry",
+            },
+            {
+                "key": "off_noted",
+                "label": f"More than {GAP_NOTED:.0%} off",
+                "value": c.off_noted,
+                "format": "int",
+            },
+            {
+                "key": "off_stale",
+                "label": f"More than {GAP_STALE:.0%} off",
+                "value": c.off_stale,
+                "format": "int",
+                "sub": f"At {_count_word(c.filers_stale, 'filer', 'filers')}",
+            },
+            {
+                "key": "refused",
+                "label": "Refused by today's code",
+                "value": c.refused,
+                "format": "int",
+                "sub": refused_sub,
+            },
+            {
+                "key": "admitted",
+                "label": "Admitted by today's code",
+                "value": c.admitted,
+                "format": "int",
+                "sub": (
+                    f"Of {c.skipped:,} rows skipped as debt outside the ladder; the float "
+                    "check needs a price and is not run on them"
+                ),
+            },
+        ],
+        "wide": True,
+    }
+    caution = _audit_caution(inp)
+    if caution is not None:
+        data["notes"] = [caution]
     return _figure(
         "tiles",
-        "The panel behind every figure here",
-        "",
+        title,
+        (
+            f"Each of the panel's {c.observations:,} observations rebuilt by "
+            f"record_ev_audit.py at {audit.code_commit[:7]}, pinned to its own date: the "
+            "recorded equity value plus today's net debt, then today's row checks. The "
+            f"audit was recorded on {audit.recorded}; the features are not rebuilt."
+        ),
+        data,
+    )
+
+
+# How a refusal category reads in a tile's sub-line.
+REFUSAL_WORDS = {
+    "not_built": "not built by today's code",
+    "revenue_is_a_component": "failing today's revenue check",
+    "debt_outside_the_ladder": "failing today's debt check",
+    "price_disagrees_with_float": "failing today's float check",
+}
+
+
+def build_audit_filers(inp: Inputs) -> dict[str, Any]:
+    if inp.audit is None:
+        raise FigureRefused("audit_filers", "No enterprise-value audit describes this panel.")
+    filers = affected_filers(inp.audit)
+    if not filers:
+        raise FigureRefused(
+            "audit_filers",
+            f"No filer has an enterprise value more than {GAP_STALE:.0%} off, so there is "
+            "no filer to draw.",
+        )
+    everywhere = [f for f in filers if f.stale == f.compared]
+    if everywhere:
+        worst = max(everywhere, key=lambda f: abs(f.median_gap))
+        title = (
+            f"{_names([f.ticker for f in everywhere])} "
+            f"{'is' if len(everywhere) == 1 else 'are'} more than {GAP_STALE:.0%} off at "
+            f"every observation, {worst.ticker} by a median of {_pct(worst.median_gap)}"
+        )
+    else:
+        top = filers[0]
+        title = (
+            f"{top.ticker} is the most affected, {top.stale} of its {top.compared} "
+            f"observations more than {GAP_STALE:.0%} off"
+        )
+    return _figure(
+        "dot",
+        title,
+        (
+            f"Share of each filer's rebuilt observations more than {GAP_STALE:.0%} off, and "
+            "the median of those gaps, rebuilt over recorded less one. A positive gap is "
+            "net debt today's code finds and the recorded panel did not."
+        ),
         {
-            "tiles": [
-                {"key": "observations", "label": "Company-quarters", "value": inp.n_observations, "format": "int"},
-                {"key": "companies", "label": "Companies", "value": inp.n_companies, "format": "int"},
-                {"key": "dates", "label": "Quarter ends", "value": inp.n_dates, "format": "int"},
+            "rows": [
                 {
-                    "key": "refused",
-                    "label": "Company-dates refused",
-                    "value": inp.n_refused,
-                    "format": "int",
-                    "sub": "Kept with their reasons in the panel's skips",
-                },
-            ]
+                    "key": f.ticker,
+                    "label": f.ticker,
+                    "values": {"share": f.share},
+                    "aside": _pct(f.median_gap),
+                    "tip": [
+                        {"label": f"More than {GAP_STALE:.0%} off", "value": f"{f.stale} of {f.compared}"},
+                        {"label": "Largest gap", "value": _pct(f.largest_gap)},
+                    ],
+                }
+                for f in filers
+            ],
+            "series": [
+                {"key": "share", "name": f"Share more than {GAP_STALE:.0%} off", "role": "total"}
+            ],
+            "format": "pct:0",
+            "domain": [0, 1],
+            "labels": "all",
+            "asideHeader": "Median gap",
+            "labelHeader": "Filer",
+            "legend": False,
+            "height": _row_height(len(filers), 26),
+            "table": {
+                "columns": [
+                    {"key": "ticker", "label": "Filer"},
+                    {"key": "sub_vertical", "label": "Sub-vertical"},
+                    {"key": "compared", "label": "Rebuilt", "align": "right", "format": "int"},
+                    {"key": "stale", "label": f"More than {GAP_STALE:.0%} off", "align": "right", "format": "int"},
+                    {"key": "share", "label": "Share", "align": "right", "format": "pct:0"},
+                    {"key": "median_gap", "label": "Median gap", "align": "right"},
+                    {"key": "largest_gap", "label": "Largest gap", "align": "right"},
+                ],
+                "rows": [
+                    {
+                        "ticker": f.ticker,
+                        "sub_vertical": _human(f.sub_vertical),
+                        "compared": f.compared,
+                        "stale": f.stale,
+                        "share": f.share,
+                        "median_gap": _pct(f.median_gap),
+                        "largest_gap": _pct(f.largest_gap),
+                    }
+                    for f in filers
+                ],
+            },
         },
     )
 
 
 # (figure id, entry point that computed it, builder), in page order.
 FIGURES: tuple[tuple[str, str, Callable[[Inputs], dict[str, Any]]], ...] = (
+    ("audit", ENTRY_AUDIT, build_audit),
+    ("audit_filers", ENTRY_FILERS, build_audit_filers),
     ("deflation", ENTRY_FIT, build_deflation),
     ("baselines", ENTRY_FIT, build_baselines),
     ("folds", ENTRY_EVALUATE, build_folds),
@@ -765,6 +1343,15 @@ FIGURES: tuple[tuple[str, str, Callable[[Inputs], dict[str, Any]]], ...] = (
     ("rerating", ENTRY_FIT, build_rerating),
     ("panel", ENTRY_LOAD, build_panel),
 )
+
+# The declared inputs behind each figure. The audit card's caution quotes the
+# partial refit, which reads both files, and the screen is checked against the
+# audit before it is drawn; every other figure is the panel's alone.
+FIGURE_INPUTS: dict[str, list[str]] = {
+    "audit": [AUDIT, PANEL],
+    "audit_filers": [AUDIT],
+    "screen": [PANEL, AUDIT],
+}
 
 
 def _no_record(figure_id: str, entry_point: str) -> ContextManager[None]:
@@ -986,6 +1573,106 @@ def extract(panel, model, assumptions) -> Inputs:
     )
 
 
+def read_audit(path, panel) -> tuple[Audit | None, str | None]:
+    """The committed audit, checked against the panel it claims to describe.
+
+    An audit of another panel is not evidence about this one, so a mismatch in
+    the company-dates or in any recorded enterprise value returns no audit and
+    the reason, and the figures that need it refuse with that reason.
+    """
+    with gzip.open(path, "rt", encoding="utf-8") as handle:
+        raw = json.load(handle)
+    header = raw.get("_techval_fixture") or {}
+    rows = tuple(
+        AuditRow(
+            ticker=str(r["ticker"]),
+            as_of=date.fromisoformat(r["as_of"]),
+            sub_vertical=str(r["sub_vertical"]),
+            ev_recorded=float(r["ev_recorded"]),
+            ev_rebuilt=None if r["ev_rebuilt"] is None else float(r["ev_rebuilt"]),
+            refused=r["refused"],
+        )
+        for r in raw["observations"]
+    )
+    recorded = {(o.ticker, o.as_of): o.enterprise_value for o in panel.observations}
+    audited = {(r.ticker, r.as_of): r.ev_recorded for r in rows}
+    if set(recorded) != set(audited) or len(audited) != len(rows):
+        only_panel = len(set(recorded) - set(audited))
+        only_audit = len(set(audited) - set(recorded))
+        return None, (
+            f"the audit covers {len(audited):,} company-dates and the panel holds "
+            f"{len(recorded):,}; {only_panel:,} are in the panel only and {only_audit:,} "
+            "in the audit only, so it audits another recording of the panel"
+        )
+    moved = [k for k, ev in recorded.items() if abs(ev - audited[k]) > IDENTICAL_WITHIN_MM]
+    if moved:
+        return None, (
+            f"{len(moved):,} of the audit's recorded enterprise values do not match the "
+            "panel's, so it audits another recording of the panel"
+        )
+    skipped = tuple(
+        SkippedRow(ticker=str(s["ticker"]), as_of=date.fromisoformat(s["as_of"]), today=str(s["today"]))
+        for s in raw["skipped"]
+    )
+    return (
+        Audit(
+            recorded=str(header.get("recorded", "")),
+            code_commit=str(header.get("code_commit", "")),
+            observations=rows,
+            skipped=skipped,
+        ),
+        None,
+    )
+
+
+def partial_refit(panel, audit: Audit, assumptions, model_kind: str, when: date | None) -> PartialRefit:
+    """Refit with each rebuilt enterprise value in place of the recorded one, and nothing else.
+
+    A row today's code refuses keeps its recorded value, a row it would admit
+    stays out, and the features stay as recorded, which is why the result is
+    called partial wherever it is quoted. The comps memo is emptied, because the
+    incumbent baseline is a function of the multiples and would otherwise be
+    read from the recorded panel's fits.
+    """
+    from ...ml.warranted import fit_warranted
+
+    rebuilt = {(r.ticker, r.as_of): r for r in audit.observations}
+    observations = []
+    swapped = 0
+    for o in panel.observations:
+        row = rebuilt[(o.ticker, o.as_of)]
+        if row.ev_rebuilt is None or row.identical:
+            observations.append(o)
+            continue
+        if row.ev_rebuilt <= 0:
+            raise ValueError(
+                f"{o.ticker} on {o.as_of} rebuilds to an enterprise value of "
+                f"{row.ev_rebuilt:,.0f}mm, which has no log multiple"
+            )
+        multiple = row.ev_rebuilt / o.denominator
+        observations.append(
+            replace(
+                o,
+                enterprise_value=row.ev_rebuilt,
+                multiple=multiple,
+                log_multiple=math.log(multiple),
+            )
+        )
+        swapped += 1
+    refit_panel = replace(panel, observations=observations, _comps_memo={})
+    model = fit_warranted(refit_panel, assumptions, model=model_kind)
+    card = model.card.evaluation
+    if card is None:
+        raise ValueError("the partial refit's model card carries no evaluation")
+    screen: tuple[tuple[str, bool], ...] = ()
+    if when is not None and any(d == when for (_, d) in model.reads):
+        frame = model.extremes(SCREEN_EACH_END, when=when)
+        screen = tuple(
+            (str(r["ticker"]), float(r["residual_log"]) > 0) for r in frame.to_dict("records")
+        )
+    return PartialRefit(score=card.score, n=card.n_observations, swapped=swapped, screen=screen)
+
+
 def collect(ctx) -> dict:
     from ...commands_peers import _load_observations
     from ...ml.warranted import fit_warranted
@@ -993,4 +1680,14 @@ def collect(ctx) -> dict:
     panel = _load_observations(ctx.input(PANEL))
     model = fit_warranted(panel, ctx.assumptions, model="mlp")
     inputs = extract(panel, model, ctx.assumptions)
-    return shape(inputs, record=lambda fid, entry: ctx.record(fid, entry, [PANEL]))
+    audit, problem = read_audit(ctx.input(AUDIT), panel)
+    refit = (
+        None
+        if audit is None
+        else partial_refit(panel, audit, ctx.assumptions, "mlp", inputs.screen_date)
+    )
+    inputs = replace(inputs, audit=audit, audit_problem=problem, refit=refit)
+    return shape(
+        inputs,
+        record=lambda fid, entry: ctx.record(fid, entry, FIGURE_INPUTS.get(fid, [PANEL])),
+    )
