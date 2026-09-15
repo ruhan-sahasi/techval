@@ -624,6 +624,17 @@ details > summary:hover {
   pointer-events: none;
 }
 
+.tv-svg .tv-cell-label--base {
+  font-weight: var(--fw-semibold);
+}
+
+.tv-svg .tv-heat-base {
+  fill: none;
+  stroke: var(--ink-1);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
 .tv-gridline {
   stroke: var(--grid);
   stroke-width: 1;

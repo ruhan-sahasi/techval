@@ -2912,6 +2912,13 @@
     var colsL = spec.cols || spec.columns || [];
     var values = spec.values || [];
     var diverging = spec.scale === "diverging";
+    /*
+     * scale "plain" sets the grid the way a banker's sensitivity table is set:
+     * numbers on the page, a rule under each row, no colour, and the base case
+     * boxed. spec.base is that cell as [row, column].
+     */
+    var plain = spec.scale === "plain";
+    var base = Array.isArray(spec.base) && isNum(spec.base[0]) && isNum(spec.base[1]) ? spec.base : null;
     var valueName = spec.valueLabel || "Value";
     var breaks =
       diverging && Array.isArray(spec.breaks) && spec.breaks.length === 2 && isNum(spec.breaks[0]) && isNum(spec.breaks[1])
@@ -2977,6 +2984,7 @@
     }
 
     function fillOf(k) {
+      if (plain) return "transparent";
       if (k === null) return "var(--missing)";
       if (diverging) return k === 0 ? "var(--div-0)" : k > 0 ? "var(--div-pos-" + k + ")" : "var(--div-neg-" + -k + ")";
       return "var(--seq-" + k + ")";
@@ -2984,6 +2992,7 @@
 
     function inkOf(k) {
       if (k === null) return "var(--ink-3)";
+      if (plain) return "var(--ink-1)";
       return diverging ? "var(--on-div-" + Math.abs(k) + ")" : "var(--on-seq-" + k + ")";
     }
 
@@ -3047,6 +3056,12 @@
       thinLabels(colItems, 6).forEach(function (j) {
         root.appendChild(svg("text", { class: "tv-tick", x: colItems[j].center, y: m.top - 9, "text-anchor": "middle" }, String(colsL[j])));
       });
+      if (plain) {
+        if (spec.rowHeader) {
+          root.appendChild(svg("text", { class: "tv-tick", x: m.left - 10, y: m.top - 9, "text-anchor": "end" }, String(spec.rowHeader)));
+        }
+        root.appendChild(svg("line", { class: "tv-axisline", x1: 0, x2: m.left + gridW, y1: crisp(m.top - 2), y2: crisp(m.top - 2) }));
+      }
       var showLabels =
         spec.cellLabels !== false &&
         flat.every(function (v) {
@@ -3093,10 +3108,11 @@
           });
           var g = markGroup(marks, { x: cx, y: rowTop, width: cellW, height: cellH }, cell, r + ", " + c + ": " + format(spec.format, v));
           if (showLabels) {
+            var isBase = base && base[0] === i && base[1] === j;
             g.appendChild(
               svg(
                 "text",
-                { class: "tv-cell-label", x: cx + cellW / 2, y: cy, dy: "0.35em", "text-anchor": "middle", style: { fill: inkOf(k) } },
+                { class: "tv-cell-label" + (isBase ? " tv-cell-label--base" : ""), x: cx + cellW / 2, y: cy, dy: "0.35em", "text-anchor": "middle", style: { fill: inkOf(k) } },
                 format(spec.format, v)
               )
             );
@@ -3113,11 +3129,21 @@
         if (notesW && notes[i]) {
           marks.appendChild(svg("text", { class: "tv-value", x: m.left + gridW + 10, y: cy, dy: "0.35em" }, notes[i]));
         }
+        if (plain) {
+          marks.appendChild(svg("line", { class: "tv-gridline", x1: 0, x2: m.left + gridW, y1: crisp(rowTop + cellH), y2: crisp(rowTop + cellH) }));
+        }
+        if (base && base[0] === i) {
+          var bx = m.left + cellW * base[1];
+          marks.appendChild(
+            svg("rect", { class: "tv-heat-base", x: bx + 1.5, y: rowTop + 1.5, width: Math.max(0, cellW - 3), height: Math.max(0, cellH - 3) })
+          );
+        }
       }
       root.appendChild(marks);
       wrap.appendChild(root);
 
-      /* The scale legend: one swatch per class, with its bounds in text. */
+      /* The scale legend: one swatch per class, with its bounds in text. A plain grid has no scale. */
+      if (plain) return;
       var classes;
       var ticks;
       var title = spec.scaleLabel || null;
