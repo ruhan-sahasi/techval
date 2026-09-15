@@ -2,10 +2,17 @@
 
 ``render_gallery()`` returns one HTML page that exercises every chart in the
 kit, every verdict chip, a figure carrying a refusal note, a refused section
-and a section that has not been collected. It is a development tool for looking
-at the kit in both themes, not a results page: the page says so in a notice
-under its title, records no fixtures, and every provenance entry names this
-module rather than a model entry point.
+and a section that has not been collected. It also exercises what the kit does
+beyond drawing a series: figures sorted by an order number, whiskers on dots
+and bars, row groups, direct labels a row chooses, coincident points drawn
+apart, reference labels placed clear of the marks, a table figure and fuller
+table views, a legend turned off, a waterfall with no subtracting step, a heat
+grid of long identifiers on fixed breaks, a line on dates and a log scale with
+shaded ranges and a labelled point, a caution under a figure, and tiles in a
+card with a second part. It is a development tool for looking at the kit in
+both themes, not a results page: the page says so in a notice under its title,
+records no fixtures, and every provenance entry names this module rather than a
+model entry point.
 
 The page is assembled exactly as the real dashboard is (the embedding contract
 in ``render.py``): the stylesheets inlined in one ``<style>``, the snapshot in a
@@ -28,6 +35,7 @@ import html
 import json
 import math
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -150,8 +158,9 @@ def _wave(i: int, period: float, amp: float, phase: float = 0.0) -> float:
     return amp * math.sin(i * 2 * math.pi / period + phase)
 
 
-def _figure(kind: str, title: str, subtitle: str, data: dict[str, Any]) -> dict[str, Any]:
-    return {"kind": kind, "title": title, "subtitle": subtitle, "data": data}
+def _figure(kind: str, title: str, subtitle: str, data: dict[str, Any], **extra: Any) -> dict[str, Any]:
+    """A figure; extra carries the figure-level fields: order, wide, card, part, note."""
+    return {"kind": kind, "title": title, "subtitle": subtitle, "data": data, **extra}
 
 
 def _provenance(*figure_ids: str) -> list[dict[str, Any]]:
@@ -159,6 +168,10 @@ def _provenance(*figure_ids: str) -> list[dict[str, Any]]:
         {"figure": fid, "entry_point": GALLERY_ENTRY_POINT, "inputs": [], "seconds": 0.0}
         for fid in figure_ids
     ]
+
+
+# A second entry point for the figures that show a card naming more than one.
+SNAPSHOT_ENTRY_POINT = "techval.dashboard.gallery.gallery_snapshot"
 
 
 def _section(
@@ -170,8 +183,12 @@ def _section(
     headline: dict[str, Any] | None = None,
     figures: dict[str, Any] | None = None,
     refusals: list[dict[str, str]] | None = None,
+    also_from: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     figures = figures or {}
+    provenance = _provenance(*figures)
+    for fid in also_from or ():
+        provenance.append({"figure": fid, "entry_point": SNAPSHOT_ENTRY_POINT, "inputs": [], "seconds": 0.0})
     return {
         "id": sid,
         "title": title,
@@ -180,7 +197,7 @@ def _section(
         "refusals": refusals or [],
         "headline": headline,
         "figures": figures,
-        "provenance": _provenance(*figures),
+        "provenance": provenance,
     }
 
 
@@ -242,12 +259,36 @@ def _overview() -> dict[str, Any]:
         {"label": "TMT operating KPIs", "value": None, "sub": "Subscriber tags absent from fixtures", "status": "refused"},
     ]
     seconds = [("encoder", 37.1), ("fade", 22.4), ("signal", 18.9), ("warranted", 12.6), ("propensity", 9.3), ("engine", 4.8), ("datalayer", 1.7)]
+    refused = {"chip": "refused", "chipText": "Refused"}
+    ledger = [
+        {"section": {"text": "Peer encoder", "sub": "one caution under the ablation"}, "figures": 6, "refused": 0, "entry": "techval.ml.encoder", "note": "none"},
+        {"section": {"text": "Growth fade", "sub": "values drawn under a pinned rate"}, "figures": 6, "refused": 0, "entry": "techval.ml.forecast", "note": "none"},
+        {"section": {"text": "TMT operating metrics", "sub": "refused at collection"}, "figures": 0, "refused": 2, "entry": "techval.tmt.kpis", "note": refused},
+    ]
     return _section(
         "overview",
         "Overview",
         "One model beats its baseline outside the noise; the others tie, sit inside the noise, lose, or refuse.",
         figures={
-            "verdicts": _figure("tiles", "Verdicts at a glance", "", {"tiles": tiles}),
+            # Sorted by order, not by key: the tiles, the ledger, then the timings.
+            "verdicts": _figure("tiles", "Verdicts at a glance", "", {"tiles": tiles}, order=1),
+            "zz_ledger": _figure(
+                "table",
+                "Two of three sections draw every figure they collect",
+                "Figures per section, one offline run; a refused cell is one the section declined to fill",
+                {
+                    "columns": [
+                        {"key": "section", "label": "Section"},
+                        {"key": "figures", "label": "Figures", "align": "right", "format": "int"},
+                        {"key": "refused", "label": "Refused", "align": "right", "format": "int"},
+                        {"key": "entry", "label": "Module", "mono": True},
+                        {"key": "note", "label": "Figure", "nowrap": True},
+                    ],
+                    "rows": ledger,
+                },
+                order=2,
+                wide=True,
+            ),
             "collect_seconds": _figure(
                 "hbar",
                 "The peer encoder takes longest to collect",
@@ -258,15 +299,18 @@ def _overview() -> dict[str, Any]:
                     "valueLabel": "Seconds",
                     "labelHeader": "Section",
                 },
+                order=3,
             ),
         },
     )
 
 
 def _signal() -> dict[str, Any]:
+    # Labels too wide for twelve to fit a half-width card, so the last fold's must be kept on purpose.
     folds = [
-        {"label": f"F{i + 1}", "value": 0.011 + _wave(i, 5.3, 0.024, 0.6)} for i in range(12)
+        {"label": f"Fold {i + 1}", "value": 0.011 + _wave(i, 5.3, 0.024, 0.6)} for i in range(12)
     ]
+    mean_lift = round(sum(f["value"] for f in folds) / len(folds), 4)
     quarters = [f"{2020 + q // 4}Q{q % 4 + 1}" for q in range(16)]
     model, base = [], []
     m = b = 0.0
@@ -285,12 +329,21 @@ def _signal() -> dict[str, Any]:
             "Rank IC of 0.0412 against 0.0300 for momentum, a lift smaller than one standard error across 12 folds.",
         ),
         figures={
+            # The mean rule crosses the first folds' bars, so its label has to be placed clear of them.
             "ic_lift_by_fold": _figure(
                 "column",
                 "The lift changes sign across folds",
                 "Rank IC, model minus momentum, per walk-forward fold",
-                {"rows": folds, "diverging": True, "format": "signed:3", "valueLabel": "IC lift", "labelHeader": "Fold"},
+                {
+                    "rows": folds,
+                    "diverging": True,
+                    "format": "signed:3",
+                    "valueLabel": "IC lift",
+                    "labelHeader": "Fold",
+                    "reference": [{"value": mean_lift, "label": f"Mean {mean_lift:+.3f}"}],
+                },
             ),
+            # A rule at the start of both lines, whose label must not sit on them.
             "spread": _figure(
                 "line",
                 "Cumulative long-short spread tracks momentum",
@@ -303,6 +356,8 @@ def _signal() -> dict[str, Any]:
                     "x": {"label": "Quarter"},
                     "format": "pct:1",
                     "zero": True,
+                    "yTitle": "Cumulative return",
+                    "reference": [{"value": round(base[1]["y"], 4), "label": "Second quarter"}],
                 },
             ),
         },
@@ -319,7 +374,26 @@ def _encoder() -> dict[str, Any]:
     for i in range(len(TICKERS)):
         for j in range(i):
             sim[i][j] = sim[j][i]
-    sectors = [("Software", 0.61, 0.24), ("Semiconductors", 0.57, 0.31), ("Internet", 0.55, 0.19), ("IT services", 0.48, 0.22), ("Media", 0.44, 0.27), ("Telecom", 0.39, 0.33)]
+    # Telecom's two scores coincide, so its two dots must be drawn apart rather than one over the other.
+    sectors = [("Software", 0.61, 0.24), ("Semiconductors", 0.57, 0.31), ("Internet", 0.55, 0.19), ("IT services", 0.48, 0.22), ("Media", 0.44, 0.27), ("Telecom", 0.39, 0.39)]
+    cuts = [
+        ("Walk-forward cut, 5 folds", "Without text", 0.064, 0.063),
+        ("Walk-forward cut, 5 folds", "Without fundamentals", 0.039, 0.069),
+        ("Headline cut, 5 folds", "Without text", 0.069, 0.068),
+        ("Headline cut, 5 folds", "Without fundamentals", 0.027, 0.086),
+    ]
+    ablation_rows = [
+        {
+            "label": label,
+            "group": group,
+            "values": {"damage": damage},
+            "lo": round(damage - sd, 4),
+            "hi": round(damage + sd, 4),
+            "text": ("clears by " if damage > sd else "inside by ") + f"{abs(damage - sd):.4f}",
+            "tip": [{"label": "Fold standard deviation", "value": sd, "format": "num:3"}],
+        }
+        for group, label, damage, sd in cuts
+    ]
     return _section(
         "encoder",
         "Peer encoder",
@@ -335,11 +409,12 @@ def _encoder() -> dict[str, Any]:
                 "nDCG@10 on 162 query filers",
                 {
                     "rows": [
-                        {"label": "Peer encoder", "value": 0.5407, "role": "model"},
-                        {"label": "Same four-digit SIC", "value": 0.3310, "role": "alt"},
-                        {"label": "Popularity prior", "value": 0.2213, "role": "baseline"},
-                        {"label": "Random peers", "value": 0.0480, "role": "baseline"},
+                        {"label": "Peer encoder", "value": 0.5407, "role": "model", "lo": 0.5171, "hi": 0.5643},
+                        {"label": "Same four-digit SIC", "value": 0.3310, "role": "alt", "lo": 0.3052, "hi": 0.3568},
+                        {"label": "Popularity prior", "value": 0.2213, "role": "baseline", "lo": 0.2004, "hi": 0.2422},
+                        {"label": "Random peers", "value": 0.0480, "role": "baseline", "lo": 0.0391, "hi": 0.0569},
                     ],
+                    "intervalLabel": "One standard error",
                     "format": "num:3",
                     "valueLabel": "nDCG@10",
                     "labelHeader": "Method",
@@ -366,7 +441,39 @@ def _encoder() -> dict[str, Any]:
                     "gapLabel": "Lift",
                     "labelHeader": "Sector",
                     "domain": [0, 0.8],
+                    # Explicit label control: the prior's value, beside the prior's dot, on the first row only.
+                    "labels": {"series": "prior", "rows": [0]},
                 },
+            ),
+            "ablation": _figure(
+                "dot",
+                "Only the text tower clears its fold noise",
+                "Damage from removing a tower, whisker one fold standard deviation either side, grouped by fold cut",
+                {
+                    "rows": ablation_rows,
+                    "series": [{"key": "damage", "name": "Damage", "role": "model"}],
+                    "format": "signed:3",
+                    "valueLabel": "Damage",
+                    "intervalLabel": "One fold standard deviation",
+                    "labelHeader": "Tower removed",
+                    "groupHeader": "Fold cut",
+                    "reference": [{"value": 0, "label": "No damage"}],
+                    "zero": True,
+                    # A fuller table than the chart draws: the margin each whisker clears by.
+                    "table": {
+                        "columns": [
+                            {"key": "group", "label": "Fold cut"},
+                            {"key": "label", "label": "Tower removed"},
+                            {"key": "damage", "label": "Damage", "align": "right", "format": "signed:3"},
+                            {"key": "margin", "label": "Damage less deviation", "align": "right", "format": "signed:4"},
+                        ],
+                        "rows": [
+                            {"group": g, "label": label, "damage": damage, "margin": round(damage - sd, 4)}
+                            for g, label, damage, sd in cuts
+                        ],
+                    },
+                },
+                note="Seven of the panel's features are empty on every row, so the fundamentals tower is judged on a degraded input.",
             ),
         },
     )
@@ -413,6 +520,52 @@ def _warranted() -> dict[str, Any]:
                     "binLabel": "Error",
                 },
             ),
+            # The row that stands out is one where the model sits left of its baseline:
+            # its label must sit beside the model's dot, never beside the baseline's.
+            "fold_scores": _figure(
+                "dot",
+                "The model trails the sector median in the second fold",
+                "Log MAE per walk-forward fold, model against sector median",
+                {
+                    "rows": [
+                        {"label": "Fold 1", "values": {"model": 0.411, "median": 0.409}},
+                        {"label": "Fold 2", "values": {"model": 0.352, "median": 0.452}},
+                        {"label": "Fold 3", "values": {"model": 0.438, "median": 0.391}},
+                    ],
+                    "series": [
+                        {"key": "model", "name": "Warranted multiple", "role": "model"},
+                        {"key": "median", "name": "Sector median", "role": "baseline"},
+                    ],
+                    "format": "num:3",
+                    "gapFormat": "signed:3",
+                    "gapLabel": "Model minus median",
+                    "labelHeader": "Fold",
+                },
+            ),
+            # Every value of the first series is zero, so no row stands out and none is labelled.
+            # Two rows in a row put three points at zero, which must be drawn apart without
+            # running into each other.
+            "misdated": _figure(
+                "dot",
+                "Dating a split at either end of its window breaks periods; the filing basis breaks none",
+                "Periods whose filings disagree after adjustment, by how each split is dated",
+                {
+                    "rows": [
+                        {"label": "MSFT", "values": {"filed": 0, "late": 0, "early": 0}},
+                        {"label": "AMZN", "values": {"filed": 0, "late": 0, "early": 0}},
+                        {"label": "NVDA", "values": {"filed": 0, "late": 3, "early": 0}},
+                        {"label": "CRM", "values": {"filed": 0, "late": 0, "early": 5}},
+                    ],
+                    "series": [
+                        {"key": "filed", "name": "Per-filing basis", "role": "model"},
+                        {"key": "late", "name": "Late end", "role": "baseline"},
+                        {"key": "early", "name": "Early end", "role": "alt"},
+                    ],
+                    "format": "int",
+                    "labelHeader": "Filer",
+                    "zero": True,
+                },
+            ),
         },
     )
 
@@ -425,6 +578,22 @@ def _fade() -> dict[str, Any]:
     cohorts = ["2010 to 2012", "2013 to 2015", "2016 to 2018", "2019 to 2021"]
     grid = [[round(_wave(i * 5 + j, 7.0, 1.8, 0.4) - 0.3, 1) for j in range(5)] for i in range(len(cohorts))]
     grid[3][4] = None
+    names = (
+        "mna_opex_load",
+        "margin_gross",
+        "returns_deferred_revenue_to_revenue",
+        "scale_log_revenue",
+        "growth_revenue_1y",
+        "mna_years_listed",
+        "capital_current_ratio",
+    )
+    coefficients = [
+        (name, [round(_wave(i * 3 + j, 4.3, 1.4, 0.9) + (1.6 if i >= 4 else 0.0), 2) for j in range(5)])
+        for i, name in enumerate(names)
+    ]
+    # Rows that change sign first, so the two groups are contiguous.
+    coefficients.sort(key=lambda c: not (min(c[1]) < 0 < max(c[1])))
+    flipped = sum(1 for _, vals in coefficients if min(vals) < 0 < max(vals))
     return _section(
         "fade",
         "Growth fade",
@@ -447,7 +616,10 @@ def _fade() -> dict[str, Any]:
                     "x": {"label": "Year after"},
                     "format": "pct:0",
                     "domain": [0, 0.4],
+                    "yTitle": "Revenue growth",
+                    "points": [{"x": "Y3", "y": realised[3], "label": "Realised still 19%", "role": "third"}],
                 },
+                note={"what": "Survivors only", "why": "A filer whose growth collapses is often bought and stops filing, so the realised path runs high."},
             ),
             "error_grid": _figure(
                 "heat",
@@ -461,9 +633,63 @@ def _fade() -> dict[str, Any]:
                     "format": "signed:1",
                     "scaleLabel": "Baseline error minus model error",
                     "rowHeader": "Cohort",
+                    "colTitle": "Years after the fade starts",
                 },
             ),
+            # Identifiers in the mono face at full length, grouped, on fixed colour breaks.
+            "coefficients": _figure(
+                "heat",
+                f"{flipped} of {len(coefficients)} coefficients change sign between folds",
+                "Standardised coefficient per walk-forward fit",
+                {
+                    "rows": [name for name, _ in coefficients],
+                    "cols": [f"Fold {j + 1}" for j in range(5)],
+                    "values": [vals for _, vals in coefficients],
+                    "scale": "diverging",
+                    "breaks": [0.1, 0.5],
+                    "format": "signed:2",
+                    "scaleLabel": "Standardised coefficient",
+                    "valueLabel": "Coefficient",
+                    "rowHeader": "Feature",
+                    "groups": [
+                        {"label": f"Changes sign, {flipped}", "count": flipped},
+                        {"label": f"Same sign in every fit, {len(coefficients) - flipped}", "count": len(coefficients) - flipped},
+                    ],
+                    "mono": True,
+                    "labelAlign": "start",
+                    "cellMax": 88,
+                    "cellHeight": 24,
+                    "cellLabels": False,
+                    "rowNotes": [
+                        f"mean {sum(coefficients[0][1]) / 5:+.2f}".replace("-", "−")
+                    ] + [None] * (len(coefficients) - 1),
+                    "rowTips": [[{"label": "Row", "value": name}] for name, _ in coefficients],
+                },
+                wide=True,
+            ),
+            # Tiles drawn in a card, with a second set of tiles as a part of the same card.
+            "year_five": _figure(
+                "tiles",
+                "The learned fade ends year five 8% below the straight line",
+                "Revenue in year five on each path, USD millions, from 1,000mm today",
+                {"tiles": [
+                    {"label": "Linear fade", "value": 2210.4, "format": "mm", "sub": "Year 5 revenue"},
+                    {"label": "Learned fade", "value": 2031.9, "format": "mm", "sub": "8.1% below the line"},
+                ]},
+                card=True,
+            ),
+            "year_five_value": _figure(
+                "tiles",
+                "The same DCF moves by 2.10 a share between the paths",
+                "USD per share, one DCF on each path",
+                {"tiles": [
+                    {"label": "Linear fade", "value": 31.42, "format": "num:2", "sub": "EV 3,120mm"},
+                    {"label": "Learned fade", "value": 29.32, "format": "num:2", "sub": "EV 2,911mm"},
+                ]},
+                part="year_five",
+            ),
         },
+        also_from=("year_five_value",),
     )
 
 
@@ -486,15 +712,33 @@ def _propensity() -> dict[str, Any]:
                 "Predicted 12-month acquisition probability, 1,840 filer-years",
                 {"edges": edges, "series": [{"name": "Filer-years", "role": "model", "counts": counts}], "format": "pct:0", "binLabel": "Probability", "reference": [{"value": 0.043, "label": "Base rate 4.3%"}]},
             ),
-            "calibration": _figure(
+            # Not "calibration": the real propensity renderer reads a figure of that name as its dumbbell.
+            "decile_rates": _figure(
                 "column",
                 "Observed rates rise with the predicted decile",
                 "Share of filers acquired within 12 months, by predicted decile",
                 {"rows": deciles, "format": "pct:1", "valueLabel": "Acquired", "labelHeader": "Decile", "reference": [{"value": 0.043, "label": "Base rate"}]},
             ),
+            # Bars whose row labels name them, so the legend is off.
+            "precision": _figure(
+                "hbar",
+                "One in 15 of the model's top 20 was bought, one in 35 of the size sort's",
+                "Precision at 20, mean over 19 screen dates",
+                {
+                    "rows": [
+                        {"label": "Fitted model", "value": 0.0658, "role": "model"},
+                        {"label": "Size-only sort", "value": 0.0289, "role": "baseline"},
+                    ],
+                    "format": "pct:1",
+                    "valueLabel": "Precision at 20",
+                    "labelHeader": "Screen",
+                    "legend": False,
+                    "reference": [{"value": 0.0378, "label": "Base rate 3.8%"}],
+                },
+            ),
         },
         refusals=[
-            {"what": "calibration", "why": "Deciles 9 and 10 hold 11 and 7 events, under the 20 the reliability test needs, so no calibration slope is stated."},
+            {"what": "decile_rates", "why": "Deciles 9 and 10 hold 11 and 7 events, under the 20 the reliability test needs, so no calibration slope is stated."},
             {"what": "Deal premium model", "why": "Only 41 completed deals carry a disclosed premium in the fixtures, too few to fit and score out of sample."},
         ],
     )
@@ -524,6 +768,7 @@ def _engine() -> dict[str, Any]:
                     "reference": [{"value": 415.2, "label": "Price 415"}],
                     "roleLabels": {"model": "Valuation method", "baseline": "Market context"},
                     "labelHeader": "Method",
+                    "tableHeaders": {"lo": "Low, USD", "mid": "Mid, USD", "hi": "High, USD"},
                 },
             ),
             "sotp": _figure(
@@ -544,7 +789,28 @@ def _engine() -> dict[str, Any]:
                     "valueLabel": "USD bn",
                 },
             ),
+            # No step subtracts, so the legend carries no entry for a kind of bar the bridge never draws.
+            "segment_income": _figure(
+                "waterfall",
+                "Operating income foots to the segments' own sum",
+                "Operating income by segment, USD bn; nothing is taken off outside the segments",
+                {
+                    "steps": [
+                        {"label": "Intelligent cloud", "value": 42.9},
+                        {"label": "Productivity", "value": 40.5},
+                        {"label": "Personal computing", "value": 19.3},
+                        {"label": "Outside the segments", "value": 0.0},
+                    ],
+                    "total": {"label": "Operating income", "value": 102.7},
+                    "format": "num:1",
+                    "valueLabel": "USD bn",
+                    "upLabel": "Segment operating income",
+                    "downLabel": "Taken off outside the segments",
+                    "totalLegend": "Operating income",
+                },
+            ),
         },
+        also_from=("sotp",),
     )
 
 
@@ -565,6 +831,17 @@ def _datalayer() -> dict[str, Any]:
     years = list(range(2012, 2025))
     facts = [{"label": f"FY{str(y)[2:]}", "value": 18400 + 2150 * i + round(_wave(i, 5.0, 900))} for i, y in enumerate(years)]
     lag = [{"x": y, "y": 61 - 1.3 * i + _wave(i, 4.0, 2.5)} for i, y in enumerate(years)]
+    # Weekly closes over four years, a price that multiplies about tenfold.
+    start = date(2021, 1, 8)
+    closes = [
+        {"x": (start + timedelta(days=7 * i)).isoformat(), "y": round(12.0 * math.exp(0.011 * i + _wave(i, 26.0, 0.18)), 2)}
+        for i in range(208)
+    ]
+    windows = [
+        {"from": "2022-05-20", "to": "2022-08-12", "label": "4-for-1 window", "worst_day": -0.041},
+        {"from": "2024-03-01", "to": "2024-05-24", "label": "10-for-1 window", "worst_day": -0.066},
+    ]
+    low = min(closes, key=lambda p: p["y"])
     return _section(
         "datalayer",
         "Data layer",
@@ -581,6 +858,47 @@ def _datalayer() -> dict[str, Any]:
                 "Filing lag has shortened by about two weeks",
                 "Median days from period end to 10-K filing",
                 {"series": [{"name": "Median lag", "role": "model", "values": lag}], "x": {"label": "Fiscal year"}, "format": "num:0"},
+            ),
+            # Dates along x, a log scale, shaded windows and one labelled point.
+            "closes": _figure(
+                "line",
+                "The closes carry no split step inside either window",
+                "Close, USD, last close of each week",
+                {
+                    "series": [{"name": "Close", "role": "model", "values": closes}],
+                    "x": {"label": "Week ending", "type": "date"},
+                    "format": "num:2",
+                    "yScale": "log",
+                    "yTitle": "USD, log scale",
+                    "endLabels": False,
+                    "shade": [
+                        {"from": w["from"], "to": w["to"], "label": w["label"], "tip": {"label": w["label"], "value": w["worst_day"], "format": "pct:1"}}
+                        for w in windows
+                    ],
+                    "shadeLegend": "Split window, from the last filing on the old basis to the first on the new",
+                    "points": [{"x": low["x"], "y": low["y"], "label": f"Lowest close, {low['y']:.2f}"}],
+                    "table": [
+                        {
+                            "caption": "Closes",
+                            "columns": [
+                                {"key": "x", "label": "Week ending", "mono": True},
+                                {"key": "y", "label": "Close, USD", "align": "right", "format": "num:2"},
+                            ],
+                            "rows": closes,
+                        },
+                        {
+                            "caption": "Split windows",
+                            "columns": [
+                                {"key": "label", "label": "Window"},
+                                {"key": "from", "label": "From", "mono": True},
+                                {"key": "to", "label": "To", "mono": True},
+                                {"key": "worst_day", "label": "Worst day", "align": "right", "format": "pct:1"},
+                            ],
+                            "rows": windows,
+                        },
+                    ],
+                },
+                wide=True,
             ),
         },
     )
