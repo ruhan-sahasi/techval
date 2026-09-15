@@ -213,7 +213,7 @@ def test_every_count_reaches_the_figure_unchanged_and_names_where_it_was_read():
         "fade.filers": (150, "fade.figures.depth.data.stats.filers_with_rows"),
         "propensity.labelled": (8000, "propensity.figures.sample.data.counts.n_labelled"),
         "propensity.scored": (5000, "propensity.figures.sample.data.counts.n_scored"),
-        "propensity.deals": (40, "propensity.figures.sample.data.counts.scored_deals"),
+        "propensity.targets": (40, "propensity.figures.sample.data.counts.scored_deals"),
     }
     assert {k: (r["values"]["count"], r["source"]) for k, r in rows.items()} == expected
     assert all(r["refusal"] is None for r in rows.values())
@@ -258,7 +258,7 @@ def test_ratios_titles_and_takeaway_follow_the_numbers():
         "50 filers behind the peer encoder's 2,000 training pairs",
         "60 companies behind the warranted multiple's 1,500 company-quarters",
         "150 filers behind the revenue fade's 2,400 company-years",
-        "40 deals behind the propensity screen's 8,000 labelled company-quarters",
+        "40 targets behind the propensity screen's 8,000 labelled company-quarters",
     ):
         assert clause in takeaway, clause
     assert "Nvidia's closes reach back 8 years and the median filer's revenue 10 fiscal years" in takeaway
@@ -321,12 +321,12 @@ def test_a_missing_count_is_a_refusal_naming_the_field_and_its_row_is_left_empty
     field = "propensity.figures.sample.data.counts.scored_deals"
     assert out["refusals"] == [
         {
-            "what": "M&A propensity: deals",
+            "what": "M&A propensity: targets",
             "why": f"Not read from {field}: the field is absent. The count is not recomputed here, so its row is left empty.",
         }
     ]
-    row = _rows(out)["propensity.deals"]
-    assert row["values"]["count"] is None and row["source"] == field and row["refusal"] == "M&A propensity: deals"
+    row = _rows(out)["propensity.targets"]
+    assert row["values"]["count"] is None and row["source"] == field and row["refusal"] == "M&A propensity: targets"
     groups = {g["key"]: g for g in out["figures"]["counts"]["data"]["groups"]}
     assert groups["propensity"]["ratio"] is None and groups["propensity"]["ratioText"] == ""
     assert "propensity" not in out["takeaway"] and out["takeaway"].startswith("The four models")
@@ -480,7 +480,7 @@ def test_committed_counts_by_model(committed):
         "fade.filers": 223,
         "propensity.labelled": 9400,
         "propensity.scored": 5881,
-        "propensity.deals": 67,
+        "propensity.targets": 67,
     }
     assert committed["sample"]["refusals"] == []
 
