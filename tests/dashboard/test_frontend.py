@@ -7,8 +7,8 @@ and the ban on em-dashes in anything a reader sees.
 
 The rest draw the gallery in headless Chrome and measure what landed on the
 page: that a direct label names the value of the dot beside it, that a reference
-label touches no mark, that coincident points are drawn apart. They are
-skipped where Chrome is not installed.
+label touches no mark, that coincident points are drawn apart, that the rail
+marks the section being read. They are skipped where Chrome is not installed.
 """
 
 from __future__ import annotations
@@ -537,6 +537,7 @@ PROBE = r"""<script>
   function box(node) { var b = node.getBBox(); return { x: b.x, y: b.y, w: b.width, h: b.height }; }
   function overlap(a, b) { return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h; }
   function figureOf(node) { var f = node.closest('[data-figure-id]'); return f ? f.getAttribute('data-figure-id') : null; }
+  function current() { var a = document.querySelector('.tv-rail [aria-current="true"]'); return a ? a.getAttribute('data-section') : null; }
   var checks = {
     dotLabels: function () {
       var out = [];
@@ -636,6 +637,27 @@ PROBE = r"""<script>
     },
     foldTicks: function () {
       return Array.prototype.map.call(fig('ic_lift_by_fold').querySelectorAll('text.tv-tick'), function (t) { return t.textContent; });
+    },
+    rail: function () {
+      var links = document.querySelectorAll('.tv-rail [data-section]');
+      var out = { first: links[0].getAttribute('data-section'), last: links[links.length - 1].getAttribute('data-section') };
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      window.dispatchEvent(new Event('scroll'));
+      out.atFoot = current();
+      window.scrollTo(0, 0);
+      window.dispatchEvent(new Event('scroll'));
+      out.atTop = current();
+      return out;
+    },
+    headlines: function () {
+      var out = {};
+      document.querySelectorAll('section.tv-section').forEach(function (s) {
+        var h = s.querySelector('.tv-headline__text');
+        if (!h) return;
+        var more = h.querySelector('details');
+        out[s.id] = { shown: h.querySelector('p').textContent, rest: more ? more.querySelector('p').textContent : null, open: more ? more.open : null };
+      });
+      return out;
     },
     waterfallLegend: function () {
       return Array.prototype.map.call(fig('segment_income').querySelectorAll('.tv-legend__item'), function (li) { return li.textContent; });
@@ -778,6 +800,25 @@ def test_column_labels_keep_the_first_and_the_last(drawn):
     ticks = [t for t in _checked(drawn, "foldTicks") if t.startswith("Fold")]
     assert len(ticks) < 12, ticks
     assert ticks[0] == "Fold 1" and ticks[-1] == "Fold 12", ticks
+
+
+def test_the_rail_marks_the_last_section_at_the_foot_of_the_page_and_the_first_at_the_top(drawn):
+    rail = _checked(drawn, "rail")
+    assert rail["atFoot"] == rail["last"]
+    assert rail["atTop"] == rail["first"]
+
+
+def test_a_headline_shows_its_first_sentence_and_keeps_the_rest_verbatim(drawn, gallery_page):
+    headlines = _checked(drawn, "headlines")
+    snapshot = _snapshot_block(gallery_page)
+    for sid, shown in headlines.items():
+        verdict = snapshot["sections"][sid]["headline"]["verdict_text"]
+        whole = shown["shown"] + (" " + shown["rest"] if shown["rest"] else "")
+        assert whole == verdict[:1].upper() + verdict[1:], sid
+        assert shown["open"] in (None, False), sid
+    warranted = headlines["warranted"]
+    assert warranted["shown"] == "Log MAE of 0.4120 against 0.4090 for the sector median, a lift of -0.0030 on 162 observations."
+    assert warranted["rest"].endswith("Use the sector median.")
 
 
 def test_a_waterfall_legend_lists_only_the_steps_it_draws(drawn):

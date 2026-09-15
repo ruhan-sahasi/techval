@@ -490,7 +490,10 @@ def _warranted() -> dict[str, Any]:
         "The fitted EV/Revenue multiple ties a sector median, so the regression adds nothing a lookup would not.",
         headline=_headline(
             "log MAE", 0.4120, "sector median multiple", 0.4090, 162, False, "ties",
-            "Log MAE of 0.4120 against 0.4090 for the sector median, a difference inside one standard error.",
+            # Several sentences, the first in lower case, as a model's own verdict() often is.
+            "log MAE of 0.4120 against 0.4090 for the sector median, a lift of -0.0030 on 162 observations. "
+            "Fold standard deviation 0.0110, so the difference is inside the fold-to-fold noise. "
+            "Use the sector median.",
         ),
         figures={
             "residuals": _figure(
