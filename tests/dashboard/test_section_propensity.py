@@ -82,6 +82,7 @@ def _facts(**over) -> P.Facts:
             base_rate=0.04,
             scored_positives=22,
             scored_deals=11,
+            announced_deals=60,
         ),
         folds=(
             P.FoldScore(0, date(2020, 3, 31), date(2020, 12, 31), 200, 8, 0.52, 0.58),
@@ -239,7 +240,7 @@ def test_the_takeaway_is_built_from_the_values_it_was_given():
     text = P.shape(_facts())["takeaway"]
     assert "0.6100" in text and "0.5500" in text and "+0.0600" in text
     assert "outside a fold standard deviation of 0.0200" in text
-    assert "11 acquired companies" in text
+    assert "11 companies announced as targets" in text
     assert "2 of its 3 coefficients change sign" in text
     assert "removing the 5 deals" in text and "flips the verdict" in text
 
@@ -261,6 +262,36 @@ def test_the_takeaway_is_built_from_the_values_it_was_given():
     losing = P.shape(_facts(evaluation=_evaluation(score=0.5, lift=-0.05, beat_baseline=False)))
     assert "does not beat" in losing["takeaway"]
     assert losing["headline"]["verdict_status"] == "loses"
+
+
+def test_a_count_of_targets_is_never_called_a_count_of_deals():
+    """Three counts, three nouns, and the page once gave two of them the same one.
+
+    ``Sample.distinct_deals`` reads ``LabelReport.n_distinct_deals``, which
+    counts distinct companies with a positive label, and the tile under it said
+    "97 deals are labelled" a figure away from label sets counted as "107 deals"
+    in announced transactions. Both numbers were right and the two sentences
+    together were not.
+    """
+    figs = P.shape(_facts())["figures"]
+    sample = figs["sample"]
+    tile = next(t for t in sample["data"]["tiles"] if t["value"] == 11)
+    assert tile["label"] == "Targets scored"
+    assert tile["sub"] == (
+        "22 positive rows among 512 scored; 19 targets labelled of the 60 announced deals in the fixture"
+    )
+    assert sample["title"].startswith("11 targets stand behind")
+    assert sample["data"]["counts"]["announced_deals"] == 60
+    rows = figs["recovered_deals"]["data"]["rows"]
+    assert [r["label"] for r in rows] == [
+        "As committed, 60 announced deals",
+        "Less the 2 doubted, 58 announced deals",
+        "Less all 5 recovered, 55 announced deals",
+    ]
+    assert "announced as a target" in figs["calibration"]["subtitle"]
+    words = json.dumps(to_jsonable(P.shape(_facts())), ensure_ascii=False)
+    for count in ("11", "19"):
+        assert not re.search(rf"\b{count} (acquired companies|deals)\b", words), count
 
 
 def test_titles_follow_the_numbers():
@@ -393,6 +424,12 @@ def test_pinned_headline(section):
 def test_pinned_sample_and_base_rates(section):
     counts = section["figures"]["sample"]["data"]["counts"]
     assert (counts["n_labelled"], counts["positives"], counts["distinct_deals"]) == (9400, 336, 97)
+    # 97 targets labelled out of 107 announced deals, 67 of them scored. Every
+    # deal in events.json has its own target, so the ten unlabelled are deals
+    # no panel date's label window reached.
+    assert (counts["announced_deals"], counts["scored_deals"]) == (107, 67)
+    tile = next(t for t in section["figures"]["sample"]["data"]["tiles"] if t["label"] == "Targets scored")
+    assert "97 targets labelled of the 107 announced deals" in tile["sub"]
     assert round(counts["base_rate"] * 100, 2) == 3.57
     years = {r["label"]: r for r in section["figures"]["base_rate_by_year"]["data"]["rows"]}
     assert round(years["2022"]["value"] * 100, 2) == 2.05
@@ -436,4 +473,5 @@ def test_pinned_calibration_overconfidence(section):
 def test_pinned_recovered_deals_flip(section):
     rows = section["figures"]["recovered_deals"]["data"]["rows"]
     assert rows[0]["beats"] and not rows[-1]["beats"]
-    assert rows[0]["label"].endswith("107 deals") and rows[-1]["label"].endswith("100 deals")
+    assert rows[0]["label"].endswith("107 announced deals")
+    assert rows[-1]["label"].endswith("100 announced deals")
