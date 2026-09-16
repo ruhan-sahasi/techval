@@ -926,9 +926,23 @@ details > summary:hover {
 
 /* Tables, set the way financial tables are: rules, not boxes; headers in sentence case. */
 
+/*
+ * A table wider than its box scrolls inside it. Four layers say so: two covers
+ * painted on the content, which scroll away as the reader moves, and two
+ * shadows painted on the box, which they uncover. A shadow therefore shows on
+ * a side only while there are columns out of view on that side.
+ */
 .tv-table-wrap {
   overflow-x: auto;
   max-width: 100%;
+  background-image: linear-gradient(to right, var(--page) 60%, transparent),
+    linear-gradient(to left, var(--page) 60%, transparent),
+    linear-gradient(to right, var(--border), transparent),
+    linear-gradient(to left, var(--border), transparent);
+  background-position: left center, right center, left center, right center;
+  background-size: 28px 100%, 28px 100%, 18px 100%, 18px 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
 }
 
 .tv-table {
@@ -1060,6 +1074,11 @@ details > summary:hover {
   display: grid;
   gap: var(--space-2);
   min-width: 0;
+}
+
+.tv-tileset__body {
+  display: grid;
+  gap: var(--space-2);
 }
 
 .tv-tileset__title {

@@ -931,6 +931,35 @@ def test_tiles_in_a_card_carry_a_table_a_part_and_every_entry_point(drawn):
     assert "render_gallery" in card["source"] and "gallery_snapshot" in card["source"]
 
 
+def test_every_tileset_reads_as_numbers_too(drawn):
+    # Tiles on the page plane are a figure like any other: the same table view,
+    # the same data toggle, and the source line naming what computed them.
+    sets = {s["id"]: s for s in _checked(drawn, "tilesets")}
+    assert "panel_reach" in sets and "scoreboard" in sets
+    for sid, s in sets.items():
+        assert s["toggle"], sid
+        assert s["buttons"] == 1, sid  # one toggle, never a second one drawn by a section
+        assert s["rows"] >= 1, sid
+        assert s["tableHidden"], sid
+        assert s["source"], sid
+        assert s["opened"] == {"table": True, "body": True, "text": "Hide data"}, sid
+        assert s["closed"] == {"table": True, "body": True, "text": "Show data"}, sid
+    plain = sets["panel_reach"]
+    assert plain["tiles"] == 3 and plain["rows"] == 3
+    assert "render_gallery" in plain["source"]
+
+
+def test_a_table_that_scrolls_says_so():
+    # A table wider than its box hides columns. Two covers painted on the
+    # content scroll away and uncover a shadow on whichever side still holds
+    # columns, so a cut-off table never looks finished.
+    layout = _strip_comments((ASSETS / "layout.css").read_text(encoding="utf-8"))
+    wrap = next(body for prelude, body in _blocks(layout) if prelude == ".tv-table-wrap")
+    assert "overflow-x: auto" in wrap
+    assert wrap.count("linear-gradient") == 4
+    assert "background-attachment: local, local, scroll, scroll" in wrap
+
+
 def test_figures_follow_their_order_number_not_their_key(drawn):
     # The engine renderer names the football field; the rest follow their order numbers.
     assert _checked(drawn, "engineOrder") == ["football", "sotp", "segment_income", "methods"]
