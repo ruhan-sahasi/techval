@@ -685,6 +685,32 @@ class SignalAssumptions(_Base):
         return value
 
 
+class RagAssumptions(_Base):
+    """The retrieval-augmented filing reader: what it reads, and which model reads it.
+
+    Every value here can change an answer, so every value is part of the request
+    key a recording is filed under. Changing one means recording again, which is
+    the point: a replayed answer is only evidence for the request that produced it.
+    """
+
+    model: str = Field(
+        "claude-opus-5",
+        description="The Claude model that reads the retrieved passages.",
+    )
+    passage_chars: int = Field(
+        1200, ge=200, le=8000, description="Target length of one passage, in characters."
+    )
+    overlap_chars: int = Field(
+        200, ge=0, le=2000, description="Characters each passage shares with the one before it."
+    )
+    top_k: int = Field(
+        6, ge=1, le=20, description="Passages retrieved per task and given to every reader."
+    )
+    max_tokens: int = Field(
+        16000, ge=1024, le=64000, description="Output ceiling for one reading, thinking included."
+    )
+
+
 class MLAssumptions(_Base):
     """Shared settings for everything fitted rather than assumed."""
 
@@ -710,6 +736,7 @@ class MLAssumptions(_Base):
     mna: MnaAssumptions = Field(default_factory=MnaAssumptions)
     warranted: WarrantedAssumptions = Field(default_factory=WarrantedAssumptions)
     signals: SignalAssumptions = Field(default_factory=SignalAssumptions)
+    rag: RagAssumptions = Field(default_factory=RagAssumptions)
 
 
 class Assumptions(_Base):

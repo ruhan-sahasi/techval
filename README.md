@@ -1412,6 +1412,26 @@ figure this document quotes from a live run.
 
 ---
 
+### Reading filings
+
+`techval rag` reads facts that filings state in prose: operating figures in a
+10-K's Item 7, and the terms of a merger announcement. It answers each question
+three ways. A Claude reader reads the passages BM25 retrieves, and the regex
+rules techval already has run on the same passages and again on the whole
+text. A Claude answer counts only if its quote is in the passage it cites and
+its value is in that quote.
+
+    techval rag template   write the blank answer key to tests/fixtures/rag/answer_key.csv
+    techval rag record     record the Claude reader's answers (pip install 'techval[rag]',
+                           Anthropic credentials, about one to two dollars a full run)
+    techval rag score      score both readers against the filled-in key
+
+The Claude reader's requests and responses are committed under
+`tests/fixtures/rag/recordings/` and replayed, so the Reading filings section and
+the tests run offline with no SDK and no key. The section scores nothing until
+the key is filled in and every request is recorded. The design is in
+`docs/superpowers/specs/2026-09-16-rag-filing-reader-design.md`.
+
 ## Install
 
 Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).

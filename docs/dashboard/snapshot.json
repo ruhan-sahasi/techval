@@ -73,6 +73,11 @@
     "tests/fixtures/prices/SNOW.csv": "a6d1797f87002bfea8b309f3413712a8c9fe6743f16f7c290a2271e77bfc1d2b",
     "tests/fixtures/prices/SPY.csv": "7407be52bb5747094f54b23526408b80b85a3f14653299724d09c070d6f124e3",
     "tests/fixtures/prices/ZS.csv": "f6dda77633d2d7661abdf26a0ed026dc6e1bd71bf9d334ddb8088e591830dead",
+    "tests/fixtures/rag/answer_key.csv": "093759b81c589f513dceb33203f58b800759fa18f4dcadadc9f918e3ce1f8aa3",
+    "tests/fixtures/rag/filing_text_NET_2025.json.gz": "ad3952f0bc00c9e0a2e5ddb1b647ddf4062912c1253a9dc4bf78a11c9e30ed56",
+    "tests/fixtures/rag/filing_text_NFLX_2025.json.gz": "b43a53bc46a66ae7fa896069847cb46c713e63eb47c6bedc4b7d915c4aee68d6",
+    "tests/fixtures/rag/filing_text_TMUS_2025.json.gz": "1333c91d3d95e565797c939683df0b2342f09b1443e8ae7200d045805886f9bb",
+    "tests/fixtures/rag/record_filing_text.py": "bbcc55e8d57692844d30314900114186d81dbcfe0377bbb867e801c477d7bd3f",
     "tests/fixtures/sec_tickers_tmt.json": "fd7ac01886afec2b2e05d612abb353d071078a7e311ce9e07c21fa6d74e57511",
     "tests/fixtures/share_basis_facts.json": "7885a3ff340befe4a7795f1462a6a8cacabe2980908b4ffe79f51e74e4948859",
     "tests/fixtures/signals/closes.csv.gz": "9e7c7d2302661050b721e84d72d7d60da6d3bf3d4080bfbab509de6188fccb32",
@@ -2861,7 +2866,7 @@
             "tests/fixtures/signals/closes.csv.gz",
             "tests/fixtures/share_basis_facts.json"
           ],
-          "seconds": 0.41
+          "seconds": 0.33
         },
         {
           "entry_point": "techval.edgar.CompanyFacts._split_brackets",
@@ -2870,7 +2875,7 @@
             "tests/fixtures/signals/closes.csv.gz",
             "tests/fixtures/share_basis_facts.json"
           ],
-          "seconds": 0.41
+          "seconds": 0.33
         },
         {
           "entry_point": "techval.tmt.taxonomy.tmt_universe",
@@ -2952,7 +2957,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.04
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.commands_peers._load_groups",
@@ -2962,7 +2967,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.04
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.commands_peers._load_panel",
@@ -3033,7 +3038,7 @@
             "tests/fixtures/sec_tickers_tmt.json",
             "tests/fixtures/submissions_tmt.json"
           ],
-          "seconds": 0.0
+          "seconds": 0.01
         },
         {
           "entry_point": "techval.former_tickers.resolve",
@@ -4118,7 +4123,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 33.87
+          "seconds": 28.56
         },
         {
           "entry_point": "techval.ml.encoder.evaluate_peer_encoder",
@@ -4158,7 +4163,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 123.32
+          "seconds": 105.88
         },
         {
           "entry_point": "techval.ml.encoder.evaluate_peer_encoder",
@@ -4168,7 +4173,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 58.77
+          "seconds": 32.49
         }
       ],
       "refusals": [],
@@ -4680,7 +4685,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.02
+          "seconds": 0.03
         },
         {
           "entry_point": "techval.apv.run_apv",
@@ -5179,7 +5184,7 @@
           "inputs": [
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 3.57
+          "seconds": 3.65
         },
         {
           "entry_point": "techval.ml.forecast.fit_fade",
@@ -5187,7 +5192,7 @@
           "inputs": [
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 0.5
+          "seconds": 0.42
         },
         {
           "entry_point": "techval.ml.forecast.fit_fade",
@@ -5427,6 +5432,11 @@
                 "value": 10
               },
               {
+                "label": "Reading filings",
+                "role": "baseline",
+                "value": 2
+              },
+              {
                 "label": "Data layer",
                 "role": "baseline",
                 "value": 2
@@ -5509,6 +5519,16 @@
                 "verdict_status": null
               },
               {
+                "figures": 1,
+                "href": "#reading",
+                "id": "reading",
+                "provenance": 1,
+                "refusals": 2,
+                "status": "ok",
+                "title": "Reading filings",
+                "verdict_status": null
+              },
+              {
                 "figures": 10,
                 "href": "#datalayer",
                 "id": "datalayer",
@@ -5530,17 +5550,17 @@
               }
             ],
             "totals": {
-              "collected": 9,
-              "figures": 61,
-              "refusals": 17,
-              "refusing_sections": 5,
-              "sections": 9
+              "collected": 10,
+              "figures": 62,
+              "refusals": 19,
+              "refusing_sections": 6,
+              "sections": 10
             },
             "valueLabel": "Refusals"
           },
           "kind": "hbar",
           "subtitle": "Every other section, in page order. A refusal is a number a section would not print because the fixtures could not reproduce it; each is stated with its reason.",
-          "title": "61 figures drawn and 17 refusals stated, 10 of them in the TMT layer"
+          "title": "62 figures drawn and 19 refusals stated, 10 of them in the TMT layer"
         }
       },
       "headline": null,
@@ -6580,7 +6600,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 3.39
+          "seconds": 2.62
         },
         {
           "entry_point": "techval.ml.evaluation.evaluate_classification",
@@ -6602,7 +6622,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 4.92
+          "seconds": 5.12
         },
         {
           "entry_point": "techval.ml.mna.PropensityResult.coefficient_stability",
@@ -6613,7 +6633,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 0.0
+          "seconds": 0.01
         },
         {
           "entry_point": "techval.ml.mna.base_rate_by_year",
@@ -6668,7 +6688,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 1.26
+          "seconds": 1.25
         },
         {
           "entry_point": "techval.ml.evaluation.evaluate_classification",
@@ -6687,6 +6707,497 @@
       "status": "ok",
       "takeaway": "The screen's walk-forward AUC of 0.5685 beats sorting companies smallest first (0.5474) by +0.0212, inside the fold noise (a mean fold lift of +0.0012 against a fold-to-fold standard deviation of 0.0692), and it rests on 67 companies announced as targets. 9 of its 15 coefficients change sign between folds, and removing the 7 deals a later extraction fix recovered flips the verdict.",
       "title": "M&A propensity"
+    },
+    "reading": {
+      "figures": {
+        "readings": {
+          "data": {
+            "columns": [
+              {
+                "key": "subject",
+                "label": "Filer"
+              },
+              {
+                "key": "fact",
+                "label": "Fact"
+              },
+              {
+                "key": "claude",
+                "label": "Claude reader"
+              },
+              {
+                "key": "regex_retrieved",
+                "label": "Regex, retrieved passages"
+              },
+              {
+                "key": "regex_native",
+                "label": "Regex, whole text"
+              }
+            ],
+            "rows": [
+              {
+                "claude": "not recorded",
+                "fact": "Annual recurring revenue",
+                "regex_native": "refused: the phrase gives $100,000 with no scale word, and below $1,000,000 that is as likely to mean dollars as millions",
+                "regex_retrieved": "refused: the phrase gives $100,000 with no scale word, and below $1,000,000 that is as likely to mean dollars as millions",
+                "subject": "DDOG"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Customers",
+                "regex_native": "refused: the text states 3 different values for this metric (3.27e+04, 4,310, 603), which are usually different periods the prose distinguishes and this parser does not",
+                "regex_retrieved": "refused: the text states 3 different values for this metric (4,310, 603, 3.27e+04), which are usually different periods the prose distinguishes and this parser does not",
+                "subject": "DDOG"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Net revenue retention",
+                "regex_native": "120% (hedged)",
+                "regex_retrieved": "120% (hedged)",
+                "subject": "DDOG"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Subscribers",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "DDOG"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Acquirer",
+                "regex_native": "Rocket Lab Corporation",
+                "regex_retrieved": "not stated",
+                "subject": "IRDM"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Agreement date",
+                "regex_native": "2026-06-28",
+                "regex_retrieved": "not stated",
+                "subject": "IRDM"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Cash per share",
+                "regex_native": "$27.00",
+                "regex_retrieved": "not stated",
+                "subject": "IRDM"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Form of consideration",
+                "regex_native": "mixed",
+                "regex_retrieved": "not stated",
+                "subject": "IRDM"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Exchange ratio",
+                "regex_native": "refused: the clause names the filer as the converted security; the agreement states 0.2400, 0.4000 as alternative exchange ratios, which is a collar: the ratio is fixed from the buyer's share price at closing and does not exist at announcement. No exchange ratio is recorded; the consideration includes buyer stock, so the offer price is only fixed once that leg is marked at the buyer's own unaffected close",
+                "regex_retrieved": "not stated",
+                "subject": "IRDM"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Acquirer",
+                "regex_native": "Google LLC",
+                "regex_retrieved": "Google LLC",
+                "subject": "MNDT"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Agreement date",
+                "regex_native": "2022-03-07",
+                "regex_retrieved": "2022-03-07",
+                "subject": "MNDT"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Cash per share",
+                "regex_native": "$23.00",
+                "regex_retrieved": "not stated",
+                "subject": "MNDT"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Form of consideration",
+                "regex_native": "cash",
+                "regex_retrieved": "not stated",
+                "subject": "MNDT"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Exchange ratio",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "MNDT"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Annual recurring revenue",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NET"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Customers",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NET"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Net revenue retention",
+                "regex_native": "120%",
+                "regex_retrieved": "120%",
+                "subject": "NET"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Subscribers",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NET"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Annual recurring revenue",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NFLX"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Customers",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NFLX"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Net revenue retention",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NFLX"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Subscribers",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NFLX"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Acquirer",
+                "regex_native": "Neon Maple Parent Inc.",
+                "regex_retrieved": "not stated",
+                "subject": "PAYO"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Agreement date",
+                "regex_native": "2026-06-12",
+                "regex_retrieved": "not stated",
+                "subject": "PAYO"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Cash per share",
+                "regex_native": "$7.40",
+                "regex_retrieved": "$7.40",
+                "subject": "PAYO"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Form of consideration",
+                "regex_native": "cash",
+                "regex_retrieved": "not stated",
+                "subject": "PAYO"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Exchange ratio",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "PAYO"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Acquirer",
+                "regex_native": "MMS USA Holdings, Inc.",
+                "regex_retrieved": "MMS USA Holdings, Inc.",
+                "subject": "RAMP"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Agreement date",
+                "regex_native": "2026-05-16",
+                "regex_retrieved": "not stated",
+                "subject": "RAMP"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Cash per share",
+                "regex_native": "$38.50",
+                "regex_retrieved": "not stated",
+                "subject": "RAMP"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Form of consideration",
+                "regex_native": "cash",
+                "regex_retrieved": "not stated",
+                "subject": "RAMP"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Exchange ratio",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "RAMP"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Acquirer",
+                "regex_native": "Fox Corporation",
+                "regex_retrieved": "not stated",
+                "subject": "ROKU"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Agreement date",
+                "regex_native": "2026-06-14",
+                "regex_retrieved": "not stated",
+                "subject": "ROKU"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Cash per share",
+                "regex_native": "$96.00",
+                "regex_retrieved": "not stated",
+                "subject": "ROKU"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Form of consideration",
+                "regex_native": "mixed",
+                "regex_retrieved": "not stated",
+                "subject": "ROKU"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Exchange ratio",
+                "regex_native": "0.9693",
+                "regex_retrieved": "not stated",
+                "subject": "ROKU"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Acquirer",
+                "regex_native": "Texas Instruments Incorporated",
+                "regex_retrieved": "not stated",
+                "subject": "SLAB"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Agreement date",
+                "regex_native": "2026-02-04",
+                "regex_retrieved": "2026-02-04",
+                "subject": "SLAB"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Cash per share",
+                "regex_native": "$231.00",
+                "regex_retrieved": "$231.00",
+                "subject": "SLAB"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Form of consideration",
+                "regex_native": "cash",
+                "regex_retrieved": "not stated",
+                "subject": "SLAB"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Exchange ratio",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "SLAB"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Acquirer",
+                "regex_native": "Cisco Systems, Inc.",
+                "regex_retrieved": "not stated",
+                "subject": "SPLK"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Agreement date",
+                "regex_native": "2023-09-20",
+                "regex_retrieved": "2023-09-20",
+                "subject": "SPLK"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Cash per share",
+                "regex_native": "$157.00",
+                "regex_retrieved": "not stated",
+                "subject": "SPLK"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Form of consideration",
+                "regex_native": "cash",
+                "regex_retrieved": "not stated",
+                "subject": "SPLK"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Exchange ratio",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "SPLK"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Annual recurring revenue",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "TMUS"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Customers",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "TMUS"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Net revenue retention",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "TMUS"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Subscribers",
+                "regex_native": "3,287,000",
+                "regex_retrieved": "not stated",
+                "subject": "TMUS"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Acquirer",
+                "regex_native": "salesforce.com, inc.",
+                "regex_retrieved": "not stated",
+                "subject": "WORK"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Agreement date",
+                "regex_native": "2020-12-01",
+                "regex_retrieved": "not stated",
+                "subject": "WORK"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Cash per share",
+                "regex_native": "$26.79",
+                "regex_retrieved": "not stated",
+                "subject": "WORK"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Form of consideration",
+                "regex_native": "mixed",
+                "regex_retrieved": "not stated",
+                "subject": "WORK"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Exchange ratio",
+                "regex_native": "0.0776",
+                "regex_retrieved": "not stated",
+                "subject": "WORK"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Acquirer",
+                "regex_native": "Zoro BidCo, Inc.",
+                "regex_retrieved": "not stated",
+                "subject": "ZEN"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Agreement date",
+                "regex_native": "2022-06-24",
+                "regex_retrieved": "not stated",
+                "subject": "ZEN"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Cash per share",
+                "regex_native": "$77.50",
+                "regex_retrieved": "$77.50",
+                "subject": "ZEN"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Form of consideration",
+                "regex_native": "cash",
+                "regex_retrieved": "not stated",
+                "subject": "ZEN"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Exchange ratio",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "ZEN"
+              }
+            ]
+          },
+          "kind": "table",
+          "subtitle": "Each fact is asked of its own filing: the announcing 8-K for a deal term, Item 7 of the 10-K for an operating figure. Both readers see the 6 passages BM25 ranks highest for the question, and the regex rules are run again on the whole text. A Claude answer stands only if its quote is in the passage it cites and its value is in the quote.",
+          "title": "The regex rules state a value for 41 of 61 filing facts on the whole text",
+          "wide": true
+        }
+      },
+      "headline": null,
+      "id": "reading",
+      "provenance": [
+        {
+          "entry_point": "techval.rag.run.read_all",
+          "figure": "readings",
+          "inputs": [
+            "tests/fixtures/rag",
+            "tests/fixtures/merger",
+            "tests/fixtures/filing_text_DDOG_2025.json.gz",
+            "tests/fixtures/companyfacts_DDOG.json"
+          ],
+          "seconds": 0.0
+        }
+      ],
+      "refusals": [
+        {
+          "what": "Claude reader",
+          "why": "61 of 61 requests have no recording, so the Claude reader is not scored. The command techval rag record records them; it needs the rag extra and Anthropic credentials."
+        },
+        {
+          "what": "Scoring",
+          "why": "The answer key is not complete: 61 blank rows. Neither reader is scored until it is."
+        }
+      ],
+      "status": "ok",
+      "takeaway": "61 facts from 9 merger announcements and 4 annual reports are read by the regex rules, over the retrieved passages and over the whole text. Neither reader is scored, because the Claude reader's answers are not recorded yet.",
+      "title": "Reading filings"
     },
     "sample": {
       "figures": {
@@ -7750,7 +8261,7 @@
             "tests/fixtures/signals/ev_revenue.csv.gz",
             "tests/fixtures/signals/closes.csv.gz"
           ],
-          "seconds": 0.77
+          "seconds": 1.03
         },
         {
           "entry_point": "techval.ml.signals.test_signal",
@@ -9695,7 +10206,7 @@
             "tests/fixtures/warranted/ev_audit.json.gz",
             "tests/fixtures/warranted/observations.json.gz"
           ],
-          "seconds": 0.0
+          "seconds": 0.01
         },
         {
           "entry_point": "techval.dashboard.sections.warranted.affected_filers",
@@ -9765,6 +10276,6 @@
       "title": "Warranted multiple"
     }
   },
-  "techval_commit": "02c42d8",
+  "techval_commit": "e2b850d",
   "title": "Valuation engine and model results"
 }
