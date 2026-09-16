@@ -101,11 +101,12 @@
   /* Header and basis of preparation ------------------------------------- */
 
   var STANDFIRST =
-    "techval values technology, media and telecom companies on free public data: SEC filings, public quotes and " +
-    "the Treasury curve. This note sets out what it computes, from the DCF engine, trading comps and a precedent " +
-    "deal database to five models built on the same filings, each scored out of sample against a baseline it has " +
-    "to beat. Every figure is recomputed offline from committed fixtures; where one could not be reproduced, a " +
-    "note says so in its place.";
+    "techval values technology, media and telecom companies on free public data: SEC filings and daily closes. " +
+    "This note sets out what it computes, from the DCF engine and trading comps to precedent deals read from " +
+    "merger filings and five models scored out of sample against a baseline each has to beat. Every figure is " +
+    "recomputed offline from the committed fixtures listed under the basis of preparation, and the valuations " +
+    "discount at a risk-free rate pinned in the assumptions rather than quoted from the Treasury curve; where a " +
+    "figure could not be reproduced, a note says so in its place.";
 
   function header(snapshot) {
     var dateline = el(

@@ -805,12 +805,15 @@ def _propensity() -> dict[str, Any]:
 
 
 def _engine() -> dict[str, Any]:
+    # Coloured by method, as the engine section colours its own football field:
+    # the DCF is the engine's, the market comparables are the comparison, and the
+    # traded range is context rather than a value.
     methods = [
         ("DCF, perpetuity growth", 342, 401, 468, "model"),
         ("DCF, exit multiple", 318, 379, 452, "model"),
-        ("Comps, EV/Revenue", 296, 351, 410, "model"),
-        ("Comps, EV/EBITDA", 305, 348, 395, "model"),
-        ("Precedent transactions", 360, 432, 520, "model"),
+        ("Comps, EV/Revenue", 296, 351, 410, "alt"),
+        ("Comps, EV/EBITDA", 305, 348, 395, "alt"),
+        ("Precedent transactions", 360, 432, 520, "alt"),
         ("52-week trading range", 309, None, 468, "baseline"),
     ]
     refused = {"chip": "refused", "chipText": "Refused"}
@@ -851,7 +854,11 @@ def _engine() -> dict[str, Any]:
                     "rows": [{"label": l, "lo": lo, "mid": mid, "hi": hi, "role": r} for l, lo, mid, hi, r in methods],
                     "format": "num:0",
                     "reference": [{"value": 415.2, "label": "Price 415"}],
-                    "roleLabels": {"model": "Valuation method", "baseline": "Market context"},
+                    "roleLabels": {
+                        "model": "DCF",
+                        "alt": "Market comparables",
+                        "baseline": "Trading range, for reference only",
+                    },
                     "labelHeader": "Method",
                     "tableHeaders": {"lo": "Low, USD", "mid": "Mid, USD", "hi": "High, USD"},
                 },

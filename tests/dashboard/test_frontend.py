@@ -486,6 +486,17 @@ def test_gallery_inlines_every_asset_in_contract_order(gallery, gallery_page):
     assert gallery_page.index('id="tv-snapshot"') < gallery_page.index('data-asset="kit.js"')
 
 
+def test_the_gallery_shell_matches_the_page_shell(gallery):
+    # The gallery copies the embedding contract so it can be rendered without
+    # the package. The copy is only worth having while it agrees with the page
+    # it stands in for.
+    from techval.dashboard.render import FONTS_HREF, SCRIPTS, STYLESHEETS
+
+    assert gallery.STYLESHEETS == STYLESHEETS
+    assert gallery.SCRIPTS == SCRIPTS
+    assert gallery.FONTS_HREF == FONTS_HREF
+
+
 def test_gallery_is_deterministic_and_self_contained(gallery, gallery_page):
     assert gallery.render_gallery() == gallery_page
     # Nothing is loaded by src; the only links are the Plex stylesheet and its font host.
