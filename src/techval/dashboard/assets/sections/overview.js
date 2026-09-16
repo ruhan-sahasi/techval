@@ -188,17 +188,6 @@
     });
   }
 
-  function toggleTable(root, view, table) {
-    var btn = el("button", { class: "tv-btn", type: "button" }, "Show data");
-    btn.addEventListener("click", function () {
-      var showTable = table.hidden;
-      table.hidden = !showTable;
-      view.hidden = showTable;
-      btn.textContent = showTable ? "Show scores" : "Show data";
-    });
-    root.appendChild(el("div", null, btn));
-  }
-
   /*
    * The scoreboard sits on the page plane, as tiles do, but it leads the page,
    * so its heading is set as a figure title rather than the small label a set
@@ -208,20 +197,18 @@
     var tiles = ((f.data && f.data.tiles) || []).filter(Boolean);
     handle.root.id = "fig-overview-scoreboard";
     handle.title = f.title || "";
-    handle.body.appendChild(
+    /* The heading sits outside the tiles, so it stays put when the reader asks for the table. */
+    handle.root.insertBefore(
       el(
         "div",
         { class: "tv-figure__head" },
         el("h3", { class: "tv-figure__title" }, f.title || ""),
         f.subtitle ? el("p", { class: "tv-figure__subtitle" }, f.subtitle) : null
-      )
+      ),
+      handle.body
     );
-    var view = el("div");
-    handle.body.appendChild(view);
-    tileGrid(view, tiles);
-    var table = el("div", { hidden: true });
-    handle.body.appendChild(table);
-    TV.tableView({ table: table, title: f.title }, {
+    tileGrid(handle.body, tiles);
+    TV.tableView(handle, {
       caption: f.title,
       columns: [
         { key: "label", label: "Model" },
@@ -247,7 +234,6 @@
         };
       }),
     });
-    toggleTable(handle.body, view, table);
   }
 
   /* sections --------------------------------------------------------------- */
