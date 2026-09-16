@@ -33,6 +33,7 @@ SECTION_IDS: tuple[str, ...] = (
     "propensity",
     "engine",
     "tmt",
+    "reading",
     "datalayer",
     "sample",
 )

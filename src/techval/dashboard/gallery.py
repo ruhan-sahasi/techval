@@ -55,6 +55,7 @@ PAGE_ORDER = (
     "propensity",
     "engine",
     "tmt",
+    "reading",
     "datalayer",
     "sample",
 )
@@ -1007,9 +1008,71 @@ def _sample() -> dict[str, Any]:
     )
 
 
+def _reading() -> dict[str, Any]:
+    columns = [
+        {"key": "subject", "label": "Filer"},
+        {"key": "fact", "label": "Fact"},
+        {"key": "key", "label": "Answer key"},
+        {"key": "claude", "label": "Claude reader"},
+        {"key": "regex_retrieved", "label": "Regex, retrieved passages"},
+        {"key": "regex_native", "label": "Regex, whole text"},
+        {"key": "verdict", "label": "Verdict"},
+    ]
+    facts = [
+        ("MSFT", "Customers", "41,000", "41,000 (hedged)", "refused: the text states 3 different values", "refused: the text states 3 different values", "Claude only"),
+        ("GOOGL", "Cash per share", "$52.00", "$52.00", "$52.00", "$52.00", "both right"),
+        ("META", "Exchange ratio", "ambiguous", "ambiguous", "refused: two ratios set a collar", "refused: two ratios set a collar", "both right"),
+        ("AMZN", "Annual recurring revenue", "not stated", "$2.40bn", "not stated", "not stated", "regex only"),
+        ("NFLX", "Acquirer", "Example Parent Inc.", "Example Parent Inc.", "not stated", "Example Parent Inc.", "both right"),
+    ]
+    rows = [dict(zip([c["key"] for c in columns], fact)) for fact in facts]
+    errors = [
+        {"label": f"{reader}, {kind}", "value": value, "role": role}
+        for reader, role, values in (("Claude reader", "model", (1, 0, 1, 0)), ("Regex, whole text", "baseline", (0, 1, 0, 0)))
+        for kind, value in zip(("wrong value accepted", "stated value missed", "value invented", "wrong status"), values)
+    ]
+    return _section(
+        "reading",
+        "Reading filings",
+        "On 5 filing facts the Claude reader is right on 4 and the regex readers on 4; they disagree on 2.",
+        headline=_headline(
+            "accuracy", 0.8, "regex readers", 0.8, 5, True, "not_significant",
+            "accuracy of 0.8000 against 0.8000 for regex readers: the model does NOT beat the baseline on 5 "
+            "observations. Use the baseline. The readers disagree on 2 of 5 tasks.",
+        ),
+        figures={
+            "readings": _figure(
+                "table", "The Claude reader is right on 4 of 5 filing facts, the regex readers on 4",
+                "Each fact is asked of its own filing, by both readers, over the same passages",
+                {"columns": columns, "rows": rows}, wide=True,
+            ),
+            "errors": _figure(
+                "hbar", "The Claude reader accepted 1 wrong value, the regex readers 0",
+                "Every wrong answer by kind",
+                {"rows": errors, "format": "int", "valueLabel": "Tasks", "labelHeader": "Reader and error",
+                 "roleLabels": {"model": "Claude reader", "baseline": "Regex readers"}},
+            ),
+            "retrieval": _figure(
+                "tiles", "The search put the answer in front of the readers on 3 of 3 stated facts",
+                "A stated fact counts when the key's quote overlaps a retrieved passage",
+                {"tiles": [{"label": "Stated facts with the quote in the top 6 passages", "value": 1.0, "format": "pct:0", "sub": "3 of 3"}]},
+            ),
+            "recording": _figure(
+                "tiles", "5 recorded answers from claude-opus-5, replayed rather than requested",
+                "What the Claude readings were recorded from",
+                {"tiles": [
+                    {"label": "Answers replayed", "value": 5, "format": "int"},
+                    {"label": "Answered by", "value": "claude-opus-5"},
+                    {"label": "Input tokens", "value": 15250, "format": "int"},
+                ]},
+            ),
+        },
+    )
+
+
 def gallery_snapshot() -> dict[str, Any]:
     """The synthetic snapshot the gallery page renders."""
-    rest = [_signal(), _encoder(), _warranted(), _fade(), _propensity(), _engine(), _tmt(), _datalayer(), _sample()]
+    rest = [_signal(), _encoder(), _warranted(), _fade(), _propensity(), _engine(), _tmt(), _reading(), _datalayer(), _sample()]
     sections = [_overview(rest), *rest]
     return {
         "schema": 1,
