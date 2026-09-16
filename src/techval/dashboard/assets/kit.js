@@ -36,8 +36,11 @@
  * Chart by chart, what is not obvious from the data:
  *
  *   hbar    rows [{label, value, role, note, lo, hi}]; lo and hi draw a whisker.
- *   column  rows [{label, value, role}]; diverging colours by sign. Column
- *           labels are thinned to fit and the first and last always stay.
+ *   column  rows [{label, value, role, labelled}]; diverging colours by sign.
+ *           Column labels are thinned to fit and the first and last always
+ *           stay. One value label names the highest bar, and the lowest when it
+ *           is negative; where any row carries labelled, the flagged rows carry
+ *           the labels instead. labels "all" labels every bar.
  *   dot     series [{key, name, role}] and rows [{label, values, lo, hi,
  *           intervals: {key: {lo, hi}}, group, text, tip, role, hollow,
  *           aside, asideStrong, labelled, gap}]. A value label names only the
@@ -1780,7 +1783,12 @@
         if (minI < 0 || r.value < rows[minI].value) minI = i;
       });
       var mode = spec.labels || "extreme";
+      /* A row may name itself, as a dot chart's rows do, so a title that quotes two bars can label those two. */
+      var flagged = rows.some(function (r) {
+        return typeof r.labelled === "boolean";
+      });
       function labelled(i) {
+        if (mode !== "all" && flagged) return rows[i].labelled === true;
         return mode === "all" || (mode === "extreme" && (i === maxI || (i === minI && rows[minI].value < 0)));
       }
 
@@ -1867,7 +1875,9 @@
           valueLayer.appendChild(svg("text", { class: "tv-value", x: cx, y: v.y, "text-anchor": "middle" }, v.text));
         }
         if (shown.indexOf(i) >= 0) {
-          marks.appendChild(svg("text", { class: "tv-tick", x: cx, y: H - bottom + 16, "text-anchor": "middle" }, r.label));
+          var tickW = measure(r.label, 11);
+        var tickAnchor = cx - tickW / 2 < 0 ? "start" : cx + tickW / 2 > W ? "end" : "middle";
+        marks.appendChild(svg("text", { class: "tv-tick", x: cx, y: H - bottom + 16, "text-anchor": tickAnchor }, r.label));
         }
         tooltip.attach(g, function () {
           return {
@@ -2445,7 +2455,13 @@
       });
     }
     if (spec.shadeLegend && shades.length) legendItems.push({ label: spec.shadeLegend, color: "--wash-strong", shape: "rect" });
-    chartLegend(body, spec, legendItems, "line");
+    /*
+     * chartLegend draws nothing for a single item, which is right for one series
+     * the title already names and wrong for a shaded window, which nothing else
+     * on the chart explains. So a lone shade key is drawn here.
+     */
+    if (legendItems.length === 1 && spec.shadeLegend && !legendOff(spec)) legendFor(body, legendItems);
+    else chartLegend(body, spec, legendItems, "line");
 
     frame(body, "line", function (wrap, W) {
       var ys = [];
@@ -3551,6 +3567,12 @@
         var parts = [];
         var d = barPath("v", y(it.from), y(it.to), cx - thick / 2, thick);
         if (d) parts.push(svg("path", { class: "tv-mark", d: d, style: { fill: fill } }));
+        /* A step of exactly zero is the finding, so it draws a rule rather than an empty column under its label. */
+        else if (isNum(it.value) && it.kind !== "total") {
+          parts.push(
+            svg("rect", { class: "tv-mark", x: cx - thick / 2, y: crisp(y(it.to)) - 1, width: thick, height: 2, style: { fill: fill } })
+          );
+        }
         var g = markGroup(
           marks,
           { x: m.left + stepW * i, y: m.top, width: stepW, height: H - m.top - m.bottom },

@@ -463,7 +463,12 @@ def _bucket_returns(f: SignalFacts) -> dict[str, Any]:
         title,
         subtitle,
         {
-            "rows": [{"label": lab, "value": v} for lab, v in zip(labels, ordered)],
+            # Every title branch compares the cheapest bucket with the dearest,
+            # so those two carry the labels and the rest are read off the axis.
+            "rows": [
+                {"label": lab, "value": v, "labelled": i in (0, len(ordered) - 1)}
+                for i, (lab, v) in enumerate(zip(labels, ordered))
+            ],
             "format": "pct:1",
             "valueLabel": f"Mean {f.horizon_months}-month return",
             "labelHeader": "Cheapness " + group,

@@ -1275,6 +1275,9 @@ def build_audit_filers(inp: Inputs) -> dict[str, Any]:
             "no filer to draw.",
         )
     everywhere = [f for f in filers if f.stale == f.compared]
+    # The filers the title names are the ones the chart labels; the rest are read
+    # off the axis and the median-gap column beside it.
+    named = {f.ticker for f in everywhere} or {filers[0].ticker}
     if everywhere:
         worst = max(everywhere, key=lambda f: abs(f.median_gap))
         title = (
@@ -1302,6 +1305,7 @@ def build_audit_filers(inp: Inputs) -> dict[str, Any]:
                     "key": f.ticker,
                     "label": f.ticker,
                     "values": {"share": f.share},
+                    "labelled": f.ticker in named,
                     "aside": _pct(f.median_gap),
                     "tip": [
                         {"label": f"More than {GAP_STALE:.0%} off", "value": f"{f.stale} of {f.compared}"},
@@ -1315,7 +1319,7 @@ def build_audit_filers(inp: Inputs) -> dict[str, Any]:
             ],
             "format": "pct:0",
             "domain": [0, 1],
-            "labels": "all",
+            "labels": {"rows": "flagged"},
             "asideHeader": "Median gap",
             "labelHeader": "Filer",
             "legend": False,
