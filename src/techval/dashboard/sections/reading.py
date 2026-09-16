@@ -294,8 +294,8 @@ def shape(run: Run, key: KeyState | None, top_k: int) -> dict[str, Any]:
                 "what": "Claude reader",
                 "why": (
                     f"{len(run.missing)} of {len(run.prepared)} requests have no recording, so the Claude "
-                    "reader is not scored. `techval rag record` records them; it needs the rag extra and "
-                    "Anthropic credentials."
+                    "reader is not scored. The command techval rag record records them; it needs the rag "
+                    "extra and Anthropic credentials."
                 ),
             }
         )
@@ -304,8 +304,8 @@ def shape(run: Run, key: KeyState | None, top_k: int) -> dict[str, Any]:
             {
                 "what": "Scoring",
                 "why": (
-                    "No answer key is committed, so neither reader is scored. `techval rag template` "
-                    "writes the blank key for the owner to fill in."
+                    "No answer key is committed, so neither reader is scored. The command techval rag "
+                    "template writes the blank key for the owner to fill in."
                 ),
             }
         )
