@@ -266,3 +266,33 @@
   --text-critical: #e2806f;
   --focus: #e4ebe9;
 }
+
+/*
+ * Print. A research note has to survive a printer, whatever theme the screen
+ * was in: the ground goes white, the ink goes black, and the hairlines darken
+ * enough to hold on paper. Tokens only, like the dark blocks above.
+ */
+@media print {
+  /*
+   * The forced-theme selector is named here too: a reader who printed while the
+   * page was stamped dark would otherwise print white ink on a black ground.
+   */
+  :root,
+  :root[data-theme="dark"] {
+    color-scheme: light;
+    --page: #ffffff;
+    --surface: #ffffff;
+    --raised: #ffffff;
+    --ink-1: #000000;
+    --ink-2: #2b3330;
+    --ink-3: #454e4b;
+    --grid: #c7cfcd;
+    --axis: #8b9491;
+    --rule: #000000;
+    --border: rgba(0, 0, 0, 0.32);
+    --wash: rgba(0, 0, 0, 0.05);
+    --wash-strong: rgba(0, 0, 0, 0.1);
+    --missing: #eceeed;
+    --div-mid: #eceeed;
+  }
+}
