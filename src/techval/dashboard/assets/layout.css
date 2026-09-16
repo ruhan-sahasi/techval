@@ -1260,3 +1260,67 @@ a.tv-tile:hover .tv-tile__label {
 .tv-provenance[open] > summary {
   margin-bottom: var(--space-2);
 }
+
+/*
+ * Print. The contents list and every control are screen furniture, so they go.
+ * What is left is the note: a section to a page, no exhibit split across a
+ * break, and charts scaled to whatever paper the reader has.
+ */
+@media print {
+  .tv-shell {
+    display: block;
+    max-width: none;
+    padding: 0;
+  }
+
+  .tv-main {
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tv-rail,
+  .tv-btn {
+    display: none;
+  }
+
+  .tv-section {
+    break-before: page;
+    margin-top: 0;
+  }
+
+  .tv-section:first-of-type {
+    break-before: auto;
+  }
+
+  .tv-figure,
+  .tv-tileset,
+  .tv-headline,
+  .tv-refusal,
+  .tv-note,
+  .tv-basis {
+    break-inside: avoid;
+  }
+
+  .tv-section__head,
+  .tv-figure__head {
+    break-after: avoid;
+  }
+
+  /* On paper a scroller cannot scroll, so the table prints whole and drops its cue. */
+  .tv-table-wrap {
+    overflow: visible;
+    background-image: none;
+  }
+
+  .tv-svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* A link to a section of the same page is a page number on paper, not a link. */
+  a[href^="#"] {
+    text-decoration: none;
+  }
+}
