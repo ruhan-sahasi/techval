@@ -1270,3 +1270,19 @@ def test_the_comps_refusal_note_counts_company_quarters_and_cross_sections_apart
     assert "sub-vertical cross-sections and on" not in note
     groups = {(o.as_of, o.sub_vertical) for o in panel.observations}
     assert f"of the {len(groups):,} date-by-sub-vertical cross-sections" in note
+
+
+def test_the_verdict_opens_with_the_score_and_keeps_the_rerating_beside_it(fitted):
+    """A reader who stops after one sentence gets the number, not the calendar.
+
+    The dashboard shows a headline's first sentence and files the rest behind a
+    disclosure, so a verdict that opens on the re-rating leads the section with a
+    fact about the market rather than the model's own score.
+    """
+    verdict = fitted.verdict()
+    first = verdict.split(". ")[0]
+    result = fitted.card.evaluation
+    assert result.metric.lower() in first.lower()
+    assert f"{result.score:.4f}" in first and f"{result.baseline_score:.4f}" in first
+    assert "of the variance in the log multiple" not in first
+    assert "That is the re-rating" in verdict

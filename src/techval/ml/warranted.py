@@ -259,7 +259,7 @@ from .evaluation import (
     walk_forward_folds,
 )
 from .features import FEATURE_NAMES, assert_point_in_time, build_features
-from .protocol import EvalResult, ModelCard, spearman
+from .protocol import EvalResult, ModelCard, sentence_case, spearman
 
 __all__ = [
     "WARRANTED_FEATURES",
@@ -760,15 +760,21 @@ class WarrantedModel:
         )
 
     def verdict(self) -> str:
-        """One paragraph: the re-rating, the score, its caveat, and what to do.
+        """One paragraph: the score, the re-rating around it, its caveat, and what to do.
 
-        The caveat is not optional decoration and it is not in the notes where it
-        could be skipped. A pooled rank correlation on a panel of the same
-        companies quarter after quarter is mostly the companies, and the sentence
-        that says so travels with the sentence that gives the number.
+        The score leads, because a reader who stops after one sentence should
+        have the number the model is judged on. Everything that deflates it
+        follows in the same paragraph: the caveat is not optional decoration and
+        it is not in the notes where it could be skipped. A pooled rank
+        correlation on a panel of the same companies quarter after quarter is
+        mostly the companies, and the sentence that says so travels with the
+        sentence that gives the number.
         """
-        lines = [self.rerating.sentence(), self.card.summary()]
         result = self.card.evaluation
+        lines = [
+            sentence_case(result.verdict()) if result is not None else self.card.summary(),
+            self.rerating.sentence(),
+        ]
         if result is not None and not result.beat_baseline:
             lines.append(
                 f"The fitted model does not beat {result.baseline_name}. Use the "
