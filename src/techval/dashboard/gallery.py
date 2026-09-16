@@ -331,7 +331,7 @@ def _overview(sections: list[dict[str, Any]]) -> dict[str, Any]:
             "collection": _figure(
                 "tiles",
                 "Every assumption is the engine default",
-                "What every number on this page was computed from, and under what",
+                "What every number on this page was computed from, and the assumptions it was computed under",
                 {
                     "tiles": [
                         {"label": "Assumptions changed from the defaults", "value": 0, "format": "int", "sub": "No setting differs from the defaults"}
