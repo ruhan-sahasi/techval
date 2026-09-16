@@ -8,8 +8,8 @@
  * Colours are never hex values here. Marks are painted with var(--token)
  * references, so a theme change repaints a chart without redrawing it, and
  * colour follows the entity: a series with role "model" is --c-model wherever
- * it appears. The roles are model, model-muted (a tint of the model, for a
- * second reading of the same model), baseline, alt (the one named
+ * it appears. The roles are model, model-muted (the baseline grey, for a second
+ * reading of the same model drawn behind the first), baseline, alt (the one named
  * comparison), third, total, and pos and neg for diverging bars.
  *
  * Mark rules the kit enforces rather than suggests: bars at most 24px thick
@@ -36,8 +36,11 @@
  * Chart by chart, what is not obvious from the data:
  *
  *   hbar    rows [{label, value, role, note, lo, hi}]; lo and hi draw a whisker.
- *   column  rows [{label, value, role}]; diverging colours by sign. Column
- *           labels are thinned to fit and the first and last always stay.
+ *   column  rows [{label, value, role, labelled}]; diverging colours by sign.
+ *           Column labels are thinned to fit and the first and last always
+ *           stay. One value label names the highest bar, and the lowest when it
+ *           is negative; where any row carries labelled, the flagged rows carry
+ *           the labels instead. labels "all" labels every bar.
  *   dot     series [{key, name, role}] and rows [{label, values, lo, hi,
  *           intervals: {key: {lo, hi}}, group, text, tip, role, hollow,
  *           aside, asideStrong, labelled, gap}]. A value label names only the
@@ -55,7 +58,9 @@
  *   heat    rows, cols, values; scale "diverging" or sequential; breaks [a, b]
  *           for fixed diverging classes; mono and labelAlign for row labels,
  *           which are never clipped (labelWidth wraps them); groups [{label,
- *           count}]; colTitle; cellMax; rowNotes; rowTips.
+ *           count}]; colTitle; cellMax; rowNotes; rowTips. scale "plain" sets
+ *           the grid as a banker's table: no fill, a rule under each row, no
+ *           scale legend, and base [row, col] boxes the base case.
  *   hist    edges and series [{name, role, counts}], at most two series.
  *   range   rows [{label, lo, mid, hi, role}], the football field.
  *   waterfall start, steps [{label, value}] and total; its legend lists only
@@ -788,7 +793,7 @@
   TV.refusalNote = refusalNote;
   TV.cautionNote = cautionNote;
 
-  /* Figure cards ---------------------------------------------------------- */
+  /* Exhibits -------------------------------------------------------------- */
 
   function provenanceRows(provenance) {
     var list = Array.isArray(provenance) ? provenance : isNil(provenance) ? [] : [provenance];
@@ -904,8 +909,8 @@
       },
       addProvenance: addProvenance,
       /*
-       * A second figure drawn inside this card, under its own heading. Its table
-       * view joins the card's, its entry points join the card's source line.
+       * A second figure drawn inside this exhibit, under its own heading. Its
+       * table view joins the exhibit's, its entry points join its source line.
        */
       part: function (o) {
         o = o || {};
@@ -949,7 +954,7 @@
       table.hidden = !showTable;
       body.hidden = showTable;
       legend.hidden = showTable;
-      toggle.textContent = showTable ? "Show chart" : "Show data";
+      setToggle(toggle, showTable ? "Show chart" : "Show data", showTable, handle.title);
     });
 
     root.__tvHandle = handle;
@@ -1159,6 +1164,17 @@
     return isNil(raw) ? "n/a" : String(raw);
   }
 
+  /*
+   * A data toggle says the same thing three ways: the word on the button, the
+   * open state, and which figure it belongs to. A page carries 60 of these, and
+   * "Show data" on its own tells a reader moving by control nothing about which.
+   */
+  function setToggle(btn, word, open, title) {
+    btn.textContent = word;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", title ? word + ", " + title : word);
+  }
+
   TV.tableView = function (handle, spec) {
     spec = spec || {};
     var columns = spec.columns || [];
@@ -1201,7 +1217,11 @@
     );
     var wrap = el("div", { class: "tv-table-wrap", tabindex: "0", role: "region", "aria-label": label }, table);
     target.appendChild(wrap);
-    if (handle && handle.toggle && handle.table) handle.toggle.hidden = false;
+    if (handle && handle.toggle && handle.table) {
+      handle.toggle.hidden = false;
+      /* A part shares the exhibit's toggle, so the exhibit it opens is the one that names it: the first table wins. */
+      if (!handle.toggle.getAttribute("aria-label")) setToggle(handle.toggle, "Show data", false, handle.title);
+    }
     return wrap;
   };
 
@@ -1419,7 +1439,7 @@
 
   /*
    * How many ticks to ask a horizontal axis for: one per 90px and at least
-   * three, so a chart in a half-width card still reads its scale, and never so
+   * three, so a chart in a half-width exhibit still reads its scale, and never so
    * few that a finely niced domain is left with a single label. Labels that
    * would touch are dropped as they are drawn.
    */
@@ -1780,7 +1800,12 @@
         if (minI < 0 || r.value < rows[minI].value) minI = i;
       });
       var mode = spec.labels || "extreme";
+      /* A row may name itself, as a dot chart's rows do, so a title that quotes two bars can label those two. */
+      var flagged = rows.some(function (r) {
+        return typeof r.labelled === "boolean";
+      });
       function labelled(i) {
+        if (mode !== "all" && flagged) return rows[i].labelled === true;
         return mode === "all" || (mode === "extreme" && (i === maxI || (i === minI && rows[minI].value < 0)));
       }
 
@@ -1867,7 +1892,9 @@
           valueLayer.appendChild(svg("text", { class: "tv-value", x: cx, y: v.y, "text-anchor": "middle" }, v.text));
         }
         if (shown.indexOf(i) >= 0) {
-          marks.appendChild(svg("text", { class: "tv-tick", x: cx, y: H - bottom + 16, "text-anchor": "middle" }, r.label));
+          var tickW = measure(r.label, 11);
+        var tickAnchor = cx - tickW / 2 < 0 ? "start" : cx + tickW / 2 > W ? "end" : "middle";
+        marks.appendChild(svg("text", { class: "tv-tick", x: cx, y: H - bottom + 16, "text-anchor": tickAnchor }, r.label));
         }
         tooltip.attach(g, function () {
           return {
@@ -2445,7 +2472,13 @@
       });
     }
     if (spec.shadeLegend && shades.length) legendItems.push({ label: spec.shadeLegend, color: "--wash-strong", shape: "rect" });
-    chartLegend(body, spec, legendItems, "line");
+    /*
+     * chartLegend draws nothing for a single item, which is right for one series
+     * the title already names and wrong for a shaded window, which nothing else
+     * on the chart explains. So a lone shade key is drawn here.
+     */
+    if (legendItems.length === 1 && spec.shadeLegend && !legendOff(spec)) legendFor(body, legendItems);
+    else chartLegend(body, spec, legendItems, "line");
 
     frame(body, "line", function (wrap, W) {
       var ys = [];
@@ -3551,6 +3584,12 @@
         var parts = [];
         var d = barPath("v", y(it.from), y(it.to), cx - thick / 2, thick);
         if (d) parts.push(svg("path", { class: "tv-mark", d: d, style: { fill: fill } }));
+        /* A step of exactly zero is the finding, so it draws a rule rather than an empty column under its label. */
+        else if (isNum(it.value) && it.kind !== "total") {
+          parts.push(
+            svg("rect", { class: "tv-mark", x: cx - thick / 2, y: crisp(y(it.to)) - 1, width: thick, height: 2, style: { fill: fill } })
+          );
+        }
         var g = markGroup(
           marks,
           { x: m.left + stepW * i, y: m.top, width: stepW, height: H - m.top - m.bottom },
@@ -3656,7 +3695,7 @@
       );
     });
     body.appendChild(grid);
-    /* Inside a figure card the tiles are a figure, so they get a table view like any other. */
+    /* Inside an exhibit the tiles are a figure, so they get a table view like any other. */
     var handle = handleFor(body);
     if (handle && list.length) {
       TV.tableView(handle, {
@@ -3839,7 +3878,7 @@
       var showTable = table.hidden;
       table.hidden = !showTable;
       body.hidden = showTable;
-      toggle.textContent = showTable ? "Hide data" : "Show data";
+      setToggle(toggle, showTable ? "Hide data" : "Show data", showTable, handle.title);
     });
 
     var handle = {

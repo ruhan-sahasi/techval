@@ -5680,6 +5680,7 @@
               {
                 "dates": 4,
                 "label": "2019",
+                "labelled": false,
                 "n": 1460,
                 "positives": 46,
                 "role": "alt",
@@ -5688,6 +5689,7 @@
               {
                 "dates": 4,
                 "label": "2020",
+                "labelled": false,
                 "n": 1452,
                 "positives": 56,
                 "role": "alt",
@@ -5696,6 +5698,7 @@
               {
                 "dates": 4,
                 "label": "2021",
+                "labelled": false,
                 "n": 1532,
                 "positives": 59,
                 "role": "alt",
@@ -5704,6 +5707,7 @@
               {
                 "dates": 4,
                 "label": "2022",
+                "labelled": true,
                 "n": 1560,
                 "positives": 32,
                 "role": "alt",
@@ -5712,6 +5716,7 @@
               {
                 "dates": 4,
                 "label": "2023",
+                "labelled": true,
                 "n": 1544,
                 "positives": 70,
                 "role": "alt",
@@ -5720,6 +5725,7 @@
               {
                 "dates": 4,
                 "label": "2024",
+                "labelled": false,
                 "n": 1485,
                 "positives": 57,
                 "role": "alt",
@@ -5728,6 +5734,7 @@
               {
                 "dates": 1,
                 "label": "2025",
+                "labelled": false,
                 "n": 367,
                 "positives": 16,
                 "role": "alt",
@@ -6573,7 +6580,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 2.64
+          "seconds": 3.39
         },
         {
           "entry_point": "techval.ml.evaluation.evaluate_classification",
@@ -6595,7 +6602,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 4.69
+          "seconds": 4.92
         },
         {
           "entry_point": "techval.ml.mna.PropensityResult.coefficient_stability",
@@ -6661,7 +6668,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 1.27
+          "seconds": 1.26
         },
         {
           "entry_point": "techval.ml.evaluation.evaluate_classification",
@@ -7403,22 +7410,27 @@
             "rows": [
               {
                 "label": "Cheapest",
+                "labelled": true,
                 "value": 0.198826
               },
               {
                 "label": "2",
+                "labelled": false,
                 "value": 0.208681
               },
               {
                 "label": "3",
+                "labelled": false,
                 "value": 0.225209
               },
               {
                 "label": "4",
+                "labelled": false,
                 "value": 0.257676
               },
               {
                 "label": "Dearest",
+                "labelled": true,
                 "value": 0.252651
               }
             ],
@@ -7738,7 +7750,7 @@
             "tests/fixtures/signals/ev_revenue.csv.gz",
             "tests/fixtures/signals/closes.csv.gz"
           ],
-          "seconds": 0.89
+          "seconds": 0.77
         },
         {
           "entry_point": "techval.ml.signals.test_signal",
@@ -8575,13 +8587,16 @@
             "format": "pct:0",
             "height": 372,
             "labelHeader": "Filer",
-            "labels": "all",
+            "labels": {
+              "rows": "flagged"
+            },
             "legend": false,
             "rows": [
               {
                 "aside": "+144%",
                 "key": "WBD",
                 "label": "WBD",
+                "labelled": true,
                 "tip": [
                   {
                     "label": "More than 5% off",
@@ -8600,6 +8615,7 @@
                 "aside": "+67%",
                 "key": "VZ",
                 "label": "VZ",
+                "labelled": true,
                 "tip": [
                   {
                     "label": "More than 5% off",
@@ -8618,6 +8634,7 @@
                 "aside": "+8%",
                 "key": "DELL",
                 "label": "DELL",
+                "labelled": false,
                 "tip": [
                   {
                     "label": "More than 5% off",
@@ -8636,6 +8653,7 @@
                 "aside": "+19%",
                 "key": "EBAY",
                 "label": "EBAY",
+                "labelled": false,
                 "tip": [
                   {
                     "label": "More than 5% off",
@@ -8654,6 +8672,7 @@
                 "aside": "+7%",
                 "key": "DXC",
                 "label": "DXC",
+                "labelled": false,
                 "tip": [
                   {
                     "label": "More than 5% off",
@@ -8672,6 +8691,7 @@
                 "aside": "+10%",
                 "key": "AVGO",
                 "label": "AVGO",
+                "labelled": false,
                 "tip": [
                   {
                     "label": "More than 5% off",
@@ -8690,6 +8710,7 @@
                 "aside": "+23%",
                 "key": "TTWO",
                 "label": "TTWO",
+                "labelled": false,
                 "tip": [
                   {
                     "label": "More than 5% off",
@@ -8708,6 +8729,7 @@
                 "aside": "+48%",
                 "key": "HPE",
                 "label": "HPE",
+                "labelled": false,
                 "tip": [
                   {
                     "label": "More than 5% off",
@@ -8726,6 +8748,7 @@
                 "aside": "+41%",
                 "key": "TMUS",
                 "label": "TMUS",
+                "labelled": false,
                 "tip": [
                   {
                     "label": "More than 5% off",
@@ -8744,6 +8767,7 @@
                 "aside": "−7%",
                 "key": "OMC",
                 "label": "OMC",
+                "labelled": false,
                 "tip": [
                   {
                     "label": "More than 5% off",
@@ -8762,6 +8786,7 @@
                 "aside": "+20%",
                 "key": "EQIX",
                 "label": "EQIX",
+                "labelled": false,
                 "tip": [
                   {
                     "label": "More than 5% off",
@@ -8780,6 +8805,7 @@
                 "aside": "+6%",
                 "key": "CSCO",
                 "label": "CSCO",
+                "labelled": false,
                 "tip": [
                   {
                     "label": "More than 5% off",
@@ -8798,6 +8824,7 @@
                 "aside": "+6%",
                 "key": "ADBE",
                 "label": "ADBE",
+                "labelled": false,
                 "tip": [
                   {
                     "label": "More than 5% off",
@@ -9738,6 +9765,6 @@
       "title": "Warranted multiple"
     }
   },
-  "techval_commit": "b9585bf",
+  "techval_commit": "c9083ce",
   "title": "Valuation engine and model results"
 }
