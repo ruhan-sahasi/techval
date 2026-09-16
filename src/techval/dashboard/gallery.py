@@ -709,6 +709,18 @@ def _fade() -> dict[str, Any]:
                 },
                 wide=True,
             ),
+            # Tiles on the page plane, the kit's tileset: no card, but the same
+            # table view, data toggle and source line a card figure carries.
+            "panel_reach": _figure(
+                "tiles",
+                "The panel behind every figure here",
+                "What the fade was fitted on, before any figure was drawn",
+                {"tiles": [
+                    {"label": "Company-years", "value": 2334, "format": "int", "sub": "Filed 2009 to 2026"},
+                    {"label": "Companies", "value": 223, "format": "int", "sub": "One revenue ladder each"},
+                    {"label": "Median years a filer supports", "value": 12, "format": "int", "sub": "The deepest reach 19"},
+                ]},
+            ),
             # Tiles drawn in a card, with a second set of tiles as a part of the same card.
             "year_five": _figure(
                 "tiles",
