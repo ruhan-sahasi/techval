@@ -44,9 +44,10 @@
 
   /* premia ----------------------------------------------------------------- */
 
-  function gapText(points, flagged) {
+  /* The gap in points. Which rows are flagged is said once, in the column heading, and shown by the strong figure. */
+  function gapText(points) {
     if (!isNum(points)) return "n/a";
-    return TV.fmt.signed(points, 1) + " pts" + (flagged ? ", flagged" : "");
+    return TV.fmt.signed(points, 1) + " pts";
   }
 
   function premia(d) {
@@ -60,11 +61,13 @@
       labels: "none",
       zeroLine: true,
       rowHeight: 36,
+      asideHeader: threshold ? "Gap, points; bold moves more than " + threshold : "Gap, points",
+      asideAlign: "end",
       rows: d.rows.map(function (r) {
         var tip = [];
         if (r.acquirer) tip.push({ label: "Acquirer", value: r.acquirer });
         if (r.announced) tip.push({ label: "Announced", value: String(r.announced) });
-        return Object.assign({}, r, { aside: gapText(r.gap_points, r.flagged), asideStrong: !!r.flagged, tip: tip });
+        return Object.assign({}, r, { aside: gapText(r.gap_points), asideStrong: !!r.flagged, tip: tip });
       }),
       table: {
         columns: [
