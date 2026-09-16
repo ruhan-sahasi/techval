@@ -622,12 +622,20 @@ def takeaway(inp: Inputs) -> str:
     card = inp.card
     lift = _lift(card.model_score, card.baseline_score, inp.higher_is_better)
     ranks = "ranks" if lift > 0 else "does not rank"
+    # The chip beside this sentence judges the lift against the spread of the
+    # per-fold lifts, so the sentence carries that reading rather than leaving a
+    # reader to reconcile "better than" with a square that says inside noise.
+    reading = {
+        "beats": ", a lift outside the spread of the per-fold lifts",
+        "inside_noise": ", a lift inside the spread of the per-fold lifts",
+        "not_significant": ", on too few folds to judge the lift against their spread",
+    }.get(verdict_status(inp), "")
     first = (
         f"The {MODEL_NAMES.get(inp.model_kind, inp.model_kind)} {ranks} "
         f"{inp.target_label} multiples better than the strongest peer baseline, "
         f"{_lower_first(_short(card.name))}: "
         f"{card.model_score:.4f} against {card.baseline_score:.4f} on {card.n:,} "
-        "observations."
+        f"observations{reading}."
     )
     if inp.change is None:
         second = (
@@ -680,7 +688,7 @@ def audit_sentence(inp: Inputs) -> str:
 def build_deflation(inp: Inputs) -> dict[str, Any]:
     if inp.change is None or inp.pooled_on_change_rows is None:
         raise FigureRefused(
-            "deflation",
+            "Level against change",
             "The fit returned no differenced rank correlation, so there is no score "
             f"for the change to set beside the level ({inp.n_changes:,} scored "
             "observations carry a previous observation).",
@@ -789,7 +797,7 @@ def build_baselines(inp: Inputs) -> dict[str, Any]:
 def build_folds(inp: Inputs) -> dict[str, Any]:
     if len(inp.folds) < 2:
         raise FigureRefused(
-            "folds",
+            "Score by walk-forward fold",
             f"The fit produced {len(inp.folds)} walk-forward fold(s), and one fold is "
             "a single split with nothing to compare it to.",
         )
@@ -859,7 +867,7 @@ def build_noise(inp: Inputs) -> dict[str, Any]:
     strict_sd = _sd(lifts)
     if inp.fold_score_sd is None or strict_sd is None:
         raise FigureRefused(
-            "noise",
+            "Lift against the noise",
             f"Both noise tests need at least two folds, and the fit produced {len(inp.folds)}.",
         )
     card = inp.card
@@ -943,13 +951,13 @@ def _human(sub_vertical: str) -> str:
 def build_screen(inp: Inputs) -> dict[str, Any]:
     if not inp.screen or inp.screen_date is None:
         raise FigureRefused(
-            "screen",
+            "Screen of rich and cheap names",
             "The fit holds no out-of-sample reads on its latest date, so there is no "
             "screen to draw.",
         )
     stale = screen_refusal(inp)
     if stale is not None:
-        raise FigureRefused("screen", stale)
+        raise FigureRefused("Screen of rich and cheap names", stale)
     rows = sorted(inp.screen, key=lambda r: r.residual_log, reverse=True)
     rich = [r for r in rows if r.residual_log > 0]
     cheap = [r for r in rows if r.residual_log <= 0]
@@ -1028,7 +1036,7 @@ def build_screen(inp: Inputs) -> dict[str, Any]:
 def build_rerating(inp: Inputs) -> dict[str, Any]:
     if len(inp.date_means) < 2:
         raise FigureRefused(
-            "rerating",
+            "The re-rating across dates",
             f"The panel holds {len(inp.date_means)} quarter end(s), and a re-rating "
             "needs at least two.",
         )
@@ -1154,7 +1162,7 @@ def _audit_caution(inp: Inputs) -> dict[str, str] | None:
 def build_audit(inp: Inputs) -> dict[str, Any]:
     if inp.audit is None:
         raise FigureRefused(
-            "audit",
+            "Enterprise-value audit",
             "No enterprise-value audit describes this panel"
             + (f": {inp.audit_problem}" if inp.audit_problem else "")
             + ". Run tests/fixtures/warranted/record_ev_audit.py against it.",
@@ -1238,7 +1246,7 @@ def build_audit(inp: Inputs) -> dict[str, Any]:
         "tiles",
         title,
         (
-            f"Each of the panel's {c.observations:,} observations rebuilt by "
+            f"{c.compared:,} of the panel's {c.observations:,} observations rebuilt by "
             f"record_ev_audit.py at {audit.code_commit[:7]}, pinned to its own date: the "
             "recorded equity value plus today's net debt, then today's row checks. The "
             f"audit was recorded on {audit.recorded}; the features are not rebuilt."
@@ -1258,11 +1266,11 @@ REFUSAL_WORDS = {
 
 def build_audit_filers(inp: Inputs) -> dict[str, Any]:
     if inp.audit is None:
-        raise FigureRefused("audit_filers", "No enterprise-value audit describes this panel.")
+        raise FigureRefused("Filers the audit moves", "No enterprise-value audit describes this panel.")
     filers = affected_filers(inp.audit)
     if not filers:
         raise FigureRefused(
-            "audit_filers",
+            "Filers the audit moves",
             f"No filer has an enterprise value more than {GAP_STALE:.0%} off, so there is "
             "no filer to draw.",
         )
