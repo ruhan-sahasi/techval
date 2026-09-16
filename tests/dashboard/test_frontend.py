@@ -792,6 +792,21 @@ PROBE = r"""<script>
       });
       return out;
     },
+    toggleNames: function () {
+      var shown = Array.prototype.filter.call(document.querySelectorAll('.tv-figure__foot .tv-btn'), function (btn) {
+        return !btn.hidden;
+      });
+      return shown.map(function (btn) {
+        var fig = btn.closest('[data-figure-id]');
+        var title = fig ? (fig.querySelector('.tv-figure__title, .tv-tileset__title') || {}).textContent || '' : '';
+        return {
+          text: btn.textContent,
+          expanded: btn.getAttribute('aria-expanded'),
+          label: btn.getAttribute('aria-label'),
+          named: !!title && (btn.getAttribute('aria-label') || '').indexOf(title) > 0,
+        };
+      });
+    },
     engineOrder: function () {
       return Array.prototype.map.call(document.querySelectorAll('#engine [data-figure-id]'), function (f) { return f.getAttribute('data-figure-id'); });
     },
@@ -1012,6 +1027,15 @@ def test_a_bridge_step_of_exactly_zero_draws_a_rule(drawn):
     # it is drawn rather than left as a value label over an empty column.
     (step,) = _checked(drawn, "zeroStep")
     assert step["drawn"] and step["height"] == 2 and step["width"] > 2
+
+
+def test_every_data_toggle_says_which_figure_it_opens_and_whether_it_is_open(drawn):
+    toggles = _checked(drawn, "toggleNames")
+    assert len(toggles) >= 10
+    for t in toggles:
+        assert t["expanded"] == "false", t
+        assert t["label"].startswith(t["text"]), t
+        assert t["named"], t
 
 
 def test_figures_follow_their_order_number_not_their_key(drawn):

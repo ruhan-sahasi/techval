@@ -952,7 +952,7 @@
       table.hidden = !showTable;
       body.hidden = showTable;
       legend.hidden = showTable;
-      toggle.textContent = showTable ? "Show chart" : "Show data";
+      setToggle(toggle, showTable ? "Show chart" : "Show data", showTable, handle.title);
     });
 
     root.__tvHandle = handle;
@@ -1162,6 +1162,17 @@
     return isNil(raw) ? "n/a" : String(raw);
   }
 
+  /*
+   * A data toggle says the same thing three ways: the word on the button, the
+   * open state, and which figure it belongs to. A page carries 60 of these, and
+   * "Show data" on its own tells a reader moving by control nothing about which.
+   */
+  function setToggle(btn, word, open, title) {
+    btn.textContent = word;
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+    btn.setAttribute("aria-label", title ? word + ", " + title : word);
+  }
+
   TV.tableView = function (handle, spec) {
     spec = spec || {};
     var columns = spec.columns || [];
@@ -1204,7 +1215,11 @@
     );
     var wrap = el("div", { class: "tv-table-wrap", tabindex: "0", role: "region", "aria-label": label }, table);
     target.appendChild(wrap);
-    if (handle && handle.toggle && handle.table) handle.toggle.hidden = false;
+    if (handle && handle.toggle && handle.table) {
+      handle.toggle.hidden = false;
+      /* A part shares the exhibit's toggle, so the exhibit it opens is the one that names it: the first table wins. */
+      if (!handle.toggle.getAttribute("aria-label")) setToggle(handle.toggle, "Show data", false, handle.title);
+    }
     return wrap;
   };
 
@@ -3861,7 +3876,7 @@
       var showTable = table.hidden;
       table.hidden = !showTable;
       body.hidden = showTable;
-      toggle.textContent = showTable ? "Hide data" : "Show data";
+      setToggle(toggle, showTable ? "Hide data" : "Show data", showTable, handle.title);
     });
 
     var handle = {
