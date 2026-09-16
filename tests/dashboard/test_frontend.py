@@ -43,6 +43,7 @@ SECTION_IDS = (
 DARK_MEDIA = "@media (prefers-color-scheme: dark)"
 DARK_AUTO = ':root:not([data-theme="light"])'
 DARK_FORCED = ':root[data-theme="dark"]'
+PRINT_MEDIA = "@media print"
 
 
 def _asset_files() -> list[Path]:
@@ -91,13 +92,20 @@ def token_blocks() -> dict[str, str]:
             inner = _blocks(body)
             assert [p for p, _ in inner] == [DARK_AUTO], "the dark media block holds one rule"
             found["auto"] = inner[0][1]
+        elif prelude == PRINT_MEDIA:
+            inner = _blocks(body)
+            # Named for the forced dark theme as well, or a page printed while
+            # stamped dark would take the dark tokens over these.
+            preludes = [" ".join(p.split()) for p, _ in inner]
+            assert preludes == [f":root, {DARK_FORCED}"], "the print media block holds one rule"
+            found["print"] = inner[0][1]
         elif prelude in (":root", DARK_FORCED):
             key = "root" if prelude == ":root" else "forced"
             assert key not in found, f"{prelude} is defined twice"
             found[key] = body
         else:
             pytest.fail(f"tokens.css holds a rule other than the theme blocks: {prelude}")
-    assert set(found) == {"root", "auto", "forced"}
+    assert set(found) == {"root", "auto", "forced", "print"}
     return found
 
 
@@ -106,7 +114,7 @@ def token_blocks() -> dict[str, str]:
 
 def test_every_dark_token_is_defined_on_bare_root(token_blocks):
     root = _defined(token_blocks["root"])
-    for key in ("auto", "forced"):
+    for key in ("auto", "forced", "print"):
         used = _defined(token_blocks[key]) | _referenced(token_blocks[key])
         missing = sorted(used - root)
         assert not missing, f"dark block ({key}) uses tokens with no light definition: {missing}"
@@ -123,7 +131,7 @@ def test_the_two_dark_blocks_define_the_same_tokens_with_the_same_values(token_b
 
 
 def test_dark_blocks_hold_tokens_only(token_blocks):
-    for key in ("auto", "forced"):
+    for key in ("auto", "forced", "print"):
         names = re.findall(r"([\w-]+)\s*:", token_blocks[key])
         stray = [n for n in names if not n.startswith("--") and n != "color-scheme"]
         assert not stray, f"dark block ({key}) styles properties directly: {stray}"
@@ -308,6 +316,22 @@ def test_kit_marks_follow_the_mark_specs(kit_source):
     assert "stroke-width: 2" in line and "stroke-linejoin: round" in line and "stroke-linecap: round" in line
     dot = next(body for prelude, body in _blocks(layout) if prelude == ".tv-dot")
     assert "stroke: var(--surface)" in dot and "stroke-width: 2" in dot
+
+
+def test_the_note_prints_as_a_note():
+    # Screen furniture goes, a section starts a page, and nothing a reader is
+    # meant to read as one piece is split across a break.
+    layout = _strip_comments((ASSETS / "layout.css").read_text(encoding="utf-8"))
+    block = next(body for prelude, body in _blocks(layout) if prelude == "@media print")
+    rules = {" ".join(prelude.split()): body for prelude, body in _blocks(block)}
+    hidden = next(body for prelude, body in rules.items() if ".tv-rail" in prelude and ".tv-btn" in prelude)
+    assert "display: none" in hidden
+    assert "break-before: page" in rules[".tv-section"]
+    assert "break-before: auto" in rules[".tv-section:first-of-type"]
+    whole = next(body for prelude, body in rules.items() if ".tv-figure," in prelude and ".tv-tileset," in prelude)
+    assert "break-inside: avoid" in whole
+    assert "overflow: visible" in rules[".tv-table-wrap"]
+    assert "max-width: 100%" in rules[".tv-svg"] and "height: auto" in rules[".tv-svg"]
 
 
 def test_reduced_motion_and_focus_are_respected():
