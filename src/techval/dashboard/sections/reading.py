@@ -252,7 +252,9 @@ def _takeaway(run: Run, key: KeyState | None, c: Comparison | None) -> str:
         )
     deals = len({p.task.accession for p in run.prepared if p.task.kind == "deal"})
     reports = len({p.task.accession for p in run.prepared if p.task.kind == "kpi"})
+    readers = "the regex rules and by a recorded Claude reader over the same retrieved passages"
     if run.missing:
+        readers = "the regex rules, over the retrieved passages and over the whole text"
         waiting = "the Claude reader's answers are not recorded yet"
     elif key is None:
         waiting = "no answer key is committed yet"
@@ -260,8 +262,8 @@ def _takeaway(run: Run, key: KeyState | None, c: Comparison | None) -> str:
         waiting = "the answer key is not filled in yet"
     return (
         f"{len(run.prepared)} facts from {_plural(deals, 'merger announcement')} and "
-        f"{_plural(reports, 'annual report')} are read by the regex rules and by a recorded Claude "
-        f"reader over the same retrieved passages. Neither is scored, because {waiting}."
+        f"{_plural(reports, 'annual report')} are read by {readers}. "
+        f"Neither reader is scored, because {waiting}."
     )
 
 
