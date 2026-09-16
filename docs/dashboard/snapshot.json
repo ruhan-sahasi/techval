@@ -73,6 +73,11 @@
     "tests/fixtures/prices/SNOW.csv": "a6d1797f87002bfea8b309f3413712a8c9fe6743f16f7c290a2271e77bfc1d2b",
     "tests/fixtures/prices/SPY.csv": "7407be52bb5747094f54b23526408b80b85a3f14653299724d09c070d6f124e3",
     "tests/fixtures/prices/ZS.csv": "f6dda77633d2d7661abdf26a0ed026dc6e1bd71bf9d334ddb8088e591830dead",
+    "tests/fixtures/rag/answer_key.csv": "093759b81c589f513dceb33203f58b800759fa18f4dcadadc9f918e3ce1f8aa3",
+    "tests/fixtures/rag/filing_text_NET_2025.json.gz": "ad3952f0bc00c9e0a2e5ddb1b647ddf4062912c1253a9dc4bf78a11c9e30ed56",
+    "tests/fixtures/rag/filing_text_NFLX_2025.json.gz": "b43a53bc46a66ae7fa896069847cb46c713e63eb47c6bedc4b7d915c4aee68d6",
+    "tests/fixtures/rag/filing_text_TMUS_2025.json.gz": "1333c91d3d95e565797c939683df0b2342f09b1443e8ae7200d045805886f9bb",
+    "tests/fixtures/rag/record_filing_text.py": "bbcc55e8d57692844d30314900114186d81dbcfe0377bbb867e801c477d7bd3f",
     "tests/fixtures/sec_tickers_tmt.json": "fd7ac01886afec2b2e05d612abb353d071078a7e311ce9e07c21fa6d74e57511",
     "tests/fixtures/share_basis_facts.json": "7885a3ff340befe4a7795f1462a6a8cacabe2980908b4ffe79f51e74e4948859",
     "tests/fixtures/signals/closes.csv.gz": "9e7c7d2302661050b721e84d72d7d60da6d3bf3d4080bfbab509de6188fccb32",
@@ -5429,7 +5434,7 @@
               {
                 "label": "Reading filings",
                 "role": "baseline",
-                "value": 3
+                "value": 2
               },
               {
                 "label": "Data layer",
@@ -5518,7 +5523,7 @@
                 "href": "#reading",
                 "id": "reading",
                 "provenance": 1,
-                "refusals": 3,
+                "refusals": 2,
                 "status": "ok",
                 "title": "Reading filings",
                 "verdict_status": null
@@ -5547,7 +5552,7 @@
             "totals": {
               "collected": 10,
               "figures": 62,
-              "refusals": 20,
+              "refusals": 19,
               "refusing_sections": 6,
               "sections": 10
             },
@@ -5555,7 +5560,7 @@
           },
           "kind": "hbar",
           "subtitle": "Every other section, in page order. A refusal is a number a section would not print because the fixtures could not reproduce it; each is stated with its reason.",
-          "title": "62 figures drawn and 20 refusals stated, 10 of them in the TMT layer"
+          "title": "62 figures drawn and 19 refusals stated, 10 of them in the TMT layer"
         }
       },
       "headline": null,
@@ -6789,7 +6794,7 @@
               {
                 "claude": "not recorded",
                 "fact": "Exchange ratio",
-                "regex_native": "refused: the clause names the filer as the converted security; the agreement states 0.2400, 0.4000 as alternative exchange ratios, which is a collar: the ratio is fixed from the buyer's share price at closing and does not exist at announcement. No exchange ratio is recorded.; the consideration includes buyer stock, so the offer price is only fixed once that leg is marked at the buyer's own unaffected close",
+                "regex_native": "refused: the clause names the filer as the converted security; the agreement states 0.2400, 0.4000 as alternative exchange ratios, which is a collar: the ratio is fixed from the buyer's share price at closing and does not exist at announcement. No exchange ratio is recorded; the consideration includes buyer stock, so the offer price is only fixed once that leg is marked at the buyer's own unaffected close",
                 "regex_retrieved": "not stated",
                 "subject": "IRDM"
               },
@@ -6827,6 +6832,62 @@
                 "regex_native": "not stated",
                 "regex_retrieved": "not stated",
                 "subject": "MNDT"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Annual recurring revenue",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NET"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Customers",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NET"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Net revenue retention",
+                "regex_native": "120%",
+                "regex_retrieved": "120%",
+                "subject": "NET"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Subscribers",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NET"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Annual recurring revenue",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NFLX"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Customers",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NFLX"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Net revenue retention",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NFLX"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Subscribers",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "NFLX"
               },
               {
                 "claude": "not recorded",
@@ -7005,6 +7066,34 @@
               },
               {
                 "claude": "not recorded",
+                "fact": "Annual recurring revenue",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "TMUS"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Customers",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "TMUS"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Net revenue retention",
+                "regex_native": "not stated",
+                "regex_retrieved": "not stated",
+                "subject": "TMUS"
+              },
+              {
+                "claude": "not recorded",
+                "fact": "Subscribers",
+                "regex_native": "3,287,000",
+                "regex_retrieved": "not stated",
+                "subject": "TMUS"
+              },
+              {
+                "claude": "not recorded",
                 "fact": "Acquirer",
                 "regex_native": "salesforce.com, inc.",
                 "regex_retrieved": "not stated",
@@ -7077,7 +7166,7 @@
           },
           "kind": "table",
           "subtitle": "Each fact is asked of its own filing: the announcing 8-K for a deal term, Item 7 of the 10-K for an operating figure. Both readers see the 6 passages BM25 ranks highest for the question, and the regex rules are run again on the whole text. A Claude answer stands only if its quote is in the passage it cites and its value is in the quote.",
-          "title": "The regex rules state a value for 39 of 49 filing facts on the whole text",
+          "title": "The regex rules state a value for 41 of 61 filing facts on the whole text",
           "wide": true
         }
       },
@@ -7098,20 +7187,16 @@
       ],
       "refusals": [
         {
-          "what": "Filings not yet committed",
-          "why": "NET: the 10-K text rag/filing_text_NET_2025.json.gz is not committed; tests/fixtures/rag/record_filing_text.py records it; NFLX: the 10-K text rag/filing_text_NFLX_2025.json.gz is not committed; tests/fixtures/rag/record_filing_text.py records it; TMUS: the 10-K text rag/filing_text_TMUS_2025.json.gz is not committed; tests/fixtures/rag/record_filing_text.py records it."
-        },
-        {
           "what": "Claude reader",
-          "why": "49 of 49 requests have no recording, so the Claude reader is not scored. `techval rag record` records them; it needs the rag extra and Anthropic credentials."
+          "why": "61 of 61 requests have no recording, so the Claude reader is not scored. The command techval rag record records them; it needs the rag extra and Anthropic credentials."
         },
         {
           "what": "Scoring",
-          "why": "No answer key is committed, so neither reader is scored. `techval rag template` writes the blank key for the owner to fill in."
+          "why": "The answer key is not complete: 61 blank rows. Neither reader is scored until it is."
         }
       ],
       "status": "ok",
-      "takeaway": "49 facts from 9 merger announcements and 1 annual report are read by the regex rules and by a recorded Claude reader over the same retrieved passages. Neither is scored, because the Claude reader's answers are not recorded yet.",
+      "takeaway": "61 facts from 9 merger announcements and 4 annual reports are read by the regex rules, over the retrieved passages and over the whole text. Neither reader is scored, because the Claude reader's answers are not recorded yet.",
       "title": "Reading filings"
     },
     "sample": {
@@ -10191,6 +10276,6 @@
       "title": "Warranted multiple"
     }
   },
-  "techval_commit": "7282f40",
+  "techval_commit": "e2b850d",
   "title": "Valuation engine and model results"
 }
