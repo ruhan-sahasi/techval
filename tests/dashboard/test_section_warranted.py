@@ -559,7 +559,7 @@ def test_the_caution_quotes_the_partial_refit_of_the_headline(committed):
 
 def test_the_screen_is_refused_because_the_partial_refit_moves_it(committed):
     assert "screen" not in committed["figures"]
-    why = {r["what"]: r["why"] for r in committed["refusals"]}["screen"]
+    why = {r["what"]: r["why"] for r in committed["refusals"]}[names["screen"]]
     assert "None of the screen's 16 names on 2026-06-30 is itself flagged" in why
     assert "(DLR, EBAY, TMUS, VZ and WBD)" in why
     assert "changes 1 of its 16 names: TXN leaves it and PLTR joins" in why
