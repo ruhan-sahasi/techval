@@ -603,9 +603,9 @@ def _apv(m: Measured) -> dict[str, Any]:
     )
     if a.filed_interest and a.filed_interest > 0:
         subtitle += (
-            f" Modelled interest of {a.modelled_interest:,.0f}mm is "
+            f" Modelled interest of {a.modelled_interest:,.1f}mm is "
             f"{a.modelled_interest / a.filed_interest:,.1f}x the "
-            f"{a.filed_interest:,.0f}mm filed."
+            f"{a.filed_interest:,.1f}mm filed."
         )
     return _figure(
         "dot",

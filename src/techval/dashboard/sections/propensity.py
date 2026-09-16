@@ -942,7 +942,10 @@ def _evaluation(result) -> Evaluation:
         n_folds=len(ev.folds),
         higher_is_better=bool(ev.higher_is_better),
         beat_baseline=bool(ev.beat_baseline),
-        verdict_text=result.verdict(),
+        # The baseline's full name carries its own score for a reader of the model
+        # card. The verdict states that score already, so the page trims the name
+        # the same way the tile beside it is trimmed.
+        verdict_text=result.verdict().replace(ev.baseline_name, name),
         chance=float(result.base_rate_result.baseline_score),
     )
 
