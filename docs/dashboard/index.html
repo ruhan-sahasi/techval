@@ -71,10 +71,8 @@
   --space-7: 48px;
   --space-8: 72px;
 
-  /* Nothing on the page is a card; controls keep a small radius. */
-  --radius-card: 0;
+  /* The one radius on the page: the tooltip. Small keys round themselves. */
   --radius-control: 3px;
-  --radius-chip: 0;
 
   --rail-width: 220px;
   --main-max: 1120px;
@@ -158,7 +156,6 @@
   /* Status: a small mark beside a verdict word, never the word's only carrier. */
   --status-good: #1d7a3c;
   --status-warning: #a86b00;
-  --status-serious: #b5552f;
   --status-critical: #b23a2e;
   --status-neutral: #6f7875;
   --on-status-good: #ffffff;
@@ -5769,11 +5766,12 @@ a.tv-tile:hover .tv-tile__label {
   /* Header and basis of preparation ------------------------------------- */
 
   var STANDFIRST =
-    "techval values technology, media and telecom companies on free public data: SEC filings, public quotes and " +
-    "the Treasury curve. This note sets out what it computes, from the DCF engine, trading comps and a precedent " +
-    "deal database to five models built on the same filings, each scored out of sample against a baseline it has " +
-    "to beat. Every figure is recomputed offline from committed fixtures; where one could not be reproduced, a " +
-    "note says so in its place.";
+    "techval values technology, media and telecom companies on free public data: SEC filings and daily closes. " +
+    "This note sets out what it computes, from the DCF engine and trading comps to precedent deals read from " +
+    "merger filings and five models scored out of sample against a baseline each has to beat. Every figure is " +
+    "recomputed offline from the committed fixtures listed under the basis of preparation, and the valuations " +
+    "discount at a risk-free rate pinned in the assumptions rather than quoted from the Treasury curve; where a " +
+    "figure could not be reproduced, a note says so in its place.";
 
   function header(snapshot) {
     var dateline = el(

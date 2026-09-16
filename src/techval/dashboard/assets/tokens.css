@@ -61,10 +61,8 @@
   --space-7: 48px;
   --space-8: 72px;
 
-  /* Nothing on the page is a card; controls keep a small radius. */
-  --radius-card: 0;
+  /* The one radius on the page: the tooltip. Small keys round themselves. */
   --radius-control: 3px;
-  --radius-chip: 0;
 
   --rail-width: 220px;
   --main-max: 1120px;
@@ -148,7 +146,6 @@
   /* Status: a small mark beside a verdict word, never the word's only carrier. */
   --status-good: #1d7a3c;
   --status-warning: #a86b00;
-  --status-serious: #b5552f;
   --status-critical: #b23a2e;
   --status-neutral: #6f7875;
   --on-status-good: #ffffff;
