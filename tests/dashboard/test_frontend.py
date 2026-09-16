@@ -729,6 +729,29 @@ PROBE = r"""<script>
         source: card.querySelector('.tv-figure__source').textContent,
       };
     },
+    tilesets: function () {
+      return Array.prototype.map.call(document.querySelectorAll('.tv-tileset'), function (set) {
+        var btn = set.querySelector('.tv-figure__foot .tv-btn');
+        var table = set.querySelector('.tv-figure__table');
+        var body = set.querySelector('.tv-tileset__body');
+        var out = {
+          id: set.getAttribute('data-figure-id'),
+          tiles: set.querySelectorAll('.tv-tile').length,
+          rows: set.querySelectorAll('.tv-figure__table tbody tr').length,
+          toggle: btn ? !btn.hidden : false,
+          buttons: set.querySelectorAll('.tv-btn').length,
+          source: (set.querySelector('.tv-figure__source') || {}).textContent || '',
+          tableHidden: table ? table.hidden : null,
+        };
+        if (btn) {
+          btn.click();
+          out.opened = { table: table.hidden === false, body: body.hidden === true, text: btn.textContent };
+          btn.click();
+          out.closed = { table: table.hidden === true, body: body.hidden === false, text: btn.textContent };
+        }
+        return out;
+      });
+    },
     engineOrder: function () {
       return Array.prototype.map.call(document.querySelectorAll('#engine [data-figure-id]'), function (f) { return f.getAttribute('data-figure-id'); });
     },
