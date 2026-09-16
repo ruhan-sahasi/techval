@@ -966,7 +966,7 @@
   };
 
   function handleFor(body) {
-    var fig = body && body.closest ? body.closest(".tv-figure__part, .tv-figure") : null;
+    var fig = body && body.closest ? body.closest(".tv-figure__part, .tv-figure, .tv-tileset") : null;
     return fig && fig.__tvHandle ? fig.__tvHandle : null;
   }
 
@@ -3805,25 +3805,58 @@
     if (typeof f.after === "function") f.after(handle, f);
   }
 
-  function tileset(parent, id, f) {
+  /*
+   * A set of stat tiles on the page plane. It is a figure like any other, so it
+   * carries the same table view, the same data toggle and the same source line;
+   * only the card around it is missing.
+   */
+  function tileset(parent, id, f, provenance) {
     var set = el(
       "div",
       { class: "tv-tileset", "data-figure-id": id },
       f.title ? el("h3", { class: "tv-tileset__title" }, f.title) : null,
       f.subtitle ? el("p", { class: "tv-figure__subtitle" }, f.subtitle) : null
     );
+    var body = el("div", { class: "tv-tileset__body" });
+    var table = el("div", { class: "tv-figure__table", hidden: true });
+    var notes = el("div", { class: "tv-figure__notes" });
+    var toggle = el("button", { class: "tv-btn", type: "button", hidden: true }, "Show data");
+    var source = el("span", { class: "tv-figure__source" });
+    var foot = el("footer", { class: "tv-figure__foot" }, source, toggle);
+    set.appendChild(body);
+    set.appendChild(table);
+    set.appendChild(notes);
+    set.appendChild(foot);
     parent.appendChild(set);
-    return {
+
+    var entries = provenanceRows(provenance);
+    if (entries.length) {
+      source.appendChild(document.createTextNode(compactEntries(entries)));
+      source.setAttribute("title", sourceTitle(entries));
+    }
+
+    toggle.addEventListener("click", function () {
+      var showTable = table.hidden;
+      table.hidden = !showTable;
+      body.hidden = showTable;
+      toggle.textContent = showTable ? "Hide data" : "Show data";
+    });
+
+    var handle = {
       root: set,
-      body: set,
+      body: body,
+      table: table,
+      toggle: toggle,
       title: f.title || "",
       addNote: function (r) {
-        set.appendChild(refusalNote(r));
+        notes.appendChild(refusalNote(r));
       },
       addCaution: function (n) {
-        set.appendChild(cautionNote(n));
+        notes.appendChild(cautionNote(n));
       },
     };
+    set.__tvHandle = handle;
+    return handle;
   }
 
   TV.sections = {
@@ -3894,7 +3927,7 @@
           var f = figs[id];
           var handle;
           if (!inCard(f)) {
-            handle = tileset(block, id, f);
+            handle = tileset(block, id, f, provenanceOf(id));
             grid = null;
             drawFigure(handle, id, f);
           } else {

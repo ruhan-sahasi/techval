@@ -1234,9 +1234,23 @@ details > summary:hover {
 
 /* Tables, set the way financial tables are: rules, not boxes; headers in sentence case. */
 
+/*
+ * A table wider than its box scrolls inside it. Four layers say so: two covers
+ * painted on the content, which scroll away as the reader moves, and two
+ * shadows painted on the box, which they uncover. A shadow therefore shows on
+ * a side only while there are columns out of view on that side.
+ */
 .tv-table-wrap {
   overflow-x: auto;
   max-width: 100%;
+  background-image: linear-gradient(to right, var(--page) 60%, transparent),
+    linear-gradient(to left, var(--page) 60%, transparent),
+    linear-gradient(to right, var(--border), transparent),
+    linear-gradient(to left, var(--border), transparent);
+  background-position: left center, right center, left center, right center;
+  background-size: 28px 100%, 28px 100%, 18px 100%, 18px 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
 }
 
 .tv-table {
@@ -1368,6 +1382,11 @@ details > summary:hover {
   display: grid;
   gap: var(--space-2);
   min-width: 0;
+}
+
+.tv-tileset__body {
+  display: grid;
+  gap: var(--space-2);
 }
 
 .tv-tileset__title {
@@ -2587,7 +2606,7 @@ a.tv-tile:hover .tv-tile__label {
   };
 
   function handleFor(body) {
-    var fig = body && body.closest ? body.closest(".tv-figure__part, .tv-figure") : null;
+    var fig = body && body.closest ? body.closest(".tv-figure__part, .tv-figure, .tv-tileset") : null;
     return fig && fig.__tvHandle ? fig.__tvHandle : null;
   }
 
@@ -5426,25 +5445,58 @@ a.tv-tile:hover .tv-tile__label {
     if (typeof f.after === "function") f.after(handle, f);
   }
 
-  function tileset(parent, id, f) {
+  /*
+   * A set of stat tiles on the page plane. It is a figure like any other, so it
+   * carries the same table view, the same data toggle and the same source line;
+   * only the card around it is missing.
+   */
+  function tileset(parent, id, f, provenance) {
     var set = el(
       "div",
       { class: "tv-tileset", "data-figure-id": id },
       f.title ? el("h3", { class: "tv-tileset__title" }, f.title) : null,
       f.subtitle ? el("p", { class: "tv-figure__subtitle" }, f.subtitle) : null
     );
+    var body = el("div", { class: "tv-tileset__body" });
+    var table = el("div", { class: "tv-figure__table", hidden: true });
+    var notes = el("div", { class: "tv-figure__notes" });
+    var toggle = el("button", { class: "tv-btn", type: "button", hidden: true }, "Show data");
+    var source = el("span", { class: "tv-figure__source" });
+    var foot = el("footer", { class: "tv-figure__foot" }, source, toggle);
+    set.appendChild(body);
+    set.appendChild(table);
+    set.appendChild(notes);
+    set.appendChild(foot);
     parent.appendChild(set);
-    return {
+
+    var entries = provenanceRows(provenance);
+    if (entries.length) {
+      source.appendChild(document.createTextNode(compactEntries(entries)));
+      source.setAttribute("title", sourceTitle(entries));
+    }
+
+    toggle.addEventListener("click", function () {
+      var showTable = table.hidden;
+      table.hidden = !showTable;
+      body.hidden = showTable;
+      toggle.textContent = showTable ? "Hide data" : "Show data";
+    });
+
+    var handle = {
       root: set,
-      body: set,
+      body: body,
+      table: table,
+      toggle: toggle,
       title: f.title || "",
       addNote: function (r) {
-        set.appendChild(refusalNote(r));
+        notes.appendChild(refusalNote(r));
       },
       addCaution: function (n) {
-        set.appendChild(cautionNote(n));
+        notes.appendChild(cautionNote(n));
       },
     };
+    set.__tvHandle = handle;
+    return handle;
   }
 
   TV.sections = {
@@ -5515,7 +5567,7 @@ a.tv-tile:hover .tv-tile__label {
           var f = figs[id];
           var handle;
           if (!inCard(f)) {
-            handle = tileset(block, id, f);
+            handle = tileset(block, id, f, provenanceOf(id));
             grid = null;
             drawFigure(handle, id, f);
           } else {
@@ -6299,17 +6351,6 @@ a.tv-tile:hover .tv-tile__label {
     });
   }
 
-  function toggleTable(root, view, table) {
-    var btn = el("button", { class: "tv-btn", type: "button" }, "Show data");
-    btn.addEventListener("click", function () {
-      var showTable = table.hidden;
-      table.hidden = !showTable;
-      view.hidden = showTable;
-      btn.textContent = showTable ? "Show scores" : "Show data";
-    });
-    root.appendChild(el("div", null, btn));
-  }
-
   /*
    * The scoreboard sits on the page plane, as tiles do, but it leads the page,
    * so its heading is set as a figure title rather than the small label a set
@@ -6319,20 +6360,18 @@ a.tv-tile:hover .tv-tile__label {
     var tiles = ((f.data && f.data.tiles) || []).filter(Boolean);
     handle.root.id = "fig-overview-scoreboard";
     handle.title = f.title || "";
-    handle.body.appendChild(
+    /* The heading sits outside the tiles, so it stays put when the reader asks for the table. */
+    handle.root.insertBefore(
       el(
         "div",
         { class: "tv-figure__head" },
         el("h3", { class: "tv-figure__title" }, f.title || ""),
         f.subtitle ? el("p", { class: "tv-figure__subtitle" }, f.subtitle) : null
-      )
+      ),
+      handle.body
     );
-    var view = el("div");
-    handle.body.appendChild(view);
-    tileGrid(view, tiles);
-    var table = el("div", { hidden: true });
-    handle.body.appendChild(table);
-    TV.tableView({ table: table, title: f.title }, {
+    tileGrid(handle.body, tiles);
+    TV.tableView(handle, {
       caption: f.title,
       columns: [
         { key: "label", label: "Model" },
@@ -6358,7 +6397,6 @@ a.tv-tile:hover .tv-tile__label {
         };
       }),
     });
-    toggleTable(handle.body, view, table);
   }
 
   /* sections --------------------------------------------------------------- */
