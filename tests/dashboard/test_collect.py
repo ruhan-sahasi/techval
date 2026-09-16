@@ -122,7 +122,7 @@ def collect(ctx):
 
 
 def test_every_section_id_has_a_module():
-    assert len(set(SECTION_IDS)) == len(SECTION_IDS) == 10
+    assert len(set(SECTION_IDS)) == len(SECTION_IDS) == 11
     for sid in SECTION_IDS:
         module = section_module(sid)
         assert module.ID == sid

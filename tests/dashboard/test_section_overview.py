@@ -47,6 +47,7 @@ TITLES = {
     "propensity": "M&A propensity",
     "engine": "Valuation engine",
     "tmt": "TMT layer",
+    "reading": "Reading filings",
     "datalayer": "Data layer",
     "sample": "What the sample can support",
 }
@@ -111,7 +112,7 @@ def _results(**overrides) -> dict:
         elif sid == "sample":
             out[sid] = _section(sid, status="not_built")
         else:
-            out[sid] = _section(sid, figures=3, refusals={"engine": 3, "tmt": 10, "datalayer": 2}[sid])
+            out[sid] = _section(sid, figures=3, refusals={"engine": 3, "tmt": 10, "reading": 0, "datalayer": 2}[sid])
     for sid, section in overrides.items():
         if section is None:
             out.pop(sid, None)
@@ -305,8 +306,8 @@ def test_the_section_table_counts_figures_and_refusals_for_every_other_section()
     figure = _shape(results)["figures"]["sections"]
     totals = figure["data"]["totals"]
     assert totals == {
-        "sections": 9,
-        "collected": 7,
+        "sections": 10,
+        "collected": 8,
         "figures": sum(r["figures"] for r in rows),
         "refusals": 16,
         "refusing_sections": 4,
@@ -318,7 +319,7 @@ def test_the_section_table_counts_figures_and_refusals_for_every_other_section()
 
 def test_a_table_with_no_refusals_says_so():
     quiet = {sid: _section(sid, figures=1, headline=VERDICTS.get(sid)) for sid in TITLES}
-    assert _shape(quiet)["figures"]["sections"]["title"] == "9 figures drawn and nothing refused"
+    assert _shape(quiet)["figures"]["sections"]["title"] == "10 figures drawn and nothing refused"
 
 
 # --------------------------------------------------------------------------- #
