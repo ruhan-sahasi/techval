@@ -61,7 +61,7 @@ code,
 
 a {
   color: inherit;
-  text-decoration-color: var(--axis);
+  text-decoration-color: var(--ink-3);
   text-underline-offset: 3px;
 }
 
@@ -120,11 +120,20 @@ a:hover {
   display: flex;
   gap: var(--space-4);
   margin: 0;
-  padding: 0 var(--space-4);
+  /* The vertical padding is the focus ring's room: the scroller clips whatever reaches its padding box. */
+  padding: 5px var(--space-4);
   list-style: none;
   overflow-x: auto;
   scrollbar-width: thin;
   counter-reset: contents;
+  background-image: linear-gradient(to right, var(--page) 60%, transparent),
+    linear-gradient(to left, var(--page) 60%, transparent),
+    linear-gradient(to right, var(--border), transparent),
+    linear-gradient(to left, var(--border), transparent);
+  background-position: left center, right center, left center, right center;
+  background-size: 28px 100%, 28px 100%, 18px 100%, 18px 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
 }
 
 .tv-rail__list > li {
@@ -203,6 +212,7 @@ a:hover {
     gap: 0;
     padding: 0;
     overflow: visible;
+    background-image: none;
     border-top: 1px solid var(--grid);
   }
 
@@ -515,7 +525,7 @@ details > summary:hover {
   font-size: var(--fs-micro);
   font-weight: var(--fw-semibold);
   text-decoration: underline;
-  text-decoration-color: var(--axis);
+  text-decoration-color: var(--ink-3);
   text-underline-offset: 3px;
   cursor: pointer;
 }

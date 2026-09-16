@@ -15,8 +15,8 @@
  * Everything else the figures ask for is the kit's: a figure whose data carries
  * "table" gets that fuller table in place of the chart's own, so a screen row's
  * traded and warranted multiples are reachable without hovering; the role
- * "model-muted" is the kit's tint of the model colour, so the pooled score can
- * sit behind the differenced one while both stay the model's; "legend" false
+ * "model-muted" is the baseline grey, so the pooled score sits behind the
+ * differenced one without reading as a second model; "legend" false
  * leaves the deflation bars to their row labels; and a figure's "notes" are
  * the kit's cautions.
  */

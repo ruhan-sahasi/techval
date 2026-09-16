@@ -496,3 +496,17 @@ def test_the_chip_judges_the_noise_on_the_lift_over_the_size_sort_across_folds()
     steady = (0.03, 0.025, 0.02, 0.03, 0.028)
     assert P.verdict_status(0.02, 0.01, steady) == "beats"
     assert P.verdict_status(-0.02, 0.01, steady) == "loses"
+
+
+def test_the_base_rate_chart_labels_the_two_years_its_title_quotes():
+    """The title names a low year and a high year; those two bars carry the numbers.
+
+    Labelling every bar puts a number on years the title is not comparing, and
+    the pooled reference line and the table already carry them.
+    """
+    figures = P.shape(_facts())["figures"]
+    fig = figures["base_rate_by_year"]
+    labelled = {r["label"] for r in fig["data"]["rows"] if r["labelled"]}
+    assert len(labelled) == 2
+    for year in labelled:
+        assert year in fig["title"]

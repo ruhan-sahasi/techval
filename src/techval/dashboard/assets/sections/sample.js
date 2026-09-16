@@ -125,12 +125,11 @@
 
       var grid = svg("g");
       TV.axis.x(grid, x, m.top, m.top + plotH, "num:0", decades + 1);
+      /* The note sits under the axis where the axis starts, and slides left when the chart is too narrow to hold it there. */
+      var axisNote = tenfold && ticks.length > 1 ? "Count, log scale: each gridline is ten times the one before" : "Count, log scale";
+      var noteX = Math.max(0, Math.min(x.range[0], W - TV.measure(axisNote, 11) - 2));
       grid.appendChild(
-        svg(
-          "text",
-          { class: "tv-tick", x: x.range[0], y: m.top + plotH + 34, "text-anchor": "start" },
-          tenfold && ticks.length > 1 ? "Count, log scale: each gridline is ten times the one before" : "Count, log scale"
-        )
+        svg("text", { class: "tv-tick", x: noteX, y: m.top + plotH + 34, "text-anchor": "start" }, axisNote)
       );
       root.appendChild(grid);
 

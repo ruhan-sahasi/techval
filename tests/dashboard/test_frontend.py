@@ -776,6 +776,37 @@ PROBE = r"""<script>
         return out;
       });
     },
+    shadeKey: function () {
+      var fig = document.querySelector('[data-figure-id="closes"]');
+      return Array.prototype.map.call(fig.querySelectorAll('.tv-legend__item'), function (li) { return li.textContent; });
+    },
+    zeroStep: function () {
+      var fig = document.querySelector('[data-figure-id="segment_income"]');
+      var out = [];
+      fig.querySelectorAll('.tv-markg').forEach(function (g) {
+        var label = g.getAttribute('aria-label') || '';
+        if (label.indexOf('Outside the segments') !== 0) return;
+        var mark = g.querySelector('.tv-mark');
+        var box = mark ? mark.getBBox() : null;
+        out.push({ label: label, drawn: !!mark, height: box ? Math.round(box.height) : null, width: box ? Math.round(box.width) : null });
+      });
+      return out;
+    },
+    toggleNames: function () {
+      var shown = Array.prototype.filter.call(document.querySelectorAll('.tv-figure__foot .tv-btn'), function (btn) {
+        return !btn.hidden;
+      });
+      return shown.map(function (btn) {
+        var fig = btn.closest('[data-figure-id]');
+        var title = fig ? (fig.querySelector('.tv-figure__title, .tv-tileset__title') || {}).textContent || '' : '';
+        return {
+          text: btn.textContent,
+          expanded: btn.getAttribute('aria-expanded'),
+          label: btn.getAttribute('aria-label'),
+          named: !!title && (btn.getAttribute('aria-label') || '').indexOf(title) > 0,
+        };
+      });
+    },
     engineOrder: function () {
       return Array.prototype.map.call(document.querySelectorAll('#engine [data-figure-id]'), function (f) { return f.getAttribute('data-figure-id'); });
     },
@@ -982,6 +1013,29 @@ def test_a_table_that_scrolls_says_so():
     assert "overflow-x: auto" in wrap
     assert wrap.count("linear-gradient") == 4
     assert "background-attachment: local, local, scroll, scroll" in wrap
+
+
+def test_a_shaded_window_keeps_its_key_when_it_is_the_only_one(drawn):
+    # One series needs no legend: the title names it. A shaded window is named
+    # nowhere else, so its key is drawn even when it stands alone.
+    keys = _checked(drawn, "shadeKey")
+    assert keys == ["Split window, from the last filing on the old basis to the first on the new"]
+
+
+def test_a_bridge_step_of_exactly_zero_draws_a_rule(drawn):
+    # The step is the finding ("nothing is taken off outside the segments"), so
+    # it is drawn rather than left as a value label over an empty column.
+    (step,) = _checked(drawn, "zeroStep")
+    assert step["drawn"] and step["height"] == 2 and step["width"] > 2
+
+
+def test_every_data_toggle_says_which_figure_it_opens_and_whether_it_is_open(drawn):
+    toggles = _checked(drawn, "toggleNames")
+    assert len(toggles) >= 10
+    for t in toggles:
+        assert t["expanded"] == "false", t
+        assert t["label"].startswith(t["text"]), t
+        assert t["named"], t
 
 
 def test_figures_follow_their_order_number_not_their_key(drawn):

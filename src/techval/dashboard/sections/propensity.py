@@ -646,6 +646,8 @@ def _base_rates_figure(years: tuple[YearRate, ...], sample: Sample) -> dict[str,
                     "label": str(y.year),
                     "value": y.rate,
                     "role": "alt",
+                    # The title quotes these two years, so the chart labels them.
+                    "labelled": y is lo or y is hi,
                     "n": y.n,
                     "positives": y.positives,
                     "dates": y.dates,
