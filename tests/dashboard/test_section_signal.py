@@ -351,3 +351,14 @@ def test_pinned_bucket_returns(pinned):
 def test_pinned_survivorship_note(pinned):
     refusal = next(r for r in pinned["refusals"] if r["what"] == "Survivorship correction")
     assert "(EA, FI, FYBR, IPG, JNPR)" in refusal["why"]
+
+
+def test_the_bucket_chart_labels_the_two_buckets_its_title_compares():
+    """Every title branch compares the cheapest bucket with the dearest.
+
+    Labelling all five bars puts a number on top of the two middle ones a reader
+    is not being asked to compare; the axis and the table carry those.
+    """
+    figures = S.shape(_facts())["figures"]
+    rows = figures["bucket_returns"]["data"]["rows"]
+    assert [r["labelled"] for r in rows] == [True] + [False] * (len(rows) - 2) + [True]
