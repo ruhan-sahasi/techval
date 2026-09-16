@@ -1892,9 +1892,13 @@
           valueLayer.appendChild(svg("text", { class: "tv-value", x: cx, y: v.y, "text-anchor": "middle" }, v.text));
         }
         if (shown.indexOf(i) >= 0) {
-          var tickW = measure(r.label, 11);
-        var tickAnchor = cx - tickW / 2 < 0 ? "start" : cx + tickW / 2 > W ? "end" : "middle";
-        marks.appendChild(svg("text", { class: "tv-tick", x: cx, y: H - bottom + 16, "text-anchor": tickAnchor }, r.label));
+          /*
+         * Centred on its own column, always. A line chart clamps its end ticks
+         * because its x is continuous and the last tick is the axis end; a
+         * category tick names one bar, and anchoring it at the edge would slide
+         * it a whole column left of the bar it names.
+         */
+        marks.appendChild(svg("text", { class: "tv-tick", x: cx, y: H - bottom + 16, "text-anchor": "middle" }, r.label));
         }
         tooltip.attach(g, function () {
           return {
