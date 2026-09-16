@@ -246,7 +246,8 @@ class RegexReader:
         tid = task.task_id
         if txn is None:
             return Reading(tid, reader, "not_stated", reason="no merger agreement for this filer was read out of the text")
-        notes = "; ".join(txn.notes)
+        # The notes are sentences; joined, they read as one with its stops removed.
+        notes = "; ".join(n.strip().rstrip(".") for n in txn.notes if n.strip())
         metric = task.metric
         if metric == "cash_per_share" and txn.cash_per_share is not None:
             return Reading(tid, reader, "stated", value=txn.cash_per_share, unit="usd_per_share", reason=notes)
