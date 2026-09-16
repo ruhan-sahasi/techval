@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-09-15",
+  "collected_at": "2026-09-16",
   "fixtures": {
     "tests/fixtures/companyfacts_CRWD.json": "9b6ef8e8890e3f8058caf6623556708ff8043a9a944f40c94bdc11f45fc570b3",
     "tests/fixtures/companyfacts_DDOG.json": "91bcfb0dc7160923243c8b816e508c57c5a8b1c4bafe10f46dffb2ccb6799211",
@@ -4229,7 +4229,7 @@
           "refused": [
             "APV, Miles-Ezzell"
           ],
-          "subtitle": "Enterprise value, USD mm, on the Gordon terminal value: 7,702 from the WACC DCF at 12.97%. The unlevered cost of equity is 12.95%, 2bp below the WACC. Modelled interest of 111mm is 9.7x the 11mm filed.",
+          "subtitle": "Enterprise value, USD mm, on the Gordon terminal value: 7,702 from the WACC DCF at 12.97%. The unlevered cost of equity is 12.95%, 2bp below the WACC. Modelled interest of 111.1mm is 9.7x the 11.4mm filed.",
           "title": "APV clears the WACC DCF before any tax shield is added",
           "wide": true
         },
@@ -4680,7 +4680,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.01
+          "seconds": 0.02
         },
         {
           "entry_point": "techval.apv.run_apv",
@@ -5081,7 +5081,7 @@
           },
           "kind": "line",
           "subtitle": "Mean absolute error of revenue growth, out of fold; lower is better. The band is the model's score plus or minus one fold standard deviation, so a baseline inside it is inside the noise. 2,188, 1,837 and 1,480 scored company-years.",
-          "title": "The fitted fade ties last year's growth at one year and beats it at two and three years"
+          "title": "The fitted fade ties this year's growth at one year and beats it at two and three years"
         },
         "fade_curve": {
           "data": {
@@ -5161,7 +5161,7 @@
         }
       },
       "headline": {
-        "baseline_name": "Persistence, last year's growth carried forward",
+        "baseline_name": "Persistence, this year's growth carried forward",
         "baseline_score": 0.15098,
         "higher_is_better": false,
         "lift": 0.003544,
@@ -5179,7 +5179,7 @@
           "inputs": [
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 4.42
+          "seconds": 3.57
         },
         {
           "entry_point": "techval.ml.forecast.fit_fade",
@@ -5187,7 +5187,7 @@
           "inputs": [
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 0.51
+          "seconds": 0.5
         },
         {
           "entry_point": "techval.ml.forecast.fit_fade",
@@ -5227,7 +5227,7 @@
       ],
       "refusals": [],
       "status": "ok",
-      "takeaway": "At one year out the fitted fade ties last year's growth: a mean absolute error of 0.1474 against 0.1510, a lift of +0.0035 inside the fold noise (a mean fold lift of +0.0040 against a fold-to-fold standard deviation of 0.0216). At two and three years it beats persistence by +0.0407 and +0.0530, outside the fold noise. Against the strongest baseline at each horizon the gap is smaller than one fold standard deviation of the model's own error, and from two years out that baseline is the sub-vertical mean. Discounted at 11.28% on its own beta, Datadog is worth 40.61 a share on the fitted path and 36.65 on the typed one.",
+      "takeaway": "At one year out the fitted fade ties this year's growth: a mean absolute error of 0.1474 against 0.1510, a lift of +0.0035 inside the fold noise (a mean fold lift of +0.0040 against a fold-to-fold standard deviation of 0.0216). At two and three years it beats persistence by +0.0407 and +0.0530, outside the fold noise. Against the strongest baseline at each horizon the gap is smaller than one fold standard deviation of the model's own error, and from two years out that baseline is the sub-vertical mean. Discounted at 11.28% on its own beta, Datadog is worth 40.61 a share on the fitted path and 36.65 on the typed one.",
       "title": "Revenue fade"
     },
     "overview": {
@@ -5251,7 +5251,7 @@
             ]
           },
           "kind": "tiles",
-          "subtitle": "What every number on this page was computed from, and under what",
+          "subtitle": "Engine assumptions that differ from the defaults the package ships; every other setting is the default. The fixtures the figures were computed from are listed under the basis of preparation.",
           "title": "Every assumption but one is the engine default"
         },
         "scoreboard": {
@@ -5335,7 +5335,7 @@
                 "verdict_status": "inside_noise"
               },
               {
-                "baseline_name": "Persistence, last year's growth carried forward",
+                "baseline_name": "Persistence, this year's growth carried forward",
                 "baseline_score": 0.15098,
                 "delta": {
                   "format": "signed:4",
@@ -5353,7 +5353,7 @@
                 "section": "fade",
                 "state": "scored",
                 "status": "ties",
-                "sub": "MAE of one-year revenue growth against 0.1510 for Persistence, last year's growth carried forward, n = 2,188",
+                "sub": "MAE of one-year revenue growth against 0.1510 for Persistence, this year's growth carried forward, n = 2,188",
                 "value": 0.147436,
                 "verdict_status": "ties"
               },
@@ -6560,7 +6560,7 @@
         "n": 5881,
         "score": 0.568543,
         "verdict_status": "inside_noise",
-        "verdict_text": "auc of 0.5685 against 0.5474 for size only (log revenue, smallest first), walk-forward AUC 0.5474, a lift of +0.0212 on 5,881 observations. Fold standard deviation 0.0910, so the lift is inside the fold-to-fold noise."
+        "verdict_text": "auc of 0.5685 against 0.5474 for size only (log revenue, smallest first), a lift of +0.0212 on 5,881 observations. Fold standard deviation 0.0910, so the lift is inside the fold-to-fold noise."
       },
       "id": "propensity",
       "provenance": [
@@ -6573,7 +6573,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 2.67
+          "seconds": 2.64
         },
         {
           "entry_point": "techval.ml.evaluation.evaluate_classification",
@@ -6595,7 +6595,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 4.81
+          "seconds": 4.69
         },
         {
           "entry_point": "techval.ml.mna.PropensityResult.coefficient_stability",
@@ -6661,7 +6661,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 1.28
+          "seconds": 1.27
         },
         {
           "entry_point": "techval.ml.evaluation.evaluate_classification",
@@ -8562,7 +8562,7 @@
             "wide": true
           },
           "kind": "tiles",
-          "subtitle": "Each of the panel's 1,764 observations rebuilt by record_ev_audit.py at 98e564e, pinned to its own date: the recorded equity value plus today's net debt, then today's row checks. The audit was recorded on 2026-09-14; the features are not rebuilt.",
+          "subtitle": "1,713 of the panel's 1,764 observations rebuilt by record_ev_audit.py at 98e564e, pinned to its own date: the recorded equity value plus today's net debt, then today's row checks. The audit was recorded on 2026-09-14; the features are not rebuilt.",
           "title": "Rebuilt with today's debt ladders, 106 of the panel's enterprise values move by more than 5%, at 13 filers"
         },
         "audit_filers": {
@@ -9657,7 +9657,7 @@
         "n": 888,
         "score": 0.765125,
         "verdict_status": "inside_noise",
-        "verdict_text": "2% of the variance in the log multiple sits between the 22 dates rather than inside them: a model given the date and nothing else scores an R-squared of 0.02 against the raw multiple. That is the re-rating, and it is not a statement about any company. warranted EV/Revenue (mlp): fitted EV/Revenue from fundamentals across the TMT universe, and the out-of-sample residual against it, fitted on 1,509 observations through 2025-09-30 across 25 features. Spearman of 0.7651 against 0.6313 for comps.py OLS refit on the date, sub-vertical peers, a lift of +0.1339 on 888 observations. Fold standard deviation 0.0841, so the lift is outside the fold-to-fold noise. Differenced against each company's own previous observation the rank correlation is +0.0420 on 1,548 observations, so almost all of the score above is the level inherited from history rather than a view about the change. Treat the residual as a description of where a company sits, not as a forecast of where it is going."
+        "verdict_text": "Spearman of 0.7651 against 0.6313 for comps.py OLS refit on the date, sub-vertical peers, a lift of +0.1339 on 888 observations. Fold standard deviation 0.0841, so the lift is outside the fold-to-fold noise. 2% of the variance in the log multiple sits between the 22 dates rather than inside them: a model given the date and nothing else scores an R-squared of 0.02 against the raw multiple. That is the re-rating, and it is not a statement about any company. Differenced against each company's own previous observation the rank correlation is +0.0420 on 1,548 observations, so almost all of the score above is the level inherited from history rather than a view about the change. Treat the residual as a description of where a company sits, not as a forecast of where it is going."
       },
       "id": "warranted",
       "provenance": [
@@ -9729,15 +9729,15 @@
       ],
       "refusals": [
         {
-          "what": "screen",
+          "what": "Screen of rich and cheap names",
           "why": "None of the screen's 16 names on 2026-06-30 is itself flagged by the enterprise-value audit, but every residual is measured against a model fitted on the whole panel, and on that date the audit flags 5 of the 84 names ranked that day (DLR, EBAY, TMUS, VZ and WBD) and 9 rows today's code would admit and the ranking leaves out (ACN, CMCSA, DXC, LRCX, LUMN, MU, NXPI, PSKY and T). Refitting with only the enterprise values rebuilt, a partial refit that leaves the features as recorded, changes 1 of its 16 names: TXN leaves it and PLTR joins. A screen that calls a company rich or cheap on enterprise values now known to be wrong is not drawn, and re-recording the panel with today's debt ladders is the fix."
         }
       ],
       "status": "ok",
-      "takeaway": "The network ranks EV/Revenue multiples better than the strongest peer baseline, comps OLS on sub-vertical peers: 0.7651 against 0.6313 on 888 observations. Differenced against each company's own previous observation it predicts the change at +0.0420 on 1,548, so almost all of the ranking is company identity inherited from history. The panel predates the debt-ladder fix: rebuilt with today's code, 106 of its 1,713 enterprise values move by more than 5%, at 13 filers, so the screen is not drawn and every score here is the panel as recorded.",
+      "takeaway": "The network ranks EV/Revenue multiples better than the strongest peer baseline, comps OLS on sub-vertical peers: 0.7651 against 0.6313 on 888 observations, a lift inside the spread of the per-fold lifts. Differenced against each company's own previous observation it predicts the change at +0.0420 on 1,548, so almost all of the ranking is company identity inherited from history. The panel predates the debt-ladder fix: rebuilt with today's code, 106 of its 1,713 enterprise values move by more than 5%, at 13 filers, so the screen is not drawn and every score here is the panel as recorded.",
       "title": "Warranted multiple"
     }
   },
-  "techval_commit": "c5797b6",
+  "techval_commit": "b9585bf",
   "title": "Valuation engine and model results"
 }

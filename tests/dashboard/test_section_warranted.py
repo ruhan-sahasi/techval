@@ -48,6 +48,18 @@ def _kit_charts() -> set[str]:
     return set(re.findall(r"(\w+)\s*:", body))
 
 
+# The names a refusal carries on the page, keyed by the figure it stands in for.
+names = {
+    "deflation": "Level against change",
+    "folds": "Score by walk-forward fold",
+    "noise": "Lift against the noise",
+    "screen": "Screen of rich and cheap names",
+    "rerating": "The re-rating across dates",
+    "audit": "Enterprise-value audit",
+    "audit_filers": "Filers the audit moves",
+}
+
+
 def _folds(pairs):
     starts = [date(2022, 12, 31), date(2023, 12, 31), date(2024, 12, 31), date(2025, 12, 31)]
     return tuple(
@@ -272,9 +284,9 @@ def test_the_screen_is_diverging_and_richest_first():
 def test_a_figure_the_values_cannot_support_is_refused_with_a_reason():
     section = S.shape(_inputs(change=None, pooled_on_change_rows=None, n_changes=12, screen=(), folds=_folds([(0.8, 0.6)])))
     refused = {r["what"]: r["why"] for r in section["refusals"]}
-    assert set(refused) == {"deflation", "folds", "noise", "screen"}
+    assert set(refused) == {names[k] for k in ("deflation", "folds", "noise", "screen")}
     assert all(why.strip() for why in refused.values())
-    assert "12" in refused["deflation"]
+    assert "12" in refused[names["deflation"]]
     for fid in refused:
         assert fid not in section["figures"]
     assert {"baselines", "rerating", "panel"} <= set(section["figures"])
@@ -346,7 +358,7 @@ def test_a_clean_audit_keeps_the_screen_and_says_so_in_the_takeaway():
     clean = S.Audit("2026-09-14", "0123456", (_row("AAA", 1000.0, 1000.0),), ())
     section = S.shape(_inputs(audit=clean))
     assert "screen" in section["figures"]
-    assert {r["what"] for r in section["refusals"]} == {"audit_filers"}
+    assert {r["what"] for r in section["refusals"]} == {names["audit_filers"]}
     assert "within 5% of the one recorded" in section["takeaway"]
     assert "notes" not in section["figures"]["audit"]["data"]
     assert "notes" not in section["figures"]["panel"]["data"]
@@ -371,7 +383,7 @@ def test_a_screen_name_the_audit_flags_refuses_the_screen_naming_it(extra, skipp
     audit = S.Audit("2026-09-14", "0123456", tuple(base) + extra, skipped)
     section = S.shape(_inputs(audit=audit))
     assert "screen" not in section["figures"]
-    why = {r["what"]: r["why"] for r in section["refusals"]}["screen"]
+    why = {r["what"]: r["why"] for r in section["refusals"]}[names["screen"]]
     assert why.startswith("1 of the screen's 4 names on 2026-06-30 is flagged")
     assert words in why
     assert "re-recording the panel" in why
@@ -390,9 +402,9 @@ def test_a_partial_refit_that_changes_the_screen_refuses_it_naming_the_change():
 def test_without_an_audit_the_audit_and_the_screen_refuse_and_the_headline_stays():
     section = S.shape(_inputs(audit=None, audit_problem="the audit covers 3 company-dates", refit=None))
     refused = {r["what"]: r["why"] for r in section["refusals"]}
-    assert set(refused) == {"audit", "audit_filers", "screen"}
-    assert "the audit covers 3 company-dates" in refused["audit"]
-    assert "cannot be checked" in refused["screen"]
+    assert set(refused) == {names[k] for k in ("audit", "audit_filers", "screen")}
+    assert "the audit covers 3 company-dates" in refused[names["audit"]]
+    assert "cannot be checked" in refused[names["screen"]]
     assert section["headline"]["score"] == 0.70
 
 
@@ -547,7 +559,23 @@ def test_the_caution_quotes_the_partial_refit_of_the_headline(committed):
 
 def test_the_screen_is_refused_because_the_partial_refit_moves_it(committed):
     assert "screen" not in committed["figures"]
-    why = {r["what"]: r["why"] for r in committed["refusals"]}["screen"]
+    why = {r["what"]: r["why"] for r in committed["refusals"]}[names["screen"]]
     assert "None of the screen's 16 names on 2026-06-30 is itself flagged" in why
     assert "(DLR, EBAY, TMUS, VZ and WBD)" in why
     assert "changes 1 of its 16 names: TXN leaves it and PLTR joins" in why
+
+
+def test_the_takeaway_reads_the_lift_the_way_the_chip_does():
+    """A reader who stops at the takeaway should not have to reconcile it with the square beside it.
+
+    The chip judges the pooled lift against the spread of the per-fold lifts, so
+    a takeaway that says only "better than" contradicts an INSIDE NOISE square
+    two lines below it.
+    """
+    quiet = _inputs()
+    assert S.verdict_status(quiet) == "inside_noise"
+    assert "a lift inside the spread of the per-fold lifts" in S.takeaway(quiet)
+
+    steady = _inputs(folds=_folds([(0.80, 0.60), (0.78, 0.60), (0.79, 0.60)]))
+    assert S.verdict_status(steady) == "beats"
+    assert "a lift outside the spread of the per-fold lifts" in S.takeaway(steady)

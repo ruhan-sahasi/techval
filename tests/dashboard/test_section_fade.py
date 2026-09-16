@@ -239,12 +239,12 @@ def test_the_headline_is_the_one_year_score_against_persistence():
 def test_the_takeaway_and_titles_are_built_from_the_values_they_describe():
     out = shape(_results())
     takeaway = out["takeaway"]
-    for text in ("ties last year's growth", "0.2000", "0.2100", "+0.0100", "0.0500", "+0.0900", "+0.1200"):
+    for text in ("ties this year's growth", "0.2000", "0.2100", "+0.0100", "0.0500", "+0.0900", "+0.1200"):
         assert text in takeaway, text
     assert "36.00 a share" in takeaway and "30.00" in takeaway
     figures = out["figures"]
     assert figures["error_by_horizon"]["title"] == (
-        "The fitted fade ties last year's growth at one year and beats it at two and three years"
+        "The fitted fade ties this year's growth at one year and beats it at two and three years"
     )
     assert figures["fade_curve"]["title"] == "The filings level off near 10%; the typed schedule falls to 5%"
     assert "25% more revenue" in figures["ddog_revenue"]["title"]
@@ -258,15 +258,15 @@ def test_the_takeaway_and_titles_are_built_from_the_values_they_describe():
 def test_a_one_year_win_outside_the_noise_changes_the_verdict_and_the_words():
     out = shape(_results(horizons=_horizons(model_1=0.1000, persistence_1=0.2100, sd_1=0.0200)))
     assert out["headline"]["verdict_status"] == "beats"
-    assert "beats last year's growth" in out["takeaway"]
+    assert "beats this year's growth" in out["takeaway"]
     assert "outside a fold standard deviation of 0.0200" in out["takeaway"]
     assert out["figures"]["error_by_horizon"]["title"].startswith(
-        "The fitted fade beats last year's growth at one, two and three years"
+        "The fitted fade beats this year's growth at one, two and three years"
     )
 
     lost = shape(_results(horizons=_horizons(model_1=0.3000, persistence_1=0.2100, sd_1=0.0200)))
     assert lost["headline"]["verdict_status"] == "loses"
-    assert "loses to last year's growth" in lost["takeaway"]
+    assert "loses to this year's growth" in lost["takeaway"]
 
 
 def test_the_survivorship_note_states_the_direction_and_the_measured_gaps():

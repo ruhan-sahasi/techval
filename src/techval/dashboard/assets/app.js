@@ -1,12 +1,13 @@
 /*
- * techval dashboard boot: read the snapshot, draw the header, the section rail
- * and every section in page order.
+ * techval dashboard boot: read the snapshot, draw the dateline and standfirst,
+ * the contents list, every section in page order, and the basis of preparation
+ * that closes the note.
  *
  * This file owns the parts of the page the snapshot schema defines for every
- * section alike: the eyebrow, title and takeaway, the headline strip on model
- * sections, the not_built and refused states, refusal notes and the provenance
- * list. What goes between the header and the provenance is the section
- * renderer's business, registered by assets/sections/<id>.js.
+ * section alike: the numbered section title and takeaway, the headline strip on
+ * model sections, the not_built and refused states, refusal notes and the
+ * provenance list. What goes between the title and the provenance is the
+ * section renderer's business, registered by assets/sections/<id>.js.
  *
  * The page never states a number the snapshot does not hold. A missing or
  * unreadable snapshot is shown as a refusal, not an empty page with a title.
