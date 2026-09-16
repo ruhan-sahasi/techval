@@ -5251,7 +5251,7 @@
             ]
           },
           "kind": "tiles",
-          "subtitle": "Engine assumptions that differ from the defaults the package ships; every other setting is the default. The fixtures the figures were computed from are listed under the basis of preparation.",
+          "subtitle": "What every number on this page was computed from, and the assumptions it was computed under",
           "title": "Every assumption but one is the engine default"
         },
         "scoreboard": {
@@ -9765,6 +9765,6 @@
       "title": "Warranted multiple"
     }
   },
-  "techval_commit": "c9083ce",
+  "techval_commit": "02c42d8",
   "title": "Valuation engine and model results"
 }
