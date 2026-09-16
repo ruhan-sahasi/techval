@@ -2,9 +2,9 @@
 
 The page is a single file with everything inlined: the two stylesheets, the
 snapshot as a JSON data block, the chart kit, the boot script and one renderer
-per section. The only external resource is the IBM Plex stylesheet from Google
-Fonts, and the type tokens carry system fallback stacks, so a reader offline
-sees the same figures in a different face.
+per section. The only external resource is the Google Fonts stylesheet for Public
+Sans, Newsreader and IBM Plex Mono, and the type tokens carry system fallback
+stacks, so a reader offline sees the same figures in a different face.
 
 Rendering is pure. The same snapshot and the same assets produce the same
 bytes every time: no clock, no environment, no ordering left to a dictionary,

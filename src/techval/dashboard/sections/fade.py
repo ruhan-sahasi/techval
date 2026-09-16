@@ -263,8 +263,8 @@ def _strongest(h: HorizonScore) -> tuple[str, float]:
 _VERB = {"ties": "ties", "beats": "beats", "loses": "loses to"}
 
 
-def _against_persistence(horizons: Sequence[HorizonScore], name: str = "last year's growth") -> str:
-    """"ties last year's growth at one year and beats it at two and three years"."""
+def _against_persistence(horizons: Sequence[HorizonScore], name: str = "this year's growth") -> str:
+    """"ties this year's growth at one year and beats it at two and three years"."""
     groups: list[tuple[str, list[int]]] = []
     for h in horizons:
         status = _status(h)
@@ -544,7 +544,7 @@ def _takeaway(r: Results) -> str:
     else:
         spread = "with no fold spread to judge it against"
     text = (
-        f"At {_years([one.horizon])} out the fitted fade {_VERB[status]} last year's "
+        f"At {_years([one.horizon])} out the fitted fade {_VERB[status]} this year's "
         f"growth: a mean absolute error of {one.model:.4f} against {one.persistence:.4f}, "
         f"a lift of {lift:+.4f} {spread}."
     )
@@ -615,7 +615,7 @@ def shape(r: Results) -> dict[str, Any]:
     headline = {
         "metric": f"MAE of {_word(one.horizon)}-year revenue growth",
         "score": one.model,
-        "baseline_name": "Persistence, last year's growth carried forward",
+        "baseline_name": "Persistence, this year's growth carried forward",
         "baseline_score": one.persistence,
         "lift": lift,
         "n": one.n,

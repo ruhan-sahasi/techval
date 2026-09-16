@@ -449,7 +449,11 @@ def _collection_figure(overrides: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "kind": "tiles",
         "title": title,
-        "subtitle": "What every number on this page was computed from, and under what",
+        "subtitle": (
+            "Engine assumptions that differ from the defaults the package ships; "
+            "every other setting is the default. The fixtures the figures were "
+            "computed from are listed under the basis of preparation."
+        ),
         "data": {
             "tiles": [
                 {
