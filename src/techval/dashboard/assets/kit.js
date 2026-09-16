@@ -8,8 +8,8 @@
  * Colours are never hex values here. Marks are painted with var(--token)
  * references, so a theme change repaints a chart without redrawing it, and
  * colour follows the entity: a series with role "model" is --c-model wherever
- * it appears. The roles are model, model-muted (a tint of the model, for a
- * second reading of the same model), baseline, alt (the one named
+ * it appears. The roles are model, model-muted (the baseline grey, for a second
+ * reading of the same model drawn behind the first), baseline, alt (the one named
  * comparison), third, total, and pos and neg for diverging bars.
  *
  * Mark rules the kit enforces rather than suggests: bars at most 24px thick
@@ -58,7 +58,9 @@
  *   heat    rows, cols, values; scale "diverging" or sequential; breaks [a, b]
  *           for fixed diverging classes; mono and labelAlign for row labels,
  *           which are never clipped (labelWidth wraps them); groups [{label,
- *           count}]; colTitle; cellMax; rowNotes; rowTips.
+ *           count}]; colTitle; cellMax; rowNotes; rowTips. scale "plain" sets
+ *           the grid as a banker's table: no fill, a rule under each row, no
+ *           scale legend, and base [row, col] boxes the base case.
  *   hist    edges and series [{name, role, counts}], at most two series.
  *   range   rows [{label, lo, mid, hi, role}], the football field.
  *   waterfall start, steps [{label, value}] and total; its legend lists only
@@ -791,7 +793,7 @@
   TV.refusalNote = refusalNote;
   TV.cautionNote = cautionNote;
 
-  /* Figure cards ---------------------------------------------------------- */
+  /* Exhibits -------------------------------------------------------------- */
 
   function provenanceRows(provenance) {
     var list = Array.isArray(provenance) ? provenance : isNil(provenance) ? [] : [provenance];
@@ -907,8 +909,8 @@
       },
       addProvenance: addProvenance,
       /*
-       * A second figure drawn inside this card, under its own heading. Its table
-       * view joins the card's, its entry points join the card's source line.
+       * A second figure drawn inside this exhibit, under its own heading. Its
+       * table view joins the exhibit's, its entry points join its source line.
        */
       part: function (o) {
         o = o || {};
@@ -1437,7 +1439,7 @@
 
   /*
    * How many ticks to ask a horizontal axis for: one per 90px and at least
-   * three, so a chart in a half-width card still reads its scale, and never so
+   * three, so a chart in a half-width exhibit still reads its scale, and never so
    * few that a finely niced domain is left with a single label. Labels that
    * would touch are dropped as they are drawn.
    */
@@ -3693,7 +3695,7 @@
       );
     });
     body.appendChild(grid);
-    /* Inside a figure card the tiles are a figure, so they get a table view like any other. */
+    /* Inside an exhibit the tiles are a figure, so they get a table view like any other. */
     var handle = handleFor(body);
     if (handle && list.length) {
       TV.tableView(handle, {
