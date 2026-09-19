@@ -184,15 +184,16 @@ strictly before the test window less an embargo.
 |---|---|---|---|---|---|
 | Value signal, trailing EV/Revenue | mean IC, 12m forward | **-0.0984** | random score, same cross-sectional shape | +0.0002 | loses, and is **not significant** once overlap is corrected |
 | Peer similarity encoder | NDCG@10 | **0.5407** | popularity prior, query ignored | 0.2213 | beats it on 84% of targets, paired t 13.6 |
-| Warranted EV/Revenue | Spearman, level | **0.7651** | `comps.py` OLS refit on sub-vertical peers | 0.6313 | beats it on the 888 observations both can score, and adds only **+0.0420** on the change |
+| Warranted EV/Revenue | Spearman, level | **0.7651** | `comps.py` OLS refit on sub-vertical peers | 0.6313 | ahead in four folds of five, but the fold lifts spread wider than their mean, so it **ties**; adds only **+0.0420** on the change |
 | Revenue fade, 1 year | mean absolute error | **0.1382** | last year's growth carried forward | 0.1459 | ties it, inside the fold noise |
 | Revenue fade, 3 years | mean absolute error | **0.1356** | last year's growth carried forward | 0.1885 | beats it, outside the fold noise |
 | Acquisition propensity | AUC | **0.5685** | sort the universe smallest first | 0.5474 | lift of +0.0212 against a fold sd of 0.0910, so it **ties** |
 
-Two of the six beat their baseline cleanly, one beats it on the level and adds
-almost nothing on the change, two tie, and one loses. That is about the hit rate
-a panel this size should produce. A scoreboard on which every row won would be
-evidence of a harness grading its own homework.
+Two of the six beat their baseline cleanly and one loses. The other three tie,
+and one of those, the warranted multiple, is well ahead on the pooled score and
+adds almost nothing on the change. That is about the hit rate a panel this size
+should produce. A scoreboard on which every row won would be evidence of a
+harness grading its own homework.
 
 ### The value signal
 
@@ -410,6 +411,13 @@ inherited from history rather than a view about the change. Treat the residual
 as a description of where a company sits, not as a forecast of where it is
 going.
 ```
+
+The sentence says outside the noise because it measures the lift against the
+spread of the model's own score across folds. Measured against the spread of
+the lift itself, the stricter test and the one the dashboard's chip uses, it is
+inside: the model is ahead in four folds of five, by +0.27, +0.28, +0.16 and
++0.16, and behind by 0.15 in the last, from December 2025 to June 2026, so the
+mean fold lift of +0.1438 sits inside a standard deviation of 0.1736.
 
 0.7651 is the level, and it is the level on the 888 observations where the
 incumbent OLS can be refit at all. Every baseline is scorable on a different
