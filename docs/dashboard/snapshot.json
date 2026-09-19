@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-09-16",
+  "collected_at": "2026-09-18",
   "fixtures": {
     "tests/fixtures/companyfacts_CRWD.json": "9b6ef8e8890e3f8058caf6623556708ff8043a9a944f40c94bdc11f45fc570b3",
     "tests/fixtures/companyfacts_DDOG.json": "91bcfb0dc7160923243c8b816e508c57c5a8b1c4bafe10f46dffb2ccb6799211",
@@ -4726,7 +4726,7 @@
       "figures": {
         "ddog_dcf": {
           "data": {
-            "gap": 3.963637,
+            "gap": 3.439341,
             "tiles": [
               {
                 "format": "num:2",
@@ -4737,26 +4737,26 @@
               {
                 "format": "num:2",
                 "label": "Fitted fade",
-                "sub": "EV 10,901mm, +3.96 a share",
-                "value": 40.610382
+                "sub": "EV 10,709mm, +3.44 a share",
+                "value": 40.086086
               },
               {
                 "format": "num:2",
                 "label": "Fitted, low band",
                 "sub": "10th percentile path",
-                "value": 26.971332
+                "value": 27.073095
               },
               {
                 "format": "num:2",
                 "label": "Fitted, high band",
                 "sub": "90th percentile path",
-                "value": 66.693096
+                "value": 65.663291
               }
             ]
           },
           "kind": "tiles",
           "subtitle": "USD per share, prices to 2026-09-09. Every path is discounted at 11.28%, on Datadog's own regression beta of 1.30 and a 4.83% risk-free rate that is an assumption pinned for offline runs, not a Treasury quote. The engine section values on a peer-median beta, so its per-share figure differs by the discount rate, not by the growth path.",
-          "title": "The fitted path moves Datadog's DCF by +3.96 a share, inside a band of 26.97 to 66.69"
+          "title": "The fitted path moves Datadog's DCF by +3.44 a share, inside a band of 27.07 to 65.66"
         },
         "ddog_paths": {
           "data": {
@@ -4773,28 +4773,28 @@
                 "role": "model",
                 "values": [
                   {
-                    "hi": 0.45319,
-                    "lo": 0.010373,
+                    "hi": 0.436256,
+                    "lo": 0.031575,
                     "x": "Year 1",
-                    "y": 0.213226
+                    "y": 0.210623
                   },
                   {
-                    "hi": 0.39855,
-                    "lo": -0.022984,
+                    "hi": 0.413728,
+                    "lo": -0.021755,
                     "x": "Year 2",
-                    "y": 0.196375
+                    "y": 0.190106
                   },
                   {
-                    "hi": 0.455286,
-                    "lo": 0.04007,
+                    "hi": 0.438792,
+                    "lo": 0.028647,
                     "x": "Year 3",
-                    "y": 0.20468
+                    "y": 0.196505
                   },
                   {
-                    "hi": 0.252643,
-                    "lo": 0.045035,
+                    "hi": 0.244396,
+                    "lo": 0.039324,
                     "x": "Year 4",
-                    "y": 0.12734
+                    "y": 0.123253
                   },
                   {
                     "hi": 0.05,
@@ -4842,7 +4842,7 @@
         },
         "ddog_revenue": {
           "data": {
-            "gap": 0.154995,
+            "gap": 0.134568,
             "refusalSlot": "Datadog's DCF value on each path",
             "tiles": [
               {
@@ -4854,26 +4854,26 @@
               {
                 "format": "mm",
                 "label": "Fitted fade",
-                "sub": "+15.5% against the typed schedule",
-                "value": 8210.271363
+                "sub": "+13.5% against the typed schedule",
+                "value": 8065.065867
               },
               {
                 "format": "mm",
                 "label": "Fitted, low band",
                 "sub": "10th percentile path",
-                "value": 4468.877014
+                "value": 4493.521804
               },
               {
                 "format": "mm",
                 "label": "Fitted, high band",
                 "sub": "90th percentile path",
-                "value": 15431.13458
+                "value": 15141.726072
               }
             ]
           },
           "kind": "tiles",
           "subtitle": "Datadog revenue in year 5, USD millions, compounded on each path from trailing revenue of 3,967mm to 2026-06-30.",
-          "title": "The fitted path ends year five with 15% more revenue than the typed schedule"
+          "title": "The fitted path ends year five with 13% more revenue than the typed schedule"
         },
         "depth": {
           "data": {
@@ -5006,22 +5006,22 @@
                 "role": "model",
                 "values": [
                   {
-                    "hi": 0.171629,
-                    "lo": 0.123243,
+                    "hi": 0.162692,
+                    "lo": 0.113736,
                     "x": "One year",
-                    "y": 0.147436
+                    "y": 0.138214
                   },
                   {
-                    "hi": 0.16387,
-                    "lo": 0.131402,
+                    "hi": 0.166581,
+                    "lo": 0.127217,
                     "x": "Two years",
-                    "y": 0.147636
+                    "y": 0.146899
                   },
                   {
-                    "hi": 0.156648,
-                    "lo": 0.121515,
+                    "hi": 0.159539,
+                    "lo": 0.111628,
                     "x": "Three years",
-                    "y": 0.139081
+                    "y": 0.135583
                   }
                 ]
               },
@@ -5031,15 +5031,15 @@
                 "values": [
                   {
                     "x": "One year",
-                    "y": 0.15098
+                    "y": 0.145861
                   },
                   {
                     "x": "Two years",
-                    "y": 0.188359
+                    "y": 0.186219
                   },
                   {
                     "x": "Three years",
-                    "y": 0.192129
+                    "y": 0.188493
                   }
                 ]
               },
@@ -5049,15 +5049,15 @@
                 "values": [
                   {
                     "x": "One year",
-                    "y": 0.169253
+                    "y": 0.161659
                   },
                   {
                     "x": "Two years",
-                    "y": 0.157763
+                    "y": 0.154008
                   },
                   {
                     "x": "Three years",
-                    "y": 0.144081
+                    "y": 0.141359
                   }
                 ]
               },
@@ -5067,15 +5067,15 @@
                 "values": [
                   {
                     "x": "One year",
-                    "y": 0.173444
+                    "y": 0.16764
                   },
                   {
                     "x": "Two years",
-                    "y": 0.158314
+                    "y": 0.158091
                   },
                   {
                     "x": "Three years",
-                    "y": 0.150888
+                    "y": 0.1469
                   }
                 ]
               }
@@ -5085,7 +5085,7 @@
             }
           },
           "kind": "line",
-          "subtitle": "Mean absolute error of revenue growth, out of fold; lower is better. The band is the model's score plus or minus one fold standard deviation, so a baseline inside it is inside the noise. 2,188, 1,837 and 1,480 scored company-years.",
+          "subtitle": "Mean absolute error of revenue growth, out of fold; lower is better. The band is the model's score plus or minus one fold standard deviation, so a baseline inside it is inside the noise. 2,163, 1,804 and 1,429 scored company-years.",
           "title": "The fitted fade ties this year's growth at one year and beats it at two and three years"
         },
         "fade_curve": {
@@ -5093,8 +5093,8 @@
             "format": "pct:1",
             "reference": [
               {
-                "label": "Filings revert to 13.1%",
-                "value": 0.131252
+                "label": "Filings revert to 13.3%",
+                "value": 0.132912
               }
             ],
             "series": [
@@ -5108,19 +5108,19 @@
                   },
                   {
                     "x": "Year 2",
-                    "y": 0.163697
+                    "y": 0.165319
                   },
                   {
                     "x": "Year 3",
-                    "y": 0.146564
+                    "y": 0.148566
                   },
                   {
                     "x": "Year 4",
-                    "y": 0.138478
+                    "y": 0.140474
                   },
                   {
                     "x": "Year 5",
-                    "y": 0.134662
+                    "y": 0.136565
                   }
                 ]
               },
@@ -5159,22 +5159,22 @@
           "kind": "line",
           "note": {
             "what": "Survivorship flatters a fade curve",
-            "why": "A company whose growth collapses is bought or delisted and stops filing, so a curve fitted on the survivors fades too slowly and a DCF built on it is too optimistic. The panel keeps the 118 of its 223 filers that later left until their last filing. Dropping them would lift mean forward growth by 0.8, 1.3 and 1.5 points at one, two and three years. The years after they left are in no filing, so what is left of the bias points the same way."
+            "why": "A company whose growth collapses is bought or delisted and stops filing, so a curve fitted on the survivors fades too slowly and a DCF built on it is too optimistic. The panel keeps the 118 of its 223 filers that later left until their last filing. Dropping them would lift mean forward growth by 0.7, 1.2 and 1.4 points at one, two and three years. The years after they left are in no filing, so what is left of the bias points the same way."
           },
-          "subtitle": "Revenue growth by projection year, both paths starting at 20%. Fitted on 2,334 company-years: next year's growth is 6.9 points plus 0.47 times this year's, so half the gap to 13.1% closes every 0.92 years.",
+          "subtitle": "Revenue growth by projection year, both paths starting at 20%. Fitted on 2,334 company-years: next year's growth is 6.9 points plus 0.48 times this year's, so half the gap to 13.3% closes every 0.95 years.",
           "title": "The filings level off near 13%; the typed schedule falls to 5%"
         }
       },
       "headline": {
         "baseline_name": "Persistence, this year's growth carried forward",
-        "baseline_score": 0.15098,
+        "baseline_score": 0.145861,
         "higher_is_better": false,
-        "lift": 0.003544,
+        "lift": 0.007647,
         "metric": "MAE of one-year revenue growth",
-        "n": 2188,
-        "score": 0.147436,
+        "n": 2163,
+        "score": 0.138214,
         "verdict_status": "ties",
-        "verdict_text": "mae of 0.1474 against 0.1510 for persistence (this year's growth carried forward), a lift of +0.0035 on 2,188 observations. Fold standard deviation 0.0242, so the lift is inside the fold-to-fold noise."
+        "verdict_text": "mae of 0.1382 against 0.1459 for persistence (this year's growth carried forward), a lift of +0.0076 on 2,163 observations. Fold standard deviation 0.0245, so the lift is inside the fold-to-fold noise."
       },
       "id": "fade",
       "provenance": [
@@ -5184,7 +5184,7 @@
           "inputs": [
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 3.65
+          "seconds": 3.18
         },
         {
           "entry_point": "techval.ml.forecast.fit_fade",
@@ -5192,7 +5192,7 @@
           "inputs": [
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 0.42
+          "seconds": 0.37
         },
         {
           "entry_point": "techval.ml.forecast.fit_fade",
@@ -5232,7 +5232,7 @@
       ],
       "refusals": [],
       "status": "ok",
-      "takeaway": "At one year out the fitted fade ties this year's growth: a mean absolute error of 0.1474 against 0.1510, a lift of +0.0035 inside the fold noise (a mean fold lift of +0.0040 against a fold-to-fold standard deviation of 0.0216). At two and three years it beats persistence by +0.0407 and +0.0530, outside the fold noise. Against the strongest baseline at each horizon the gap is smaller than one fold standard deviation of the model's own error, and from two years out that baseline is the sub-vertical mean. Discounted at 11.28% on its own beta, Datadog is worth 40.61 a share on the fitted path and 36.65 on the typed one.",
+      "takeaway": "At one year out the fitted fade ties this year's growth: a mean absolute error of 0.1382 against 0.1459, a lift of +0.0076 inside the fold noise (a mean fold lift of +0.0091 against a fold-to-fold standard deviation of 0.0186). At two and three years it beats persistence by +0.0393 and +0.0529, outside the fold noise. Against the strongest baseline at each horizon the gap is smaller than one fold standard deviation of the model's own error, and from two years out that baseline is the sub-vertical mean. Discounted at 11.28% on its own beta, Datadog is worth 40.09 a share on the fitted path and 36.65 on the typed one.",
       "title": "Revenue fade"
     },
     "overview": {
@@ -5341,25 +5341,25 @@
               },
               {
                 "baseline_name": "Persistence, this year's growth carried forward",
-                "baseline_score": 0.15098,
+                "baseline_score": 0.145861,
                 "delta": {
                   "format": "signed:4",
                   "label": "lift",
-                  "value": 0.003544
+                  "value": 0.007647
                 },
                 "format": "num:4",
                 "higher_is_better": false,
                 "href": "#fade",
                 "label": "Revenue fade",
-                "lift": 0.003544,
+                "lift": 0.007647,
                 "metric": "MAE of one-year revenue growth",
-                "n": 2188,
-                "score": 0.147436,
+                "n": 2163,
+                "score": 0.138214,
                 "section": "fade",
                 "state": "scored",
                 "status": "ties",
-                "sub": "MAE of one-year revenue growth against 0.1510 for Persistence, this year's growth carried forward, n = 2,188",
-                "value": 0.147436,
+                "sub": "MAE of one-year revenue growth against 0.1459 for Persistence, this year's growth carried forward, n = 2,163",
+                "value": 0.138214,
                 "verdict_status": "ties"
               },
               {
@@ -7393,7 +7393,7 @@
                 "step": "headline",
                 "unit": "company-years scored",
                 "values": {
-                  "count": 2188
+                  "count": 2163
                 }
               },
               {
@@ -7557,10 +7557,10 @@
                   "source": "fade.figures.depth.data.stats.observations"
                 },
                 {
-                  "count": 2188,
+                  "count": 2163,
                   "label": "Company-years scored at one year, the headline's n",
                   "model": "Revenue fade",
-                  "ratio": 1.278793,
+                  "ratio": 1.293574,
                   "source": "fade.headline.n"
                 },
                 {
@@ -10276,6 +10276,6 @@
       "title": "Warranted multiple"
     }
   },
-  "techval_commit": "e2b850d",
+  "techval_commit": "d19bab0",
   "title": "Valuation engine and model results"
 }

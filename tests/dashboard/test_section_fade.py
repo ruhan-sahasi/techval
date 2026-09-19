@@ -345,9 +345,9 @@ def committed() -> dict:
 
 def test_committed_one_year_fade_ties_persistence(committed):
     headline = committed["headline"]
-    assert headline["score"] == pytest.approx(0.1474, abs=5e-5)
-    assert headline["baseline_score"] == pytest.approx(0.1510, abs=5e-5)
-    assert headline["lift"] == pytest.approx(0.0035, abs=5e-5)
+    assert headline["score"] == pytest.approx(0.1382, abs=5e-5)
+    assert headline["baseline_score"] == pytest.approx(0.1459, abs=5e-5)
+    assert headline["lift"] == pytest.approx(0.0076, abs=5e-5)
     assert headline["verdict_status"] == "ties"
     assert "inside the fold-to-fold noise" in headline["verdict_text"]
 
@@ -357,7 +357,7 @@ def test_committed_lifts_over_persistence_by_horizon(committed):
     model = series["Fitted fade"]
     persistence = series["Persistence"]
     lifts = [p["y"] - m["y"] for m, p in zip(model, persistence)]
-    assert lifts == pytest.approx([0.0035, 0.0407, 0.0530], abs=5e-5)
+    assert lifts == pytest.approx([0.0076, 0.0393, 0.0529], abs=5e-5)
     statuses = [verdict_status(lift, m["hi"] - m["y"]) for lift, m in zip(lifts, model)]
     assert statuses == ["ties", "beats", "beats"]
 

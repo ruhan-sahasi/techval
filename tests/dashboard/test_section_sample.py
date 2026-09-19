@@ -476,7 +476,7 @@ def test_committed_counts_by_model(committed):
         "warranted.scored": 888,
         "warranted.companies": 94,
         "fade.company_years": 2798,
-        "fade.scored": 2188,
+        "fade.scored": 2163,
         "fade.filers": 223,
         "propensity.labelled": 9400,
         "propensity.scored": 5881,
