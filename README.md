@@ -185,8 +185,8 @@ strictly before the test window less an embargo.
 | Value signal, trailing EV/Revenue | mean IC, 12m forward | **-0.0984** | random score, same cross-sectional shape | +0.0002 | loses, and is **not significant** once overlap is corrected |
 | Peer similarity encoder | NDCG@10 | **0.5407** | popularity prior, query ignored | 0.2213 | beats it on 84% of targets, paired t 13.6 |
 | Warranted EV/Revenue | Spearman, level | **0.7651** | `comps.py` OLS refit on sub-vertical peers | 0.6313 | beats it on the 888 observations both can score, and adds only **+0.0420** on the change |
-| Revenue fade, 1 year | mean absolute error | **0.1474** | last year's growth carried forward | 0.1510 | ties it, inside the fold noise |
-| Revenue fade, 3 years | mean absolute error | **0.1391** | last year's growth carried forward | 0.1921 | beats it, outside the fold noise |
+| Revenue fade, 1 year | mean absolute error | **0.1382** | last year's growth carried forward | 0.1459 | ties it, inside the fold noise |
+| Revenue fade, 3 years | mean absolute error | **0.1356** | last year's growth carried forward | 0.1885 | beats it, outside the fold noise |
 | Acquisition propensity | AUC | **0.5685** | sort the universe smallest first | 0.5474 | lift of +0.0212 against a fold sd of 0.0910, so it **ties** |
 
 Two of the six beat their baseline cleanly, one beats it on the level and adds
@@ -481,23 +481,23 @@ The panel's own count below says 224 because it carries Atmel, whose revenue
 ladder builds no fiscal year at all, with the reason attached:
 
 ```
-Next year's growth = +0.0693 + 0.4719 x this year's, so growth fades 53% of the
-way to 13.1% each year, a half-life of 0.92 years.
+Next year's growth = +0.0687 + 0.4831 x this year's, so growth fades 52% of the
+way to 13.3% each year, a half-life of 0.95 years.
 
 224 filers, median 12 fiscal years of revenue each, deepest 19, 154 with ten
 or more
-h=1: model 0.1474, persistence 0.1510, training mean 0.1734, sub-vertical mean
-0.1693 (mean absolute error, lower is better)
-h=2: model 0.1476, persistence 0.1884, training mean 0.1583, sub-vertical mean
-0.1578 (mean absolute error, lower is better)
-h=3: model 0.1391, persistence 0.1921, training mean 0.1509, sub-vertical mean
-0.1441 (mean absolute error, lower is better)
+h=1: model 0.1382, persistence 0.1459, training mean 0.1676, sub-vertical mean
+0.1617 (mean absolute error, lower is better)
+h=2: model 0.1469, persistence 0.1862, training mean 0.1581, sub-vertical mean
+0.1540 (mean absolute error, lower is better)
+h=3: model 0.1356, persistence 0.1885, training mean 0.1469, sub-vertical mean
+0.1414 (mean absolute error, lower is better)
 ```
 
 At one year out the model does not beat doing nothing, and a test asserts the
 tie so it cannot drift away quietly. At two and three years it beats it clearly.
 Read that pattern as the result. Persistence gets worse as the horizon lengthens
-while the model gets better, because growth is sticky one year out and by year
+while the model does not, because growth is sticky one year out and by year
 three last year's number is actively misleading. A fade curve is a claim about
 the second regime, and a five-year DCF spends four of its five years there.
 
@@ -506,20 +506,20 @@ form at all and is the version to quote in an argument:
 
 ```
  Observations  Trailing growth  Forward growth  Forward median      Fade
-          233        -0.156930        0.073345        0.021471  0.230275
-          233        -0.024851        0.043805        0.027609  0.068657
-          234         0.020572        0.054103        0.034160  0.033531
-          233         0.055228        0.074949        0.056487  0.019721
-          234         0.091277        0.072564        0.077876 -0.018713
-          233         0.136007        0.129103        0.115606 -0.006905
-          233         0.194555        0.178324        0.157865 -0.016232
-          234         0.269022        0.222623        0.225660 -0.046399
-          233         0.395265        0.284178        0.289149 -0.111087
-          234         0.897151        0.474237        0.460731 -0.422915
+          233        -0.127378        0.063118        0.012619  0.190496
+          233        -0.017654        0.059745        0.027601  0.077398
+          234         0.023812        0.056596        0.035794  0.032785
+          233         0.057845        0.085961        0.057844  0.028116
+          234         0.093094        0.083080        0.079405 -0.010014
+          233         0.136829        0.132264        0.115991 -0.004566
+          233         0.195514        0.177444        0.157865 -0.018070
+          234         0.269534        0.224332        0.225660 -0.045202
+          233         0.394251        0.285195        0.288666 -0.109056
+          234         0.822780        0.470588        0.460731 -0.352192
 ```
 
-Both ends move toward the middle and the crossing point sits between 9 and 14
-percent. The fitted line has a fixed point at 13.1 percent, where growth settles
+Both ends move toward the middle and the crossing point sits between 6 and 9
+percent. The fitted line has a fixed point at 13.3 percent, where growth settles
 if nothing else changes, and the shipped default fades on a straight line from
 20 percent to 5 percent over five years. The two differ less in speed than in
 where they come to rest. The filings revert toward a growth sector's own mean
@@ -533,29 +533,28 @@ handover is visible instead of blended away.
 The sample construction is worth as much as the model. Delisted TMT filers are
 in the panel, kept until the day they stop filing and keyed on CIK, which
 survives a delisting. 118 of them contribute rows, 1,224 of the 2,798
-observations, 44 percent of it. Their last observed year grows 9.8 percent
-against 15.8 percent for the filers still quoted, so dropping them lifts mean
-forward growth by 0.78 points
-at one year and 1.52 points at three. The bias compounds with the horizon,
+observations, 44 percent of it. Their last observed year grows 9.9 percent
+against 15.6 percent for the filers still quoted, so dropping them lifts mean
+forward growth by 0.74 points at one year and 1.44 points at three. The bias compounds with the horizon,
 exactly the wrong direction for a fade curve.
 
 Acquisitive years are kept, not excluded. Excluding them fits a fade curve for a
 world in which nobody does M&A and then hands it to a DCF valuing a company that
-will keep doing it. Acquisition spend over revenue is a feature instead. The
-effect is real and is a timing artefact: a year of heavy acquisition spend grows
-2.1 points faster than a quiet one, and the year *after* it grows 5.9 points
-faster, because a deal closing in June contributes six months to this year and
-twelve to the next.
+will keep doing it. Acquisition spend over revenue is a feature instead, and it
+carries information about the year ahead: a year of heavy acquisition spend
+grows 6.6 points faster than a quiet one, and so does the year after it.
 
-One expectation the panel overturned. Restatement of a filed revenue figure is
-**rarer** than it is usually assumed to be. Holding the us-gaap tag fixed, 0.89
-percent of the 2,798 fiscal years read differently today than in the filing that
-first reported them, and 0.71 percent differ by more than one percent. What is
-commoner, by a factor of two and a half at the one percent threshold, and far
-larger when it happens, is the filer moving revenue to a different tag: through
-the full ladder 2.6 percent of years move and 1.75 percent move by more than a
-percent. Both are reported separately, because only one of them is about
-accounting.
+Restatement of a filed revenue figure is not rare. Holding the us-gaap tag
+fixed, 7.1 percent of the 2,798 fiscal years read differently today than in the
+filing that first reported them, and 5.9 percent differ by more than one
+percent. The largest are recasts rather than corrections: T-Mobile's fiscal 2011
+was filed as MetroPCS's revenue and reads four times larger today, after the
+reverse merger. Moving revenue to a different tag adds little on top: through
+the full ladder 7.2 percent of years move by more than a percent. An earlier
+build reported 0.71 percent, because it dated each fiscal year to the last 10-K
+that carried it rather than the first, and so compared the restated figure with
+itself. Both measures are reported separately, because a tag migration is not
+the filer's number changing.
 
 ### The acquisition propensity screen
 
@@ -1911,7 +1910,7 @@ produced it with the audit in the manifest.
 The fitted growth path is not constrained to decay. Each horizon is fitted
 directly rather than by iterating the one-year model, so nothing forces the
 fitted years to fade monotonically, and `GrowthPath.notes` flags it. The
-one-year slope is 0.47 and the three-year slope is 0.17, which is not 0.47
+one-year slope is 0.48 and the three-year slope is 0.28, which is not 0.48
 cubed, so a constant-decay model is wrong about the shape as well. And the
 prediction intervals on the fade are unconditional, the same width for every
 company, because the residual quantiles of a sub-vertical with 80 observations
