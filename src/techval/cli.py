@@ -49,6 +49,7 @@ from .apv import run_apv
 from .commands_forecast import app as _forecast_app
 from .commands_mna import app as _mna_app
 from .commands_peers import app as _peers_app
+from .commands_rag import app as _rag_app
 from .commands_tmt import app as _tmt_app
 
 # The optional sections below reuse the command modules' own loaders and
@@ -140,6 +141,9 @@ _mount(_tmt_app, "TMT fundamentals")
 _mount(_peers_app, "Learned comparables")
 _mount(_forecast_app, "Forecasts and signal testing")
 _mount(_mna_app, "M&A")
+# The filing reader is a group, not a merge: "template", "record" and "score"
+# are too generic to stand at the top level beside "value" and "comps".
+app.add_typer(_rag_app, name="rag", rich_help_panel="Filing reader")
 
 _CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
 _NOCACHE = typer.Option(False, "--no-cache", help="Bypass the HTTP cache.")
