@@ -1663,7 +1663,8 @@ a.tv-tile:hover .tv-tile__label {
  * with a 4px rounded data end and a square baseline end, 2px lines with round
  * joins, markers of radius 4 with a 2px surface ring, solid 1px hairlines for
  * grids and references, one y axis, a legend only for two or more series, and
- * a table view for every chart so no value is reachable only by hover.
+ * a table view for every chart so no value is reachable only by hover. A
+ * figure is one tab stop, and the arrow keys walk its marks.
  *
  * Options every chart reads, beyond its own data:
  *
@@ -2500,6 +2501,7 @@ a.tv-tile:hover .tv-tile__label {
     );
     var legend = el("div", { class: "tv-figure__legend" });
     var body = el("div", { class: "tv-figure__body" });
+    roveMarks(body);
     var table = el("div", { class: "tv-figure__table", hidden: true });
     var notes = el("div", { class: "tv-figure__notes" });
     var toggle = el("button", { class: "tv-btn", type: "button", hidden: true }, "Show data");
@@ -3032,6 +3034,56 @@ a.tv-tile:hover .tv-tile__label {
   }
 
   TV.markGroup = markGroup;
+
+  /*
+   * One tab stop per figure. A mark is focusable so a keyboard can reach its
+   * tooltip, but a stop on every mark put 75 presses of Tab inside the
+   * coefficient chart alone. The marks in one figure body share a roving stop:
+   * Tab lands on one, the arrow keys step along them in drawing order, Home and
+   * End jump to the ends, and the stop stays on the mark the reader left, across
+   * a redraw. Returns the function that re-settles the stop.
+   */
+  function roveMarks(body) {
+    var stop = null;
+    function marks() {
+      return Array.prototype.slice.call(body.querySelectorAll(".tv-markg"));
+    }
+    function isMark(node) {
+      return !!(node && node.classList && node.classList.contains("tv-markg"));
+    }
+    function settle() {
+      var all = marks();
+      if (all.indexOf(stop) < 0) stop = all[0] || null;
+      all.forEach(function (m) {
+        m.setAttribute("tabindex", m === stop ? "0" : "-1");
+      });
+    }
+    body.addEventListener("focusin", function (e) {
+      if (!isMark(e.target) || e.target === stop) return;
+      stop = e.target;
+      settle();
+    });
+    body.addEventListener("keydown", function (e) {
+      // A figure drawn inside another figure's body is walked by the inner one.
+      if (e.defaultPrevented || !isMark(e.target)) return;
+      var all = marks();
+      var i = all.indexOf(e.target);
+      var next;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") next = Math.min(i + 1, all.length - 1);
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = Math.max(i - 1, 0);
+      else if (e.key === "Home") next = 0;
+      else if (e.key === "End") next = all.length - 1;
+      else return;
+      e.preventDefault();
+      if (next !== i) all[next].focus();
+    });
+    if (typeof MutationObserver === "function") {
+      new MutationObserver(settle).observe(body, { childList: true, subtree: true });
+    }
+    return settle;
+  }
+
+  TV.roveMarks = roveMarks;
 
   /* limit is the right edge a label may reach, the svg's own width where the caller knows it. */
   function xAxisTicks(g, scale, y0, y1, fmt, count, limit) {
