@@ -1953,16 +1953,16 @@ filers.
 uv run pytest
 ```
 
-1,701 tests in about three minutes, 496 of them over `techval.tmt` and 500 over
-`techval.ml`. No test touches the network. The 14MB of fixtures are frozen SEC
-payloads, pruned XBRL instance documents, real proxy statements, verbatim merger
-filings and recorded daily closes, each carrying its retrieval date and the
-exact pruning rule applied, and several carrying a `MANIFEST.json` with row
-counts and SHA-256 digests. A test checks the facts in a fixture against the
-rule its header states, so the provenance note cannot quietly stop being true.
-Filing text is verbatim apart from markup stripping, punctuation included: a
-fixture edited to suit a house style is no longer evidence of what the filer
-wrote.
+2,213 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
+`techval.ml`, 392 over the dashboard and 100 over the filing reader. No test
+touches the network. The 15MB of fixtures are frozen SEC payloads, pruned XBRL
+instance documents, real proxy statements, verbatim merger filings and recorded
+daily closes, each carrying its retrieval date and the exact pruning rule
+applied, and several carrying a `MANIFEST.json` with row counts and SHA-256
+digests. A test checks the facts in a fixture against the rule its header
+states, so the provenance note cannot quietly stop being true. Filing text is
+verbatim apart from markup stripping, punctuation included: a fixture edited to
+suit a house style is no longer evidence of what the filer wrote.
 
 Five companies carry the core valuation tests and each is there for what it
 breaks. Datadog for in-the-money convertibles, thin GAAP EBITDA and a dual-class
