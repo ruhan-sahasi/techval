@@ -1049,7 +1049,7 @@ def _report_dates(facts: CompanyFacts, ladder: Sequence[str]) -> dict[date, date
             if not (_ANNUAL_MIN_DAYS <= (ends - begins).days <= _ANNUAL_MAX_DAYS):
                 continue
             when = date.fromisoformat(filed)
-            if end not in first or when < first[ends]:
+            if ends not in first or when < first[ends]:
                 first[ends] = when
     return first
 
