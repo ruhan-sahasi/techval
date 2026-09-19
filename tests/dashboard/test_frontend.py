@@ -335,6 +335,52 @@ def test_the_note_prints_as_a_note():
     assert "max-width: 100%" in rules[".tv-svg"] and "height: auto" in rules[".tv-svg"]
 
 
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_a_figures_marks_are_one_tab_stop_and_the_arrows_walk_them():
+    # A stop on every mark put 75 presses of Tab inside the coefficient chart alone.
+    script = r"""
+const vm = require('vm'), fs = require('fs');
+const listeners = {};
+const body = {
+  querySelectorAll: () => marks,
+  addEventListener: (t, fn) => { (listeners[t] = listeners[t] || []).push(fn); },
+  fire: (t, target, key) => {
+    let prevented = false;
+    (listeners[t] || []).forEach((fn) => fn({ target, key, preventDefault: () => { prevented = true; } }));
+    return prevented;
+  },
+};
+function mark() {
+  const attrs = {};
+  const m = {
+    classList: { contains: (c) => c === 'tv-markg' },
+    getAttribute: (k) => (k in attrs ? attrs[k] : null),
+    setAttribute: (k, v) => { attrs[k] = String(v); },
+    focus: () => body.fire('focusin', m),
+  };
+  return m;
+}
+const marks = [mark(), mark(), mark(), mark()];
+const stub = { setAttribute() {}, appendChild() {}, style: {}, getContext: () => ({ measureText: () => ({ width: 5 }) }) };
+const document = { createElementNS: () => stub, createElement: () => stub, body: stub, addEventListener() {}, documentElement: {} };
+const window = {};
+vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), { window, document, console });
+const settle = window.TV.roveMarks(body);
+const stops = () => marks.map((m) => (m.getAttribute('tabindex') === '0' ? 'x' : '.')).join('');
+settle();
+const out = [stops()];
+for (const [i, key] of [[0, 'ArrowRight'], [1, 'End'], [3, 'ArrowDown'], [3, 'Home'], [0, 'ArrowUp']]) {
+  body.fire('keydown', marks[i], key);
+  out.push(stops());
+}
+out.push(body.fire('keydown', marks[0], 'Tab'));
+process.stdout.write(JSON.stringify(out));
+"""
+    out = subprocess.run(["node", "-e", script, str(KIT)], capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    assert json.loads(out.stdout) == ["x...", ".x..", "...x", "...x", "x...", "x...", False]
+
+
 def test_reduced_motion_and_focus_are_respected():
     layout = _strip_comments((ASSETS / "layout.css").read_text(encoding="utf-8"))
     assert "@media (prefers-reduced-motion: no-preference)" in layout
