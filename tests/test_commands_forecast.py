@@ -200,7 +200,7 @@ def test_the_band_is_printed_year_by_year_and_not_only_the_point_estimate(fade_o
     text = flat(fade_output)
     assert "Low" in text and "High" in text
     # The out-of-fold residual band at one year runs about eighteen points below
-    # the estimate to twenty-two above it, so the first fitted year lands near 3%
+    # the estimate to twenty-three above it, so the first fitted year lands near 3%
     # at the low end and 44% at the high end on a 21% point estimate.
     assert "21.1%" in text and "3.2%" in text and "43.6%" in text
 

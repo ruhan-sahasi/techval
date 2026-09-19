@@ -461,9 +461,9 @@ def _horizon_table(model: FadeModel) -> None:
     beats it at two and three, and that is exactly what the persistence column
     shows. It is also only two thirds of the comparison. At two and three years
     the baseline that matters is no longer persistence, it is the mean of the
-    company's own sub-vertical, which scores 0.1578 and 0.1441 against the model's
-    0.1476 and 0.1391. Those lifts are 0.0102 and 0.0050 against fold standard
-    deviations of 0.0162 and 0.0176, so at every horizon the lift over the
+    company's own sub-vertical, which scores 0.1540 and 0.1414 against the model's
+    0.1469 and 0.1356. Those lifts are 0.0071 and 0.0058 against fold standard
+    deviations of 0.0197 and 0.0240, so at every horizon the lift over the
     STRONGEST baseline is inside the fold-to-fold noise, even where the lift over
     persistence is not.
 
