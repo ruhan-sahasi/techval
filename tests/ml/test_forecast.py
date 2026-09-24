@@ -199,6 +199,18 @@ def test_the_observation_is_dated_to_the_filing_not_the_year_end(panel):
     assert (ddog.as_of - ddog.fiscal_year_end).days > 40
 
 
+def test_a_year_is_dated_to_the_first_report_that_carried_it(panel):
+    """Not to the last: a fiscal year is public from its first 10-K.
+
+    Datadog's fiscal 2023 is in three annual reports, as the current year in
+    February 2024 and as a comparative in 2025 and 2026. Dating it to the last
+    of those builds the row from figures two years of restatement later.
+    """
+    ddog = _observation(panel, "DDOG", 2023)
+    assert ddog.as_of == date(2024, 2, 23)
+    assert ddog.label_dates[1] == date(2025, 2, 20)
+
+
 def test_the_features_are_the_figures_that_filing_stated(panel):
     """Revenue on the row is the revenue in the 10-K that first reported it."""
     ddog = _observation(panel, "DDOG", 2025)
@@ -282,24 +294,30 @@ def test_the_depth_is_measured_rather_than_assumed(panel):
 def test_restatement_is_reported_both_ways(panel):
     """Holding the tag fixed separates restatement from tag migration.
 
-    Through the ladder 1.75% of fiscal years move by more than a percent.
-    Holding the tag fixed only 0.71% do, so more than half of what looks like
-    restatement is the filer moving revenue to a tag with a different scope.
+    Through the ladder 7.2% of fiscal years move by more than a percent.
+    Holding the tag fixed 5.9% still do, so most of what moves is the same tag
+    carrying a different number later, a recast or a restatement, and not the
+    filer moving revenue to a tag with a different scope.
     """
     report = panel.restatement_report()
-    assert report["ladder_above_1pct"] == pytest.approx(0.0175, abs=0.002)
-    assert report["same_tag_above_1pct"] == pytest.approx(0.0071, abs=0.002)
+    assert report["ladder_above_1pct"] == pytest.approx(0.0722, abs=0.002)
+    assert report["same_tag_above_1pct"] == pytest.approx(0.0586, abs=0.002)
     assert report["same_tag_above_1pct"] < report["ladder_above_1pct"]
 
 
-def test_acquisitive_years_grow_faster_the_year_after_the_deal(panel):
-    """The measurement that decides acquisitive years are kept, not excluded."""
+def test_acquisitive_years_still_grow_faster_the_year_after_the_deal(panel):
+    """The measurement that decides acquisitive years are kept, not excluded.
+
+    A heavy acquirer grows 6.6 points faster than a quiet year in the year of
+    the deal and 6.6 points faster in the year after it. The spend says
+    something about next year's growth, so it is a feature and not a filter.
+    """
     report = panel.acquisition_report()
     assert report["heavy"] > 300
     same_year = report["same_year_growth_heavy"] - report["same_year_growth_quiet"]
     next_year = report["next_year_growth_heavy"] - report["next_year_growth_quiet"]
-    assert next_year > same_year * 2
-    assert next_year == pytest.approx(0.059, abs=0.01)
+    assert same_year == pytest.approx(0.066, abs=0.01)
+    assert next_year == pytest.approx(0.066, abs=0.01)
 
 
 def test_the_leavers_are_in_the_panel_and_are_not_a_rounding_error(panel):
@@ -411,9 +429,9 @@ def test_every_horizon_reports_three_baselines_before_the_model(model):
 def test_the_one_year_fit_does_not_beat_persistence_outside_the_noise(model):
     """The publishable negative result, pinned so it cannot drift away quietly.
 
-    At one year out the ridge scores 0.1474 against 0.1510 for carrying last
-    year's growth forward. That is a lift of 0.0035 against a fold standard
-    deviation of 0.0242, which is to say the two are the same number. Growth is
+    At one year out the ridge scores 0.1382 against 0.1459 for carrying last
+    year's growth forward. That is a lift of 0.0076 against a fold standard
+    deviation of 0.0245, which is to say the two are the same number. Growth is
     sticky one year out and there is almost nothing for a model to add.
 
     If a change to this module ever makes this test fail, the right response is
@@ -421,8 +439,8 @@ def test_the_one_year_fit_does_not_beat_persistence_outside_the_noise(model):
     across folds and then rewrite this docstring with the new numbers.
     """
     fit = model.fits[1]
-    assert fit.evaluation.score == pytest.approx(0.1474, abs=0.004)
-    assert fit.baselines["persistence"] == pytest.approx(0.1510, abs=0.004)
+    assert fit.evaluation.score == pytest.approx(0.1382, abs=0.004)
+    assert fit.baselines["persistence"] == pytest.approx(0.1459, abs=0.004)
     assert abs(fit.evaluation.lift) < fit.evaluation.fold_sd
     assert "inside the fold-to-fold noise" in fit.evaluation.verdict()
 
@@ -432,7 +450,7 @@ def test_the_verdict_names_persistence_as_the_baseline_it_was_scored_against(mod
 
     ``evaluate_regression`` cannot know what an array handed to it as
     ``baseline_pred`` means, so it calls it "supplied baseline". Left alone,
-    that is the phrase the model card and the dashboard print: 0.1510 for
+    that is the phrase the model card and the dashboard print: 0.1459 for
     supplied baseline, a number with no referent. The baseline here is this
     year's growth carried forward, and the verdict has to say so at every
     horizon.
@@ -489,8 +507,8 @@ def test_the_card_opens_the_verdict_as_a_sentence_with_initialisms_in_capitals(m
 def test_the_two_and_three_year_fits_beat_persistence_outside_the_noise(model):
     """Mean reversion is where a fade curve earns its keep.
 
-    Persistence gets worse as the horizon lengthens (0.1510, 0.1884, 0.1921)
-    while the model gets better (0.1474, 0.1476, 0.1391), which is the shape of
+    Persistence gets worse as the horizon lengthens (0.1459, 0.1862, 0.1885)
+    while the model does not (0.1382, 0.1469, 0.1356), which is the shape of
     the phenomenon rather than a property of the estimator.
     """
     for horizon in (2, 3):
@@ -558,7 +576,7 @@ def test_each_model_kind_fits_and_the_default_is_the_ridge(panel, fade_assumptio
     for kind in ("ridge", "gradient_boosting", "linear"):
         fitted = fit_fade(panel, fade_assumptions, model=kind, horizon_years=1)
         scores[kind] = fitted.fits[1].evaluation.score
-    assert scores["ridge"] == pytest.approx(0.1474, abs=0.004)
+    assert scores["ridge"] == pytest.approx(0.1382, abs=0.004)
     # Unpenalised least squares is worse on the thin first fold, which is the
     # whole argument for a penalty chosen on the training data.
     assert scores["linear"] > scores["ridge"]
@@ -782,10 +800,10 @@ def test_survivorship_is_worth_nearly_as_much_as_the_whole_model(
 ):
     """The sample decision against the modelling decision, both in dollars.
 
-    Replacing the typed fade with the fitted one moves Datadog by about 4 a
+    Replacing the typed fade with the fitted one moves Datadog by 3.44 a
     share. Fitting the same model on the filers still quoted today, which is
-    what any panel built from the SEC ticker file would be, moves it by almost
-    as much again and in the same direction. The invisible decision is as large
+    what any panel built from the SEC ticker file would be, moves it by 3.59
+    more in the same direction. The invisible decision is as large
     as the visible one.
     """
     fin, bridge, wacc = ddog_valuation

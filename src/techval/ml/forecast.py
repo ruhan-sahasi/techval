@@ -9,12 +9,12 @@ module measures it: given what a technology company looks like on the day its
 
 **The answer, before the method.** On 2,334 point-in-time company-years from 223
 TMT filers between 2009 and 2026, next year's growth regresses on this year's
-with a slope of 0.47 and an intercept of 6.9 points. Growth falls a little over
-half of the way toward a long-run TMT mean of 13.1% in a single year, a half-life
+with a slope of 0.48 and an intercept of 6.9 points. Growth falls a little over
+half of the way toward a long-run TMT mean of 13.3% in a single year, a half-life
 of eleven months. Sorted into deciles, which assumes no functional form at all,
-the top decile grows 90% and then 47%, the bottom decile shrinks 16% and then
-grows 7%, and the crossing point where growth neither fades nor accelerates sits
-between 9 and 14%. The straight line in the default assumptions fades a fifth of
+the top decile grows 82% and then 47%, the bottom decile shrinks 13% and then
+grows 6%, and the crossing point where growth neither fades nor accelerates sits
+between 6 and 9%. The straight line in the default assumptions fades a fifth of
 the gap a year; the filings fade half of it. That is the finding.
 
 **But the fitted curve cannot reach a terminal value, and saying so is half the
@@ -25,13 +25,13 @@ tail, and ``GrowthPath.basis`` says on every single year which of the two is
 speaking rather than blending them into one line nobody can take apart.
 
 **The baseline is the whole test, and it is brutal.** "Next year's growth equals
-this year's growth" scores a mean absolute error of 0.1510 on this panel. Three
+this year's growth" scores a mean absolute error of 0.1459 on this panel. Three
 baselines are reported before the model at every horizon: that persistence rule,
 the unconditional training mean, and the mean of the company's own sub-vertical.
-The ridge scores 0.1474 at one year, a lift of 0.0035 against a fold standard
-deviation of 0.0242, which is to say it ties. **At one year out this model does
-not beat doing nothing, and the verdict says so.** At two years it scores 0.1476
-against 0.1884, and at three 0.1391 against 0.1921, both outside the fold noise.
+The ridge scores 0.1382 at one year, a lift of 0.0076 against a fold standard
+deviation of 0.0245, which is to say it ties. **At one year out this model does
+not beat doing nothing, and the verdict says so.** At two years it scores 0.1469
+against 0.1862, and at three 0.1356 against 0.1885, both outside the fold noise.
 
 That pattern is the result, not a disappointment. Growth is sticky one year out
 and mean-reverting after that, so at h=1 there is almost nothing for a model to
@@ -45,28 +45,29 @@ fiscal year, so the features are the figures as the filer first published them,
 and the observation is dated to the filing rather than to the year end: a
 December year end is not public in January.
 
-**Restatement, measured rather than assumed.** The brief for this module
-expected revenue restatement to be commoner than people assume. It is rarer.
-Holding the us-gaap tag fixed, 0.9% of the 2,798 fiscal years here carry a
-different revenue today than in the filing that first reported them, and 0.7%
-differ by more than one percent. What is two and a half times commoner, and far
-larger when it happens, is the filer moving revenue to a different tag: through
-the full ladder 2.6% of years move and 1.75% move by more than a percent, and
-the largest gaps in the panel are all tag migrations rather than restatements.
-Crown Castle's fiscal 2017 reads 88% lower through the ladder today than in its
-own 10-K, and nothing was restated. Both numbers are reported, separately,
-because they are different facts and only one of them is about accounting.
+**Restatement, measured rather than assumed.** Holding the us-gaap tag fixed,
+7.1% of the 2,798 fiscal years here carry a different revenue today than in the
+filing that first reported them, 5.9% differ by more than one percent and 3.2%
+by more than ten. The largest are recasts rather than corrections. T-Mobile's
+fiscal 2011 was filed as MetroPCS's 4,847mm and reads 20,618mm today, after the
+reverse merger; Motorola Solutions' fiscal 2009 was filed at 22,044mm and now
+reads 6,947mm, recast to the business that remained. Moving revenue to a
+different tag adds less: through the full ladder 9.2% of years move and 7.2%
+move by more than a percent. When it happens it can be large. Crown Castle's
+fiscal 2017 reads 88% lower through the ladder today than in its own 10-K, and
+nothing was restated. Both numbers are reported, separately, because they are
+different facts.
 
 **The label is also point in time.** Forward growth for horizon h is literally
 the growth the filer printed in its 10-K h years later, numerator and
 denominator from that one filing. Mixing an as-filed denominator with a restated
 numerator would manufacture growth no filing ever claimed.
 
-**Acquisitions are kept, not excluded.** 399 labelled observations spent more
-than a tenth of revenue buying other companies. They grow 2.1 points faster than
-quiet years in the year of the deal and 5.9 points faster in the year after it,
-because a deal closing in June contributes six months to this year and twelve to
-the next. Excluding acquisitive years does not remove noise, it fits a fade curve
+**Acquisitions are kept, not excluded.** 384 labelled observations spent more
+than a tenth of revenue buying other companies. They grow 6.6 points faster than
+quiet years in the year of the deal and 6.6 points faster in the year after it,
+so the spend says as much about next year's growth as about this year's.
+Excluding acquisitive years does not remove noise, it fits a fade curve
 for a world in which nobody does M&A and then hands it to a DCF valuing a company
 that will keep doing M&A. Acquisition spend over revenue is a feature instead.
 ``techval.tmt.precedents`` was the obvious source for an acquirer flag and it is
@@ -78,11 +79,11 @@ that costs money, and it is worth 9% of Datadog.** A company whose growth
 collapses is bought or delisted and stops filing. The panel keeps 119 delisted
 filers in until the day they stop, identified by CIK because their tickers no
 longer resolve: 1,224 of the 2,798 observations, 44% of the panel. Their last
-observed year grows 9.8% against 15.8% for the filers still quoted, and they then
-vanish. Dropping them lifts mean forward growth by 0.8 points at one year, 1.3 at
-two and 1.5 at three, and it lifts Datadog's fitted enterprise value by 1,377mm,
-3.75 a share. Replacing the typed fade with the fitted one is worth 3.96 a share.
-So the sample-construction decision is 95% as large as the entire modelling
+observed year grows 9.9% against 15.6% for the filers still quoted, and they then
+vanish. Dropping them lifts mean forward growth by 0.7 points at one year, 1.2 at
+two and 1.4 at three, and it lifts Datadog's fitted enterprise value by 1,319mm,
+3.59 a share. Replacing the typed fade with the fitted one is worth 3.44 a share.
+So the sample-construction decision is slightly larger than the entire modelling
 decision, and it is the one nobody would have seen.
 
 That the leavers are hard to find is not incidental. ``EdgarClient.ticker_to_cik``
@@ -95,10 +96,10 @@ since, Electronic Arts and Juniper among them. ``DelistedAwareClient`` is the fi
 a CIK at a time.
 
 **What a fitted fade is worth, honestly.** The out-of-fold residual band at one
-year runs from -20 points to +24 points around the estimate. A point forecast of
-21% with an 80% interval of 1% to 45% is what this data supports, and
+year runs from -18 points to +23 points around the estimate. A point forecast of
+21% with an 80% interval of 3% to 44% is what this data supports, and
 ``GrowthPath`` carries the interval on every year. On Datadog those two ends are
-a 26.97 and a 66.69 share against 36.65 on the assumed fade. Anyone quoting the
+a 27.07 and a 65.66 share against 36.65 on the assumed fade. Anyone quoting the
 middle of that band as a forecast has stopped reporting a measurement.
 
 **Determinism.** Nothing here samples. The ridge penalty is chosen by closed-form
@@ -726,12 +727,12 @@ class FadeObservation:
     def same_tag_gap(self) -> float | None:
         """The same comparison, holding the us-gaap tag fixed.
 
-        This is restatement proper. The ladder comparison above also picks up
-        every filer that migrated from ``Revenues`` to a contract-revenue tag
-        whose scope is different, and those migrations are the largest gaps in
-        the panel by a wide margin: Crown Castle's fiscal 2017 reads 88% lower
-        through the ladder today than in the filing, and none of that is a
-        restatement of anything. None means the tag that reported this year is
+        This is the filer's own number changing: a restatement, or a recast
+        after a reverse merger or a disposal. The ladder comparison above also
+        picks up every filer that migrated from ``Revenues`` to a
+        contract-revenue tag whose scope is different: Crown Castle's fiscal
+        2017 reads 88% lower through the ladder today than in the filing, and
+        none of that is a restatement of anything. None means the tag that reported this year is
         no longer in the filer's fact set at all.
         """
         if self.restated_same_tag is None or self.revenue <= 0:
@@ -931,10 +932,9 @@ class FadePanel:
         """What an acquisitive year does to the year after it.
 
         The finding that decides whether acquisitive years are excluded: a heavy
-        acquirer grows no faster in the year of the deal and 7.6 points faster
-        in the year after it, because a deal closing in June contributes six
-        months to this year and twelve to the next. Excluding those years fits
-        the curve for a world without M&A.
+        acquirer grows 6.6 points faster than a quiet year in the year of the
+        deal and 6.6 points faster in the year after it. Excluding those years
+        fits the curve for a world without M&A.
         """
         rows = [
             o
@@ -964,9 +964,9 @@ class FadePanel:
         The fade curve without a model, and the most persuasive object in this
         module: sort every company-year by the growth it just reported, cut into
         ten equal buckets, and read off what each bucket did next. The top
-        decile grows 90% and then 47%. The bottom decile shrinks 16% and then
-        grows 7%. Both ends move toward the middle, the crossing point sits
-        between 12 and 14%, and nothing about that depends on a regression
+        decile grows 82% and then 47%. The bottom decile shrinks 13% and then
+        grows 6%. Both ends move toward the middle, the crossing point sits
+        between 6 and 9%, and nothing about that depends on a regression
         specification anybody could quarrel with.
         """
         rows = self.labelled(horizon)
@@ -1049,7 +1049,7 @@ def _report_dates(facts: CompanyFacts, ladder: Sequence[str]) -> dict[date, date
             if not (_ANNUAL_MIN_DAYS <= (ends - begins).days <= _ANNUAL_MAX_DAYS):
                 continue
             when = date.fromisoformat(filed)
-            if end not in first or when < first[ends]:
+            if ends not in first or when < first[ends]:
                 first[ends] = when
     return first
 
@@ -1241,7 +1241,7 @@ def _attach_labels(
     Building it as later revenue over this observation's revenue would mix two
     vintages of the same fiscal year and manufacture growth no filing ever
     claimed, which is exactly what a restatement between the two creates: on
-    this panel, a 1.75% chance per year of inventing several points of growth.
+    this panel, a 7.2% chance per year of inventing more than a point of growth.
 
     *It runs after winsorization, not before.* A label here is another
     observation's feature, so it is trimmed in the cross-section it belongs to,
@@ -1514,10 +1514,10 @@ def _estimator(kind: str, seed: int):
     their difference), and the first walk-forward fold holds sixty observations.
     A penalty chosen by closed-form generalised cross-validation on the training
     fold is the right amount of structure for that; unpenalised least squares on
-    the same sixty rows scores 0.249 against 0.149 for doing nothing, and is
-    offered only so the difference is visible.
+    the same sixty rows scores 0.250 against 0.164 for the ridge, and is offered
+    only so the difference is visible.
 
-    Gradient boosting wins at one and three years and loses at two, by margins
+    Gradient boosting wins at one year and loses at two and three, by margins
     inside the fold-to-fold noise in all three cases. It is not the default,
     because a fade curve that a reader cannot differentiate is a fade curve
     nobody can argue with, and arguing with it is the point.
@@ -1734,7 +1734,7 @@ class FadeModel:
         its own horizon rather than by iterating the one-year model forward.
         Direct fitting is the choice here because iterating compounds the
         one-year error three times and because the two disagree: the one-year
-        slope is 0.36 and the three-year slope is 0.17, which is not 0.36 cubed,
+        slope is 0.48 and the three-year slope is 0.28, which is not 0.48 cubed,
         so growth reverts faster in the first year than a constant-decay model
         implies and slower afterwards.
 
@@ -1855,11 +1855,10 @@ def _persistence_line(
     """Least squares of forward growth on this year's growth, tails trimmed.
 
     The fade curve in two numbers, and the trim is not cosmetic. Untrimmed, this
-    panel's slope is 0.15; trimmed at the 1st and 99th percentiles of both axes
-    it is 0.47, and at the 5th and 95th it is 0.52. Eighty-eight observations
-    out of 2,334 move it by a factor of three, because one filer growing 2,026%
-    in a year has more leverage on a least-squares line than the other two
-    thousand put together.
+    panel's slope is 0.40; trimmed at the 1st and 99th percentiles of both axes
+    it is 0.48, and at the 5th and 95th it is 0.52. Eighty-six observations out
+    of 2,334 move it by a fifth, because a filer growing 469% in a year has more
+    leverage on a least-squares line than hundreds of ordinary ones.
 
     The cross-sectional winsorization the panel already applies does not catch
     them, and the reason is worth knowing: each filing year holds about 150
@@ -1871,7 +1870,7 @@ def _persistence_line(
     The decile table in ``FadePanel.reversion_table`` is the version of this
     that assumes no functional form at all, and it is the one to quote in an
     argument. It puts the crossing point, where growth neither fades nor
-    accelerates, at 12 to 14%.
+    accelerates, between 6 and 9%.
 
     Returned as (slope, intercept, observations used).
     """

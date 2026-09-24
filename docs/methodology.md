@@ -2755,7 +2755,7 @@ is to measure the size and to name the direction, per model:
 |---|---|---|
 | Peer encoder | a deregistered company cannot be resolved from the ticker file, so it never becomes a named peer at all; 18.4% of disclosed spans are lost, dominated by the M&A wave | lands entirely in recall, so every ranker is capped at the same ceiling and the *comparison* stays fair while the *level* is overstated |
 | Warranted multiple | five seed names have no price history at any date, including the dates on which they were live | biased by an amount nobody can estimate |
-| Revenue fade | 118 delisted filers are deliberately kept, 1,224 observations and 44% of the panel; their last observed year grows 9.8% against 15.8% for survivors | dropping them would lift mean forward growth by 0.78 points at one year, 1.34 at two and 1.52 at three, and the bias compounds with horizon, which is the worst possible direction for a fade curve |
+| Revenue fade | 118 delisted filers are deliberately kept, 1,224 observations and 44% of the panel; their last observed year grows 9.9% against 15.6% for survivors | dropping them would lift mean forward growth by 0.74 points at one year, 1.20 at two and 1.44 at three, and the bias compounds with horizon, which is the worst possible direction for a fade curve |
 | M&A propensity | 77 of 107 deals are on companies that no longer file | not a bias but the destruction of the experiment: a survivor universe has almost no positive class left |
 | Value signal | not one name in the panel was acquired or delisted over the whole period | a cheap takeout at a premium is a high score with a high return, so if the missing names skew cheap, their absence makes cheapness look worse than it was and the true coefficient is if anything less negative than reported; the skew is assumed, not measured |
 
@@ -2773,9 +2773,9 @@ than clean.
 **The fade curve is the one place the size of the sample-construction decision was
 measured against the size of the modelling decision, and they are comparable.** On
 Datadog: moving from the typed straight-line fade to the fitted one is worth
-+$3.96 a share. Fitting on survivors only rather than on everything is worth
-+$3.75 a share. **The sample-construction decision nobody would have seen is 95% as
-large as the entire modelling decision.**
++$3.44 a share. Fitting on survivors only rather than on everything is worth
++$3.59 a share. **The sample-construction decision nobody would have seen is
+slightly larger than the entire modelling decision.**
 
 In the propensity panel a further channel hides in plain sight: no public price
 source serves history for a delisted symbol, so every price-derived feature is
@@ -3327,15 +3327,15 @@ no fiscal year at all:
 
 | Horizon | Model | Persistence | Training mean | Sub-vertical mean | Fold sd | Verdict |
 |---|---:|---:|---:|---:|---:|---|
-| 1 year | **0.1474** | 0.1510 | 0.1734 | 0.1693 | 0.0242 | lift of 0.0035, **inside** the fold noise. A tie. |
-| 2 years | **0.1476** | 0.1884 | 0.1583 | 0.1578 | 0.0162 | lift of 0.0407, outside the noise |
-| 3 years | **0.1391** | 0.1921 | 0.1509 | 0.1441 | 0.0176 | lift of 0.0530, outside the noise |
+| 1 year | **0.1382** | 0.1459 | 0.1676 | 0.1617 | 0.0245 | lift of 0.0076, **inside** the fold noise. A tie. |
+| 2 years | **0.1469** | 0.1862 | 0.1581 | 0.1540 | 0.0197 | lift of 0.0393, outside the noise |
+| 3 years | **0.1356** | 0.1885 | 0.1469 | 0.1414 | 0.0240 | lift of 0.0529, outside the noise |
 
 **At one year out this model does not beat doing nothing, and a test asserts the
 tie so it cannot drift away quietly.**
 
-Persistence gets worse as the horizon lengthens, 0.1510 then 0.1884 then
-0.1921, while the model gets better, and that pattern is the result rather
+Persistence gets worse as the horizon lengthens, 0.1459 then 0.1862 then
+0.1885, while the model does not, and that pattern is the result rather
 than a disappointment.
 Growth is sticky one year out, so there is almost nothing to add to last year's
 number, and by year three last year's number is actively misleading. A fade curve
@@ -3343,28 +3343,28 @@ is a claim about the second regime, which is the regime a five-year DCF spends f
 of its five years in.
 
 Note also that the model beats the *sub-vertical* mean at every horizon but only by
-0.005 at three years, which is well inside the fold noise. Read that as "the model
+0.006 at three years, which is well inside the fold noise. Read that as "the model
 is a slightly better sector mean", not as stock picking.
 
-The fitted line itself is forward growth `= 0.0693 + 0.4719 x` trailing growth,
-trimmed at the 1st and 99th percentiles of both axes. Growth closes **53% of the gap
-to a long-run TMT mean of 13.1% every year**, a half-life of eleven months. **The
+The fitted line itself is forward growth `= 0.0687 + 0.4831 x` trailing growth,
+trimmed at the 1st and 99th percentiles of both axes. Growth closes **52% of the gap
+to a long-run TMT mean of 13.3% every year**, a half-life of eleven months. **The
 default assumptions fade a fifth of the gap a year, so the typed schedule fades
 less than half as fast as the filings do.**
 
-Untrimmed the slope is 0.15, because one filer growing 2,026% in a year has more
-leverage on a least-squares line than the other two thousand put together. The
+Untrimmed the slope is 0.40, because a filer growing 469% in a year has more
+leverage on a least-squares line than hundreds of ordinary ones. The
 decile table assumes no functional form at all and is the version to quote in an
 argument:
 
 | Trailing growth decile | Trailing | Forward | Fade |
 |---|---:|---:|---:|
-| 1, worst | -15.7% | +7.3% | +23.0 pts |
-| 5 | +9.1% | +7.3% | -1.9 pts |
-| 8 | +26.9% | +22.3% | -4.6 pts |
-| 10, best | +89.7% | +47.4% | -42.3 pts |
+| 1, worst | -12.7% | +6.3% | +19.0 pts |
+| 5 | +9.3% | +8.3% | -1.0 pts |
+| 8 | +27.0% | +22.4% | -4.5 pts |
+| 10, best | +82.3% | +47.1% | -35.2 pts |
 
-Both ends move toward the middle and the crossing point sits between 9 and 14%.
+Both ends move toward the middle and the crossing point sits between 6 and 9%.
 
 **What it is worth on one company, because an R-squared is a claim about a panel
 and this is a claim about a business.** Datadog:
@@ -3372,12 +3372,12 @@ and this is a claim about a business.** Datadog:
 | Case | Y1 | Y2 | Y3 | Y4 | Y5 | EV (mm) | Per share |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Assumed fade | 20.0% | 16.2% | 12.5% | 8.8% | 5.0% | 9,447 | **36.65** |
-| Fitted fade | 21.3% | 19.6% | 20.5% | 12.7% | 5.0% | 10,901 | **40.61** |
-| Fitted, 10th percentile | 1.0% | -2.2% | 4.1% | 4.6% | 5.0% | 5,897 | 26.97 |
-| Fitted, 90th percentile | 45.3% | 40.0% | 46.0% | 25.5% | 5.0% | 20,472 | 66.69 |
+| Fitted fade | 21.1% | 19.0% | 19.7% | 12.3% | 5.0% | 10,709 | **40.09** |
+| Fitted, 10th percentile | 3.2% | -2.2% | 2.9% | 3.9% | 5.0% | 5,934 | 27.07 |
+| Fitted, 90th percentile | 43.6% | 41.4% | 43.9% | 24.4% | 5.0% | 20,094 | 65.66 |
 
-The fitted path is worth +$3.96 a share, 15.4% of enterprise value. **The band the
-fit actually supports runs $26.97 to $66.69, and anyone quoting the middle of that
+The fitted path is worth +$3.44 a share, 13.4% of enterprise value. **The band the
+fit actually supports runs $27.07 to $65.66, and anyone quoting the middle of that
 as a forecast has stopped reporting a measurement.**
 
 Mean reversion in the filings runs toward the average growth of a growth
@@ -3388,33 +3388,35 @@ toward `dcf.revenue_growth_terminal`, now anchored on a measured level rather th
 a typed one. The basis is recorded on **every single year** as fitted or assumed,
 so the handover is visible instead of blended away, and setting the horizon equal
 to the projection length produces a note saying the path ends on a cliff. Nothing
-constrains the fitted years to decay either, and Datadog's come out 21.3%, 19.6%,
-20.5%: imposing monotonicity would be an assumption dressed as a result. The
-one-year slope is 0.47 and the three-year slope is 0.17, which is not 0.47 cubed,
+constrains the fitted years to decay either, and Datadog's come out 21.1%, 19.0%,
+19.7%: imposing monotonicity would be an assumption dressed as a result. The
+one-year slope is 0.48 and the three-year slope is 0.28, which is not 0.48 cubed,
 so a constant-decay model is wrong about the shape as well.
 
-**Restatement, measured rather than assumed, and the expectation was wrong in an
-interesting direction.** Restatement was expected to be commoner than people
-assume. It is rarer. Holding the us-gaap tag fixed, **0.89%** of the 2,798 fiscal
-years carry a different revenue today than in the filing that first reported them,
-and 0.71% differ by more than one percent. What is two and a half times commoner,
-and far larger when it happens, is the filer moving revenue to a different tag:
-through the full ladder **2.6%** of years move and 1.75% move by more than a
-percent. Every one of the largest gaps in the panel is a tag migration rather than
-a restatement. Crown Castle's fiscal 2017 reads 88% lower through the ladder today
-than in its own 10-K, and nothing was restated. Both numbers are reported
-separately, because only one of them is about accounting.
+**Restatement, measured rather than assumed.** Holding the us-gaap tag fixed,
+**7.1%** of the 2,798 fiscal years carry a different revenue today than in the
+filing that first reported them, 5.9% differ by more than one percent and 3.2% by
+more than ten. The largest are recasts rather than corrections. T-Mobile's fiscal
+2011 was filed as MetroPCS's 4,847mm and reads 20,618mm today, after the reverse
+merger; Motorola Solutions' fiscal 2009 was filed at 22,044mm and now reads
+6,947mm, recast to the business that remained. Moving revenue to a different tag
+adds less: through the full ladder **9.2%** of years move and 7.2% move by more
+than a percent. When it happens it can be large. Crown Castle's fiscal 2017 reads
+88% lower through the ladder today than in its own 10-K, and nothing was
+restated. Both numbers are reported separately, because a tag migration is not
+the filer's number changing.
 
 **Acquisitive years are kept, and the reasoning is a valuation argument rather than
-a statistical one.** 399 labelled observations spent more than a tenth of revenue
-on acquisitions. They grow 2.1 points faster than quiet years in the year of the
-deal and 5.9 points faster in the year after it, because a deal closing in June
-contributes six months to this year and twelve to the next. Excluding acquisitive
-years does not remove noise: it fits a fade curve for a world in which nobody does
-M&A and then hands it to a DCF valuing a company that will keep doing M&A.
-Acquisition spend over revenue is a feature instead. Excluding them changes nothing
-worth having either, 0.1350 against 0.1328 at one year and 0.1314 against 0.1344 at
-three.
+a statistical one.** 384 labelled observations spent more than a tenth of revenue
+on acquisitions. They grow 6.6 points faster than quiet years in the year of the
+deal and 6.6 points faster in the year after it, so the spend says as much about
+next year's growth as about this year's. Excluding acquisitive years does not
+remove noise: it fits a fade curve for a world in which nobody does M&A and then
+hands it to a DCF valuing a company that will keep doing M&A. Acquisition spend
+over revenue is a feature instead. Excluding them changes nothing worth having
+either: 0.1343 without them against 0.1382 with them at one year, and 0.1351
+against 0.1356 at three, gaps inside the fold noise on test sets that differ by
+the excluded years.
 
 The first version of this module scored a mean absolute error of 0.46 on the
 first fold against 0.16 for doing nothing, and forecast 370% revenue growth for
@@ -3448,6 +3450,19 @@ picking the larger of those by rule would be a thumb on the scale. At ten the gu
 fires on Charter and on SBA Communications and on nothing else. It is opt-in per
 concept because the test is a ratio, and a ratio conveys nothing about a concept
 that passes through zero: on EBIT an order of magnitude is an ordinary year.
+
+A later audit found a bug in the panel's dating. Each fiscal year is meant to be
+dated to the first annual report that carried it, and the check compared a date
+string against a dict keyed on dates, so it never matched and each year took the
+date of the last report that carried it instead, usually the 10-K two years on.
+2,131 of the 2,798 fiscal years were dated one to two years late and built from
+the figures as restated in that later filing. The headline results survived the
+fix: the one-year tie, and the two- and three-year wins over persistence. Two
+findings did not. Restatement had read as rare, 0.71% of years above one percent
+under a fixed tag, because the late panel compared each restated figure with
+itself. And the acquisitive-year premium had looked like a timing effect, 2.1
+points in the deal year and 5.9 in the year after. The 2,026% grower that once
+justified the trim was an artefact of the same bug.
 
 The panel's depth overturned an expectation of its own: it was supposed to
 reach 15 to 18 years for mature names. Measured on 223 filers, the deepest is
