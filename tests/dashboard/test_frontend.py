@@ -295,6 +295,7 @@ def test_kit_header_documents_the_options_it_reads(kit_source):
 def test_chips_cover_every_verdict_status(kit_source):
     assert _object_keys(kit_source, "var STATUS") == {
         "beats", "inside_noise", "ties", "loses", "not_significant", "refused",
+        "rich", "cheap",
     }
 
 
@@ -1079,7 +1080,7 @@ def test_every_tileset_reads_as_numbers_too(drawn):
         assert s["opened"] == {"table": True, "body": True, "text": "Hide data"}, sid
         assert s["closed"] == {"table": True, "body": True, "text": "Show data"}, sid
     plain = sets["panel_reach"]
-    assert plain["tiles"] == 3 and plain["rows"] == 3
+    assert plain["tiles"] == 5 and plain["rows"] == 5
     assert "render_gallery" in plain["source"]
 
 
