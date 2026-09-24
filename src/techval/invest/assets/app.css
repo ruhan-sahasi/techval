@@ -280,6 +280,11 @@ body {
   padding-top: var(--space-3);
 }
 
+/* Figures keep the kit's chrome but drop the document's exhibit numbering. */
+.iv-pane .tv-figure > .tv-figure__head > .tv-figure__title::before {
+  content: none;
+}
+
 /* Notes and refusals reuse the page's own vocabulary. */
 .iv-note {
   color: var(--ink-2);
