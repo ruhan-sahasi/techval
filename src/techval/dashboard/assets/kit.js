@@ -712,6 +712,9 @@
     loses: { label: "Loses to baseline", short: "Loses", tone: "critical", glyph: "cross" },
     not_significant: { label: "Not significant", short: "Not sig.", tone: "warning", glyph: "ring" },
     refused: { label: "Refused", short: "Refused", tone: "neutral", glyph: "slash" },
+    /* The portfolio page's calls against the warranted line. */
+    rich: { label: "Rich to warranted", short: "Rich", tone: "warning", glyph: "up" },
+    cheap: { label: "Cheap to warranted", short: "Cheap", tone: "good", glyph: "down" },
   };
 
   var GLYPHS = {
@@ -721,6 +724,8 @@
     cross: [["path", { d: "M5.6 5.6 L10.4 10.4 M10.4 5.6 L5.6 10.4" }]],
     ring: [["circle", { cx: 8, cy: 8, r: 2.6 }]],
     slash: [["path", { d: "M5.2 10.8 L10.8 5.2" }]],
+    up: [["path", { d: "M8 11.2 V5.4 M5.5 7.9 L8 5.4 L10.5 7.9" }]],
+    down: [["path", { d: "M8 4.8 V10.6 M5.5 8.1 L8 10.6 L10.5 8.1" }]],
   };
 
   function statusInfo(status) {
