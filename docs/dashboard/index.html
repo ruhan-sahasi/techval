@@ -16,18 +16,19 @@
  * exists in only one theme. Components style through these names; none of
  * them reaches for a hex value directly.
  *
- * The page is set as a research document, not an application, so there is one
- * ground and no card surface: exhibits sit on the page and rules separate them.
- * --surface is kept equal to --page so the kit's surface-gap rings and halos
- * match the ground they sit on; --raised is the only lifted plane, for the
- * tooltip.
+ * The page is set as an application surface: exhibits sit on cards one step
+ * lighter than the ground, so --surface is the card and chart plane and
+ * --page is the ground behind it. The kit's surface-gap rings and halos ring
+ * marks with --surface, which is the plane a chart actually sits on. --raised
+ * is the lifted plane, for the tooltip.
  *
  * Entity colours follow the thing measured, everywhere on the page: the fitted
  * model is always --c-model (teal), a baseline is always --c-baseline (grey),
  * the one named comparison is --c-alt (ochre). Every categorical and diverging
  * set here passed the dataviz palette validator all-pairs, in both themes,
  * against these grounds. Verdicts are words, so the status hues only colour a
- * small mark beside a word, never carry meaning alone.
+ * small mark beside a word, never carry meaning alone. Signed values may wear
+ * --text-good and --text-critical for sign, and sign only.
  */
 
 :root {
@@ -71,26 +72,29 @@
   --space-7: 48px;
   --space-8: 72px;
 
-  /* The one radius on the page: the tooltip. Small keys round themselves. */
-  --radius-control: 3px;
+  /* Radii: cards, chips, and the small controls. */
+  --radius-control: 6px;
+  --radius-card: 14px;
+  --radius-chip: 999px;
 
   --rail-width: 220px;
   --main-max: 1120px;
 
-  /* Planes and ink. A cool neutral biased toward the teal. */
-  --page: #f4f6f5;
-  --surface: #f4f6f5;
+  /* Planes and ink. A cool neutral biased toward the teal; cards are white. */
+  --page: #eff3f2;
+  --surface: #ffffff;
   --raised: #ffffff;
-  --ink-1: #111816;
+  --ink-1: #14201f;
   --ink-2: #3f4946;
   --ink-3: #5a6461;
-  --grid: #dfe5e3;
-  --axis: #b3bcb9;
-  --rule: #111816;
-  --border: rgba(17, 24, 22, 0.14);
+  --grid: #e3e9e7;
+  --axis: #b0bab7;
+  --rule: #14201f;
+  --border: rgba(17, 24, 22, 0.13);
   --wash: rgba(17, 24, 22, 0.035);
   --wash-strong: rgba(17, 24, 22, 0.07);
   --shadow-tip: 0 6px 18px rgba(17, 24, 22, 0.12);
+  --shadow-card: 0 1px 2px rgba(17, 24, 22, 0.05), 0 4px 16px rgba(17, 24, 22, 0.04);
 
   /* Categorical series slots, in fixed order. */
   --series-1: #099393;
@@ -111,7 +115,7 @@
   --c-baseline: var(--deemph);
   --c-total: var(--ink-2);
 
-  /* Diverging: teal pole, brick pole, a neutral midpoint. Seven classes. */
+  /* Diverging: teal pole, clay pole, a neutral midpoint. Seven classes. */
   --div-pos: #099393;
   --div-neg: #bc4b37;
   --div-mid: #e3e9e7;
@@ -122,10 +126,10 @@
   --div-pos-1: color-mix(in oklab, var(--div-pos) 33%, var(--div-mid));
   --div-pos-2: color-mix(in oklab, var(--div-pos) 66%, var(--div-mid));
   --div-pos-3: var(--div-pos);
-  --on-div-3: #111816;
-  --on-div-2: #111816;
-  --on-div-1: #111816;
-  --on-div-0: #111816;
+  --on-div-3: #14201f;
+  --on-div-2: #14201f;
+  --on-div-1: #14201f;
+  --on-div-0: #14201f;
 
   /* The teal ramp, mixed in OKLab from the model hue toward white and black. */
   --teal-100: #deeeed;
@@ -144,17 +148,17 @@
   --seq-5: var(--teal-500);
   --seq-6: var(--teal-600);
   --seq-7: var(--teal-700);
-  --on-seq-1: #111816;
-  --on-seq-2: #111816;
-  --on-seq-3: #111816;
-  --on-seq-4: #111816;
-  --on-seq-5: #111816;
+  --on-seq-1: #14201f;
+  --on-seq-2: #14201f;
+  --on-seq-3: #14201f;
+  --on-seq-4: #14201f;
+  --on-seq-5: #14201f;
   --on-seq-6: #ffffff;
   --on-seq-7: #ffffff;
   --missing: #e5eae8;
 
   /* Status: a small mark beside a verdict word, never the word's only carrier. */
-  --status-good: #1d7a3c;
+  --status-good: #157a4a;
   --status-warning: #a86b00;
   --status-critical: #b23a2e;
   --status-neutral: #6f7875;
@@ -162,39 +166,40 @@
   --on-status-warning: #ffffff;
   --on-status-critical: #ffffff;
   --on-status-neutral: #ffffff;
-  --text-good: #1d6b36;
-  --text-critical: #a3352a;
+  --text-good: #10684a;
+  --text-critical: #a3462e;
 
-  --focus: #111816;
+  --focus: #0b6b5c;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --page: #0f1514;
-    --surface: #0f1514;
-    --raised: #182120;
-    --ink-1: #e4ebe9;
-    --ink-2: #aab5b2;
-    --ink-3: #8d9895;
-    --grid: #232b2a;
-    --axis: #37403e;
-    --rule: #e4ebe9;
-    --border: rgba(228, 235, 233, 0.16);
-    --wash: rgba(228, 235, 233, 0.05);
-    --wash-strong: rgba(228, 235, 233, 0.09);
+    --page: #0a1216;
+    --surface: #101b21;
+    --raised: #16232a;
+    --ink-1: #e9f1f0;
+    --ink-2: #aebdc0;
+    --ink-3: #87999f;
+    --grid: #1c2930;
+    --axis: #3e4e56;
+    --rule: #e9f1f0;
+    --border: rgba(233, 241, 240, 0.12);
+    --wash: rgba(233, 241, 240, 0.05);
+    --wash-strong: rgba(233, 241, 240, 0.09);
     --shadow-tip: 0 6px 18px rgba(0, 0, 0, 0.55);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
     --series-1: #19a0a0;
     --series-2: #bd8630;
-    --series-3: #9a4873;
-    --deemph: #707a77;
+    --series-3: #a24e7b;
+    --deemph: #6f7e80;
     --div-pos: #19a0a0;
     --div-neg: #d06551;
-    --div-mid: #2b3432;
-    --on-div-3: #0f1514;
-    --on-div-2: #e4ebe9;
-    --on-div-1: #e4ebe9;
-    --on-div-0: #e4ebe9;
+    --div-mid: #263239;
+    --on-div-3: #0a1216;
+    --on-div-2: #e9f1f0;
+    --on-div-1: #e9f1f0;
+    --on-div-0: #e9f1f0;
     --seq-1: var(--teal-700);
     --seq-2: var(--teal-600);
     --seq-3: color-mix(in oklab, var(--teal-500) 80%, var(--teal-600));
@@ -202,52 +207,55 @@
     --seq-5: var(--teal-400);
     --seq-6: var(--teal-300);
     --seq-7: var(--teal-200);
-    --on-seq-1: #e4ebe9;
-    --on-seq-2: #e4ebe9;
-    --on-seq-3: #0f1514;
-    --on-seq-4: #0f1514;
-    --on-seq-5: #0f1514;
-    --on-seq-6: #0f1514;
-    --on-seq-7: #0f1514;
-    --missing: #1f2625;
-    --status-good: #4fb06f;
+    --on-seq-1: #e9f1f0;
+    --on-seq-2: #e9f1f0;
+    --on-seq-3: #0a1216;
+    --on-seq-4: #0a1216;
+    --on-seq-5: #0a1216;
+    --on-seq-6: #0a1216;
+    --on-seq-7: #0a1216;
+    --missing: #1a252b;
+    --status-good: #4cc08a;
     --status-warning: #d39a3a;
-    --status-critical: #d9695b;
-    --status-neutral: #8d9895;
-    --on-status-warning: #0f1514;
-    --on-status-neutral: #0f1514;
-    --text-good: #6cc38a;
-    --text-critical: #e2806f;
-    --focus: #e4ebe9;
+    --status-critical: #d9705a;
+    --status-neutral: #87999f;
+    --on-status-good: #0a1216;
+    --on-status-warning: #0a1216;
+    --on-status-critical: #0a1216;
+    --on-status-neutral: #0a1216;
+    --text-good: #5cd6a8;
+    --text-critical: #e8927c;
+    --focus: #7fe8d2;
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0f1514;
-  --surface: #0f1514;
-  --raised: #182120;
-  --ink-1: #e4ebe9;
-  --ink-2: #aab5b2;
-  --ink-3: #8d9895;
-  --grid: #232b2a;
-  --axis: #37403e;
-  --rule: #e4ebe9;
-  --border: rgba(228, 235, 233, 0.16);
-  --wash: rgba(228, 235, 233, 0.05);
-  --wash-strong: rgba(228, 235, 233, 0.09);
+  --page: #0a1216;
+  --surface: #101b21;
+  --raised: #16232a;
+  --ink-1: #e9f1f0;
+  --ink-2: #aebdc0;
+  --ink-3: #87999f;
+  --grid: #1c2930;
+  --axis: #3e4e56;
+  --rule: #e9f1f0;
+  --border: rgba(233, 241, 240, 0.12);
+  --wash: rgba(233, 241, 240, 0.05);
+  --wash-strong: rgba(233, 241, 240, 0.09);
   --shadow-tip: 0 6px 18px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
   --series-1: #19a0a0;
   --series-2: #bd8630;
-  --series-3: #9a4873;
-  --deemph: #707a77;
+  --series-3: #a24e7b;
+  --deemph: #6f7e80;
   --div-pos: #19a0a0;
   --div-neg: #d06551;
-  --div-mid: #2b3432;
-  --on-div-3: #0f1514;
-  --on-div-2: #e4ebe9;
-  --on-div-1: #e4ebe9;
-  --on-div-0: #e4ebe9;
+  --div-mid: #263239;
+  --on-div-3: #0a1216;
+  --on-div-2: #e9f1f0;
+  --on-div-1: #e9f1f0;
+  --on-div-0: #e9f1f0;
   --seq-1: var(--teal-700);
   --seq-2: var(--teal-600);
   --seq-3: color-mix(in oklab, var(--teal-500) 80%, var(--teal-600));
@@ -255,23 +263,25 @@
   --seq-5: var(--teal-400);
   --seq-6: var(--teal-300);
   --seq-7: var(--teal-200);
-  --on-seq-1: #e4ebe9;
-  --on-seq-2: #e4ebe9;
-  --on-seq-3: #0f1514;
-  --on-seq-4: #0f1514;
-  --on-seq-5: #0f1514;
-  --on-seq-6: #0f1514;
-  --on-seq-7: #0f1514;
-  --missing: #1f2625;
-  --status-good: #4fb06f;
+  --on-seq-1: #e9f1f0;
+  --on-seq-2: #e9f1f0;
+  --on-seq-3: #0a1216;
+  --on-seq-4: #0a1216;
+  --on-seq-5: #0a1216;
+  --on-seq-6: #0a1216;
+  --on-seq-7: #0a1216;
+  --missing: #1a252b;
+  --status-good: #4cc08a;
   --status-warning: #d39a3a;
-  --status-critical: #d9695b;
-  --status-neutral: #8d9895;
-  --on-status-warning: #0f1514;
-  --on-status-neutral: #0f1514;
-  --text-good: #6cc38a;
-  --text-critical: #e2806f;
-  --focus: #e4ebe9;
+  --status-critical: #d9705a;
+  --status-neutral: #87999f;
+  --on-status-good: #0a1216;
+  --on-status-warning: #0a1216;
+  --on-status-critical: #0a1216;
+  --on-status-neutral: #0a1216;
+  --text-good: #5cd6a8;
+  --text-critical: #e8927c;
+  --focus: #7fe8d2;
 }
 
 /*
@@ -299,18 +309,20 @@
     --border: rgba(0, 0, 0, 0.32);
     --wash: rgba(0, 0, 0, 0.05);
     --wash-strong: rgba(0, 0, 0, 0.1);
+    --shadow-card: none;
     --missing: #eceeed;
     --div-mid: #eceeed;
   }
 }
 /*
- * techval dashboard layout, set as a research document rather than an app.
+ * techval dashboard layout, set as an application surface.
  *
- * One ground and no cards. Structure comes from type and rules: a heavy rule
- * opens each section, a hairline opens each exhibit, and exhibits are numbered
- * in reading order by a CSS counter, so the numbering can never disagree with
- * the page. Verdicts are words. Refusals are notes under the exhibit they
- * belong to, numbered like footnotes. Provenance is a source line. Every
+ * Exhibits sit on cards one step lighter than the ground, and the cards carry
+ * the structure that rules used to: each exhibit is its own card, numbered in
+ * reading order by a CSS counter, so the numbering can never disagree with
+ * the page. The document's voice survives inside the chrome: a serif title,
+ * serif standfirsts, verdicts as words. Refusals are notes under the exhibit
+ * they belong to, numbered like footnotes. Provenance is a source line. Every
  * colour comes from tokens.css.
  */
 
@@ -447,22 +459,15 @@ a:hover {
 
 .tv-rail__link {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-2);
   min-height: 40px;
-  padding: var(--space-2) 0;
+  padding: var(--space-2) 2px;
   color: var(--ink-2);
   font-size: var(--fs-small);
+  font-weight: var(--fw-medium);
   text-decoration: none;
   white-space: nowrap;
-}
-
-.tv-rail__link::before {
-  content: counter(contents, upper-roman);
-  min-width: 2.1em;
-  color: var(--ink-3);
-  font-family: var(--font-serif);
-  font-size: 0.95em;
 }
 
 .tv-rail__link:hover {
@@ -471,7 +476,7 @@ a:hover {
 
 .tv-rail__link[aria-current="true"] {
   color: var(--ink-1);
-  box-shadow: inset 0 -2px 0 var(--rule);
+  box-shadow: inset 0 -2px 0 var(--focus);
 }
 
 /* The contents list names sections; verdicts are read in the sections themselves. */
@@ -518,21 +523,25 @@ a:hover {
     padding: 0;
     overflow: visible;
     background-image: none;
-    border-top: 1px solid var(--grid);
   }
 
   .tv-rail__link {
+    border-radius: var(--radius-control);
     min-height: 0;
-    padding: 7px 0;
-    border-bottom: 1px solid var(--grid);
+    margin: 1px 0;
+    padding: 7px var(--space-2);
     font-size: var(--fs-small);
     line-height: 1.35;
     white-space: normal;
   }
 
+  .tv-rail__link:hover {
+    background: var(--wash);
+  }
+
   .tv-rail__link[aria-current="true"] {
-    box-shadow: inset 2px 0 0 var(--rule);
-    padding-left: var(--space-2);
+    background: var(--wash-strong);
+    box-shadow: none;
   }
 }
 
@@ -627,14 +636,13 @@ details > summary:hover {
   color: var(--ink-1);
 }
 
-/* Sections: a heavy rule, a numeral and a serif title, then a standfirst. */
+/* Sections: a numeral and a serif title, then a standfirst. */
 
 .tv-section {
   display: grid;
   gap: var(--space-5);
-  padding: var(--space-4) 0 0;
+  padding: 0;
   margin-top: var(--space-8);
-  border-top: 2px solid var(--rule);
   counter-increment: section;
   scroll-margin-top: 56px;
 }
@@ -690,9 +698,6 @@ details > summary:hover {
 .tv-headline {
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-3) 0;
-  border-top: 1px solid var(--grid);
-  border-bottom: 1px solid var(--grid);
 }
 
 .tv-headline__verdict {
@@ -717,11 +722,19 @@ details > summary:hover {
 }
 
 .tv-headline .tv-tiles {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), max-content));
-  gap: var(--space-2) var(--space-7);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: var(--space-3);
 }
 
-/* Exhibits. No box: a hairline above, a numbered title, a source line below. */
+.tv-headline .tv-tile {
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* Exhibits. Each one a card: a numbered title inside, a source line below. */
 
 .tv-grid {
   display: grid;
@@ -735,9 +748,11 @@ details > summary:hover {
   gap: var(--space-3);
   min-width: 0;
   margin: 0;
-  padding: var(--space-3) 0 0;
-  background: none;
-  border-top: 1px solid var(--grid);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   counter-increment: exhibit;
 }
 
@@ -846,8 +861,11 @@ details > summary:hover {
   display: grid;
   gap: var(--space-3);
   margin-top: var(--space-8);
-  padding-top: var(--space-4);
-  border-top: 2px solid var(--rule);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   color: var(--ink-2);
   font-size: var(--fs-small);
 }
@@ -1055,6 +1073,41 @@ details > summary:hover {
   .tv-hit {
     transition: filter 120ms ease-out, fill 120ms ease-out;
   }
+
+  /* App-chrome motion: a card lifts a step on hover, and verdict tiles rise once on load. */
+  .tv-figure,
+  .tv-tileset {
+    transition: box-shadow 120ms ease-out, transform 120ms ease-out;
+  }
+
+  .tv-figure:hover,
+  .tv-tileset:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-tip);
+  }
+
+  @keyframes tv-rise {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .tv-headline .tv-tile {
+    animation: tv-rise 240ms ease-out backwards;
+  }
+
+  .tv-headline .tv-tile:nth-child(2) {
+    animation-delay: 50ms;
+  }
+
+  .tv-headline .tv-tile:nth-child(3) {
+    animation-delay: 100ms;
+  }
 }
 
 .tv-empty {
@@ -1250,8 +1303,8 @@ details > summary:hover {
 .tv-table-wrap {
   overflow-x: auto;
   max-width: 100%;
-  background-image: linear-gradient(to right, var(--page) 60%, transparent),
-    linear-gradient(to left, var(--page) 60%, transparent),
+  background-image: linear-gradient(to right, var(--surface) 60%, transparent),
+    linear-gradient(to left, var(--surface) 60%, transparent),
     linear-gradient(to right, var(--border), transparent),
     linear-gradient(to left, var(--border), transparent);
   background-position: left center, right center, left center, right center;
@@ -1276,12 +1329,14 @@ details > summary:hover {
 }
 
 .tv-table thead th {
-  color: var(--ink-1);
-  font-size: var(--fs-small);
-  font-weight: var(--fw-semibold);
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
   vertical-align: bottom;
   white-space: nowrap;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--axis);
 }
 
 .tv-table tbody tr:last-child > :is(th, td) {
@@ -1290,6 +1345,18 @@ details > summary:hover {
 
 .tv-table tbody th {
   font-weight: var(--fw-medium);
+}
+
+.tv-table tbody tr:hover > :is(th, td) {
+  background: var(--wash);
+}
+
+.tv-table .tv-pos {
+  color: var(--text-good);
+}
+
+.tv-table .tv-neg {
+  color: var(--text-critical);
 }
 
 .tv-table .tv-num {
@@ -1389,6 +1456,11 @@ details > summary:hover {
   display: grid;
   gap: var(--space-2);
   min-width: 0;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 .tv-tileset__body {
@@ -1983,6 +2055,17 @@ a.tv-tile:hover .tv-tile__label {
   }
 
   TV.format = format;
+
+  /*
+   * Sign classes for signed table cells: the value's colour follows its sign,
+   * never its identity, and zero and non-numbers stay in plain ink.
+   */
+  function signedClass(v) {
+    if (typeof v !== "number" || !isFinite(v) || v === 0) return null;
+    return v > 0 ? "tv-pos" : "tv-neg";
+  }
+
+  TV.signedClass = signedClass;
 
   /*
    * Axis ticks sit on round numbers, so they carry only the decimals the step
@@ -2845,10 +2928,14 @@ a.tv-tile:hover .tv-tile__label {
           "tr",
           null,
           columns.map(function (c, i) {
-            var cls = [c.align === "right" ? "tv-num" : null, c.mono ? "tv-mono" : null, c.nowrap ? "tv-nowrap" : null]
+            var raw = row ? row[c.key] : null;
+            var signed = String(c.format || "").indexOf("signed") === 0
+              ? signedClass(isNum(raw) ? raw : raw && isNum(raw.text) ? raw.text : null)
+              : null;
+            var cls = [c.align === "right" ? "tv-num" : null, c.mono ? "tv-mono" : null, c.nowrap ? "tv-nowrap" : null, signed]
               .filter(Boolean)
               .join(" ");
-            var content = cellContent(row ? row[c.key] : null, c);
+            var content = cellContent(raw, c);
             return i === 0
               ? el("th", { scope: "row", class: cls || null }, content)
               : el("td", { class: cls || null }, content);
@@ -5740,12 +5827,18 @@ a.tv-tile:hover .tv-tile__label {
 
   /*
    * ?theme=dark or ?theme=light stamps data-theme on the root, so a headless
-   * screenshot can force either theme. Done at once rather than at boot, so
-   * the page never paints in the wrong one first.
+   * screenshot can force either theme. With no query the page opens dark, the
+   * way the investing app does, unless the system asks for light. Done at once
+   * rather than at boot, so the page never paints in the wrong one first.
    */
   function stampTheme() {
     var match = /[?&]theme=(dark|light)(?:&|#|$)/.exec(global.location ? global.location.search : "");
-    if (match) document.documentElement.setAttribute("data-theme", match[1]);
+    if (match) {
+      document.documentElement.setAttribute("data-theme", match[1]);
+      return;
+    }
+    var lighter = global.matchMedia && global.matchMedia("(prefers-color-scheme: light)").matches;
+    document.documentElement.setAttribute("data-theme", lighter ? "light" : "dark");
   }
 
   stampTheme();
@@ -6018,7 +6111,8 @@ a.tv-tile:hover .tv-tile__label {
             : null
         )
       : null;
-    var strip = el("div", { class: "tv-headline" }, el("div", { class: "tv-headline__verdict" }, chip, text));
+    /* Tiles lead, the way an app states a result; the model's own sentence follows. */
+    var strip = el("div", { class: "tv-headline" });
     TV.charts.tiles(strip, [
       { label: "Model", value: score(h.score), sub: metric + n },
       { label: "Baseline", value: score(h.baseline_score), sub: h.baseline_name || "unnamed baseline" },
@@ -6028,6 +6122,7 @@ a.tv-tile:hover .tv-tile__label {
         sub: h.higher_is_better === false ? "Lower " + metric + " is better" : "Higher " + metric + " is better",
       },
     ]);
+    strip.appendChild(el("div", { class: "tv-headline__verdict" }, chip, text));
     return strip;
   }
 
