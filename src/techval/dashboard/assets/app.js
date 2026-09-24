@@ -301,7 +301,8 @@
             : null
         )
       : null;
-    var strip = el("div", { class: "tv-headline" }, el("div", { class: "tv-headline__verdict" }, chip, text));
+    /* Tiles lead, the way an app states a result; the model's own sentence follows. */
+    var strip = el("div", { class: "tv-headline" });
     TV.charts.tiles(strip, [
       { label: "Model", value: score(h.score), sub: metric + n },
       { label: "Baseline", value: score(h.baseline_score), sub: h.baseline_name || "unnamed baseline" },
@@ -311,6 +312,7 @@
         sub: h.higher_is_better === false ? "Lower " + metric + " is better" : "Higher " + metric + " is better",
       },
     ]);
+    strip.appendChild(el("div", { class: "tv-headline__verdict" }, chip, text));
     return strip;
   }
 
