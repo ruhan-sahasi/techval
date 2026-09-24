@@ -757,6 +757,41 @@ details > summary:hover {
   .tv-hit {
     transition: filter 120ms ease-out, fill 120ms ease-out;
   }
+
+  /* App-chrome motion: a card lifts a step on hover, and verdict tiles rise once on load. */
+  .tv-figure,
+  .tv-tileset {
+    transition: box-shadow 120ms ease-out, transform 120ms ease-out;
+  }
+
+  .tv-figure:hover,
+  .tv-tileset:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-tip);
+  }
+
+  @keyframes tv-rise {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .tv-headline .tv-tile {
+    animation: tv-rise 240ms ease-out backwards;
+  }
+
+  .tv-headline .tv-tile:nth-child(2) {
+    animation-delay: 50ms;
+  }
+
+  .tv-headline .tv-tile:nth-child(3) {
+    animation-delay: 100ms;
+  }
 }
 
 .tv-empty {

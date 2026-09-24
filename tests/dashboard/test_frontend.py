@@ -441,6 +441,9 @@ def test_app_stamps_the_theme_from_the_query_string():
     assert 'setAttribute("data-theme"' in text
     # Stamped when the script runs, not at boot, so the page never paints in the wrong theme.
     assert re.search(r"\n  stampTheme\(\);\n", text)
+    # With no query the page opens dark unless the system prefers light.
+    assert "prefers-color-scheme: light" in text
+    assert 'lighter ? "light" : "dark"' in text
 
 
 def test_app_waits_for_the_section_scripts_before_drawing():
