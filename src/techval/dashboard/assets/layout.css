@@ -978,12 +978,14 @@ details > summary:hover {
 }
 
 .tv-table thead th {
-  color: var(--ink-1);
-  font-size: var(--fs-small);
-  font-weight: var(--fw-semibold);
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
   vertical-align: bottom;
   white-space: nowrap;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--axis);
 }
 
 .tv-table tbody tr:last-child > :is(th, td) {
@@ -992,6 +994,18 @@ details > summary:hover {
 
 .tv-table tbody th {
   font-weight: var(--fw-medium);
+}
+
+.tv-table tbody tr:hover > :is(th, td) {
+  background: var(--wash);
+}
+
+.tv-table .tv-pos {
+  color: var(--text-good);
+}
+
+.tv-table .tv-neg {
+  color: var(--text-critical);
 }
 
 .tv-table .tv-num {
