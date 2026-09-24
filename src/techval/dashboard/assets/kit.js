@@ -338,6 +338,17 @@
   TV.format = format;
 
   /*
+   * Sign classes for signed table cells: the value's colour follows its sign,
+   * never its identity, and zero and non-numbers stay in plain ink.
+   */
+  function signedClass(v) {
+    if (typeof v !== "number" || !isFinite(v) || v === 0) return null;
+    return v > 0 ? "tv-pos" : "tv-neg";
+  }
+
+  TV.signedClass = signedClass;
+
+  /*
    * Axis ticks sit on round numbers, so they carry only the decimals the step
    * needs: a "num:1" chart ticks 0, 5, 10 rather than 0.0, 5.0, 10.0. The unit
    * and sign conventions of the format are kept.
@@ -1198,10 +1209,14 @@
           "tr",
           null,
           columns.map(function (c, i) {
-            var cls = [c.align === "right" ? "tv-num" : null, c.mono ? "tv-mono" : null, c.nowrap ? "tv-nowrap" : null]
+            var raw = row ? row[c.key] : null;
+            var signed = String(c.format || "").indexOf("signed") === 0
+              ? signedClass(isNum(raw) ? raw : raw && isNum(raw.text) ? raw.text : null)
+              : null;
+            var cls = [c.align === "right" ? "tv-num" : null, c.mono ? "tv-mono" : null, c.nowrap ? "tv-nowrap" : null, signed]
               .filter(Boolean)
               .join(" ");
-            var content = cellContent(row ? row[c.key] : null, c);
+            var content = cellContent(raw, c);
             return i === 0
               ? el("th", { scope: "row", class: cls || null }, content)
               : el("td", { class: cls || null }, content);

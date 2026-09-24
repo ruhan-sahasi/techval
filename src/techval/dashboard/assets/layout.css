@@ -1,11 +1,12 @@
 /*
- * techval dashboard layout, set as a research document rather than an app.
+ * techval dashboard layout, set as an application surface.
  *
- * One ground and no cards. Structure comes from type and rules: a heavy rule
- * opens each section, a hairline opens each exhibit, and exhibits are numbered
- * in reading order by a CSS counter, so the numbering can never disagree with
- * the page. Verdicts are words. Refusals are notes under the exhibit they
- * belong to, numbered like footnotes. Provenance is a source line. Every
+ * Exhibits sit on cards one step lighter than the ground, and the cards carry
+ * the structure that rules used to: each exhibit is its own card, numbered in
+ * reading order by a CSS counter, so the numbering can never disagree with
+ * the page. The document's voice survives inside the chrome: a serif title,
+ * serif standfirsts, verdicts as words. Refusals are notes under the exhibit
+ * they belong to, numbered like footnotes. Provenance is a source line. Every
  * colour comes from tokens.css.
  */
 
@@ -142,22 +143,15 @@ a:hover {
 
 .tv-rail__link {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-2);
   min-height: 40px;
-  padding: var(--space-2) 0;
+  padding: var(--space-2) 2px;
   color: var(--ink-2);
   font-size: var(--fs-small);
+  font-weight: var(--fw-medium);
   text-decoration: none;
   white-space: nowrap;
-}
-
-.tv-rail__link::before {
-  content: counter(contents, upper-roman);
-  min-width: 2.1em;
-  color: var(--ink-3);
-  font-family: var(--font-serif);
-  font-size: 0.95em;
 }
 
 .tv-rail__link:hover {
@@ -166,7 +160,7 @@ a:hover {
 
 .tv-rail__link[aria-current="true"] {
   color: var(--ink-1);
-  box-shadow: inset 0 -2px 0 var(--rule);
+  box-shadow: inset 0 -2px 0 var(--focus);
 }
 
 /* The contents list names sections; verdicts are read in the sections themselves. */
@@ -213,21 +207,25 @@ a:hover {
     padding: 0;
     overflow: visible;
     background-image: none;
-    border-top: 1px solid var(--grid);
   }
 
   .tv-rail__link {
+    border-radius: var(--radius-control);
     min-height: 0;
-    padding: 7px 0;
-    border-bottom: 1px solid var(--grid);
+    margin: 1px 0;
+    padding: 7px var(--space-2);
     font-size: var(--fs-small);
     line-height: 1.35;
     white-space: normal;
   }
 
+  .tv-rail__link:hover {
+    background: var(--wash);
+  }
+
   .tv-rail__link[aria-current="true"] {
-    box-shadow: inset 2px 0 0 var(--rule);
-    padding-left: var(--space-2);
+    background: var(--wash-strong);
+    box-shadow: none;
   }
 }
 
@@ -322,14 +320,13 @@ details > summary:hover {
   color: var(--ink-1);
 }
 
-/* Sections: a heavy rule, a numeral and a serif title, then a standfirst. */
+/* Sections: a numeral and a serif title, then a standfirst. */
 
 .tv-section {
   display: grid;
   gap: var(--space-5);
-  padding: var(--space-4) 0 0;
+  padding: 0;
   margin-top: var(--space-8);
-  border-top: 2px solid var(--rule);
   counter-increment: section;
   scroll-margin-top: 56px;
 }
@@ -385,9 +382,6 @@ details > summary:hover {
 .tv-headline {
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-3) 0;
-  border-top: 1px solid var(--grid);
-  border-bottom: 1px solid var(--grid);
 }
 
 .tv-headline__verdict {
@@ -412,11 +406,19 @@ details > summary:hover {
 }
 
 .tv-headline .tv-tiles {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), max-content));
-  gap: var(--space-2) var(--space-7);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: var(--space-3);
 }
 
-/* Exhibits. No box: a hairline above, a numbered title, a source line below. */
+.tv-headline .tv-tile {
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* Exhibits. Each one a card: a numbered title inside, a source line below. */
 
 .tv-grid {
   display: grid;
@@ -430,9 +432,11 @@ details > summary:hover {
   gap: var(--space-3);
   min-width: 0;
   margin: 0;
-  padding: var(--space-3) 0 0;
-  background: none;
-  border-top: 1px solid var(--grid);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   counter-increment: exhibit;
 }
 
@@ -541,8 +545,11 @@ details > summary:hover {
   display: grid;
   gap: var(--space-3);
   margin-top: var(--space-8);
-  padding-top: var(--space-4);
-  border-top: 2px solid var(--rule);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   color: var(--ink-2);
   font-size: var(--fs-small);
 }
@@ -750,6 +757,41 @@ details > summary:hover {
   .tv-hit {
     transition: filter 120ms ease-out, fill 120ms ease-out;
   }
+
+  /* App-chrome motion: a card lifts a step on hover, and verdict tiles rise once on load. */
+  .tv-figure,
+  .tv-tileset {
+    transition: box-shadow 120ms ease-out, transform 120ms ease-out;
+  }
+
+  .tv-figure:hover,
+  .tv-tileset:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-tip);
+  }
+
+  @keyframes tv-rise {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .tv-headline .tv-tile {
+    animation: tv-rise 240ms ease-out backwards;
+  }
+
+  .tv-headline .tv-tile:nth-child(2) {
+    animation-delay: 50ms;
+  }
+
+  .tv-headline .tv-tile:nth-child(3) {
+    animation-delay: 100ms;
+  }
 }
 
 .tv-empty {
@@ -945,8 +987,8 @@ details > summary:hover {
 .tv-table-wrap {
   overflow-x: auto;
   max-width: 100%;
-  background-image: linear-gradient(to right, var(--page) 60%, transparent),
-    linear-gradient(to left, var(--page) 60%, transparent),
+  background-image: linear-gradient(to right, var(--surface) 60%, transparent),
+    linear-gradient(to left, var(--surface) 60%, transparent),
     linear-gradient(to right, var(--border), transparent),
     linear-gradient(to left, var(--border), transparent);
   background-position: left center, right center, left center, right center;
@@ -971,12 +1013,14 @@ details > summary:hover {
 }
 
 .tv-table thead th {
-  color: var(--ink-1);
-  font-size: var(--fs-small);
-  font-weight: var(--fw-semibold);
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
   vertical-align: bottom;
   white-space: nowrap;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--axis);
 }
 
 .tv-table tbody tr:last-child > :is(th, td) {
@@ -985,6 +1029,18 @@ details > summary:hover {
 
 .tv-table tbody th {
   font-weight: var(--fw-medium);
+}
+
+.tv-table tbody tr:hover > :is(th, td) {
+  background: var(--wash);
+}
+
+.tv-table .tv-pos {
+  color: var(--text-good);
+}
+
+.tv-table .tv-neg {
+  color: var(--text-critical);
 }
 
 .tv-table .tv-num {
@@ -1084,6 +1140,11 @@ details > summary:hover {
   display: grid;
   gap: var(--space-2);
   min-width: 0;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 .tv-tileset__body {
