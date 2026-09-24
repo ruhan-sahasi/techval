@@ -1439,6 +1439,36 @@ the tests run offline with no SDK and no key. The section scores nothing until
 the key is filled in and every request is recorded. The design is in
 `docs/superpowers/specs/2026-09-16-rag-filing-reader-design.md`.
 
+## The investing dashboard
+
+`techval invest` turns the engine on a portfolio: your own holdings, tracked
+from a transaction ledger you keep in a plain YAML file, rendered as a single
+dark-first page in the same visual system as the results dashboard. A demo
+built from a fictional book is committed at `docs/invest/index.html`; open it
+from a checkout and click through the rail.
+
+    techval invest init      write a commented starter portfolio.yaml under portfolio/
+    techval invest           refresh quotes, run the engine over the holdings, render the page
+    techval invest --render  redraw the page from the last snapshot, touching nothing
+
+Seven panes. Overview: the balance, the day, and growth of a dollar against
+the benchmark, time-weighted so deposits are not performance. Holdings: the
+sortable book with the warranted call on every covered name. Performance:
+contribution in dollars and the open lots at FIFO cost. Engine read: the DCF
+against the price, traded against warranted, and the fitted fade against the
+typed line, each with the verdict its model earned. Hygiene: concentration,
+exposure through the engine's own sub-verticals, and drift against targets
+you set yourself. Ideas: the screen's cheapest and richest, led by the
+recorded fact that this signal lost to a random score on forward returns.
+Activity: the ledger itself.
+
+Two lines matter more than the features. The `portfolio/` directory is
+gitignored, so your ledger, snapshot and page never leave your machine except
+as price and filing requests. And nothing on the page is advice: ETFs and
+crypto are priced and weighed but never valued from filings, every valuation
+sits beside its baseline, and the pane closest to a tip sheet opens with the
+measurement that would deflate it.
+
 ## Install
 
 Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).

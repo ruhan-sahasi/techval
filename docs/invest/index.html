@@ -1,3 +1,2028 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo portfolio · techval invest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Newsreader:ital,wght@0,400;0,500;1,400&amp;family=Public+Sans:wght@400;500;650&amp;display=swap">
+<style>
+/*
+ * techval investing dashboard tokens.
+ *
+ * The same vocabulary as the results dashboard, arranged dark first: the app
+ * opens dark, so the complete dark palette lives on bare :root and the light
+ * block redefines colours and nothing else. A test asserts that every shared
+ * name carries the same value as the results dashboard's tokens, theme for
+ * theme, so the two pages are one family without sharing a file.
+ */
+
+:root {
+  --font-sans: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Newsreader", "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --fs-micro: 11px;
+  --fs-small: 12.5px;
+  --fs-body: 14.5px;
+  --fs-lead: 17px;
+  --fs-h3: 15px;
+  --fs-h2: 30px;
+  --fs-h1: 44px;
+  --fs-figure: 24px;
+  --lh-tight: 1.2;
+  --lh-body: 1.55;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 650;
+  --tracking-caps: 0.06em;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 72px;
+  --radius-control: 6px;
+  --radius-card: 14px;
+  --radius-chip: 999px;
+  --rail-width: 220px;
+  --main-max: 1120px;
+  --c-model: var(--series-1);
+  --c-model-muted: var(--deemph);
+  --c-alt: var(--series-2);
+  --c-third: var(--series-3);
+  --c-baseline: var(--deemph);
+  --c-total: var(--ink-2);
+  --div-neg-3: var(--div-neg);
+  --div-neg-2: color-mix(in oklab, var(--div-neg) 66%, var(--div-mid));
+  --div-neg-1: color-mix(in oklab, var(--div-neg) 33%, var(--div-mid));
+  --div-0: var(--div-mid);
+  --div-pos-1: color-mix(in oklab, var(--div-pos) 33%, var(--div-mid));
+  --div-pos-2: color-mix(in oklab, var(--div-pos) 66%, var(--div-mid));
+  --div-pos-3: var(--div-pos);
+  --teal-100: #deeeed;
+  --teal-200: #b9dad9;
+  --teal-300: #90c4c3;
+  --teal-400: #5fadac;
+  --teal-500: #099393;
+  --teal-600: #046464;
+  --teal-700: #024040;
+
+  color-scheme: dark;
+  --page: #0a1216;
+  --surface: #101b21;
+  --raised: #16232a;
+  --ink-1: #e9f1f0;
+  --ink-2: #aebdc0;
+  --ink-3: #87999f;
+  --grid: #1c2930;
+  --axis: #3e4e56;
+  --rule: #e9f1f0;
+  --border: rgba(233, 241, 240, 0.12);
+  --wash: rgba(233, 241, 240, 0.05);
+  --wash-strong: rgba(233, 241, 240, 0.09);
+  --shadow-tip: 0 6px 18px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --series-1: #19a0a0;
+  --series-2: #bd8630;
+  --series-3: #a24e7b;
+  --deemph: #6f7e80;
+  --div-pos: #19a0a0;
+  --div-neg: #d06551;
+  --div-mid: #263239;
+  --on-div-3: #0a1216;
+  --on-div-2: #e9f1f0;
+  --on-div-1: #e9f1f0;
+  --on-div-0: #e9f1f0;
+  --seq-1: var(--teal-700);
+  --seq-2: var(--teal-600);
+  --seq-3: color-mix(in oklab, var(--teal-500) 80%, var(--teal-600));
+  --seq-4: var(--teal-500);
+  --seq-5: var(--teal-400);
+  --seq-6: var(--teal-300);
+  --seq-7: var(--teal-200);
+  --on-seq-1: #e9f1f0;
+  --on-seq-2: #e9f1f0;
+  --on-seq-3: #0a1216;
+  --on-seq-4: #0a1216;
+  --on-seq-5: #0a1216;
+  --on-seq-6: #0a1216;
+  --on-seq-7: #0a1216;
+  --missing: #1a252b;
+  --status-good: #4cc08a;
+  --status-warning: #d39a3a;
+  --status-critical: #d9705a;
+  --status-neutral: #87999f;
+  --on-status-good: #0a1216;
+  --on-status-warning: #0a1216;
+  --on-status-critical: #0a1216;
+  --on-status-neutral: #0a1216;
+  --text-good: #5cd6a8;
+  --text-critical: #e8927c;
+  --focus: #7fe8d2;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page: #eff3f2;
+  --surface: #ffffff;
+  --raised: #ffffff;
+  --ink-1: #14201f;
+  --ink-2: #3f4946;
+  --ink-3: #5a6461;
+  --grid: #e3e9e7;
+  --axis: #b0bab7;
+  --rule: #14201f;
+  --border: rgba(17, 24, 22, 0.13);
+  --wash: rgba(17, 24, 22, 0.035);
+  --wash-strong: rgba(17, 24, 22, 0.07);
+  --shadow-tip: 0 6px 18px rgba(17, 24, 22, 0.12);
+  --shadow-card: 0 1px 2px rgba(17, 24, 22, 0.05), 0 4px 16px rgba(17, 24, 22, 0.04);
+  --series-1: #099393;
+  --series-2: #b6770b;
+  --series-3: #8a3362;
+  --deemph: #7d8683;
+  --div-pos: #099393;
+  --div-neg: #bc4b37;
+  --div-mid: #e3e9e7;
+  --on-div-3: #14201f;
+  --on-div-2: #14201f;
+  --on-div-1: #14201f;
+  --on-div-0: #14201f;
+  --seq-1: var(--teal-100);
+  --seq-2: var(--teal-200);
+  --seq-3: var(--teal-300);
+  --seq-4: var(--teal-400);
+  --seq-5: var(--teal-500);
+  --seq-6: var(--teal-600);
+  --seq-7: var(--teal-700);
+  --on-seq-1: #14201f;
+  --on-seq-2: #14201f;
+  --on-seq-3: #14201f;
+  --on-seq-4: #14201f;
+  --on-seq-5: #14201f;
+  --on-seq-6: #ffffff;
+  --on-seq-7: #ffffff;
+  --missing: #e5eae8;
+  --status-good: #157a4a;
+  --status-warning: #a86b00;
+  --status-critical: #b23a2e;
+  --status-neutral: #6f7875;
+  --on-status-good: #ffffff;
+  --on-status-warning: #ffffff;
+  --on-status-critical: #ffffff;
+  --on-status-neutral: #ffffff;
+  --text-good: #10684a;
+  --text-critical: #a3462e;
+  --focus: #0b6b5c;
+}
+
+/*
+ * Print goes light whatever the screen showed, like the results page.
+ */
+@media print {
+  :root,
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page: #ffffff;
+    --surface: #ffffff;
+    --raised: #ffffff;
+    --ink-1: #000000;
+    --ink-2: #2b3330;
+    --ink-3: #454e4b;
+    --grid: #c7cfcd;
+    --axis: #8b9491;
+    --rule: #000000;
+    --border: rgba(0, 0, 0, 0.32);
+    --wash: rgba(0, 0, 0, 0.05);
+    --wash-strong: rgba(0, 0, 0, 0.1);
+    --shadow-card: none;
+    --missing: #eceeed;
+    --div-mid: #eceeed;
+  }
+}
+/*
+ * techval dashboard layout, set as an application surface.
+ *
+ * Exhibits sit on cards one step lighter than the ground, and the cards carry
+ * the structure that rules used to: each exhibit is its own card, numbered in
+ * reading order by a CSS counter, so the numbering can never disagree with
+ * the page. The document's voice survives inside the chrome: a serif title,
+ * serif standfirsts, verdicts as words. Refusals are notes under the exhibit
+ * they belong to, numbered like footnotes. Provenance is a source line. Every
+ * colour comes from tokens.css.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: auto;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink-1);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-kerning: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+}
+
+code,
+.tv-mono {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+a {
+  color: inherit;
+  text-decoration-color: var(--ink-3);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.tv-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.tv-muted {
+  color: var(--ink-2);
+}
+
+/* Shell: a contents column and the document. Narrow screens stack them. */
+
+.tv-shell {
+  display: block;
+  counter-reset: exhibit section;
+}
+
+.tv-main {
+  min-width: 0;
+  max-width: var(--main-max);
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-8);
+}
+
+.tv-rail {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--page);
+  border-bottom: 1px solid var(--grid);
+}
+
+.tv-rail__title {
+  display: none;
+}
+
+.tv-rail__list {
+  display: flex;
+  gap: var(--space-4);
+  margin: 0;
+  /* The vertical padding is the focus ring's room: the scroller clips whatever reaches its padding box. */
+  padding: 5px var(--space-4);
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  counter-reset: contents;
+  background-image: linear-gradient(to right, var(--page) 60%, transparent),
+    linear-gradient(to left, var(--page) 60%, transparent),
+    linear-gradient(to right, var(--border), transparent),
+    linear-gradient(to left, var(--border), transparent);
+  background-position: left center, right center, left center, right center;
+  background-size: 28px 100%, 28px 100%, 18px 100%, 18px 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+
+.tv-rail__list > li {
+  counter-increment: contents;
+}
+
+.tv-rail__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  padding: var(--space-2) 2px;
+  color: var(--ink-2);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tv-rail__link:hover {
+  color: var(--ink-1);
+}
+
+.tv-rail__link[aria-current="true"] {
+  color: var(--ink-1);
+  box-shadow: inset 0 -2px 0 var(--focus);
+}
+
+/* The contents list names sections; verdicts are read in the sections themselves. */
+.tv-rail .tv-chip,
+.tv-rail__state {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .tv-shell {
+    display: grid;
+    grid-template-columns: var(--rail-width) minmax(0, 1fr);
+    gap: var(--space-7);
+    max-width: calc(var(--rail-width) + var(--space-7) + var(--main-max) + 2 * var(--space-6));
+    margin: 0 auto;
+    padding: 0 var(--space-6);
+  }
+
+  .tv-main {
+    margin: 0;
+    width: 100%;
+    padding: var(--space-8) 0;
+  }
+
+  .tv-rail {
+    align-self: start;
+    height: 100vh;
+    overflow-y: auto;
+    padding: var(--space-8) 0 var(--space-5);
+    border-bottom: 0;
+  }
+
+  .tv-rail__title {
+    display: block;
+    margin: 0 0 var(--space-3);
+    color: var(--ink-1);
+    font-family: var(--font-serif);
+    font-size: var(--fs-lead);
+  }
+
+  .tv-rail__list {
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    overflow: visible;
+    background-image: none;
+  }
+
+  .tv-rail__link {
+    border-radius: var(--radius-control);
+    min-height: 0;
+    margin: 1px 0;
+    padding: 7px var(--space-2);
+    font-size: var(--fs-small);
+    line-height: 1.35;
+    white-space: normal;
+  }
+
+  .tv-rail__link:hover {
+    background: var(--wash);
+  }
+
+  .tv-rail__link[aria-current="true"] {
+    background: var(--wash-strong);
+    box-shadow: none;
+  }
+}
+
+/* Header: a dateline, the title and a standfirst. Build metadata closes the page. */
+
+.tv-header {
+  display: grid;
+  gap: var(--space-4);
+  padding-bottom: var(--space-6);
+}
+
+.tv-dateline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+  color: var(--ink-2);
+  font-size: var(--fs-small);
+}
+
+.tv-dateline > span + span::before {
+  content: "·";
+  margin-right: var(--space-3);
+  color: var(--ink-3);
+}
+
+.tv-title {
+  max-width: 20ch;
+  font-family: var(--font-serif);
+  font-size: var(--fs-h1);
+  font-weight: 500;
+  line-height: 1.04;
+  letter-spacing: -0.018em;
+}
+
+.tv-standfirst {
+  max-width: 62ch;
+  color: var(--ink-2);
+  font-family: var(--font-serif);
+  font-size: 20px;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.tv-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-5);
+  color: var(--ink-2);
+  font-size: var(--fs-small);
+}
+
+.tv-meta__label {
+  color: var(--ink-3);
+  margin-right: var(--space-1);
+}
+
+.tv-fixtures {
+  font-size: var(--fs-small);
+  color: var(--ink-2);
+}
+
+.tv-fixtures ul {
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+}
+
+.tv-fixtures li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+  overflow-wrap: anywhere;
+}
+
+.tv-banner {
+  padding: var(--space-2) 0 var(--space-2) var(--space-3);
+  border-left: 2px solid var(--rule);
+  color: var(--ink-1);
+  font-size: var(--fs-small);
+}
+
+details > summary {
+  cursor: pointer;
+  width: fit-content;
+  color: var(--ink-2);
+  font-size: var(--fs-small);
+}
+
+details > summary:hover {
+  color: var(--ink-1);
+}
+
+/* Sections: a numeral and a serif title, then a standfirst. */
+
+.tv-section {
+  display: grid;
+  gap: var(--space-5);
+  padding: 0;
+  margin-top: var(--space-8);
+  counter-increment: section;
+  scroll-margin-top: 56px;
+}
+
+.tv-section:first-of-type {
+  margin-top: 0;
+}
+
+.tv-section__head {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 70ch;
+}
+
+.tv-eyebrow {
+  display: none;
+}
+
+.tv-section__title {
+  font-family: var(--font-serif);
+  font-size: var(--fs-h2);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.tv-section__title::before {
+  content: counter(section, upper-roman) ". ";
+  color: var(--ink-3);
+}
+
+.tv-takeaway {
+  color: var(--ink-2);
+  font-family: var(--font-serif);
+  font-size: var(--fs-lead);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.tv-section__body {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+@media (min-width: 1100px) {
+  .tv-section {
+    scroll-margin-top: var(--space-5);
+  }
+}
+
+/* Headline strip: the verdict word, the model's first sentence, three figures. */
+
+.tv-headline {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.tv-headline__verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  max-width: 96ch;
+}
+
+/* The verdict's first sentence, with the rest of the model's own text behind a disclosure. */
+.tv-headline__text {
+  display: grid;
+  flex: 1 1 32ch;
+  gap: var(--space-1);
+  color: var(--ink-2);
+  font-size: var(--fs-body);
+}
+
+.tv-headline__more > p {
+  margin-top: var(--space-1);
+}
+
+.tv-headline .tv-tiles {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  gap: var(--space-3);
+}
+
+.tv-headline .tv-tile {
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* Exhibits. Each one a card: a numbered title inside, a source line below. */
+
+.tv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
+  gap: var(--space-6) var(--space-6);
+  align-items: start;
+}
+
+.tv-figure {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  counter-increment: exhibit;
+}
+
+.tv-figure--wide {
+  grid-column: 1 / -1;
+}
+
+.tv-figure__head {
+  display: grid;
+  gap: 3px;
+}
+
+.tv-figure__title {
+  max-width: 72ch;
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-semibold);
+  line-height: 1.35;
+}
+
+.tv-figure > .tv-figure__head > .tv-figure__title::before {
+  content: "Exhibit " counter(exhibit) ": ";
+  color: var(--ink-2);
+}
+
+.tv-figure__subtitle {
+  max-width: 88ch;
+  color: var(--ink-2);
+  font-size: var(--fs-small);
+}
+
+.tv-figure__legend:empty,
+.tv-figure__notes:empty {
+  display: none;
+}
+
+.tv-figure__body {
+  min-width: 0;
+}
+
+/* A second figure inside an exhibit, under its own heading. */
+.tv-figure__part {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.tv-figure__notes {
+  display: grid;
+  gap: 3px;
+  counter-reset: note;
+}
+
+.tv-figure__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--space-4);
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+}
+
+.tv-figure__source {
+  order: 0;
+  min-width: 0;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  overflow-wrap: anywhere;
+}
+
+.tv-figure__source:not(:empty)::before {
+  content: "Source: ";
+  color: var(--ink-2);
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+}
+
+.tv-figure__foot .tv-btn {
+  order: 1;
+}
+
+.tv-btn {
+  appearance: none;
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-semibold);
+  text-decoration: underline;
+  text-decoration-color: var(--ink-3);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.tv-btn:hover {
+  color: var(--ink-1);
+  text-decoration-color: currentColor;
+}
+
+/* The closing basis of preparation: what the page was built from. */
+
+.tv-basis {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  color: var(--ink-2);
+  font-size: var(--fs-small);
+}
+
+.tv-basis > * {
+  max-width: 88ch;
+}
+
+.tv-basis__title {
+  color: var(--ink-1);
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 500;
+}
+
+/* Charts. */
+
+.tv-chart {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+
+/* A grid with more columns than fit keeps its 24px cells and scrolls on its own. */
+.tv-chart--heat {
+  overflow-x: auto;
+}
+
+.tv-svg {
+  display: block;
+  overflow: visible;
+  font-family: var(--font-sans);
+}
+
+.tv-svg text {
+  fill: var(--ink-2);
+  font-size: var(--fs-micro);
+}
+
+.tv-svg .tv-tick {
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-svg .tv-label {
+  fill: var(--ink-1);
+  font-size: var(--fs-small);
+}
+
+/* Value labels sit above reference rules; a surface halo keeps a rule from striking through them. */
+.tv-svg .tv-value {
+  fill: var(--ink-2);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.tv-values {
+  pointer-events: none;
+}
+
+.tv-svg .tv-endlabel {
+  fill: var(--ink-1);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-medium);
+}
+
+.tv-svg .tv-ref-label {
+  fill: var(--ink-1);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.tv-svg .tv-group-label {
+  fill: var(--ink-2);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+}
+
+.tv-svg .tv-cell-label {
+  font-size: var(--fs-micro);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.tv-svg .tv-cell-label--base {
+  font-weight: var(--fw-semibold);
+}
+
+.tv-svg .tv-heat-base {
+  fill: none;
+  stroke: var(--ink-1);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.tv-gridline {
+  stroke: var(--grid);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.tv-axisline {
+  stroke: var(--axis);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.tv-ref {
+  stroke: var(--ink-2);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.tv-ref--strong {
+  stroke: var(--ink-1);
+}
+
+.tv-connector {
+  stroke: var(--axis);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.tv-crosshair {
+  stroke: var(--ink-3);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+  pointer-events: none;
+}
+
+.tv-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.tv-band {
+  fill-opacity: 0.1;
+  stroke: none;
+}
+
+.tv-shade {
+  fill: var(--wash-strong);
+  stroke: none;
+}
+
+.tv-whisker {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.tv-dot {
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.tv-hairline {
+  stroke: var(--axis);
+  stroke-width: 1;
+}
+
+.tv-hit {
+  fill: transparent;
+  stroke: none;
+}
+
+.tv-markg {
+  cursor: default;
+  outline: none;
+}
+
+.tv-markg.is-hot .tv-hit {
+  fill: var(--wash);
+}
+
+.tv-markg.is-hot .tv-mark {
+  filter: brightness(1.1) saturate(1.05);
+}
+
+.tv-markg:focus-visible .tv-hit {
+  stroke: var(--focus);
+  stroke-width: 1.5;
+}
+
+.tv-plot {
+  outline: none;
+}
+
+.tv-plot:focus-visible .tv-hit {
+  stroke: var(--focus);
+  stroke-width: 1.5;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tv-mark,
+  .tv-hit {
+    transition: filter 120ms ease-out, fill 120ms ease-out;
+  }
+
+  /* App-chrome motion: a card lifts a step on hover, and verdict tiles rise once on load. */
+  .tv-figure,
+  .tv-tileset {
+    transition: box-shadow 120ms ease-out, transform 120ms ease-out;
+  }
+
+  .tv-figure:hover,
+  .tv-tileset:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-tip);
+  }
+
+  @keyframes tv-rise {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .tv-headline .tv-tile {
+    animation: tv-rise 240ms ease-out backwards;
+  }
+
+  .tv-headline .tv-tile:nth-child(2) {
+    animation-delay: 50ms;
+  }
+
+  .tv-headline .tv-tile:nth-child(3) {
+    animation-delay: 100ms;
+  }
+}
+
+.tv-empty {
+  padding: var(--space-5) 0;
+  color: var(--ink-2);
+  font-size: var(--fs-small);
+}
+
+/* Legends, including the heat scale. */
+
+.tv-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-2);
+  font-size: var(--fs-small);
+}
+
+.tv-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tv-key {
+  display: inline-block;
+  flex: none;
+  background: var(--key, var(--ink-3));
+}
+
+.tv-key--rect {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.tv-key--line {
+  width: 14px;
+  height: 2px;
+  border-radius: 1px;
+}
+
+.tv-key--dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* A hollow marker, for rows drawn hollow. */
+.tv-key--ring {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--key, var(--ink-3));
+}
+
+.tv-scale {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2) var(--space-5);
+  margin-top: var(--space-3);
+  color: var(--ink-2);
+  font-size: var(--fs-micro);
+}
+
+.tv-scale__ramp {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+
+/* The ticks take the swatches' width, so 0 sits at the middle of the ramp and the bounds at its ends. */
+.tv-scale__bar {
+  display: grid;
+  gap: 4px;
+}
+
+.tv-scale__title {
+  color: var(--ink-2);
+  font-size: var(--fs-micro);
+}
+
+.tv-scale__swatches {
+  display: flex;
+  gap: 2px;
+}
+
+.tv-scale__swatch {
+  width: 28px;
+  height: 10px;
+}
+
+.tv-scale__swatch:first-child {
+  border-radius: 2px 0 0 2px;
+}
+
+.tv-scale__swatch:last-child {
+  border-radius: 0 2px 2px 0;
+}
+
+.tv-scale__ticks {
+  position: relative;
+  height: 1.5em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-scale__ticks > span {
+  position: absolute;
+  top: 0;
+  white-space: nowrap;
+}
+
+.tv-scale__ticks > span:first-child {
+  left: 0;
+}
+
+.tv-scale__ticks > span:last-child {
+  right: 0;
+}
+
+.tv-scale__ticks > span:not(:first-child):not(:last-child) {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tv-scale__missing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-end;
+}
+
+/* Tooltip: the one lifted surface on the page. */
+
+.tv-tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  min-width: 140px;
+  max-width: 300px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-control);
+  background: var(--raised);
+  box-shadow: 0 0 0 1px var(--border), var(--shadow-tip);
+  color: var(--ink-1);
+  font-size: var(--fs-small);
+  pointer-events: none;
+}
+
+.tv-tooltip__title {
+  margin-bottom: 4px;
+  color: var(--ink-2);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+}
+
+.tv-tooltip__rows {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 3px var(--space-2);
+}
+
+.tv-tooltip__label {
+  color: var(--ink-2);
+}
+
+.tv-tooltip__value {
+  justify-self: end;
+  color: var(--ink-1);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-tooltip__nokey {
+  width: 14px;
+}
+
+/* Tables, set the way financial tables are: rules, not boxes; headers in sentence case. */
+
+/*
+ * A table wider than its box scrolls inside it. Four layers say so: two covers
+ * painted on the content, which scroll away as the reader moves, and two
+ * shadows painted on the box, which they uncover. A shadow therefore shows on
+ * a side only while there are columns out of view on that side.
+ */
+.tv-table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+  background-image: linear-gradient(to right, var(--surface) 60%, transparent),
+    linear-gradient(to left, var(--surface) 60%, transparent),
+    linear-gradient(to right, var(--border), transparent),
+    linear-gradient(to left, var(--border), transparent);
+  background-position: left center, right center, left center, right center;
+  background-size: 28px 100%, 28px 100%, 18px 100%, 18px 100%;
+  background-repeat: no-repeat;
+  background-attachment: local, local, scroll, scroll;
+}
+
+.tv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+  font-variant-numeric: lining-nums;
+}
+
+.tv-table th,
+.tv-table td {
+  padding: 5px var(--space-4) 5px 0;
+  border-bottom: 1px solid var(--grid);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tv-table thead th {
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  vertical-align: bottom;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--axis);
+}
+
+.tv-table tbody tr:last-child > :is(th, td) {
+  border-bottom-color: var(--axis);
+}
+
+.tv-table tbody th {
+  font-weight: var(--fw-medium);
+}
+
+.tv-table tbody tr:hover > :is(th, td) {
+  background: var(--wash);
+}
+
+.tv-table .tv-pos {
+  color: var(--text-good);
+}
+
+.tv-table .tv-neg {
+  color: var(--text-critical);
+}
+
+.tv-table .tv-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
+}
+
+.tv-table td.tv-mono,
+.tv-table th.tv-mono {
+  font-size: var(--fs-micro);
+  overflow-wrap: anywhere;
+}
+
+.tv-table .tv-nowrap {
+  white-space: nowrap;
+}
+
+.tv-table :is(th, td):last-child {
+  padding-right: 0;
+}
+
+/*
+ * Verdicts are words, set the way a research note sets a rating. A small square
+ * in the status hue sits beside the word; the word alone carries the meaning.
+ */
+
+.tv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  padding: 0;
+  color: var(--ink-1);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-caps);
+  line-height: 1.3;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tv-chip::before {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  background: var(--chip-hue);
+}
+
+.tv-chip__icon {
+  display: none;
+}
+
+.tv-chip--good {
+  --chip-hue: var(--status-good);
+  --chip-on: var(--on-status-good);
+}
+
+.tv-chip--warning {
+  --chip-hue: var(--status-warning);
+  --chip-on: var(--on-status-warning);
+}
+
+.tv-chip--critical {
+  --chip-hue: var(--status-critical);
+  --chip-on: var(--on-status-critical);
+}
+
+.tv-chip--neutral {
+  --chip-hue: var(--status-neutral);
+  --chip-on: var(--on-status-neutral);
+}
+
+.tv-chip--compact {
+  color: var(--ink-2);
+}
+
+/* Inside a table a verdict is one cell among many, so it drops the capitals. */
+.tv-table .tv-chip {
+  color: var(--ink-2);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-regular);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Figures set as key data: a small label above a plain number, no rules, no boxes. */
+
+.tv-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+  gap: var(--space-3) var(--space-6);
+}
+
+.tv-tileset {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.tv-tileset__body {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.tv-tileset__title {
+  color: var(--ink-1);
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-semibold);
+}
+
+.tv-tile {
+  display: grid;
+  align-content: start;
+  gap: 1px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.tv-tile:hover .tv-tile__label {
+  color: var(--ink-1);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.tv-tile__label {
+  color: var(--ink-2);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+}
+
+.tv-tile__value {
+  color: var(--ink-1);
+  font-size: var(--fs-figure);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+
+.tv-tile__sub {
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  line-height: 1.45;
+}
+
+.tv-tile .tv-chip {
+  justify-self: start;
+  margin-top: var(--space-1);
+}
+
+.tv-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  color: var(--ink-2);
+}
+
+.tv-delta__icon {
+  width: 9px;
+  height: 9px;
+  fill: currentColor;
+}
+
+.tv-delta--good {
+  color: var(--text-good);
+}
+
+.tv-delta--bad {
+  color: var(--text-critical);
+}
+
+.tv-delta__label {
+  color: var(--ink-2);
+  font-weight: var(--fw-regular);
+}
+
+/* Notes and refusals, numbered like footnotes under what they qualify. */
+
+.tv-note {
+  display: block;
+  max-width: 100ch;
+  color: var(--ink-2);
+  font-size: var(--fs-micro);
+  line-height: 1.5;
+  counter-increment: note;
+}
+
+.tv-note::before {
+  content: counter(note) ". ";
+  color: var(--ink-3);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-note .tv-chip__icon {
+  display: none;
+}
+
+.tv-note > p {
+  display: inline;
+}
+
+.tv-note strong {
+  color: var(--ink-1);
+  font-weight: var(--fw-semibold);
+}
+
+.tv-section__notes {
+  display: grid;
+  gap: 3px;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--grid);
+  counter-reset: note;
+}
+
+.tv-section__notes::before {
+  content: "Notes";
+  margin-bottom: var(--space-1);
+  color: var(--ink-1);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-semibold);
+}
+
+.tv-refusal {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 88ch;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--grid);
+  border-bottom: 1px solid var(--grid);
+}
+
+.tv-refusal__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  color: var(--ink-2);
+}
+
+.tv-refusal__list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-refusal__what {
+  font-weight: var(--fw-semibold);
+}
+
+.tv-refusal__why {
+  color: var(--ink-2);
+}
+
+.tv-placeholder {
+  display: grid;
+  gap: 2px;
+  max-width: 88ch;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--grid);
+  color: var(--ink-2);
+}
+
+.tv-placeholder__title {
+  color: var(--ink-1);
+  font-weight: var(--fw-semibold);
+}
+
+/* Provenance. */
+
+.tv-provenance {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.tv-provenance[open] > summary {
+  margin-bottom: var(--space-2);
+}
+
+/*
+ * Print. The contents list and every control are screen furniture, so they go.
+ * What is left is the note: a section to a page, no exhibit split across a
+ * break, and charts scaled to whatever paper the reader has.
+ */
+@media print {
+  .tv-shell {
+    display: block;
+    max-width: none;
+    padding: 0;
+  }
+
+  .tv-main {
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .tv-rail,
+  .tv-btn {
+    display: none;
+  }
+
+  .tv-section {
+    break-before: page;
+    margin-top: 0;
+  }
+
+  .tv-section:first-of-type {
+    break-before: auto;
+  }
+
+  .tv-figure,
+  .tv-tileset,
+  .tv-headline,
+  .tv-refusal,
+  .tv-note,
+  .tv-basis {
+    break-inside: avoid;
+  }
+
+  .tv-section__head,
+  .tv-figure__head {
+    break-after: avoid;
+  }
+
+  /* On paper a scroller cannot scroll, so the table prints whole and drops its cue. */
+  .tv-table-wrap {
+    overflow: visible;
+    background-image: none;
+  }
+
+  .tv-svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* A link to a section of the same page is a page number on paper, not a link. */
+  a[href^="#"] {
+    text-decoration: none;
+  }
+}
+/*
+ * The investing app shell: a left rail, a sticky top bar, and panes of cards.
+ *
+ * Chart figures, tables, tooltips and chips are the dashboard components,
+ * styled in the inlined layout.css; this file only sets the shell around them
+ * and the pieces the results page does not have: the rail, the hero, the tile
+ * row, the sortable book. Every colour comes through tokens, and the only
+ * signed colours are gains and losses.
+ */
+
+body {
+  background: var(--page);
+  color: var(--ink-1);
+}
+
+.iv-shell {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  gap: var(--space-6);
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-5) var(--space-8);
+}
+
+/* The rail ---------------------------------------------------------------- */
+
+.iv-rail {
+  position: sticky;
+  top: var(--space-5);
+  align-self: start;
+  display: grid;
+  gap: var(--space-5);
+}
+
+.iv-brand {
+  display: grid;
+  gap: 1px;
+  padding: 2px var(--space-2) 0;
+}
+
+.iv-brand__name {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.iv-brand__sub {
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+
+.iv-nav {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iv-nav__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--ink-2);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.iv-nav__link svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+
+.iv-nav__link:hover {
+  background: var(--wash);
+  color: var(--ink-1);
+}
+
+.iv-nav__link[aria-current="page"] {
+  background: var(--wash-strong);
+  color: var(--ink-1);
+  box-shadow: inset 2px 0 0 var(--focus);
+}
+
+.iv-rail__meta {
+  display: grid;
+  gap: 2px;
+  padding: 0 var(--space-3);
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+}
+
+/* The top bar -------------------------------------------------------------- */
+
+.iv-main {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+  align-content: start;
+}
+
+.iv-topbar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.iv-topbar__title {
+  font-size: 21px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+}
+
+.iv-topbar__meta {
+  color: var(--ink-3);
+  font-size: var(--fs-small);
+}
+
+.iv-topbar .tv-btn {
+  margin-left: auto;
+}
+
+/* Panes and cards ----------------------------------------------------------- */
+
+.iv-pane {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.iv-card {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.iv-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+
+/* The hero ------------------------------------------------------------------ */
+
+.iv-hero {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.iv-hero__label {
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+
+.iv-hero__value {
+  font-size: 42px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.iv-hero__delta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-3);
+  font-size: var(--fs-small);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.iv-pos {
+  color: var(--text-good);
+}
+
+.iv-neg {
+  color: var(--text-critical);
+}
+
+/* Tiles ---------------------------------------------------------------------- */
+
+.iv-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: var(--space-3);
+}
+
+.iv-tile {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.iv-tile__label {
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+
+.iv-tile__value {
+  font-size: 22px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.iv-tile__sub {
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  line-height: 1.45;
+}
+
+/* One featured tile carries a slow teal drift; everything else stays still. */
+.iv-tile--feature {
+  border-color: var(--focus);
+  background-image: linear-gradient(120deg, var(--wash-strong), var(--wash), var(--wash-strong));
+  background-size: 220% 100%;
+}
+
+/* The book: a dense sortable table ------------------------------------------- */
+
+.iv-book th[aria-sort] {
+  cursor: pointer;
+  user-select: none;
+}
+
+.iv-book th[aria-sort]:hover {
+  color: var(--ink-1);
+}
+
+.iv-book th[aria-sort="ascending"]::after {
+  content: " \2191";
+}
+
+.iv-book th[aria-sort="descending"]::after {
+  content: " \2193";
+}
+
+.iv-book .tv-table td {
+  white-space: nowrap;
+}
+
+.iv-group {
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  padding-top: var(--space-3);
+}
+
+/* Figures keep the kit's chrome but drop the document's exhibit numbering. */
+.iv-pane .tv-figure > .tv-figure__head > .tv-figure__title::before {
+  content: none;
+}
+
+/* Notes and refusals reuse the page's own vocabulary. */
+.iv-note {
+  color: var(--ink-2);
+  font-size: var(--fs-small);
+  max-width: 88ch;
+}
+
+.iv-banner {
+  padding: var(--space-3) var(--space-4);
+  background: var(--wash);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--status-warning);
+  border-radius: var(--radius-control);
+  color: var(--ink-1);
+  font-size: var(--fs-small);
+  max-width: none;
+}
+
+/* Small screens: the rail becomes a scrolling tab strip. --------------------- */
+
+@media (max-width: 900px) {
+  .iv-shell {
+    display: block;
+    padding: 0 var(--space-4) var(--space-7);
+  }
+
+  .iv-rail {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    grid-template-columns: 1fr;
+    margin: 0 calc(-1 * var(--space-4)) var(--space-4);
+    padding: var(--space-2) var(--space-4) 0;
+    background: var(--page);
+    border-bottom: 1px solid var(--grid);
+    gap: var(--space-2);
+  }
+
+  .iv-brand {
+    padding: 0;
+  }
+
+  .iv-brand__sub,
+  .iv-rail__meta {
+    display: none;
+  }
+
+  .iv-nav {
+    display: flex;
+    gap: var(--space-2);
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding-bottom: var(--space-1);
+  }
+
+  .iv-nav__link {
+    padding: 6px var(--space-2);
+  }
+
+  .iv-nav__link[aria-current="page"] {
+    box-shadow: inset 0 -2px 0 var(--focus);
+    background: none;
+  }
+
+  .iv-nav__link svg {
+    display: none;
+  }
+
+  .iv-hero__value {
+    font-size: 34px;
+  }
+}
+
+/* Motion, all of it behind the gate. ------------------------------------------ */
+
+@media (prefers-reduced-motion: no-preference) {
+  .iv-card,
+  .iv-tile {
+    transition: box-shadow 120ms ease-out, transform 120ms ease-out;
+  }
+
+  .iv-card:hover,
+  .iv-tile:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-tip);
+  }
+
+  @keyframes iv-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .iv-pane.is-entering > * {
+    animation: iv-enter 200ms ease-out backwards;
+  }
+
+  .iv-pane.is-entering > :nth-child(2) {
+    animation-delay: 40ms;
+  }
+
+  .iv-pane.is-entering > :nth-child(3) {
+    animation-delay: 80ms;
+  }
+
+  .iv-pane.is-entering > :nth-child(n + 4) {
+    animation-delay: 120ms;
+  }
+
+  @keyframes iv-drift {
+    from {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    to {
+      background-position: 0% 50%;
+    }
+  }
+
+  .iv-tile--feature {
+    animation: iv-drift 9s ease-in-out infinite;
+  }
+}
+</style>
+</head>
+<body>
+<noscript>This page draws itself with JavaScript. Everything it shows is in the snapshot JSON it was rendered from.</noscript>
+<script type="application/json" id="iv-snapshot">{"activity":[{"amount":null,"date":"2026-06-05","price":130.0,"ratio":null,"shares":20.0,"symbol":"DDOG","type":"buy"},{"amount":null,"date":"2026-04-15","price":320.0,"ratio":null,"shares":10.0,"symbol":"MDB","type":"sell"},{"amount":70.0,"date":"2025-12-10","price":null,"ratio":null,"shares":null,"symbol":"DIS","type":"dividend"},{"amount":null,"date":"2025-07-01","price":205.0,"ratio":null,"shares":45.0,"symbol":"SNOW","type":"buy"},{"amount":null,"date":"2025-03-04","price":620.0,"ratio":null,"shares":15.0,"symbol":"HUBS","type":"buy"},{"amount":10000.0,"date":"2025-03-03","price":null,"ratio":null,"shares":null,"symbol":null,"type":"deposit"},{"amount":63.0,"date":"2024-12-10","price":null,"ratio":null,"shares":null,"symbol":"DIS","type":"dividend"},{"amount":null,"date":"2024-08-15","price":75.0,"ratio":null,"shares":30.0,"symbol":"NET","type":"sell"},{"amount":null,"date":"2024-06-03","price":180.0,"ratio":null,"shares":40.0,"symbol":"ZS","type":"buy"},{"amount":null,"date":"2024-02-20","price":450.0,"ratio":null,"shares":25.0,"symbol":"MDB","type":"buy"},{"amount":null,"date":"2024-01-17","price":290.0,"ratio":null,"shares":30.0,"symbol":"CRWD","type":"buy"},{"amount":15000.0,"date":"2024-01-16","price":null,"ratio":null,"shares":null,"symbol":null,"type":"deposit"},{"amount":null,"date":"2023-11-01","price":435.0,"ratio":null,"shares":40.0,"symbol":"SPY","type":"buy"},{"amount":null,"date":"2023-10-10","price":84.0,"ratio":null,"shares":70.0,"symbol":"DIS","type":"buy"},{"amount":null,"date":"2023-10-03","price":63.0,"ratio":null,"shares":80.0,"symbol":"NET","type":"buy"},{"amount":null,"date":"2023-10-03","price":91.0,"ratio":null,"shares":60.0,"symbol":"DDOG","type":"buy"},{"amount":60000.0,"date":"2023-10-02","price":null,"ratio":null,"shares":null,"symbol":null,"type":"deposit"}],"engine":{"CRWD":{"covered":true,"dcf":{"enterprise_value_mm":10136.79,"gap_pct":-0.932403,"per_share":14.0466,"price":207.8,"wacc":0.129445},"fade":{"as_of":"2026-03-05","assumed":[0.2,0.1625,0.125,0.0875,0.05],"basis":["fitted","fitted","fitted","assumed","assumed"],"fitted":[0.294801,0.281664,0.23473,0.142365,0.05],"lower":[0.115753,0.069803,0.066872,0.058436,0.05],"trailing":0.217112,"upper":[0.520434,0.505285,0.477016,0.263508,0.05],"verdict":"mae of 0.1382 against 0.1459 for persistence (this year's growth carried forward), a lift of +0.0076 on 2,163 observations. Fold standard deviation 0.0245, so the lift is inside the fold-to-fold noise.","years":[1,2,3,4,5]},"refusals":[],"sub_vertical":"infrastructure_software","symbol":"CRWD","warranted":{"as_of":"2026-06-30","call":"rich","residual_log":0.704417,"residual_turns":18.779964,"traded":37.143681,"verdict":"Spearman of 0.7651 against 0.6313 for comps.py OLS refit on the date, sub-vertical peers, a lift of +0.1339 on 888 observations. Fold standard deviation 0.0841, so the lift is outside the fold-to-fold noise. 2% of the variance in the log multiple sits between the 22 dates rather than inside them: a model given the date and nothing else scores an R-squared of 0.02 against the raw multiple. That is the re-rating, and it is not a statement about any company. Differenced against each company's own previous observation the rank correlation is +0.0420 on 1,548 observations, so almost all of the score above is the level inherited from history rather than a view about the change. Treat the residual as a description of where a company sits, not as a forecast of where it is going.","warranted":18.363717,"z":0.738821}},"DDOG":{"covered":true,"dcf":{"enterprise_value_mm":9447.05,"gap_pct":-0.837321,"per_share":36.6467,"price":225.27,"wacc":0.112831},"fade":{"as_of":"2026-02-18","assumed":[0.2,0.1625,0.125,0.0875,0.05],"basis":["fitted","fitted","fitted","assumed","assumed"],"fitted":[0.210623,0.190106,0.196505,0.123253,0.05],"lower":[0.031575,-0.021755,0.028647,0.039324,0.05],"trailing":0.276754,"upper":[0.436256,0.413728,0.438792,0.244396,0.05],"verdict":"mae of 0.1382 against 0.1459 for persistence (this year's growth carried forward), a lift of +0.0076 on 2,163 observations. Fold standard deviation 0.0245, so the lift is inside the fold-to-fold noise.","years":[1,2,3,4,5]},"refusals":[],"sub_vertical":"infrastructure_software","symbol":"DDOG","warranted":{"as_of":"2026-06-30","call":"rich","residual_log":0.660165,"residual_turns":11.970936,"traded":24.772549,"verdict":"Spearman of 0.7651 against 0.6313 for comps.py OLS refit on the date, sub-vertical peers, a lift of +0.1339 on 888 observations. Fold standard deviation 0.0841, so the lift is outside the fold-to-fold noise. 2% of the variance in the log multiple sits between the 22 dates rather than inside them: a model given the date and nothing else scores an R-squared of 0.02 against the raw multiple. That is the re-rating, and it is not a statement about any company. Differenced against each company's own previous observation the rank correlation is +0.0420 on 1,548 observations, so almost all of the score above is the level inherited from history rather than a view about the change. Treat the residual as a description of where a company sits, not as a forecast of where it is going.","warranted":12.801613,"z":0.692407}},"DIS":{"covered":true,"dcf":{"enterprise_value_mm":378640.05,"gap_pct":0.786054,"per_share":186.0711,"price":104.18,"wacc":0.088838},"fade":{"as_of":"2025-11-13","assumed":[0.2,0.1625,0.125,0.0875,0.05],"basis":["fitted","fitted","fitted","assumed","assumed"],"fitted":[0.009721,0.038819,0.054252,0.052126,0.05],"lower":[-0.169327,-0.173042,-0.113606,-0.031803,0.05],"trailing":0.033537,"upper":[0.235354,0.262441,0.296538,0.173269,0.05],"verdict":"mae of 0.1382 against 0.1459 for persistence (this year's growth carried forward), a lift of +0.0076 on 2,163 observations. Fold standard deviation 0.0245, so the lift is inside the fold-to-fold noise.","years":[1,2,3,4,5]},"refusals":[],"sub_vertical":"media_entertainment","symbol":"DIS","warranted":{"as_of":"2026-06-30","call":"cheap","residual_log":-0.546221,"residual_turns":-1.650881,"traded":2.271701,"verdict":"Spearman of 0.7651 against 0.6313 for comps.py OLS refit on the date, sub-vertical peers, a lift of +0.1339 on 888 observations. Fold standard deviation 0.0841, so the lift is outside the fold-to-fold noise. 2% of the variance in the log multiple sits between the 22 dates rather than inside them: a model given the date and nothing else scores an R-squared of 0.02 against the raw multiple. That is the re-rating, and it is not a statement about any company. Differenced against each company's own previous observation the rank correlation is +0.0420 on 1,548 observations, so almost all of the score above is the level inherited from history rather than a view about the change. Treat the residual as a description of where a company sits, not as a forecast of where it is going.","warranted":3.922582,"z":-0.572899}},"HUBS":{"covered":true,"dcf":null,"fade":{"as_of":"2026-02-11","assumed":[0.2,0.1625,0.125,0.0875,0.05],"basis":["fitted","fitted","fitted","assumed","assumed"],"fitted":[0.203209,0.19683,0.159108,0.104554,0.05],"lower":[0.024161,-0.015031,-0.00875,0.020625,0.05],"trailing":0.191709,"upper":[0.428842,0.420452,0.401394,0.225697,0.05],"verdict":"mae of 0.1382 against 0.1459 for persistence (this year's growth carried forward), a lift of +0.0076 on 2,163 observations. Fold standard deviation 0.0245, so the lift is inside the fold-to-fold noise.","years":[1,2,3,4,5]},"refusals":[{"what":"DCF","why":"no filings cached for HUBS; run without --offline to fetch them"}],"sub_vertical":"application_software","symbol":"HUBS","warranted":{"as_of":"2026-06-30","call":"cheap","residual_log":-1.601018,"residual_turns":-9.644557,"traded":2.436678,"verdict":"Spearman of 0.7651 against 0.6313 for comps.py OLS refit on the date, sub-vertical peers, a lift of +0.1339 on 888 observations. Fold standard deviation 0.0841, so the lift is outside the fold-to-fold noise. 2% of the variance in the log multiple sits between the 22 dates rather than inside them: a model given the date and nothing else scores an R-squared of 0.02 against the raw multiple. That is the re-rating, and it is not a statement about any company. Differenced against each company's own previous observation the rank correlation is +0.0420 on 1,548 observations, so almost all of the score above is the level inherited from history rather than a view about the change. Treat the residual as a description of where a company sits, not as a forecast of where it is going.","warranted":12.081235,"z":-1.679211}},"MDB":{"covered":true,"dcf":{"enterprise_value_mm":4424.95,"gap_pct":-0.766901,"per_share":83.5379,"price":358.38,"wacc":0.147562},"fade":{"as_of":"2026-03-11","assumed":[0.2,0.1625,0.125,0.0875,0.05],"basis":["fitted","fitted","fitted","assumed","assumed"],"fitted":[0.19472,0.171595,0.162202,0.106101,0.05],"lower":[0.015672,-0.040266,-0.005656,0.022172,0.05],"trailing":0.227943,"upper":[0.420353,0.395217,0.404488,0.227244,0.05],"verdict":"mae of 0.1382 against 0.1459 for persistence (this year's growth carried forward), a lift of +0.0076 on 2,163 observations. Fold standard deviation 0.0245, so the lift is inside the fold-to-fold noise.","years":[1,2,3,4,5]},"refusals":[],"sub_vertical":"infrastructure_software","symbol":"MDB","warranted":{"as_of":"2026-06-30","call":"cheap","residual_log":-0.403109,"residual_turns":-4.756841,"traded":9.581312,"verdict":"Spearman of 0.7651 against 0.6313 for comps.py OLS refit on the date, sub-vertical peers, a lift of +0.1339 on 888 observations. Fold standard deviation 0.0841, so the lift is outside the fold-to-fold noise. 2% of the variance in the log multiple sits between the 22 dates rather than inside them: a model given the date and nothing else scores an R-squared of 0.02 against the raw multiple. That is the re-rating, and it is not a statement about any company. Differenced against each company's own previous observation the rank correlation is +0.0420 on 1,548 observations, so almost all of the score above is the level inherited from history rather than a view about the change. Treat the residual as a description of where a company sits, not as a forecast of where it is going.","warranted":14.338153,"z":-0.422797}},"NET":{"covered":true,"dcf":null,"fade":{"as_of":"2026-02-26","assumed":[0.2,0.1625,0.125,0.0875,0.05],"basis":["fitted","fitted","fitted","assumed","assumed"],"fitted":[0.25853,0.225113,0.197302,0.123651,0.05],"lower":[0.079482,0.013252,0.029444,0.039722,0.05],"trailing":0.298457,"upper":[0.484163,0.448735,0.439588,0.244794,0.05],"verdict":"mae of 0.1382 against 0.1459 for persistence (this year's growth carried forward), a lift of +0.0076 on 2,163 observations. Fold standard deviation 0.0245, so the lift is inside the fold-to-fold noise.","years":[1,2,3,4,5]},"refusals":[{"what":"DCF","why":"no filings cached for NET; run without --offline to fetch them"}],"sub_vertical":"infrastructure_software","symbol":"NET","warranted":{"as_of":"2026-06-30","call":"rich","residual_log":0.820362,"residual_turns":20.427179,"traded":36.494848,"verdict":"Spearman of 0.7651 against 0.6313 for comps.py OLS refit on the date, sub-vertical peers, a lift of +0.1339 on 888 observations. Fold standard deviation 0.0841, so the lift is outside the fold-to-fold noise. 2% of the variance in the log multiple sits between the 22 dates rather than inside them: a model given the date and nothing else scores an R-squared of 0.02 against the raw multiple. That is the re-rating, and it is not a statement about any company. Differenced against each company's own previous observation the rank correlation is +0.0420 on 1,548 observations, so almost all of the score above is the level inherited from history rather than a view about the change. Treat the residual as a description of where a company sits, not as a forecast of where it is going.","warranted":16.067669,"z":0.860428}},"SNOW":{"covered":true,"dcf":null,"fade":{"as_of":"2026-03-20","assumed":[0.2,0.1625,0.125,0.0875,0.05],"basis":["fitted","fitted","fitted","assumed","assumed"],"fitted":[0.319978,0.276697,0.225714,0.137857,0.05],"lower":[0.14093,0.064836,0.057856,0.053928,0.05],"trailing":0.291626,"upper":[0.545611,0.500319,0.468001,0.259,0.05],"verdict":"mae of 0.1382 against 0.1459 for persistence (this year's growth carried forward), a lift of +0.0076 on 2,163 observations. Fold standard deviation 0.0245, so the lift is inside the fold-to-fold noise.","years":[1,2,3,4,5]},"refusals":[{"what":"DCF","why":"no filings cached for SNOW; run without --offline to fetch them"}],"sub_vertical":"infrastructure_software","symbol":"SNOW","warranted":{"as_of":"2026-06-30","call":"rich","residual_log":0.399872,"residual_turns":5.632641,"traded":17.089633,"verdict":"Spearman of 0.7651 against 0.6313 for comps.py OLS refit on the date, sub-vertical peers, a lift of +0.1339 on 888 observations. Fold standard deviation 0.0841, so the lift is outside the fold-to-fold noise. 2% of the variance in the log multiple sits between the 22 dates rather than inside them: a model given the date and nothing else scores an R-squared of 0.02 against the raw multiple. That is the re-rating, and it is not a statement about any company. Differenced against each company's own previous observation the rank correlation is +0.0420 on 1,548 observations, so almost all of the score above is the level inherited from history rather than a view about the change. Treat the residual as a description of where a company sits, not as a forecast of where it is going.","warranted":11.456992,"z":0.419402}},"SPY":{"covered":false,"dcf":null,"fade":null,"refusals":[{"what":"Engine read","why":"SPY is an index fund: it is priced and weighed here, never valued from filings"}],"sub_vertical":null,"symbol":"SPY","warranted":null},"ZS":{"covered":true,"dcf":{"enterprise_value_mm":8809.17,"gap_pct":-0.602179,"per_share":66.0781,"price":166.1,"wacc":0.102748},"fade":{"as_of":"2026-09-03","assumed":[0.2,0.1625,0.125,0.0875,0.05],"basis":["fitted","fitted","fitted","assumed","assumed"],"fitted":[0.339498,0.292878,0.255497,0.152748,0.05],"lower":[0.16045,0.081016,0.087639,0.068819,0.05],"trailing":0.254163,"upper":[0.565131,0.516499,0.497783,0.273892,0.05],"verdict":"mae of 0.1382 against 0.1459 for persistence (this year's growth carried forward), a lift of +0.0076 on 2,163 observations. Fold standard deviation 0.0245, so the lift is inside the fold-to-fold noise.","years":[1,2,3,4,5]},"refusals":[],"sub_vertical":"infrastructure_software","symbol":"ZS","warranted":{"as_of":"2026-06-30","call":"cheap","residual_log":-0.912868,"residual_turns":-9.673805,"traded":6.486141,"verdict":"Spearman of 0.7651 against 0.6313 for comps.py OLS refit on the date, sub-vertical peers, a lift of +0.1339 on 888 observations. Fold standard deviation 0.0841, so the lift is outside the fold-to-fold noise. 2% of the variance in the log multiple sits between the 22 dates rather than inside them: a model given the date and nothing else scores an R-squared of 0.02 against the raw multiple. That is the re-rating, and it is not a statement about any company. Differenced against each company's own previous observation the rank correlation is +0.0420 on 1,548 observations, so almost all of the score above is the level inherited from history rather than a view about the change. Treat the residual as a description of where a company sits, not as a forecast of where it is going.","warranted":16.159946,"z":-0.957452}}},"hygiene":{"coverage":{"covered_positions":8,"covered_value_share":0.665519,"positions":9},"drift":[{"gap":-0.038614,"symbol":"SPY","target":0.3,"weight":0.261386},{"gap":0.034466,"symbol":"DDOG","target":0.12,"weight":0.154466},{"gap":0.023095,"symbol":"cash","target":0.05,"weight":0.073095}],"exposure":{"application software":0.029595,"cash":0.073095,"index funds":0.261386,"infrastructure software":0.573418,"media entertainment":0.062506},"top5_share":0.751444,"weights":[{"kind":"etf","symbol":"SPY","value":30496.0,"weight":0.261386},{"kind":"stock","symbol":"DDOG","value":18021.6,"weight":0.154466},{"kind":"stock","symbol":"NET","value":15709.0,"weight":0.134644},{"kind":"stock","symbol":"SNOW","value":14916.6,"weight":0.127853},{"kind":"stock","symbol":"DIS","value":7292.6,"weight":0.062506},{"kind":"stock","symbol":"ZS","value":6644.0,"weight":0.056947},{"kind":"stock","symbol":"CRWD","value":6234.0,"weight":0.053433},{"kind":"stock","symbol":"MDB","value":5375.7,"weight":0.046076},{"kind":"stock","symbol":"HUBS","value":3452.85,"weight":0.029595},{"kind":"cash","symbol":"cash","value":8528.0,"weight":0.073095}]},"ideas":{"as_of":"2026-06-30","cheap":[{"residual_log":-1.856043,"sub_vertical":"internet","ticker":"TTD","traded":2.49276,"warranted":15.949603,"z":-1.946692},{"residual_log":-1.446941,"sub_vertical":"it_services","ticker":"EPAM","traded":0.635499,"warranted":2.700932,"z":-1.51761},{"residual_log":-1.289578,"sub_vertical":"application_software","ticker":"TEAM","traded":3.277162,"warranted":11.900213,"z":-1.352561},{"residual_log":-1.235478,"sub_vertical":"application_software","ticker":"ADBE","traded":3.333311,"warranted":11.466659,"z":-1.295818},{"residual_log":-1.194094,"sub_vertical":"application_software","ticker":"INTU","traded":3.463042,"warranted":11.429995,"z":-1.252413},{"residual_log":-1.17053,"sub_vertical":"application_software","ticker":"DOCU","traded":2.525181,"warranted":8.140427,"z":-1.227698},{"residual_log":-1.149973,"sub_vertical":"internet","ticker":"SNAP","traded":1.349403,"warranted":4.26156,"z":-1.206138},{"residual_log":-1.025506,"sub_vertical":"application_software","ticker":"WDAY","traded":3.143981,"warranted":8.767014,"z":-1.075592}],"rich":[{"residual_log":1.463959,"sub_vertical":"internet","ticker":"GOOGL","traded":10.226883,"warranted":2.365669,"z":1.535459},{"residual_log":1.389601,"sub_vertical":"semiconductors","ticker":"AMD","traded":25.223774,"warranted":6.285129,"z":1.457469},{"residual_log":1.349948,"sub_vertical":"semiconductors","ticker":"MRVL","traded":29.999747,"warranted":7.777549,"z":1.415879},{"residual_log":1.272378,"sub_vertical":"semiconductors","ticker":"AMAT","traded":19.8668,"warranted":5.565974,"z":1.334521},{"residual_log":0.978068,"sub_vertical":"semiconductors","ticker":"INTC","traded":12.688809,"warranted":4.771459,"z":1.025837},{"residual_log":0.918395,"sub_vertical":"semiconductors","ticker":"TXN","traded":15.236898,"warranted":6.081945,"z":0.96325},{"residual_log":0.849443,"sub_vertical":"hardware","ticker":"CSCO","traded":7.808522,"warranted":3.33934,"z":0.890929},{"residual_log":0.757463,"sub_vertical":"application_software","ticker":"PLTR","traded":55.871533,"warranted":26.195604,"z":0.794458}],"verdict":"Scored against 12-month forward returns by techval signal, cheapness on this residual's own panel had a mean IC of -0.0984, the wrong sign, and a Newey-West t of -1.62: not significant. Read these rows as where a name sits against its fundamentals today, not as a forecast of where it goes."},"meta":{"benchmark":"SPY","first_date":"2023-10-02","generated":"2026-09-09","name":"Demo portfolio","price_source":"csv","schema":1},"overview":{"benchmark_twr_pct":0.784185,"cash":8528.0,"cheap":4,"covered_value_share":0.665519,"day_abs":2294.35,"day_pct":0.02006,"movers":[{"day_abs":1494.0,"day_pct":0.1051,"symbol":"NET"},{"day_abs":1203.2,"day_pct":0.071541,"symbol":"DDOG"},{"day_abs":-180.9,"day_pct":-0.011982,"symbol":"SNOW"}],"n_positions":9,"rich":4,"top5_share":0.751444,"twr_pct":0.405413,"uncovered":1,"value":116670.35},"performance":{"benchmark":"SPY","benchmark_growth":[1.0,0.986614,0.993798,0.993424,1.005219,1.011654,1.01692,1.021085,1.01486,1.009806,1.02043,1.020383,1.006787,0.997941,0.985678,0.983969,0.991388,0.977159,0.965458,0.961082,0.972573,0.978681,0.989118,1.008074,1.017271,1.019611,1.022513,1.023262,1.015282,1.031125,1.030142,1.050128,1.052351,1.053638,1.054948,1.063069,1.060752,1.064848,1.065503,1.063584,1.064637,1.063888,1.068077,1.074396,1.068756,1.068545,1.064239,1.07236,1.07697,1.081159,1.086097,1.101074,1.104608,1.098336,1.104514,1.111231,1.095832,1.106223,1.108446,1.113126,1.115139,1.11556,1.112331,1.106106,1.097072,1.093539,1.095036,1.110669,1.108984,1.115256,1.114764,1.115537,1.111441,1.105263,1.115092,1.128993,1.13138,1.13468,1.13592,1.142098,1.140647,1.149681,1.148791,1.130046,1.144836,1.156888,1.152676,1.156023,1.165664,1.166179,1.172919,1.172404,1.156257,1.166764,1.174815,1.168964,1.162528,1.163581,1.187662,1.188481,1.184129,1.186328,1.18476,1.18902,1.200183,1.198895,1.186913,1.192928,1.204769,1.197538,1.196508,1.20938,1.207484,1.205097,1.193115,1.200206,1.206876,1.218038,1.222064,1.219747,1.216377,1.21413,1.224334,1.2241,1.22197,1.2142,1.215534,1.200697,1.213241,1.21392,1.215324,1.203155,1.212235,1.195502,1.180525,1.178372,1.171398,1.168987,1.158784,1.169455,1.183333,1.182771,1.178278,1.189441,1.193653,1.174744,1.17093,1.181882,1.196532,1.208888,1.210222,1.210339,1.217313,1.218881,1.219045,1.224638,1.239802,1.237252,1.23903,1.240458,1.2435,1.239919,1.230863,1.239007,1.239873,1.23119,1.223023,1.234163,1.235169,1.23655,1.251246,1.251223,1.249702,1.253563,1.256582,1.266902,1.269453,1.270225,1.280335,1.283588,1.280101,1.274274,1.270132,1.275023,1.276614,1.278627,1.273595,1.276216,1.284805,1.290538,1.29798,1.299478,1.300742,1.313613,1.302286,1.310501,1.314105,1.321897,1.303363,1.293347,1.284758,1.298004,1.295968,1.266598,1.259999,1.27411,1.274859,1.2684,1.289017,1.270764,1.247104,1.210784,1.221947,1.213779,1.241838,1.247315,1.24797,1.268494,1.272495,1.294306,1.297208,1.309611,1.307482,1.311975,1.301678,1.315509,1.312373,1.314175,1.306546,1.306663,1.319136,1.291989,1.289345,1.286209,1.264562,1.27872,1.28429,1.297466,1.308394,1.315228,1.31717,1.317708,1.3138,1.33622,1.329831,1.333154,1.336968,1.33402,1.339309,1.337366,1.342725,1.330697,1.331258,1.328825,1.3409,1.328778,1.341345,1.350635,1.348272,1.356346,1.367438,1.356814,1.362711,1.362828,1.36807,1.365823,1.365098,1.352625,1.35555,1.355082,1.359271,1.361471,1.357352,1.330743,1.33636,1.333482,1.349606,1.383164,1.393859,1.399897,1.401231,1.396878,1.397557,1.38857,1.370785,1.376401,1.381433,1.381901,1.389319,1.393625,1.398352,1.405654,1.401395,1.4101,1.412628,1.413283,1.422059,1.419719,1.42241,1.415085,1.410685,1.421591,1.414266,1.413985,1.420023,1.414172,1.372025,1.371604,1.383422,1.391706,1.407175,1.407269,1.392455,1.376565,1.371557,1.368187,1.385294,1.393274,1.377525,1.379537,1.358475,1.360581,1.362453,1.387236,1.384569,1.398469,1.411271,1.419204,1.42695,1.422784,1.402658,1.414711,1.408369,1.415928,1.408392,1.398914,1.408298,1.414009,1.418923,1.405935,1.415483,1.416559,1.411996,1.426903,1.426833,1.431022,1.434392,1.428424,1.403992,1.397604,1.390653,1.391355,1.369147,1.390513,1.366151,1.34998,1.364489,1.340268,1.34778,1.311881,1.300976,1.30788,1.290445,1.3171,1.327257,1.312911,1.32721,1.323372,1.319838,1.343474,1.346704,1.330626,1.327093,1.300367,1.309096,1.312794,1.321102,1.255997,1.182467,1.180361,1.161873,1.283892,1.227633,1.249538,1.26166,1.258126,1.230161,1.231916,1.202593,1.233882,1.253001,1.279376,1.28862,1.289111,1.297232,1.297746,1.306943,1.326344,1.318738,1.307716,1.313215,1.322365,1.320681,1.364326,1.373336,1.375091,1.381807,1.39056,1.392081,1.3874,1.364021,1.36456,1.355246,1.383422,1.375418,1.380848,1.379303,1.387073,1.394983,1.394608,1.387868,1.40212,1.403384,1.411341,1.407316,1.412909,1.397112,1.410405,1.398352,1.398142,1.390747,1.404484,1.42,1.420795,1.431911,1.439026,1.445906,1.445438,1.45199,1.463434,1.452529,1.451733,1.460439,1.464557,1.459409,1.462194,1.455945,1.460813,1.469753,1.468676,1.471461,1.471672,1.484192,1.484683,1.490955,1.490581,1.486649,1.484777,1.479207,1.454962,1.477078,1.469589,1.480845,1.479605,1.491142,1.488194,1.504037,1.509185,1.509326,1.505792,1.505464,1.497297,1.493319,1.487328,1.510168,1.503522,1.509817,1.513257,1.518616,1.50956,1.498374,1.506494,1.519085,1.514685,1.518406,1.521916,1.526316,1.539,1.538485,1.546676,1.544546,1.542627,1.549835,1.553205,1.560553,1.552058,1.54712,1.539983,1.548805,1.553158,1.559009,1.564321,1.566123,1.5661,1.571716,1.565889,1.575226,1.570663,1.528211,1.55166,1.549765,1.556645,1.546044,1.55482,1.570991,1.570967,1.5628,1.572067,1.584915,1.603613,1.607873,1.608645,1.590953,1.596171,1.599167,1.580211,1.585687,1.568674,1.570218,1.59472,1.598371,1.59926,1.572722,1.572465,1.557815,1.544733,1.550701,1.527065,1.542276,1.564976,1.579696,1.590602,1.599284,1.591982,1.594931,1.600454,1.601624,1.604666,1.599846,1.598465,1.609066,1.61281,1.595469,1.593059,1.588706,1.571225,1.58309,1.592731,1.602654,1.609979,1.615642,1.615478,1.609721,1.607755,1.595844,1.598769,1.609417,1.618989,1.61377,1.613606,1.624277,1.626828,1.623575,1.615595,1.619995,1.618638,1.585687,1.603988,1.612366,1.612951,1.621142,1.627601,1.627437,1.624207,1.619363,1.627413,1.613653,1.605837,1.585781,1.616204,1.623997,1.619714,1.61934,1.594323,1.595446,1.59802,1.606071,1.601835,1.613419,1.596944,1.608551,1.622124,1.613115,1.605368,1.606281,1.592123,1.603356,1.594416,1.573518,1.587302,1.584751,1.582762,1.558728,1.549905,1.565678,1.569797,1.547893,1.544078,1.517797,1.533734,1.528586,1.537104,1.509653,1.483911,1.47895,1.52194,1.533407,1.534787,1.542042,1.542721,1.582013,1.59114,1.590087,1.605626,1.62519,1.638015,1.64204,1.661885,1.661885,1.647703,1.664389,1.65793,1.670778,1.673656,1.665512,1.665255,1.681824,1.686481,1.680302,1.693782,1.717325,1.712059,1.726194,1.730126,1.727505,1.73717,1.750883,1.729821,1.728605,1.717091,1.734689,1.738129,1.744963,1.756547,1.756243,1.765931,1.770331,1.775152,1.777562,1.765089,1.771758,1.72603,1.729938,1.72486,1.697667,1.726522,1.735859,1.766469,1.755938,1.73401,1.747537,1.742037,1.71674,1.715944,1.718425,1.705998,1.734104,1.747607,1.745244,1.74295,1.758162,1.749807,1.744401,1.759168,1.76675,1.753224,1.759449,1.766423,1.756851,1.739463,1.736655,1.751141,1.749105,1.727505,1.72926,1.729634,1.733776,1.707098,1.735719,1.748216,1.773116,1.805083,1.801479,1.798601,1.8096,1.809061,1.803281,1.807798,1.820411,1.816807,1.808219,1.796003,1.799771,1.784653,1.791954,1.786689,1.792399,1.792797,1.804545,1.800449,1.795067,1.782734,1.790644,1.809389,1.802415,1.792516,1.784185],"contributions":[{"dividends":0.0,"realized":0.0,"symbol":"SPY","total":13096.0,"unrealized":13096.0},{"dividends":0.0,"realized":360.0,"symbol":"NET","total":12919.0,"unrealized":12559.0},{"dividends":0.0,"realized":0.0,"symbol":"DDOG","total":9961.6,"unrealized":9961.6},{"dividends":0.0,"realized":0.0,"symbol":"SNOW","total":5691.6,"unrealized":5691.6},{"dividends":133.0,"realized":0.0,"symbol":"DIS","total":1545.6,"unrealized":1412.6},{"dividends":0.0,"realized":0.0,"symbol":"ZS","total":-556.0,"unrealized":-556.0},{"dividends":0.0,"realized":0.0,"symbol":"CRWD","total":-2466.0,"unrealized":-2466.0},{"dividends":0.0,"realized":-1300.0,"symbol":"MDB","total":-2674.3,"unrealized":-1374.3},{"dividends":0.0,"realized":0.0,"symbol":"HUBS","total":-5847.15,"unrealized":-5847.15}],"dates":["2023-10-02","2023-10-03","2023-10-04","2023-10-05","2023-10-06","2023-10-09","2023-10-10","2023-10-11","2023-10-12","2023-10-13","2023-10-16","2023-10-17","2023-10-18","2023-10-19","2023-10-20","2023-10-23","2023-10-24","2023-10-25","2023-10-26","2023-10-27","2023-10-30","2023-10-31","2023-11-01","2023-11-02","2023-11-03","2023-11-06","2023-11-07","2023-11-08","2023-11-09","2023-11-10","2023-11-13","2023-11-14","2023-11-15","2023-11-16","2023-11-17","2023-11-20","2023-11-21","2023-11-22","2023-11-24","2023-11-27","2023-11-28","2023-11-29","2023-11-30","2023-12-01","2023-12-04","2023-12-05","2023-12-06","2023-12-07","2023-12-08","2023-12-11","2023-12-12","2023-12-13","2023-12-14","2023-12-15","2023-12-18","2023-12-19","2023-12-20","2023-12-21","2023-12-22","2023-12-26","2023-12-27","2023-12-28","2023-12-29","2024-01-02","2024-01-03","2024-01-04","2024-01-05","2024-01-08","2024-01-09","2024-01-10","2024-01-11","2024-01-12","2024-01-16","2024-01-17","2024-01-18","2024-01-19","2024-01-22","2024-01-23","2024-01-24","2024-01-25","2024-01-26","2024-01-29","2024-01-30","2024-01-31","2024-02-01","2024-02-02","2024-02-05","2024-02-06","2024-02-07","2024-02-08","2024-02-09","2024-02-12","2024-02-13","2024-02-14","2024-02-15","2024-02-16","2024-02-20","2024-02-21","2024-02-22","2024-02-23","2024-02-26","2024-02-27","2024-02-28","2024-02-29","2024-03-01","2024-03-04","2024-03-05","2024-03-06","2024-03-07","2024-03-08","2024-03-11","2024-03-12","2024-03-13","2024-03-14","2024-03-15","2024-03-18","2024-03-19","2024-03-20","2024-03-21","2024-03-22","2024-03-25","2024-03-26","2024-03-27","2024-03-28","2024-04-01","2024-04-02","2024-04-03","2024-04-04","2024-04-05","2024-04-08","2024-04-09","2024-04-10","2024-04-11","2024-04-12","2024-04-15","2024-04-16","2024-04-17","2024-04-18","2024-04-19","2024-04-22","2024-04-23","2024-04-24","2024-04-25","2024-04-26","2024-04-29","2024-04-30","2024-05-01","2024-05-02","2024-05-03","2024-05-06","2024-05-07","2024-05-08","2024-05-09","2024-05-10","2024-05-13","2024-05-14","2024-05-15","2024-05-16","2024-05-17","2024-05-20","2024-05-21","2024-05-22","2024-05-23","2024-05-24","2024-05-28","2024-05-29","2024-05-30","2024-05-31","2024-06-03","2024-06-04","2024-06-05","2024-06-06","2024-06-07","2024-06-10","2024-06-11","2024-06-12","2024-06-13","2024-06-14","2024-06-17","2024-06-18","2024-06-20","2024-06-21","2024-06-24","2024-06-25","2024-06-26","2024-06-27","2024-06-28","2024-07-01","2024-07-02","2024-07-03","2024-07-05","2024-07-08","2024-07-09","2024-07-10","2024-07-11","2024-07-12","2024-07-15","2024-07-16","2024-07-17","2024-07-18","2024-07-19","2024-07-22","2024-07-23","2024-07-24","2024-07-25","2024-07-26","2024-07-29","2024-07-30","2024-07-31","2024-08-01","2024-08-02","2024-08-05","2024-08-06","2024-08-07","2024-08-08","2024-08-09","2024-08-12","2024-08-13","2024-08-14","2024-08-15","2024-08-16","2024-08-19","2024-08-20","2024-08-21","2024-08-22","2024-08-23","2024-08-26","2024-08-27","2024-08-28","2024-08-29","2024-08-30","2024-09-03","2024-09-04","2024-09-05","2024-09-06","2024-09-09","2024-09-10","2024-09-11","2024-09-12","2024-09-13","2024-09-16","2024-09-17","2024-09-18","2024-09-19","2024-09-20","2024-09-23","2024-09-24","2024-09-25","2024-09-26","2024-09-27","2024-09-30","2024-10-01","2024-10-02","2024-10-03","2024-10-04","2024-10-07","2024-10-08","2024-10-09","2024-10-10","2024-10-11","2024-10-14","2024-10-15","2024-10-16","2024-10-17","2024-10-18","2024-10-21","2024-10-22","2024-10-23","2024-10-24","2024-10-25","2024-10-28","2024-10-29","2024-10-30","2024-10-31","2024-11-01","2024-11-04","2024-11-05","2024-11-06","2024-11-07","2024-11-08","2024-11-11","2024-11-12","2024-11-13","2024-11-14","2024-11-15","2024-11-18","2024-11-19","2024-11-20","2024-11-21","2024-11-22","2024-11-25","2024-11-26","2024-11-27","2024-11-29","2024-12-02","2024-12-03","2024-12-04","2024-12-05","2024-12-06","2024-12-09","2024-12-10","2024-12-11","2024-12-12","2024-12-13","2024-12-16","2024-12-17","2024-12-18","2024-12-19","2024-12-20","2024-12-23","2024-12-24","2024-12-26","2024-12-27","2024-12-30","2024-12-31","2025-01-02","2025-01-03","2025-01-06","2025-01-07","2025-01-08","2025-01-10","2025-01-13","2025-01-14","2025-01-15","2025-01-16","2025-01-17","2025-01-21","2025-01-22","2025-01-23","2025-01-24","2025-01-27","2025-01-28","2025-01-29","2025-01-30","2025-01-31","2025-02-03","2025-02-04","2025-02-05","2025-02-06","2025-02-07","2025-02-10","2025-02-11","2025-02-12","2025-02-13","2025-02-14","2025-02-18","2025-02-19","2025-02-20","2025-02-21","2025-02-24","2025-02-25","2025-02-26","2025-02-27","2025-02-28","2025-03-03","2025-03-04","2025-03-05","2025-03-06","2025-03-07","2025-03-10","2025-03-11","2025-03-12","2025-03-13","2025-03-14","2025-03-17","2025-03-18","2025-03-19","2025-03-20","2025-03-21","2025-03-24","2025-03-25","2025-03-26","2025-03-27","2025-03-28","2025-03-31","2025-04-01","2025-04-02","2025-04-03","2025-04-04","2025-04-07","2025-04-08","2025-04-09","2025-04-10","2025-04-11","2025-04-14","2025-04-15","2025-04-16","2025-04-17","2025-04-21","2025-04-22","2025-04-23","2025-04-24","2025-04-25","2025-04-28","2025-04-29","2025-04-30","2025-05-01","2025-05-02","2025-05-05","2025-05-06","2025-05-07","2025-05-08","2025-05-09","2025-05-12","2025-05-13","2025-05-14","2025-05-15","2025-05-16","2025-05-19","2025-05-20","2025-05-21","2025-05-22","2025-05-23","2025-05-27","2025-05-28","2025-05-29","2025-05-30","2025-06-02","2025-06-03","2025-06-04","2025-06-05","2025-06-06","2025-06-09","2025-06-10","2025-06-11","2025-06-12","2025-06-13","2025-06-16","2025-06-17","2025-06-18","2025-06-20","2025-06-23","2025-06-24","2025-06-25","2025-06-26","2025-06-27","2025-06-30","2025-07-01","2025-07-02","2025-07-03","2025-07-07","2025-07-08","2025-07-09","2025-07-10","2025-07-11","2025-07-14","2025-07-15","2025-07-16","2025-07-17","2025-07-18","2025-07-21","2025-07-22","2025-07-23","2025-07-24","2025-07-25","2025-07-28","2025-07-29","2025-07-30","2025-07-31","2025-08-01","2025-08-04","2025-08-05","2025-08-06","2025-08-07","2025-08-08","2025-08-11","2025-08-12","2025-08-13","2025-08-14","2025-08-15","2025-08-18","2025-08-19","2025-08-20","2025-08-21","2025-08-22","2025-08-25","2025-08-26","2025-08-27","2025-08-28","2025-08-29","2025-09-02","2025-09-03","2025-09-04","2025-09-05","2025-09-08","2025-09-09","2025-09-10","2025-09-11","2025-09-12","2025-09-15","2025-09-16","2025-09-17","2025-09-18","2025-09-19","2025-09-22","2025-09-23","2025-09-24","2025-09-25","2025-09-26","2025-09-29","2025-09-30","2025-10-01","2025-10-02","2025-10-03","2025-10-06","2025-10-07","2025-10-08","2025-10-09","2025-10-10","2025-10-13","2025-10-14","2025-10-15","2025-10-16","2025-10-17","2025-10-20","2025-10-21","2025-10-22","2025-10-23","2025-10-24","2025-10-27","2025-10-28","2025-10-29","2025-10-30","2025-10-31","2025-11-03","2025-11-04","2025-11-05","2025-11-06","2025-11-07","2025-11-10","2025-11-11","2025-11-12","2025-11-13","2025-11-14","2025-11-17","2025-11-18","2025-11-19","2025-11-20","2025-11-21","2025-11-24","2025-11-25","2025-11-26","2025-11-28","2025-12-01","2025-12-02","2025-12-03","2025-12-04","2025-12-05","2025-12-08","2025-12-09","2025-12-10","2025-12-11","2025-12-12","2025-12-15","2025-12-16","2025-12-17","2025-12-18","2025-12-19","2025-12-22","2025-12-23","2025-12-24","2025-12-26","2025-12-29","2025-12-30","2025-12-31","2026-01-02","2026-01-05","2026-01-06","2026-01-07","2026-01-08","2026-01-09","2026-01-12","2026-01-13","2026-01-14","2026-01-15","2026-01-16","2026-01-20","2026-01-21","2026-01-22","2026-01-23","2026-01-26","2026-01-27","2026-01-28","2026-01-29","2026-01-30","2026-02-02","2026-02-03","2026-02-04","2026-02-05","2026-02-06","2026-02-09","2026-02-10","2026-02-11","2026-02-12","2026-02-13","2026-02-17","2026-02-18","2026-02-19","2026-02-20","2026-02-23","2026-02-24","2026-02-25","2026-02-26","2026-02-27","2026-03-02","2026-03-03","2026-03-04","2026-03-05","2026-03-06","2026-03-09","2026-03-10","2026-03-11","2026-03-12","2026-03-13","2026-03-16","2026-03-17","2026-03-18","2026-03-19","2026-03-20","2026-03-23","2026-03-24","2026-03-25","2026-03-26","2026-03-27","2026-03-30","2026-03-31","2026-04-01","2026-04-02","2026-04-06","2026-04-07","2026-04-08","2026-04-09","2026-04-10","2026-04-13","2026-04-14","2026-04-15","2026-04-16","2026-04-17","2026-04-20","2026-04-21","2026-04-22","2026-04-23","2026-04-24","2026-04-27","2026-04-28","2026-04-29","2026-04-30","2026-05-01","2026-05-04","2026-05-05","2026-05-06","2026-05-07","2026-05-08","2026-05-11","2026-05-12","2026-05-13","2026-05-14","2026-05-15","2026-05-18","2026-05-19","2026-05-20","2026-05-21","2026-05-22","2026-05-26","2026-05-27","2026-05-28","2026-05-29","2026-06-01","2026-06-02","2026-06-03","2026-06-04","2026-06-05","2026-06-08","2026-06-09","2026-06-10","2026-06-11","2026-06-12","2026-06-15","2026-06-16","2026-06-17","2026-06-18","2026-06-22","2026-06-23","2026-06-24","2026-06-25","2026-06-26","2026-06-29","2026-06-30","2026-07-01","2026-07-02","2026-07-06","2026-07-07","2026-07-08","2026-07-09","2026-07-10","2026-07-13","2026-07-14","2026-07-15","2026-07-16","2026-07-17","2026-07-20","2026-07-21","2026-07-22","2026-07-23","2026-07-24","2026-07-27","2026-07-28","2026-07-29","2026-07-30","2026-07-31","2026-08-03","2026-08-04","2026-08-05","2026-08-06","2026-08-07","2026-08-10","2026-08-11","2026-08-12","2026-08-13","2026-08-14","2026-08-17","2026-08-18","2026-08-19","2026-08-20","2026-08-21","2026-08-24","2026-08-25","2026-08-26","2026-08-27","2026-08-28","2026-08-31","2026-09-01","2026-09-02","2026-09-03","2026-09-04","2026-09-08","2026-09-09"],"dividends_total":133.0,"growth":[1.0,0.989837,0.99253,0.9921,1.00283,1.00065,1.005198,1.002485,0.996882,0.995015,1.002195,1.00415,0.997323,0.995595,0.988678,0.987897,0.990687,0.977932,0.974837,0.975032,0.976043,0.979245,0.966722,0.976025,0.993975,0.98918,1.017175,1.01318,1.01476,1.021478,1.024243,1.045568,1.050225,1.050802,1.053828,1.059558,1.059768,1.061632,1.06334,1.061538,1.06183,1.069053,1.068842,1.074737,1.073412,1.069325,1.063447,1.067628,1.06928,1.07105,1.071562,1.083372,1.0948,1.094923,1.096187,1.099568,1.086715,1.095103,1.093873,1.098115,1.097783,1.096447,1.091605,1.078808,1.070725,1.069633,1.072693,1.085645,1.087555,1.087028,1.087565,1.089022,1.09028,0.99676,1.003196,1.014412,1.02349,1.018828,1.0122,1.013402,1.01283,1.026466,1.022695,1.010424,1.018094,1.030724,1.02462,1.027103,1.033867,1.053561,1.075633,1.073006,1.061689,1.074903,1.070369,1.063354,1.055226,1.040109,1.064211,1.062661,1.062875,1.065167,1.062657,1.068065,1.06688,1.070291,1.042432,1.048449,1.05432,1.038117,1.032747,1.038557,1.03943,1.034187,1.020772,1.028746,1.031365,1.042571,1.042187,1.039399,1.040158,1.04479,1.046264,1.047673,1.043791,1.040669,1.032006,1.024818,1.042204,1.041579,1.042936,1.034238,1.043858,1.029572,1.017385,1.020303,1.008789,1.005145,0.992209,1.001305,1.023095,1.024263,1.018623,1.034172,1.030352,1.016238,1.019265,1.021441,1.009624,1.018969,0.992685,0.994315,0.99702,0.998229,1.001311,1.001749,1.012404,1.012456,1.013409,1.014157,1.013594,1.012021,1.003317,1.007153,1.001264,0.998505,0.974576,0.947742,0.938977,0.938977,0.950998,0.952589,0.952889,0.962216,0.966454,0.977993,0.967756,0.973669,0.978669,0.975955,0.973788,0.976284,0.979215,0.982524,0.986791,1.001755,1.003166,1.01345,1.014587,1.018611,1.027497,1.021087,1.007834,1.007612,1.004675,1.012607,1.017623,1.022974,1.001758,0.985731,0.979769,0.979203,0.983141,0.954902,0.96112,0.96239,0.963076,0.952026,0.963347,0.944568,0.930956,0.911381,0.916714,0.913957,0.933077,0.935719,0.932358,0.951845,0.956893,0.969713,0.972194,0.983309,0.979321,0.987996,0.974812,0.982756,0.980286,0.976679,0.96699,0.975766,0.997982,0.976548,0.955947,0.958274,0.941944,0.949042,0.951131,0.961934,0.968251,0.970834,0.976967,0.976125,0.972823,0.987524,0.985975,0.990128,0.991842,0.986829,0.98424,0.983872,0.984789,0.970216,0.973977,0.973903,0.992433,0.981243,0.989443,1.006838,1.027492,1.032993,1.032919,1.024749,1.02245,1.018514,1.024149,1.018633,1.0125,1.001151,1.007244,1.010375,1.014056,1.021064,1.019707,1.002112,1.003265,1.003041,1.012454,1.035003,1.048368,1.040531,1.046071,1.049756,1.061872,1.062533,1.04967,1.05408,1.066467,1.06537,1.095245,1.115301,1.119691,1.116001,1.104885,1.107737,1.113699,1.109397,1.136214,1.130263,1.143732,1.132451,1.102147,1.115402,1.110941,1.09427,1.102188,1.101031,1.063506,1.05666,1.068486,1.06565,1.072955,1.072603,1.061154,1.051352,1.046183,1.054002,1.064802,1.071524,1.058607,1.061924,1.052003,1.044341,1.047075,1.060475,1.055599,1.063359,1.074602,1.082885,1.087249,1.089351,1.087268,1.123411,1.110765,1.10894,1.108452,1.103476,1.114851,1.119294,1.118617,1.130426,1.146127,1.143216,1.148202,1.148687,1.139334,1.143264,1.13581,1.1214,1.092355,1.084441,1.070949,1.078166,1.064304,1.082113,1.065619,1.07339,1.082057,1.034879,1.030739,0.988515,0.993724,1.000108,0.978208,0.996845,1.007381,0.998238,1.008579,1.00374,1.008246,1.028677,1.037323,1.019529,1.008993,0.989371,0.981632,0.989125,1.000577,0.940814,0.892036,0.892575,0.882091,0.967802,0.931008,0.938951,0.941092,0.949851,0.939816,0.938138,0.915554,0.934532,0.956424,0.988008,0.999205,1.001015,1.00743,1.006321,1.01518,1.025001,1.026385,1.021505,1.031701,1.044873,1.036838,1.080164,1.096096,1.099841,1.096477,1.105326,1.102306,1.099262,1.083302,1.091504,1.085929,1.102724,1.097427,1.091943,1.109091,1.123575,1.131591,1.13116,1.144185,1.151761,1.148312,1.146316,1.144942,1.143419,1.134573,1.143593,1.14739,1.147129,1.137726,1.150778,1.161245,1.163065,1.171653,1.177326,1.184191,1.175889,1.178612,1.211035,1.207576,1.199092,1.202622,1.173681,1.157598,1.164415,1.164676,1.16854,1.175383,1.187427,1.188709,1.181407,1.185458,1.190368,1.204845,1.207252,1.202615,1.200474,1.191265,1.154227,1.176553,1.163234,1.179844,1.153459,1.130814,1.119977,1.131189,1.137997,1.125004,1.139157,1.146904,1.133183,1.131453,1.127757,1.146473,1.137882,1.134846,1.176895,1.224509,1.213276,1.202891,1.19521,1.197014,1.211472,1.221953,1.227157,1.225788,1.234894,1.225109,1.239551,1.221677,1.215706,1.238199,1.250078,1.249783,1.235789,1.227398,1.224659,1.236728,1.24656,1.233322,1.246343,1.258651,1.249411,1.264262,1.243977,1.278859,1.278736,1.244217,1.268087,1.251939,1.252573,1.232954,1.238896,1.260062,1.269428,1.257453,1.280869,1.287873,1.306054,1.307305,1.305434,1.30587,1.343365,1.347669,1.31088,1.302005,1.308101,1.315945,1.343673,1.345317,1.325914,1.284393,1.278178,1.252585,1.242139,1.239509,1.202644,1.190897,1.210225,1.2295,1.207646,1.218107,1.211246,1.238156,1.247466,1.224657,1.223513,1.232682,1.229084,1.237597,1.234652,1.217255,1.200726,1.206657,1.189424,1.205428,1.212745,1.227748,1.225398,1.223551,1.22485,1.217086,1.216021,1.205578,1.187891,1.204223,1.222131,1.233224,1.191808,1.184184,1.189181,1.178371,1.161339,1.154821,1.154378,1.128604,1.135062,1.157585,1.153636,1.179456,1.193857,1.17956,1.133716,1.127449,1.123221,1.075822,1.062934,1.025213,1.058362,1.070998,1.099682,1.090676,1.074841,1.099631,1.086662,1.0903,1.085016,1.058554,1.000349,1.017316,1.040111,1.064777,1.04252,1.047734,1.024582,1.038331,1.059283,1.06423,1.072665,1.061217,1.066501,1.054017,1.053352,1.052492,1.062757,1.065389,1.061706,1.038495,1.054737,1.018026,1.019674,1.011216,0.976988,0.978048,1.002174,1.005497,1.013035,1.011246,1.013649,1.017329,0.974691,0.942808,0.978203,0.980341,1.022398,1.033859,1.047449,1.057878,1.058303,1.071634,1.04779,1.050881,1.06106,1.054622,1.056912,1.049414,1.076689,1.088099,1.100698,1.107701,1.168942,1.136736,1.132021,1.126652,1.138543,1.146481,1.155018,1.176434,1.184032,1.188459,1.188843,1.207644,1.212671,1.173518,1.23301,1.281232,1.367856,1.340168,1.291841,1.291493,1.273026,1.26824,1.24895,1.233519,1.256814,1.249839,1.272355,1.259444,1.241008,1.239873,1.225174,1.228054,1.222378,1.216605,1.263512,1.293568,1.310935,1.326815,1.323349,1.328356,1.341757,1.340276,1.361735,1.33274,1.340038,1.375607,1.360237,1.355942,1.348118,1.352149,1.337011,1.316484,1.295901,1.305566,1.323302,1.328381,1.35037,1.37171,1.374728,1.406871,1.45668,1.44748,1.3827,1.418064,1.462819,1.450566,1.444503,1.492105,1.472117,1.448816,1.44093,1.425551,1.399308,1.42473,1.395885,1.383766,1.392889,1.460967,1.446848,1.458265,1.407878,1.363087,1.416107,1.388796,1.377775,1.405413],"lots":[{"cost_per_share":91.0,"opened":"2023-10-03","price":225.27,"shares":60.0,"symbol":"DDOG","unrealized":8056.2},{"cost_per_share":130.0,"opened":"2026-06-05","price":225.27,"shares":20.0,"symbol":"DDOG","unrealized":1905.4},{"cost_per_share":63.0,"opened":"2023-10-03","price":314.18,"shares":50.0,"symbol":"NET","unrealized":12559.0},{"cost_per_share":84.0,"opened":"2023-10-10","price":104.18,"shares":70.0,"symbol":"DIS","unrealized":1412.6},{"cost_per_share":435.0,"opened":"2023-11-01","price":762.4,"shares":40.0,"symbol":"SPY","unrealized":13096.0},{"cost_per_share":290.0,"opened":"2024-01-17","price":207.8,"shares":30.0,"symbol":"CRWD","unrealized":-2466.0},{"cost_per_share":450.0,"opened":"2024-02-20","price":358.38,"shares":15.0,"symbol":"MDB","unrealized":-1374.3},{"cost_per_share":180.0,"opened":"2024-06-03","price":166.1,"shares":40.0,"symbol":"ZS","unrealized":-556.0},{"cost_per_share":620.0,"opened":"2025-03-04","price":230.19,"shares":15.0,"symbol":"HUBS","unrealized":-5847.15},{"cost_per_share":205.0,"opened":"2025-07-01","price":331.48,"shares":45.0,"symbol":"SNOW","unrealized":5691.6}],"realized_total":-940.0},"positions":[{"cost":17400.0,"covered":false,"day_pct":-0.004648,"dividends":0.0,"engine":null,"kind":"etf","price":762.4,"realized":0.0,"shares":40.0,"symbol":"SPY","unrealized":13096.0,"unrealized_pct":0.752644,"value":30496.0,"weight":0.261386},{"cost":8060.0,"covered":true,"day_pct":0.071541,"dividends":0.0,"engine":{"call":"rich","residual_log":0.660165},"kind":"stock","price":225.27,"realized":0.0,"shares":80.0,"symbol":"DDOG","unrealized":9961.6,"unrealized_pct":1.235931,"value":18021.6,"weight":0.154466},{"cost":3150.0,"covered":true,"day_pct":0.1051,"dividends":0.0,"engine":{"call":"rich","residual_log":0.820362},"kind":"stock","price":314.18,"realized":360.0,"shares":50.0,"symbol":"NET","unrealized":12559.0,"unrealized_pct":3.986984,"value":15709.0,"weight":0.134644},{"cost":9225.0,"covered":true,"day_pct":-0.011982,"dividends":0.0,"engine":{"call":"rich","residual_log":0.399872},"kind":"stock","price":331.48,"realized":0.0,"shares":45.0,"symbol":"SNOW","unrealized":5691.6,"unrealized_pct":0.616976,"value":14916.6,"weight":0.127853},{"cost":5880.0,"covered":true,"day_pct":-0.008376,"dividends":133.0,"engine":{"call":"cheap","residual_log":-0.546221},"kind":"stock","price":104.18,"realized":0.0,"shares":70.0,"symbol":"DIS","unrealized":1412.6,"unrealized_pct":0.240238,"value":7292.6,"weight":0.062506},{"cost":7200.0,"covered":true,"day_pct":0.025689,"dividends":0.0,"engine":{"call":"cheap","residual_log":-0.912868},"kind":"stock","price":166.1,"realized":0.0,"shares":40.0,"symbol":"ZS","unrealized":-556.0,"unrealized_pct":-0.077222,"value":6644.0,"weight":0.056947},{"cost":8700.0,"covered":true,"day_pct":-0.01057,"dividends":0.0,"engine":{"call":"rich","residual_log":0.704417},"kind":"stock","price":207.8,"realized":0.0,"shares":30.0,"symbol":"CRWD","unrealized":-2466.0,"unrealized_pct":-0.283448,"value":6234.0,"weight":0.053433},{"cost":6750.0,"covered":true,"day_pct":0.006685,"dividends":0.0,"engine":{"call":"cheap","residual_log":-0.403109},"kind":"stock","price":358.38,"realized":-1300.0,"shares":15.0,"symbol":"MDB","unrealized":-1374.3,"unrealized_pct":-0.2036,"value":5375.7,"weight":0.046076},{"cost":9300.0,"covered":true,"day_pct":-0.042551,"dividends":0.0,"engine":{"call":"cheap","residual_log":-1.601018},"kind":"stock","price":230.19,"realized":0.0,"shares":15.0,"symbol":"HUBS","unrealized":-5847.15,"unrealized_pct":-0.628726,"value":3452.85,"weight":0.029595}]}</script>
+<script data-asset="kit.js">
 /*
  * techval dashboard chart kit: window.TV.
  *
@@ -4086,3 +6111,1051 @@
     },
   };
 })(window);
+</script>
+<script data-asset="invest.js">
+/*
+ * The investing app shell: window.IV.
+ *
+ * Reads the embedded snapshot, builds the rail and the top bar, and routes
+ * between panes by location hash. Panes register themselves on IV.panes and
+ * draw with the chart kit; the shell owns theme, motion and the helpers they
+ * share. Every node is built with TV.el or TV.svg; nothing here hands a
+ * string to the HTML parser.
+ */
+
+(function (global) {
+  "use strict";
+
+  var TV = global.TV;
+  var el = TV.el;
+  var svg = TV.svg;
+
+  var SNAPSHOT_ID = "iv-snapshot";
+  var SCHEMA = 1;
+
+  var IV = { panes: {} };
+  global.IV = IV;
+
+  /*
+   * The app opens dark unless the system asks for light; ?theme= still forces
+   * either, so a headless screenshot can pin the theme. Stamped at once so the
+   * first paint is already right.
+   */
+  function stampTheme() {
+    var match = /[?&]theme=(dark|light)(?:&|#|$)/.exec(global.location ? global.location.search : "");
+    if (match) {
+      document.documentElement.setAttribute("data-theme", match[1]);
+      return;
+    }
+    var lighter = global.matchMedia && global.matchMedia("(prefers-color-scheme: light)").matches;
+    document.documentElement.setAttribute("data-theme", lighter ? "light" : "dark");
+  }
+
+  stampTheme();
+
+  function motionAllowed() {
+    return !!(global.matchMedia && global.matchMedia("(prefers-reduced-motion: no-preference)").matches);
+  }
+
+  /* Formatting the kit does not carry: dollars. ---------------------------- */
+
+  function money(v, dp) {
+    if (typeof v !== "number" || !isFinite(v)) return "n/a";
+    var body = TV.fmt.num(Math.abs(v), typeof dp === "number" ? dp : v < 100 && v > -100 ? 2 : 0);
+    return (v < 0 ? "−$" : "$") + body;
+  }
+
+  function signedMoney(v, dp) {
+    if (typeof v !== "number" || !isFinite(v)) return "n/a";
+    if (v === 0) return "$0";
+    return (v > 0 ? "+$" : "−$") + TV.fmt.num(Math.abs(v), typeof dp === "number" ? dp : 0);
+  }
+
+  function signedPct(v, dp) {
+    if (typeof v !== "number" || !isFinite(v)) return "n/a";
+    return TV.fmt.signed(v * 100, typeof dp === "number" ? dp : 2) + "%";
+  }
+
+  IV.fmt = { money: money, signedMoney: signedMoney, signedPct: signedPct };
+
+  /* The sign class the tables use; zero and non-numbers stay plain. */
+  IV.signClass = function (v, base) {
+    var cls = TV.signedClass(v);
+    return cls ? (base ? base + " " : "") + (cls === "tv-pos" ? "iv-pos" : "iv-neg") : base || null;
+  };
+
+  /*
+   * Count up once on first draw. Under reduced motion, or on any redraw, the
+   * final text lands at once; the tween never carries meaning.
+   */
+  var counted = {};
+
+  IV.countUp = function (node, value, format, key) {
+    var done = function () {
+      node.textContent = format(value);
+    };
+    if (!motionAllowed() || (key && counted[key])) return done();
+    if (key) counted[key] = true;
+    var start = null;
+    var from = value * 0.75;
+    function step(now) {
+      if (start === null) start = now;
+      var t = Math.min(1, (now - start) / 600);
+      var eased = 1 - Math.pow(1 - t, 3);
+      node.textContent = format(from + (value - from) * eased);
+      if (t < 1) global.requestAnimationFrame(step);
+    }
+    global.requestAnimationFrame(step);
+  };
+
+  /* A dense sortable table: click a header, the rows re-order in place. ----- */
+
+  IV.sortable = function (wrap) {
+    var table = wrap.querySelector("table");
+    if (!table) return;
+    var body = table.tBodies[0];
+    var headers = Array.prototype.slice.call(table.tHead.rows[0].cells);
+    headers.forEach(function (th, index) {
+      if (!th.hasAttribute("data-sort")) return;
+      th.setAttribute("aria-sort", "none");
+      th.addEventListener("click", function () {
+        var direction = th.getAttribute("aria-sort") === "descending" ? "ascending" : "descending";
+        headers.forEach(function (other) {
+          if (other.hasAttribute("data-sort")) other.setAttribute("aria-sort", "none");
+        });
+        th.setAttribute("aria-sort", direction);
+        var rows = Array.prototype.slice.call(body.rows);
+        rows.sort(function (a, b) {
+          var x = parseFloat(a.cells[index].getAttribute("data-value"));
+          var y = parseFloat(b.cells[index].getAttribute("data-value"));
+          if (isNaN(x) && isNaN(y)) return 0;
+          if (isNaN(x)) return 1;
+          if (isNaN(y)) return -1;
+          return direction === "descending" ? y - x : x - y;
+        });
+        rows.forEach(function (row) {
+          body.appendChild(row);
+        });
+      });
+    });
+  };
+
+  /* Shared card scaffolding for the panes. ---------------------------------- */
+
+  IV.card = function (title, sub) {
+    var node = el(
+      "section",
+      { class: "iv-card" },
+      title ? el("h3", { class: "tv-figure__title" }, title) : null,
+      sub ? el("p", { class: "tv-figure__subtitle" }, sub) : null
+    );
+    return node;
+  };
+
+  IV.tile = function (label, value, sub, opts) {
+    opts = opts || {};
+    var valueNode = el("span", { class: IV.signClass(opts.signed, "iv-tile__value") || "iv-tile__value" }, value);
+    return el(
+      "div",
+      { class: "iv-tile" + (opts.feature ? " iv-tile--feature" : "") },
+      el("span", { class: "iv-tile__label" }, label),
+      valueNode,
+      sub ? el("span", { class: "iv-tile__sub" }, sub) : null
+    );
+  };
+
+  IV.note = function (text) {
+    return el("p", { class: "iv-note" }, text);
+  };
+
+  /* The destinations, in rail order. ---------------------------------------- */
+
+  var DESTINATIONS = [
+    { id: "overview", title: "Overview" },
+    { id: "holdings", title: "Holdings" },
+    { id: "performance", title: "Performance" },
+    { id: "engine", title: "Engine read" },
+    { id: "hygiene", title: "Hygiene" },
+    { id: "ideas", title: "Ideas" },
+    { id: "activity", title: "Activity" },
+  ];
+
+  var ICONS = {
+    overview: [["path", { d: "M2.5 2.5h4.6v4.6H2.5zM8.9 2.5h4.6v4.6H8.9zM2.5 8.9h4.6v4.6H2.5zM8.9 8.9h4.6v4.6H8.9z" }]],
+    holdings: [["path", { d: "M2.5 4.4h11M2.5 8h11M2.5 11.6h11" }]],
+    performance: [["path", { d: "M2.5 12.5l3.2-4.2 2.8 1.9 3.4-5.4 1.6 2.2" }]],
+    engine: [["path", { d: "M2.7 11.8a5.8 5.8 0 1 1 10.6 0" }], ["path", { d: "M8 11.8l2.6-3.4" }]],
+    hygiene: [["circle", { cx: 8, cy: 8, r: 5.6 }], ["path", { d: "M8 2.4V8l3.9 2.9" }]],
+    ideas: [["circle", { cx: 8, cy: 8, r: 5.6 }], ["circle", { cx: 8, cy: 8, r: 2 }]],
+    activity: [["circle", { cx: 8, cy: 8, r: 5.6 }], ["path", { d: "M8 4.8V8l2.4 1.7" }]],
+  };
+
+  function icon(id) {
+    var shapes = ICONS[id] || [];
+    var node = svg("svg", { viewBox: "0 0 16 16", "aria-hidden": "true", focusable: "false" });
+    shapes.forEach(function (shape) {
+      node.appendChild(svg(shape[0], shape[1]));
+    });
+    return node;
+  }
+
+  /* Boot ---------------------------------------------------------------------- */
+
+  function readSnapshot() {
+    var node = document.getElementById(SNAPSHOT_ID);
+    if (!node) return { error: "The page carries no portfolio snapshot." };
+    try {
+      var data = JSON.parse(node.textContent);
+      if (!data || typeof data !== "object") throw new Error("not an object");
+      if (!data.meta || data.meta.schema !== SCHEMA) {
+        return { error: "This page reads snapshot schema " + SCHEMA + "." };
+      }
+      return { snapshot: data };
+    } catch (err) {
+      return { error: "The snapshot could not be read: " + err.message + "." };
+    }
+  }
+
+  function currentPane() {
+    var hash = (global.location.hash || "").replace("#", "");
+    for (var i = 0; i < DESTINATIONS.length; i++) {
+      if (DESTINATIONS[i].id === hash) return hash;
+    }
+    return DESTINATIONS[0].id;
+  }
+
+  function boot() {
+    var read = readSnapshot();
+    if (read.error) {
+      document.body.appendChild(el("main", { class: "iv-shell" }, el("p", { class: "iv-note" }, read.error)));
+      return;
+    }
+    var snapshot = read.snapshot;
+    document.body.appendChild(shell(snapshot));
+    global.addEventListener("hashchange", function () {
+      draw(snapshot);
+    });
+    draw(snapshot);
+  }
+
+  var refs = {};
+
+  function shell(snapshot) {
+    var meta = snapshot.meta;
+    refs.links = {};
+    var nav = el(
+      "ul",
+      { class: "iv-nav" },
+      DESTINATIONS.map(function (d) {
+        var link = el("a", { class: "iv-nav__link", href: "#" + d.id }, icon(d.id), d.title);
+        refs.links[d.id] = link;
+        return el("li", null, link);
+      })
+    );
+    var toggle = el("button", { class: "tv-btn", type: "button" }, "Theme");
+    toggle.addEventListener("click", function () {
+      var root = document.documentElement;
+      var dark = root.getAttribute("data-theme") !== "light";
+      root.setAttribute("data-theme", dark ? "light" : "dark");
+    });
+    refs.title = el("h1", { class: "iv-topbar__title" }, "");
+    refs.pane = el("div", { class: "iv-pane" });
+    return el(
+      "div",
+      { class: "iv-shell" },
+      el(
+        "nav",
+        { class: "iv-rail", "aria-label": "Portfolio" },
+        el(
+          "div",
+          { class: "iv-brand" },
+          el("span", { class: "iv-brand__name" }, meta.name),
+          el("span", { class: "iv-brand__sub" }, "techval invest")
+        ),
+        nav,
+        el(
+          "div",
+          { class: "iv-rail__meta" },
+          el("span", null, "As of " + meta.generated),
+          el("span", null, "Prices: " + meta.price_source),
+          el("span", null, "Benchmark: " + meta.benchmark)
+        )
+      ),
+      el(
+        "main",
+        { class: "iv-main" },
+        el(
+          "header",
+          { class: "iv-topbar" },
+          refs.title,
+          el("span", { class: "iv-topbar__meta" }, "As of " + meta.generated),
+          toggle
+        ),
+        refs.pane
+      )
+    );
+  }
+
+  function draw(snapshot) {
+    var id = currentPane();
+    DESTINATIONS.forEach(function (d) {
+      if (id === d.id) refs.links[d.id].setAttribute("aria-current", "page");
+      else refs.links[d.id].removeAttribute("aria-current");
+      if (id === d.id) refs.title.textContent = d.title;
+    });
+    TV.clear(refs.pane);
+    refs.pane.classList.remove("is-entering");
+    var pane = IV.panes[id];
+    if (!pane) {
+      refs.pane.appendChild(
+        el("p", { class: "iv-note" }, "The " + id + " pane is not on this build of the page.")
+      );
+      return;
+    }
+    pane.render(refs.pane, snapshot);
+    if (motionAllowed()) {
+      /* Force a style flush so re-adding the class replays the entrance. */
+      void refs.pane.offsetWidth;
+      refs.pane.classList.add("is-entering");
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})(window);
+</script>
+<script data-asset="panes/activity.js">
+/*
+ * Activity: the ledger itself, newest first. The page never edits it; the
+ * file is the record and this pane is the receipt.
+ */
+
+(function (global) {
+  "use strict";
+
+  var TV = global.TV;
+  var IV = global.IV;
+  var el = TV.el;
+
+  var LABELS = {
+    buy: "Buy",
+    sell: "Sell",
+    deposit: "Deposit",
+    withdraw: "Withdraw",
+    dividend: "Dividend",
+    split: "Split",
+  };
+
+  function amount(row) {
+    if (row.type === "buy" || row.type === "sell") {
+      var total = row.shares * row.price;
+      return (row.type === "buy" ? "−" : "+") + IV.fmt.money(total, 0);
+    }
+    if (row.type === "deposit") return "+" + IV.fmt.money(row.amount, 0);
+    if (row.type === "withdraw") return "−" + IV.fmt.money(row.amount, 0);
+    if (row.type === "dividend") return "+" + IV.fmt.money(row.amount, 2);
+    if (row.type === "split") return TV.fmt.num(row.ratio, 0) + ":1";
+    return "";
+  }
+
+  function detail(row) {
+    if (row.type === "buy" || row.type === "sell") {
+      return TV.fmt.num(row.shares, Number.isInteger(row.shares) ? 0 : 4) + " sh at " + IV.fmt.money(row.price, 2);
+    }
+    if (row.type === "split") return "share count times " + TV.fmt.num(row.ratio, 0);
+    return "";
+  }
+
+  function render(host, snapshot) {
+    var rows = snapshot.activity;
+    var card = IV.card("The ledger", rows.length + " transactions, newest first. Edit portfolio.yaml to change the record.");
+    var table = el(
+      "table",
+      { class: "tv-table" },
+      el("caption", { class: "tv-visually-hidden" }, "Transactions"),
+      el(
+        "thead",
+        null,
+        el(
+          "tr",
+          null,
+          ["Date", "Type", "Symbol", "Detail", "Amount"].map(function (label, i) {
+            return el("th", { scope: "col", class: i === 4 ? "tv-num" : null }, label);
+          })
+        )
+      ),
+      el(
+        "tbody",
+        null,
+        rows.map(function (row) {
+          var flow = row.type === "buy" ? -1 : row.type === "withdraw" ? -1 : row.type === "split" ? 0 : 1;
+          return el(
+            "tr",
+            null,
+            el("th", { scope: "row" }, row.date),
+            el("td", null, LABELS[row.type] || row.type),
+            el("td", { style: { fontWeight: "650" } }, row.symbol || ""),
+            el("td", { class: "tv-muted" }, detail(row)),
+            el("td", { class: (flow > 0 ? "iv-pos " : flow < 0 ? "iv-neg " : "") + "tv-num" }, amount(row))
+          );
+        })
+      )
+    );
+    card.appendChild(el("div", { class: "tv-table-wrap", tabindex: "0", role: "region", "aria-label": "Transactions" }, table));
+    host.appendChild(card);
+  }
+
+  IV.panes.activity = { title: "Activity", render: render };
+})(window);
+</script>
+<script data-asset="panes/engine.js">
+/*
+ * Engine read: what the models say about each holding, one card per name.
+ * Every figure carries the verdict its model earned, and a name the engine
+ * cannot value gets its refusals as footnotes, never a blank.
+ */
+
+(function (global) {
+  "use strict";
+
+  var TV = global.TV;
+  var IV = global.IV;
+  var el = TV.el;
+
+  function stat(label, value, sub, signed) {
+    return el(
+      "div",
+      { class: "iv-hero" },
+      el("span", { class: "iv-tile__label" }, label),
+      el("span", { class: IV.signClass(signed, "iv-tile__value") || "iv-tile__value" }, value),
+      sub ? el("span", { class: "iv-tile__sub" }, sub) : null
+    );
+  }
+
+  function verticalLabel(read) {
+    return read.sub_vertical ? read.sub_vertical.replace(/_/g, " ") : "outside TMT";
+  }
+
+  function symbolCard(host, read) {
+    var fig = TV.figure(host, {
+      title: read.symbol + ", " + verticalLabel(read),
+      id: "iv-engine-" + read.symbol,
+      wide: true,
+    });
+
+    if (read.warranted) {
+      /* The line chart owns fig.legend, so the call sits in the figure's head. */
+      fig.root.firstChild.appendChild(
+        el(
+          "div",
+          { style: { marginTop: "6px" } },
+          TV.chip(read.warranted.call, read.warranted.call + " by " + TV.fmt.pct(Math.abs(read.warranted.residual_log), 0) + " in log points")
+        )
+      );
+    }
+
+    var stats = el("div", { class: "iv-tiles" });
+    if (read.dcf) {
+      stats.appendChild(
+        stat("Engine DCF", IV.fmt.money(read.dcf.per_share, 2), "per share, WACC " + TV.fmt.pct(read.dcf.wacc, 1))
+      );
+      stats.appendChild(stat("Market price", IV.fmt.money(read.dcf.price, 2), "at the snapshot's close"));
+      stats.appendChild(
+        stat("DCF against price", IV.fmt.signedPct(read.dcf.gap_pct, 1), "the engine's base case, not a target", read.dcf.gap_pct)
+      );
+    }
+    if (read.warranted) {
+      stats.appendChild(
+        stat("Traded EV/Revenue", TV.fmt.mult(read.warranted.traded), "on " + read.warranted.as_of)
+      );
+      stats.appendChild(
+        stat("Warranted EV/Revenue", TV.fmt.mult(read.warranted.warranted), "fitted from fundamentals, out of sample")
+      );
+      stats.appendChild(
+        stat("Residual", TV.fmt.signed(read.warranted.z, 1) + " sd", "within-date z of the log residual", -read.warranted.z)
+      );
+    }
+    if (stats.firstChild) fig.body.appendChild(stats);
+
+    if (read.fade) {
+      var years = read.fade.years;
+      fig.body.appendChild(
+        el(
+          "div",
+          { class: "iv-note", style: { marginTop: "12px", fontWeight: "500" } },
+          "Revenue growth path: fitted against the engine's straight line, trailing " +
+            (read.fade.trailing === null ? "n/a" : TV.fmt.pct(read.fade.trailing, 1))
+        )
+      );
+      TV.charts.line(fig.body, {
+        format: "pct:0",
+        x: { label: "Year" },
+        series: [
+          {
+            name: "Fitted fade",
+            role: "model",
+            values: years.map(function (y, i) {
+              return { x: y, y: read.fade.fitted[i], lo: read.fade.lower[i], hi: read.fade.upper[i] };
+            }),
+          },
+          {
+            name: "Typed straight line",
+            role: "baseline",
+            values: years.map(function (y, i) {
+              return { x: y, y: read.fade.assumed[i] };
+            }),
+          },
+        ],
+      });
+      fig.body.appendChild(
+        IV.note(
+          "Years " + read.fade.basis.filter(function (b) { return b === "fitted"; }).length +
+            " and earlier are fitted; the rest fall back to the typed line. " + read.fade.verdict
+        )
+      );
+    }
+    if (read.warranted) {
+      fig.body.appendChild(IV.note(read.warranted.verdict));
+    }
+    (read.refusals || []).forEach(function (refusal) {
+      fig.addNote(refusal);
+    });
+  }
+
+  function render(host, snapshot) {
+    var reads = Object.keys(snapshot.engine).map(function (k) {
+      return snapshot.engine[k];
+    });
+    var covered = reads.filter(function (r) {
+      return r.covered;
+    });
+    var uncovered = reads.filter(function (r) {
+      return !r.covered;
+    });
+
+    host.appendChild(
+      el(
+        "div",
+        { class: "iv-banner" },
+        "Nothing here is advice. Each figure sits beside the baseline its model was scored against, " +
+          "and the one signal tested on forward returns lost; the Ideas pane carries that verdict in full."
+      )
+    );
+
+    covered
+      .sort(function (a, b) {
+        return a.symbol < b.symbol ? -1 : 1;
+      })
+      .forEach(function (read) {
+        symbolCard(host, read);
+      });
+
+    if (uncovered.length) {
+      var fig = TV.figure(host, {
+        title: "Priced, never valued",
+        subtitle: "What the engine will not pretend to value from filings",
+        id: "iv-engine-uncovered",
+      });
+      uncovered.forEach(function (read) {
+        (read.refusals || []).forEach(function (refusal) {
+          fig.addNote(refusal);
+        });
+      });
+    }
+  }
+
+  IV.panes.engine = { title: "Engine read", render: render };
+})(window);
+</script>
+<script data-asset="panes/holdings.js">
+/*
+ * Holdings: the dense sortable book. Click a numeric header to sort; signed
+ * cells wear sign colours; the engine's call sits beside each covered name as
+ * a chip and the uncovered say what they are instead.
+ */
+
+(function (global) {
+  "use strict";
+
+  var TV = global.TV;
+  var IV = global.IV;
+  var el = TV.el;
+
+  var COLUMNS = [
+    { key: "symbol", label: "Position" },
+    { key: "shares", label: "Shares", num: true },
+    { key: "price", label: "Price", num: true },
+    { key: "day_pct", label: "Day", num: true, signed: true },
+    { key: "value", label: "Value", num: true },
+    { key: "weight", label: "Weight", num: true },
+    { key: "cost", label: "Cost", num: true },
+    { key: "unrealized", label: "Unreal $", num: true, signed: true },
+    { key: "unrealized_pct", label: "Unreal %", num: true, signed: true },
+    { key: "realized", label: "Realized", num: true, signed: true },
+    { key: "engine", label: "Engine" },
+  ];
+
+  function cellText(row, column) {
+    var v = row[column.key];
+    switch (column.key) {
+      case "shares":
+        return TV.fmt.num(v, Number.isInteger(v) ? 0 : 4);
+      case "price":
+        return IV.fmt.money(v, 2);
+      case "day_pct":
+        return IV.fmt.signedPct(v);
+      case "value":
+      case "cost":
+        return IV.fmt.money(v, 0);
+      case "weight":
+        return TV.fmt.pct(v, 1);
+      case "unrealized":
+      case "realized":
+        return IV.fmt.signedMoney(v);
+      case "unrealized_pct":
+        return v === null ? "n/a" : IV.fmt.signedPct(v, 1);
+      default:
+        return v === null || v === undefined ? "" : String(v);
+    }
+  }
+
+  function engineCell(row) {
+    if (row.engine) {
+      return TV.chip(row.engine.call, row.engine.call + " " + TV.fmt.pct(Math.abs(row.engine.residual_log), 0), { compact: true });
+    }
+    return el("span", { class: "tv-muted" }, row.kind === "stock" ? "no model" : row.kind);
+  }
+
+  function render(host, snapshot) {
+    var rows = snapshot.positions;
+    var over = snapshot.overview;
+
+    var head = el(
+      "tr",
+      null,
+      COLUMNS.map(function (c) {
+        var attrs = { scope: "col", class: c.num ? "tv-num" : null };
+        if (c.num) attrs["data-sort"] = "";
+        return el("th", attrs, c.label);
+      })
+    );
+
+    var body = el(
+      "tbody",
+      null,
+      rows.map(function (row) {
+        return el(
+          "tr",
+          null,
+          COLUMNS.map(function (c, i) {
+            var cls = c.num ? "tv-num" : null;
+            if (c.signed) cls = IV.signClass(row[c.key], cls) || cls;
+            var content = c.key === "engine" ? engineCell(row) : cellText(row, c);
+            if (c.key === "symbol") {
+              content = [el("span", { style: { fontWeight: "650" } }, row.symbol), el("span", { class: "tv-muted" }, " " + row.kind)];
+            }
+            var attrs = { class: cls };
+            if (c.num) attrs["data-value"] = typeof row[c.key] === "number" ? String(row[c.key]) : "";
+            return i === 0 ? el("th", Object.assign({ scope: "row" }, attrs), content) : el("td", attrs, content);
+          })
+        );
+      })
+    );
+
+    var table = el(
+      "table",
+      { class: "tv-table" },
+      el("caption", { class: "tv-visually-hidden" }, "Holdings"),
+      el("thead", null, head),
+      body
+    );
+    var wrap = el("div", { class: "tv-table-wrap iv-book", tabindex: "0", role: "region", "aria-label": "Holdings, sortable table" }, table);
+    IV.sortable(wrap);
+
+    var card = IV.card(
+      "The book",
+      rows.length + " positions and " + IV.fmt.money(over.cash, 0) + " cash. Click a numeric header to sort."
+    );
+    card.appendChild(wrap);
+    card.appendChild(
+      IV.note(
+        "Cheap and rich are the warranted-multiple residual at " +
+          "the recorded panel's latest date, and carry that model's verdict on the engine pane. " +
+          "ETFs and crypto are priced and weighed, never valued from filings."
+      )
+    );
+    host.appendChild(card);
+  }
+
+  IV.panes.holdings = { title: "Holdings", render: render };
+})(window);
+</script>
+<script data-asset="panes/hygiene.js">
+/*
+ * Hygiene: concentration, exposure, drift and coverage. Arithmetic on the
+ * owner's own book and targets; the only judgement is the honest bucketing.
+ */
+
+(function (global) {
+  "use strict";
+
+  var TV = global.TV;
+  var IV = global.IV;
+  var el = TV.el;
+
+  function render(host, snapshot) {
+    var hygiene = snapshot.hygiene;
+
+    host.appendChild(
+      el(
+        "div",
+        { class: "iv-tiles" },
+        IV.tile("Top five weight", TV.fmt.pct(hygiene.top5_share, 0), "of the whole book, cash included"),
+        IV.tile("Engine coverage", TV.fmt.pct(hygiene.coverage.covered_value_share, 0), hygiene.coverage.covered_positions + " of " + hygiene.coverage.positions + " positions valued", { feature: true }),
+        IV.tile("Buckets held", String(Object.keys(hygiene.exposure).length), "sub-verticals, funds, crypto, cash")
+      )
+    );
+
+    var weights = TV.figure(host, {
+      title: "Where the money sits",
+      subtitle: "Every position and cash, largest first",
+      id: "iv-weights",
+    });
+    TV.charts.hbar(weights.body, {
+      format: "pct:1",
+      legend: false,
+      rows: snapshot.hygiene.weights.map(function (w) {
+        return {
+          label: w.symbol,
+          value: w.weight,
+          role: w.kind === "cash" ? "total" : w.kind === "stock" ? "model" : "alt",
+          note: IV.fmt.money(w.value, 0) + " as " + w.kind,
+        };
+      }),
+    });
+
+    var exposure = TV.figure(host, {
+      title: "Exposure by bucket",
+      subtitle: "TMT names take the engine's own sub-verticals; the rest say what they are",
+      id: "iv-exposure",
+    });
+    var buckets = Object.keys(hygiene.exposure).sort(function (a, b) {
+      return hygiene.exposure[b] - hygiene.exposure[a];
+    });
+    TV.charts.hbar(exposure.body, {
+      format: "pct:1",
+      legend: false,
+      rows: buckets.map(function (bucket) {
+        return { label: bucket, value: hygiene.exposure[bucket], role: "model" };
+      }),
+    });
+
+    if (hygiene.drift.length) {
+      var drift = TV.figure(host, {
+        title: "Drift against your own targets",
+        subtitle: "Weight held less weight targeted, in points; the targets are yours, not the engine's",
+        id: "iv-drift",
+      });
+      TV.charts.hbar(drift.body, {
+        format: "points",
+        legend: false,
+        rows: hygiene.drift.map(function (g) {
+          return {
+            label: g.symbol,
+            value: g.gap,
+            role: g.gap >= 0 ? "pos" : "neg",
+            note: TV.fmt.pct(g.weight, 1) + " held against " + TV.fmt.pct(g.target, 1) + " targeted",
+          };
+        }),
+      });
+      drift.body.appendChild(
+        IV.note("A positive bar is overweight. The arithmetic to close a gap is a trade only you can decide to make.")
+      );
+    }
+  }
+
+  IV.panes.hygiene = { title: "Hygiene", render: render };
+})(window);
+</script>
+<script data-asset="panes/ideas.js">
+/*
+ * Ideas: the screen's cheap and rich, and the first thing on the pane is the
+ * measured fact that this signal lost. The tables are a description of today,
+ * not a forecast, and the pane never shows a name the book already holds.
+ */
+
+(function (global) {
+  "use strict";
+
+  var TV = global.TV;
+  var IV = global.IV;
+  var el = TV.el;
+
+  function table(host, title, rows, call) {
+    var fig = TV.figure(host, {
+      title: title,
+      subtitle: "Against the warranted line on " + rows.as_of + ", holdings excluded, sorted by within-date z",
+      id: "iv-ideas-" + call,
+    });
+    TV.tableView(fig, {
+      caption: title,
+      columns: [
+        { key: "ticker", label: "Ticker" },
+        { key: "sub_vertical", label: "Sub-vertical" },
+        { key: "traded", label: "Traded", align: "right", format: "mult:1" },
+        { key: "warranted", label: "Warranted", align: "right", format: "mult:1" },
+        { key: "residual_log", label: "Residual, log", align: "right", format: "signed:2" },
+        { key: "z", label: "z", align: "right", format: "signed:1" },
+        { key: "call", label: "Call" },
+      ],
+      rows: rows.list.map(function (idea) {
+        return {
+          ticker: idea.ticker,
+          sub_vertical: (idea.sub_vertical || "").replace(/_/g, " "),
+          traded: idea.traded,
+          warranted: idea.warranted,
+          residual_log: idea.residual_log,
+          z: idea.z,
+          call: { chip: call, chipText: call },
+        };
+      }),
+    });
+    if (fig.table) fig.table.hidden = false;
+    if (fig.toggle) fig.toggle.hidden = true;
+  }
+
+  function render(host, snapshot) {
+    var ideas = snapshot.ideas;
+    host.appendChild(el("div", { class: "iv-banner" }, ideas.verdict));
+    table(host, "Cheapest to the warranted line", { list: ideas.cheap, as_of: ideas.as_of }, "cheap");
+    table(host, "Richest to the warranted line", { list: ideas.rich, as_of: ideas.as_of }, "rich");
+    host.appendChild(
+      IV.note(
+        "The residual describes where a name sits against its fundamentals, out of sample, on the recorded panel's " +
+          "latest date. The panel predates the debt-ladder fix, and the results dashboard's warranted section carries " +
+          "that audit in full."
+      )
+    );
+  }
+
+  IV.panes.ideas = { title: "Ideas", render: render };
+})(window);
+</script>
+<script data-asset="panes/overview.js">
+/*
+ * Overview: the hero number, growth against the benchmark, and the tiles.
+ * Reads overview, performance and hygiene; computes nothing itself.
+ */
+
+(function (global) {
+  "use strict";
+
+  var TV = global.TV;
+  var IV = global.IV;
+  var el = TV.el;
+
+  function render(host, snapshot) {
+    var over = snapshot.overview;
+    var perf = snapshot.performance;
+
+    /* The hero card: total value, today, and since the first deposit. */
+    var value = el("div", { class: "iv-hero__value" }, "");
+    IV.countUp(value, over.value, function (v) {
+      return IV.fmt.money(v, 0);
+    }, "hero");
+    var dayClass = IV.signClass(over.day_abs) || "";
+    var sinceClass = IV.signClass(over.twr_pct) || "";
+    var hero = el(
+      "section",
+      { class: "iv-card" },
+      el(
+        "div",
+        { class: "iv-hero" },
+        el("span", { class: "iv-hero__label" }, "Total value"),
+        value,
+        el(
+          "div",
+          { class: "iv-hero__delta" },
+          el("span", { class: dayClass }, IV.fmt.signedMoney(over.day_abs) + " (" + IV.fmt.signedPct(over.day_pct) + ") today"),
+          el("span", { class: sinceClass }, IV.fmt.signedPct(over.twr_pct) + " time-weighted since " + snapshot.meta.first_date),
+          el("span", null, IV.fmt.money(over.cash, 0) + " cash")
+        )
+      )
+    );
+
+    /* The tile row. Coverage is the featured tile: it is the honest one. */
+    var vs = over.twr_pct - over.benchmark_twr_pct;
+    var tiles = el(
+      "div",
+      { class: "iv-tiles" },
+      IV.tile("Today", IV.fmt.signedPct(over.day_pct), IV.fmt.signedMoney(over.day_abs), { signed: over.day_pct }),
+      IV.tile("vs " + snapshot.meta.benchmark, TV.fmt.points(vs, 1), "time-weighted, since inception", { signed: vs }),
+      IV.tile("Top 5 weight", TV.fmt.pct(over.top5_share, 0), over.n_positions + " positions and cash"),
+      IV.tile(
+        "Engine coverage",
+        TV.fmt.pct(over.covered_value_share, 0),
+        over.cheap + " cheap · " + over.rich + " rich · " + over.uncovered + " unvalued",
+        { feature: true }
+      )
+    );
+
+    /* Growth of one dollar against the benchmark, the kit's own line chart. */
+    var fig = TV.figure(host, {
+      title: "Growth of $1 against " + perf.benchmark,
+      subtitle:
+        "Time-weighted, so deposits and withdrawals move neither line. " +
+        "Both start at the first transaction, " + snapshot.meta.first_date + ".",
+      id: "iv-growth",
+    });
+    TV.charts.line(fig.body, {
+      x: { type: "date", label: "Date" },
+      format: "num:2",
+      series: [
+        {
+          name: snapshot.meta.name,
+          role: "model",
+          values: perf.dates.map(function (d, i) {
+            return { x: d, y: perf.growth[i] };
+          }),
+        },
+        {
+          name: perf.benchmark,
+          role: "baseline",
+          values: perf.dates.map(function (d, i) {
+            return { x: d, y: perf.benchmark_growth[i] };
+          }),
+        },
+      ],
+    });
+
+    /* Movers: the day's largest absolute moves. */
+    var movers = IV.card("Today's movers", "The three largest moves in dollars");
+    over.movers.forEach(function (m) {
+      movers.appendChild(
+        el(
+          "div",
+          { class: "iv-hero__delta" },
+          el("span", { style: { minWidth: "56px", fontWeight: "650" } }, m.symbol),
+          el("span", { class: IV.signClass(m.day_abs) }, IV.fmt.signedMoney(m.day_abs)),
+          el("span", { class: IV.signClass(m.day_pct) }, IV.fmt.signedPct(m.day_pct))
+        )
+      );
+    });
+
+    host.appendChild(hero);
+    host.appendChild(tiles);
+    /* fig is already on host; move it after the tiles. */
+    host.appendChild(fig.root);
+    host.appendChild(movers);
+  }
+
+  IV.panes.overview = { title: "Overview", render: render };
+})(window);
+</script>
+<script data-asset="panes/performance.js">
+/*
+ * Performance: what the money did and which positions did it. Contribution is
+ * dollars, not percentages, because dollars are what compound; the lot table
+ * is the cost basis a tax return would want.
+ */
+
+(function (global) {
+  "use strict";
+
+  var TV = global.TV;
+  var IV = global.IV;
+  var el = TV.el;
+
+  function render(host, snapshot) {
+    var perf = snapshot.performance;
+    var over = snapshot.overview;
+
+    var vs = over.twr_pct - over.benchmark_twr_pct;
+    host.appendChild(
+      el(
+        "div",
+        { class: "iv-tiles" },
+        IV.tile("Time-weighted return", IV.fmt.signedPct(over.twr_pct, 1), "since " + snapshot.meta.first_date, { signed: over.twr_pct }),
+        IV.tile(perf.benchmark + " over the same days", IV.fmt.signedPct(over.benchmark_twr_pct, 1), "same calendar, same flows stripped", { signed: over.benchmark_twr_pct }),
+        IV.tile("Gap", TV.fmt.points(vs, 1), "portfolio less " + perf.benchmark, { signed: vs }),
+        IV.tile("Realized", IV.fmt.signedMoney(perf.realized_total), "closed lots, FIFO basis", { signed: perf.realized_total }),
+        IV.tile("Dividends", IV.fmt.money(perf.dividends_total, 0), "received to cash")
+      )
+    );
+
+    /* Contribution by position, dollars, positive right and negative left. */
+    var fig = TV.figure(host, {
+      title: "What each position added, in dollars",
+      subtitle: "Unrealized on FIFO cost, plus realized, plus dividends. The order is the answer.",
+      id: "iv-contribution",
+    });
+    TV.charts.hbar(fig.body, {
+      format: "compact",
+      legend: false,
+      rows: perf.contributions.map(function (c) {
+        return {
+          label: c.symbol,
+          value: c.total,
+          role: c.total >= 0 ? "pos" : "neg",
+          note: IV.fmt.signedMoney(c.unrealized) + " unrealized, " + IV.fmt.signedMoney(c.realized) + " realized, " + IV.fmt.signedMoney(c.dividends) + " dividends",
+        };
+      }),
+      table: {
+        caption: "Contribution by position",
+        columns: [
+          { key: "symbol", label: "Position" },
+          { key: "unrealized", label: "Unrealized", align: "right", format: "signed:0" },
+          { key: "realized", label: "Realized", align: "right", format: "signed:0" },
+          { key: "dividends", label: "Dividends", align: "right", format: "signed:0" },
+          { key: "total", label: "Total", align: "right", format: "signed:0" },
+        ],
+        rows: perf.contributions,
+      },
+    });
+
+    /* The lots, oldest first, each against today's price. */
+    var lots = IV.card("Open lots", perf.lots.length + " lots, FIFO. Split-adjusted where a split arrived.");
+    var table = el(
+      "table",
+      { class: "tv-table" },
+      el("caption", { class: "tv-visually-hidden" }, "Open lots"),
+      el(
+        "thead",
+        null,
+        el(
+          "tr",
+          null,
+          ["Position", "Opened", "Shares", "Cost/share", "Price", "Unrealized"].map(function (label, i) {
+            return el("th", { scope: "col", class: i >= 2 ? "tv-num" : null }, label);
+          })
+        )
+      ),
+      el(
+        "tbody",
+        null,
+        perf.lots.map(function (lot) {
+          return el(
+            "tr",
+            null,
+            el("th", { scope: "row", style: { fontWeight: "650" } }, lot.symbol),
+            el("td", null, lot.opened),
+            el("td", { class: "tv-num" }, TV.fmt.num(lot.shares, Number.isInteger(lot.shares) ? 0 : 4)),
+            el("td", { class: "tv-num" }, IV.fmt.money(lot.cost_per_share, 2)),
+            el("td", { class: "tv-num" }, IV.fmt.money(lot.price, 2)),
+            el("td", { class: IV.signClass(lot.unrealized, "tv-num") || "tv-num" }, IV.fmt.signedMoney(lot.unrealized))
+          );
+        })
+      )
+    );
+    lots.appendChild(el("div", { class: "tv-table-wrap", tabindex: "0", role: "region", "aria-label": "Open lots" }, table));
+    host.appendChild(lots);
+  }
+
+  IV.panes.performance = { title: "Performance", render: render };
+})(window);
+</script>
+</body>
+</html>
