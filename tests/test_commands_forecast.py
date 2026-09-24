@@ -179,10 +179,10 @@ def test_the_fade_command_values_the_assumed_path_and_the_fitted_one_side_by_sid
     are a claim about Datadog in dollars a share, and they are the ones an analyst
     can argue with. The typed fade takes growth from 20% to 5% in a straight line
     and values the enterprise at 9,447mm, 36.65 a share. The fitted fade holds
-    growth near 20% for three years and values it at 10,901mm, 40.61. The 10th and
-    90th percentile paths value the same company at 26.97 and 66.69.
+    growth near 20% for three years and values it at 10,709mm, 40.09. The 10th and
+    90th percentile paths value the same company at 27.07 and 65.66.
 
-    All four have to be on the page. Printing 40.61 beside 36.65 without the band
+    All four have to be on the page. Printing 40.09 beside 36.65 without the band
     invites the reader to treat the middle of a forty point interval as a forecast.
     """
     text = flat(fade_output)
@@ -190,19 +190,19 @@ def test_the_fade_command_values_the_assumed_path_and_the_fitted_one_side_by_sid
     assert "Fitted fade" in text
     assert "Fitted, low band" in text
     assert "Fitted, high band" in text
-    for shown in ("36.65", "40.61", "26.97", "66.69"):
+    for shown in ("36.65", "40.09", "27.07", "65.66"):
         assert shown in text, shown
-    assert "9,447" in text and "10,901" in text
+    assert "9,447" in text and "10,709" in text
 
 
 def test_the_band_is_printed_year_by_year_and_not_only_the_point_estimate(fade_output):
     """The honest output here is a range, so every fitted year carries its ends."""
     text = flat(fade_output)
     assert "Low" in text and "High" in text
-    # The out-of-fold residual band at one year runs about minus twenty points to
-    # plus twenty four around the estimate, so the first fitted year lands near 1%
-    # at the low end and 45% at the high end on a 21% point estimate.
-    assert "21.3%" in text and "1.0%" in text and "45.3%" in text
+    # The out-of-fold residual band at one year runs about eighteen points below
+    # the estimate to twenty-three above it, so the first fitted year lands near 3%
+    # at the low end and 44% at the high end on a 21% point estimate.
+    assert "21.1%" in text and "3.2%" in text and "43.6%" in text
 
 
 def test_every_year_says_whether_it_was_fitted_or_assumed(fade_output):
@@ -222,18 +222,18 @@ def test_every_year_says_whether_it_was_fitted_or_assumed(fade_output):
 def test_the_baseline_is_printed_beside_the_model_at_every_horizon(fade_output):
     """Persistence is a hard baseline and the tie at one year is the honest headline.
 
-    "Next year's growth equals this year's growth" scores 0.1510 and the ridge
-    scores 0.1474, a lift of 0.0035 against a fold standard deviation of 0.0242.
+    "Next year's growth equals this year's growth" scores 0.1459 and the ridge
+    scores 0.1382, a lift of 0.0076 against a fold standard deviation of 0.0245.
     At one year this model does not beat doing nothing. At two and three it does,
-    0.1476 against 0.1884 and 0.1391 against 0.1921, and both of those are outside
+    0.1469 against 0.1862 and 0.1356 against 0.1885, and both of those are outside
     the fold noise.
     """
     text = flat(fade_output)
     for horizon in ("1 year", "2 year", "3 year"):
         assert horizon in text, horizon
-    assert "0.1474" in text and "0.1510" in text
-    assert "0.1476" in text and "0.1884" in text
-    assert "0.1391" in text and "0.1921" in text
+    assert "0.1382" in text and "0.1459" in text
+    assert "0.1469" in text and "0.1862" in text
+    assert "0.1356" in text and "0.1885" in text
     assert "ties it" in text and "beats it" in text
     assert "inside the fold-to-fold noise" in text
 
@@ -245,9 +245,9 @@ def test_all_three_baselines_are_shown_not_only_the_one_the_card_scores_against(
 
     The model card scores against persistence, which is the hardest baseline at one
     year. It is not the hardest baseline at two or three: there the mean of the
-    company's own sub-vertical scores 0.1578 and 0.1441 against the model's 0.1476
-    and 0.1391, lifts of 0.0102 and 0.0050 against fold standard deviations of
-    0.0162 and 0.0176. So the lift over the STRONGEST baseline is inside the fold
+    company's own sub-vertical scores 0.1540 and 0.1414 against the model's 0.1469
+    and 0.1356, lifts of 0.0071 and 0.0058 against fold standard deviations of
+    0.0197 and 0.0240. So the lift over the STRONGEST baseline is inside the fold
     noise at every horizon, even where the lift over persistence is not, and a
     reader who saw only the persistence column would take this curve for something
     it is not.
@@ -259,7 +259,7 @@ def test_all_three_baselines_are_shown_not_only_the_one_the_card_scores_against(
     """
     text = flat(fade_output)
     assert "Training mean" in text and "Sub-vertical" in text
-    assert "0.1693" in text and "0.1578" in text and "0.1441" in text
+    assert "0.1617" in text and "0.1540" in text and "0.1414" in text
     assert "Best baseline" in text
     # Persistence wins the comparison only at one year; the sub-vertical mean is
     # the baseline to beat at two and three. The line is computed from the table
@@ -276,8 +276,8 @@ def test_the_fitted_fade_is_shown_against_the_sub_verticals_typical_fade(fade_ou
 
     A fitted first year of 21% means one thing for a filer whose sub-vertical
     typically prints 17% and another for one whose sub-vertical typically prints
-    28%. Datadog is faded 6.4 points where the average infrastructure software
-    filer in this panel fades 4.2, which is close enough that the model is not
+    28%. Datadog is faded 6.6 points where the average infrastructure software
+    filer in this panel fades 4.4, which is close enough that the model is not
     claiming anything special about it, and the command says so rather than leaving
     the reader to guess.
     """
@@ -301,8 +301,8 @@ def test_survivorship_is_stated_with_its_direction_on_every_run(fade_output):
     assert "Survivorship" in text
     assert "fades TOO SLOWLY" in text
     assert "TOO HIGH" in text and "TOO LARGE" in text
-    assert "+0.78%" in text  # the measured one-year gap between panel and survivors
-    assert "9.8%" in text and "15.8%" in text
+    assert "+0.74%" in text  # the measured one-year gap between panel and survivors
+    assert "9.9%" in text and "15.6%" in text
 
 
 @pytest.fixture(scope="module")

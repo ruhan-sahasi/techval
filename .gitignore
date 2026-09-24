@@ -12,3 +12,5 @@ out/*
 !out/DDOG_football.png
 .venv.nosync/
 .claude/
+.superpowers/
+/portfolio/
