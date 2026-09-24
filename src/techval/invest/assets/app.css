@@ -1,0 +1,417 @@
+/*
+ * The investing app shell: a left rail, a sticky top bar, and panes of cards.
+ *
+ * Chart figures, tables, tooltips and chips are the dashboard components,
+ * styled in the inlined layout.css; this file only sets the shell around them
+ * and the pieces the results page does not have: the rail, the hero, the tile
+ * row, the sortable book. Every colour comes through tokens, and the only
+ * signed colours are gains and losses.
+ */
+
+body {
+  background: var(--page);
+  color: var(--ink-1);
+}
+
+.iv-shell {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  gap: var(--space-6);
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-5) var(--space-8);
+}
+
+/* The rail ---------------------------------------------------------------- */
+
+.iv-rail {
+  position: sticky;
+  top: var(--space-5);
+  align-self: start;
+  display: grid;
+  gap: var(--space-5);
+}
+
+.iv-brand {
+  display: grid;
+  gap: 1px;
+  padding: 2px var(--space-2) 0;
+}
+
+.iv-brand__name {
+  font-family: var(--font-serif);
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.iv-brand__sub {
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+
+.iv-nav {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.iv-nav__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--ink-2);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.iv-nav__link svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+
+.iv-nav__link:hover {
+  background: var(--wash);
+  color: var(--ink-1);
+}
+
+.iv-nav__link[aria-current="page"] {
+  background: var(--wash-strong);
+  color: var(--ink-1);
+  box-shadow: inset 2px 0 0 var(--focus);
+}
+
+.iv-rail__meta {
+  display: grid;
+  gap: 2px;
+  padding: 0 var(--space-3);
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+}
+
+/* The top bar -------------------------------------------------------------- */
+
+.iv-main {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+  align-content: start;
+}
+
+.iv-topbar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.iv-topbar__title {
+  font-size: 21px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+}
+
+.iv-topbar__meta {
+  color: var(--ink-3);
+  font-size: var(--fs-small);
+}
+
+.iv-topbar .tv-btn {
+  margin-left: auto;
+}
+
+/* Panes and cards ----------------------------------------------------------- */
+
+.iv-pane {
+  display: grid;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.iv-card {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.iv-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+
+/* The hero ------------------------------------------------------------------ */
+
+.iv-hero {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.iv-hero__label {
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+
+.iv-hero__value {
+  font-size: 42px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.iv-hero__delta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px var(--space-3);
+  font-size: var(--fs-small);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.iv-pos {
+  color: var(--text-good);
+}
+
+.iv-neg {
+  color: var(--text-critical);
+}
+
+/* Tiles ---------------------------------------------------------------------- */
+
+.iv-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: var(--space-3);
+}
+
+.iv-tile {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.iv-tile__label {
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+}
+
+.iv-tile__value {
+  font-size: 22px;
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.iv-tile__sub {
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  line-height: 1.45;
+}
+
+/* One featured tile carries a slow teal drift; everything else stays still. */
+.iv-tile--feature {
+  border-color: var(--focus);
+  background-image: linear-gradient(120deg, var(--wash-strong), var(--wash), var(--wash-strong));
+  background-size: 220% 100%;
+}
+
+/* The book: a dense sortable table ------------------------------------------- */
+
+.iv-book th[aria-sort] {
+  cursor: pointer;
+  user-select: none;
+}
+
+.iv-book th[aria-sort]:hover {
+  color: var(--ink-1);
+}
+
+.iv-book th[aria-sort="ascending"]::after {
+  content: " \2191";
+}
+
+.iv-book th[aria-sort="descending"]::after {
+  content: " \2193";
+}
+
+.iv-book .tv-table td {
+  white-space: nowrap;
+}
+
+.iv-group {
+  color: var(--ink-3);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caps);
+  padding-top: var(--space-3);
+}
+
+/* Figures keep the kit's chrome but drop the document's exhibit numbering. */
+.iv-pane .tv-figure > .tv-figure__head > .tv-figure__title::before {
+  content: none;
+}
+
+/* Notes and refusals reuse the page's own vocabulary. */
+.iv-note {
+  color: var(--ink-2);
+  font-size: var(--fs-small);
+  max-width: 88ch;
+}
+
+.iv-banner {
+  padding: var(--space-3) var(--space-4);
+  background: var(--wash);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--status-warning);
+  border-radius: var(--radius-control);
+  color: var(--ink-1);
+  font-size: var(--fs-small);
+  max-width: none;
+}
+
+/* Small screens: the rail becomes a scrolling tab strip. --------------------- */
+
+@media (max-width: 900px) {
+  .iv-shell {
+    display: block;
+    padding: 0 var(--space-4) var(--space-7);
+  }
+
+  .iv-rail {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    grid-template-columns: 1fr;
+    margin: 0 calc(-1 * var(--space-4)) var(--space-4);
+    padding: var(--space-2) var(--space-4) 0;
+    background: var(--page);
+    border-bottom: 1px solid var(--grid);
+    gap: var(--space-2);
+  }
+
+  .iv-brand {
+    padding: 0;
+  }
+
+  .iv-brand__sub,
+  .iv-rail__meta {
+    display: none;
+  }
+
+  .iv-nav {
+    display: flex;
+    gap: var(--space-2);
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding-bottom: var(--space-1);
+  }
+
+  .iv-nav__link {
+    padding: 6px var(--space-2);
+  }
+
+  .iv-nav__link[aria-current="page"] {
+    box-shadow: inset 0 -2px 0 var(--focus);
+    background: none;
+  }
+
+  .iv-nav__link svg {
+    display: none;
+  }
+
+  .iv-hero__value {
+    font-size: 34px;
+  }
+}
+
+/* Motion, all of it behind the gate. ------------------------------------------ */
+
+@media (prefers-reduced-motion: no-preference) {
+  .iv-card,
+  .iv-tile {
+    transition: box-shadow 120ms ease-out, transform 120ms ease-out;
+  }
+
+  .iv-card:hover,
+  .iv-tile:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-tip);
+  }
+
+  @keyframes iv-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .iv-pane.is-entering > * {
+    animation: iv-enter 200ms ease-out backwards;
+  }
+
+  .iv-pane.is-entering > :nth-child(2) {
+    animation-delay: 40ms;
+  }
+
+  .iv-pane.is-entering > :nth-child(3) {
+    animation-delay: 80ms;
+  }
+
+  .iv-pane.is-entering > :nth-child(n + 4) {
+    animation-delay: 120ms;
+  }
+
+  @keyframes iv-drift {
+    from {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    to {
+      background-position: 0% 50%;
+    }
+  }
+
+  .iv-tile--feature {
+    animation: iv-drift 9s ease-in-out infinite;
+  }
+}

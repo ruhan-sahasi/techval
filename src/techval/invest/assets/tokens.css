@@ -1,0 +1,195 @@
+/*
+ * techval investing dashboard tokens.
+ *
+ * The same vocabulary as the results dashboard, arranged dark first: the app
+ * opens dark, so the complete dark palette lives on bare :root and the light
+ * block redefines colours and nothing else. A test asserts that every shared
+ * name carries the same value as the results dashboard's tokens, theme for
+ * theme, so the two pages are one family without sharing a file.
+ */
+
+:root {
+  --font-sans: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: "Newsreader", "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --fs-micro: 11px;
+  --fs-small: 12.5px;
+  --fs-body: 14.5px;
+  --fs-lead: 17px;
+  --fs-h3: 15px;
+  --fs-h2: 30px;
+  --fs-h1: 44px;
+  --fs-figure: 24px;
+  --lh-tight: 1.2;
+  --lh-body: 1.55;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 650;
+  --tracking-caps: 0.06em;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 72px;
+  --radius-control: 6px;
+  --radius-card: 14px;
+  --radius-chip: 999px;
+  --rail-width: 220px;
+  --main-max: 1120px;
+  --c-model: var(--series-1);
+  --c-model-muted: var(--deemph);
+  --c-alt: var(--series-2);
+  --c-third: var(--series-3);
+  --c-baseline: var(--deemph);
+  --c-total: var(--ink-2);
+  --div-neg-3: var(--div-neg);
+  --div-neg-2: color-mix(in oklab, var(--div-neg) 66%, var(--div-mid));
+  --div-neg-1: color-mix(in oklab, var(--div-neg) 33%, var(--div-mid));
+  --div-0: var(--div-mid);
+  --div-pos-1: color-mix(in oklab, var(--div-pos) 33%, var(--div-mid));
+  --div-pos-2: color-mix(in oklab, var(--div-pos) 66%, var(--div-mid));
+  --div-pos-3: var(--div-pos);
+  --teal-100: #deeeed;
+  --teal-200: #b9dad9;
+  --teal-300: #90c4c3;
+  --teal-400: #5fadac;
+  --teal-500: #099393;
+  --teal-600: #046464;
+  --teal-700: #024040;
+
+  color-scheme: dark;
+  --page: #0a1216;
+  --surface: #101b21;
+  --raised: #16232a;
+  --ink-1: #e9f1f0;
+  --ink-2: #aebdc0;
+  --ink-3: #87999f;
+  --grid: #1c2930;
+  --axis: #3e4e56;
+  --rule: #e9f1f0;
+  --border: rgba(233, 241, 240, 0.12);
+  --wash: rgba(233, 241, 240, 0.05);
+  --wash-strong: rgba(233, 241, 240, 0.09);
+  --shadow-tip: 0 6px 18px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --series-1: #19a0a0;
+  --series-2: #bd8630;
+  --series-3: #a24e7b;
+  --deemph: #6f7e80;
+  --div-pos: #19a0a0;
+  --div-neg: #d06551;
+  --div-mid: #263239;
+  --on-div-3: #0a1216;
+  --on-div-2: #e9f1f0;
+  --on-div-1: #e9f1f0;
+  --on-div-0: #e9f1f0;
+  --seq-1: var(--teal-700);
+  --seq-2: var(--teal-600);
+  --seq-3: color-mix(in oklab, var(--teal-500) 80%, var(--teal-600));
+  --seq-4: var(--teal-500);
+  --seq-5: var(--teal-400);
+  --seq-6: var(--teal-300);
+  --seq-7: var(--teal-200);
+  --on-seq-1: #e9f1f0;
+  --on-seq-2: #e9f1f0;
+  --on-seq-3: #0a1216;
+  --on-seq-4: #0a1216;
+  --on-seq-5: #0a1216;
+  --on-seq-6: #0a1216;
+  --on-seq-7: #0a1216;
+  --missing: #1a252b;
+  --status-good: #4cc08a;
+  --status-warning: #d39a3a;
+  --status-critical: #d9705a;
+  --status-neutral: #87999f;
+  --on-status-good: #0a1216;
+  --on-status-warning: #0a1216;
+  --on-status-critical: #0a1216;
+  --on-status-neutral: #0a1216;
+  --text-good: #5cd6a8;
+  --text-critical: #e8927c;
+  --focus: #7fe8d2;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page: #eff3f2;
+  --surface: #ffffff;
+  --raised: #ffffff;
+  --ink-1: #14201f;
+  --ink-2: #3f4946;
+  --ink-3: #5a6461;
+  --grid: #e3e9e7;
+  --axis: #b0bab7;
+  --rule: #14201f;
+  --border: rgba(17, 24, 22, 0.13);
+  --wash: rgba(17, 24, 22, 0.035);
+  --wash-strong: rgba(17, 24, 22, 0.07);
+  --shadow-tip: 0 6px 18px rgba(17, 24, 22, 0.12);
+  --shadow-card: 0 1px 2px rgba(17, 24, 22, 0.05), 0 4px 16px rgba(17, 24, 22, 0.04);
+  --series-1: #099393;
+  --series-2: #b6770b;
+  --series-3: #8a3362;
+  --deemph: #7d8683;
+  --div-pos: #099393;
+  --div-neg: #bc4b37;
+  --div-mid: #e3e9e7;
+  --on-div-3: #14201f;
+  --on-div-2: #14201f;
+  --on-div-1: #14201f;
+  --on-div-0: #14201f;
+  --seq-1: var(--teal-100);
+  --seq-2: var(--teal-200);
+  --seq-3: var(--teal-300);
+  --seq-4: var(--teal-400);
+  --seq-5: var(--teal-500);
+  --seq-6: var(--teal-600);
+  --seq-7: var(--teal-700);
+  --on-seq-1: #14201f;
+  --on-seq-2: #14201f;
+  --on-seq-3: #14201f;
+  --on-seq-4: #14201f;
+  --on-seq-5: #14201f;
+  --on-seq-6: #ffffff;
+  --on-seq-7: #ffffff;
+  --missing: #e5eae8;
+  --status-good: #157a4a;
+  --status-warning: #a86b00;
+  --status-critical: #b23a2e;
+  --status-neutral: #6f7875;
+  --on-status-good: #ffffff;
+  --on-status-warning: #ffffff;
+  --on-status-critical: #ffffff;
+  --on-status-neutral: #ffffff;
+  --text-good: #10684a;
+  --text-critical: #a3462e;
+  --focus: #0b6b5c;
+}
+
+/*
+ * Print goes light whatever the screen showed, like the results page.
+ */
+@media print {
+  :root,
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page: #ffffff;
+    --surface: #ffffff;
+    --raised: #ffffff;
+    --ink-1: #000000;
+    --ink-2: #2b3330;
+    --ink-3: #454e4b;
+    --grid: #c7cfcd;
+    --axis: #8b9491;
+    --rule: #000000;
+    --border: rgba(0, 0, 0, 0.32);
+    --wash: rgba(0, 0, 0, 0.05);
+    --wash-strong: rgba(0, 0, 0, 0.1);
+    --shadow-card: none;
+    --missing: #eceeed;
+    --div-mid: #eceeed;
+  }
+}

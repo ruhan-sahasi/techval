@@ -720,6 +720,9 @@ def _fade() -> dict[str, Any]:
                     {"label": "Company-years", "value": 2334, "format": "int", "sub": "Filed 2009 to 2026"},
                     {"label": "Companies", "value": 223, "format": "int", "sub": "One revenue ladder each"},
                     {"label": "Median years a filer supports", "value": 12, "format": "int", "sub": "The deepest reach 19"},
+                    # The portfolio page's two calls, so the gallery draws every chip.
+                    {"label": "Richest to warranted", "value": "NVDA", "status": "rich", "sub": "The investing page's rich chip"},
+                    {"label": "Cheapest to warranted", "value": "WBD", "status": "cheap", "sub": "The investing page's cheap chip"},
                 ]},
             ),
             # Tiles drawn in a card, with a second set of tiles as a part of the same card.
