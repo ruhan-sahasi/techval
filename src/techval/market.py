@@ -59,6 +59,9 @@ TREASURY_URL = (
 # ETFs are a separate asset class in Nasdaq's API and 404 under "stocks".
 _ETFS = {"SPY", "QQQ", "IWM", "VTI", "DIA", "XLK", "IGV"}
 
+# USD crypto pairs Nasdaq serves under their own asset class.
+_CRYPTO_PAIRS = {"BTCUSD", "ETHUSD", "SOLUSD", "DOGEUSD"}
+
 
 @dataclass
 class PriceSeries:
@@ -144,7 +147,11 @@ class NasdaqSource:
         sym = symbol.upper()
         url = NASDAQ_URL.format(
             symbol=sym,
-            assetclass="etf" if sym in _ETFS else "stocks",
+            assetclass=(
+                "cryptocurrency"
+                if sym in _CRYPTO_PAIRS
+                else "etf" if sym in _ETFS else "stocks"
+            ),
             start=start.isoformat(),
             end=end.isoformat(),
         )
