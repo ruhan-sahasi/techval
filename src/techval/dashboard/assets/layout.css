@@ -1,11 +1,12 @@
 /*
- * techval dashboard layout, set as a research document rather than an app.
+ * techval dashboard layout, set as an application surface.
  *
- * One ground and no cards. Structure comes from type and rules: a heavy rule
- * opens each section, a hairline opens each exhibit, and exhibits are numbered
- * in reading order by a CSS counter, so the numbering can never disagree with
- * the page. Verdicts are words. Refusals are notes under the exhibit they
- * belong to, numbered like footnotes. Provenance is a source line. Every
+ * Exhibits sit on cards one step lighter than the ground, and the cards carry
+ * the structure that rules used to: each exhibit is its own card, numbered in
+ * reading order by a CSS counter, so the numbering can never disagree with
+ * the page. The document's voice survives inside the chrome: a serif title,
+ * serif standfirsts, verdicts as words. Refusals are notes under the exhibit
+ * they belong to, numbered like footnotes. Provenance is a source line. Every
  * colour comes from tokens.css.
  */
 
@@ -322,14 +323,13 @@ details > summary:hover {
   color: var(--ink-1);
 }
 
-/* Sections: a heavy rule, a numeral and a serif title, then a standfirst. */
+/* Sections: a numeral and a serif title, then a standfirst. */
 
 .tv-section {
   display: grid;
   gap: var(--space-5);
-  padding: var(--space-4) 0 0;
+  padding: 0;
   margin-top: var(--space-8);
-  border-top: 2px solid var(--rule);
   counter-increment: section;
   scroll-margin-top: 56px;
 }
@@ -416,7 +416,7 @@ details > summary:hover {
   gap: var(--space-2) var(--space-7);
 }
 
-/* Exhibits. No box: a hairline above, a numbered title, a source line below. */
+/* Exhibits. Each one a card: a numbered title inside, a source line below. */
 
 .tv-grid {
   display: grid;
@@ -430,9 +430,11 @@ details > summary:hover {
   gap: var(--space-3);
   min-width: 0;
   margin: 0;
-  padding: var(--space-3) 0 0;
-  background: none;
-  border-top: 1px solid var(--grid);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   counter-increment: exhibit;
 }
 
@@ -541,8 +543,11 @@ details > summary:hover {
   display: grid;
   gap: var(--space-3);
   margin-top: var(--space-8);
-  padding-top: var(--space-4);
-  border-top: 2px solid var(--rule);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   color: var(--ink-2);
   font-size: var(--fs-small);
 }
@@ -945,8 +950,8 @@ details > summary:hover {
 .tv-table-wrap {
   overflow-x: auto;
   max-width: 100%;
-  background-image: linear-gradient(to right, var(--page) 60%, transparent),
-    linear-gradient(to left, var(--page) 60%, transparent),
+  background-image: linear-gradient(to right, var(--surface) 60%, transparent),
+    linear-gradient(to left, var(--surface) 60%, transparent),
     linear-gradient(to right, var(--border), transparent),
     linear-gradient(to left, var(--border), transparent);
   background-position: left center, right center, left center, right center;
@@ -1084,6 +1089,11 @@ details > summary:hover {
   display: grid;
   gap: var(--space-2);
   min-width: 0;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 .tv-tileset__body {
