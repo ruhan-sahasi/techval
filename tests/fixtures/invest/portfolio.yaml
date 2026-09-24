@@ -1,0 +1,28 @@
+# A fictional portfolio for the demo page and the tests. Every ticker has its
+# daily closes committed under tests/fixtures/prices, so everything built from
+# this file runs offline and deterministically. Trade prices are invented and
+# are the owner's own entry prices, not closes; nobody's real money is here.
+name: Demo portfolio
+benchmark: SPY
+transactions:
+  - {date: 2023-10-02, type: deposit, amount: 60000}
+  - {date: 2023-10-03, type: buy, symbol: DDOG, shares: 60, price: 91.00}
+  - {date: 2023-10-03, type: buy, symbol: NET, shares: 80, price: 63.00}
+  - {date: 2023-10-10, type: buy, symbol: DIS, shares: 70, price: 84.00}
+  - {date: 2023-11-01, type: buy, symbol: SPY, shares: 40, price: 435.00, kind: etf}
+  - {date: 2024-01-16, type: deposit, amount: 15000}
+  - {date: 2024-01-17, type: buy, symbol: CRWD, shares: 30, price: 290.00}
+  - {date: 2024-02-20, type: buy, symbol: MDB, shares: 25, price: 450.00}
+  - {date: 2024-06-03, type: buy, symbol: ZS, shares: 40, price: 180.00}
+  - {date: 2024-08-15, type: sell, symbol: NET, shares: 30, price: 75.00}
+  - {date: 2024-12-10, type: dividend, symbol: DIS, amount: 63.00}
+  - {date: 2025-03-03, type: deposit, amount: 10000}
+  - {date: 2025-03-04, type: buy, symbol: HUBS, shares: 15, price: 620.00}
+  - {date: 2025-07-01, type: buy, symbol: SNOW, shares: 45, price: 205.00}
+  - {date: 2025-12-10, type: dividend, symbol: DIS, amount: 70.00}
+  - {date: 2026-04-15, type: sell, symbol: MDB, shares: 10, price: 320.00}
+  - {date: 2026-06-05, type: buy, symbol: DDOG, shares: 20, price: 130.00}
+targets:
+  SPY: 0.30
+  DDOG: 0.12
+  cash: 0.05
