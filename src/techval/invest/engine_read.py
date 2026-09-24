@@ -138,3 +138,48 @@ def _warranted_read(symbol: str, fixtures: Path, refusals: list[dict]) -> dict |
         "as_of": model.latest.isoformat(),
         "verdict": model.verdict(),
     }
+
+
+def attach_dcf(reads: dict[str, EngineRead], *, facts_for, market, assumptions: Assumptions) -> None:
+    """Value each covered holding through the engine's own pipeline, in place.
+
+    ``facts_for`` returns a ``CompanyFacts`` or None, and it is the caller who
+    decides where facts may come from: the CLI passes a cached-or-live loader,
+    the tests a fixture reader. Offline with nothing cached is a refusal, not
+    an error, and so is every ``TechvalError`` the pipeline raises: a holding
+    the engine cannot value honestly stays on the page with the reason.
+    """
+    from ..dcf import run_dcf
+    from ..ev_bridge import build_ev_bridge
+    from ..financials import build_financials
+    from ..wacc import compute_wacc
+
+    for symbol, read in reads.items():
+        if not read.covered:
+            continue
+        try:
+            facts = facts_for(symbol)
+        except TechvalError as err:
+            read.refusals.append({"what": "DCF", "why": f"{symbol}: {err}"})
+            continue
+        if facts is None:
+            read.refusals.append(
+                {"what": "DCF", "why": f"no filings cached for {symbol}; run without --offline to fetch them"}
+            )
+            continue
+        try:
+            fin = build_financials(symbol, facts=facts)
+            spot = market.spot(symbol)
+            bridge = build_ev_bridge(fin, spot, assumptions)
+            wacc = compute_wacc(fin, bridge, market, assumptions)
+            result = run_dcf(fin, bridge, wacc, assumptions)
+        except TechvalError as err:
+            read.refusals.append({"what": "DCF", "why": f"{symbol}: {err}"})
+            continue
+        read.dcf = {
+            "per_share": round(result.per_share, 4),
+            "price": round(spot, 4),
+            "gap_pct": round(result.per_share / spot - 1.0, 6),
+            "wacc": round(wacc.wacc, 6),
+            "enterprise_value_mm": round(result.enterprise_value, 2),
+        }
