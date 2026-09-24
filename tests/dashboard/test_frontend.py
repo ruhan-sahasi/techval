@@ -336,6 +336,24 @@ def test_the_note_prints_as_a_note():
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_signed_cells_are_classed_by_sign_and_zero_stays_plain():
+    script = (
+        "const vm = require('vm'), fs = require('fs');"
+        "const stub = { setAttribute() {}, appendChild() {}, style: {},"
+        " getContext: () => ({ measureText: () => ({ width: 5 }) }) };"
+        "const document = { createElementNS: () => stub, createElement: () => stub,"
+        " body: stub, addEventListener() {}, documentElement: {} };"
+        "const window = {};"
+        "vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), { window, document, console });"
+        "const s = window.TV.signedClass;"
+        "process.stdout.write(JSON.stringify([s(3), s(-0.5), s(0), s(null), s('x'), s(NaN)]));"
+    )
+    out = subprocess.run(["node", "-e", script, str(KIT)], capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    assert json.loads(out.stdout) == ["tv-pos", "tv-neg", None, None, None, None]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
 def test_a_figures_marks_are_one_tab_stop_and_the_arrows_walk_them():
     # A stop on every mark put 75 presses of Tab inside the coefficient chart alone.
     script = r"""
