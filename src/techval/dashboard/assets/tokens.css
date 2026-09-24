@@ -6,18 +6,19 @@
  * exists in only one theme. Components style through these names; none of
  * them reaches for a hex value directly.
  *
- * The page is set as a research document, not an application, so there is one
- * ground and no card surface: exhibits sit on the page and rules separate them.
- * --surface is kept equal to --page so the kit's surface-gap rings and halos
- * match the ground they sit on; --raised is the only lifted plane, for the
- * tooltip.
+ * The page is set as an application surface: exhibits sit on cards one step
+ * lighter than the ground, so --surface is the card and chart plane and
+ * --page is the ground behind it. The kit's surface-gap rings and halos ring
+ * marks with --surface, which is the plane a chart actually sits on. --raised
+ * is the lifted plane, for the tooltip.
  *
  * Entity colours follow the thing measured, everywhere on the page: the fitted
  * model is always --c-model (teal), a baseline is always --c-baseline (grey),
  * the one named comparison is --c-alt (ochre). Every categorical and diverging
  * set here passed the dataviz palette validator all-pairs, in both themes,
  * against these grounds. Verdicts are words, so the status hues only colour a
- * small mark beside a word, never carry meaning alone.
+ * small mark beside a word, never carry meaning alone. Signed values may wear
+ * --text-good and --text-critical for sign, and sign only.
  */
 
 :root {
@@ -61,26 +62,29 @@
   --space-7: 48px;
   --space-8: 72px;
 
-  /* The one radius on the page: the tooltip. Small keys round themselves. */
-  --radius-control: 3px;
+  /* Radii: cards, chips, and the small controls. */
+  --radius-control: 6px;
+  --radius-card: 14px;
+  --radius-chip: 999px;
 
   --rail-width: 220px;
   --main-max: 1120px;
 
-  /* Planes and ink. A cool neutral biased toward the teal. */
-  --page: #f4f6f5;
-  --surface: #f4f6f5;
+  /* Planes and ink. A cool neutral biased toward the teal; cards are white. */
+  --page: #eff3f2;
+  --surface: #ffffff;
   --raised: #ffffff;
-  --ink-1: #111816;
+  --ink-1: #14201f;
   --ink-2: #3f4946;
   --ink-3: #5a6461;
-  --grid: #dfe5e3;
-  --axis: #b3bcb9;
-  --rule: #111816;
-  --border: rgba(17, 24, 22, 0.14);
+  --grid: #e3e9e7;
+  --axis: #b0bab7;
+  --rule: #14201f;
+  --border: rgba(17, 24, 22, 0.13);
   --wash: rgba(17, 24, 22, 0.035);
   --wash-strong: rgba(17, 24, 22, 0.07);
   --shadow-tip: 0 6px 18px rgba(17, 24, 22, 0.12);
+  --shadow-card: 0 1px 2px rgba(17, 24, 22, 0.05), 0 4px 16px rgba(17, 24, 22, 0.04);
 
   /* Categorical series slots, in fixed order. */
   --series-1: #099393;
@@ -101,7 +105,7 @@
   --c-baseline: var(--deemph);
   --c-total: var(--ink-2);
 
-  /* Diverging: teal pole, brick pole, a neutral midpoint. Seven classes. */
+  /* Diverging: teal pole, clay pole, a neutral midpoint. Seven classes. */
   --div-pos: #099393;
   --div-neg: #bc4b37;
   --div-mid: #e3e9e7;
@@ -112,10 +116,10 @@
   --div-pos-1: color-mix(in oklab, var(--div-pos) 33%, var(--div-mid));
   --div-pos-2: color-mix(in oklab, var(--div-pos) 66%, var(--div-mid));
   --div-pos-3: var(--div-pos);
-  --on-div-3: #111816;
-  --on-div-2: #111816;
-  --on-div-1: #111816;
-  --on-div-0: #111816;
+  --on-div-3: #14201f;
+  --on-div-2: #14201f;
+  --on-div-1: #14201f;
+  --on-div-0: #14201f;
 
   /* The teal ramp, mixed in OKLab from the model hue toward white and black. */
   --teal-100: #deeeed;
@@ -134,17 +138,17 @@
   --seq-5: var(--teal-500);
   --seq-6: var(--teal-600);
   --seq-7: var(--teal-700);
-  --on-seq-1: #111816;
-  --on-seq-2: #111816;
-  --on-seq-3: #111816;
-  --on-seq-4: #111816;
-  --on-seq-5: #111816;
+  --on-seq-1: #14201f;
+  --on-seq-2: #14201f;
+  --on-seq-3: #14201f;
+  --on-seq-4: #14201f;
+  --on-seq-5: #14201f;
   --on-seq-6: #ffffff;
   --on-seq-7: #ffffff;
   --missing: #e5eae8;
 
   /* Status: a small mark beside a verdict word, never the word's only carrier. */
-  --status-good: #1d7a3c;
+  --status-good: #157a4a;
   --status-warning: #a86b00;
   --status-critical: #b23a2e;
   --status-neutral: #6f7875;
@@ -152,39 +156,40 @@
   --on-status-warning: #ffffff;
   --on-status-critical: #ffffff;
   --on-status-neutral: #ffffff;
-  --text-good: #1d6b36;
-  --text-critical: #a3352a;
+  --text-good: #10684a;
+  --text-critical: #a3462e;
 
-  --focus: #111816;
+  --focus: #0b6b5c;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --page: #0f1514;
-    --surface: #0f1514;
-    --raised: #182120;
-    --ink-1: #e4ebe9;
-    --ink-2: #aab5b2;
-    --ink-3: #8d9895;
-    --grid: #232b2a;
-    --axis: #37403e;
-    --rule: #e4ebe9;
-    --border: rgba(228, 235, 233, 0.16);
-    --wash: rgba(228, 235, 233, 0.05);
-    --wash-strong: rgba(228, 235, 233, 0.09);
+    --page: #0a1216;
+    --surface: #101b21;
+    --raised: #16232a;
+    --ink-1: #e9f1f0;
+    --ink-2: #aebdc0;
+    --ink-3: #87999f;
+    --grid: #1c2930;
+    --axis: #3e4e56;
+    --rule: #e9f1f0;
+    --border: rgba(233, 241, 240, 0.12);
+    --wash: rgba(233, 241, 240, 0.05);
+    --wash-strong: rgba(233, 241, 240, 0.09);
     --shadow-tip: 0 6px 18px rgba(0, 0, 0, 0.55);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
     --series-1: #19a0a0;
     --series-2: #bd8630;
-    --series-3: #9a4873;
-    --deemph: #707a77;
+    --series-3: #a24e7b;
+    --deemph: #6f7e80;
     --div-pos: #19a0a0;
     --div-neg: #d06551;
-    --div-mid: #2b3432;
-    --on-div-3: #0f1514;
-    --on-div-2: #e4ebe9;
-    --on-div-1: #e4ebe9;
-    --on-div-0: #e4ebe9;
+    --div-mid: #263239;
+    --on-div-3: #0a1216;
+    --on-div-2: #e9f1f0;
+    --on-div-1: #e9f1f0;
+    --on-div-0: #e9f1f0;
     --seq-1: var(--teal-700);
     --seq-2: var(--teal-600);
     --seq-3: color-mix(in oklab, var(--teal-500) 80%, var(--teal-600));
@@ -192,52 +197,55 @@
     --seq-5: var(--teal-400);
     --seq-6: var(--teal-300);
     --seq-7: var(--teal-200);
-    --on-seq-1: #e4ebe9;
-    --on-seq-2: #e4ebe9;
-    --on-seq-3: #0f1514;
-    --on-seq-4: #0f1514;
-    --on-seq-5: #0f1514;
-    --on-seq-6: #0f1514;
-    --on-seq-7: #0f1514;
-    --missing: #1f2625;
-    --status-good: #4fb06f;
+    --on-seq-1: #e9f1f0;
+    --on-seq-2: #e9f1f0;
+    --on-seq-3: #0a1216;
+    --on-seq-4: #0a1216;
+    --on-seq-5: #0a1216;
+    --on-seq-6: #0a1216;
+    --on-seq-7: #0a1216;
+    --missing: #1a252b;
+    --status-good: #4cc08a;
     --status-warning: #d39a3a;
-    --status-critical: #d9695b;
-    --status-neutral: #8d9895;
-    --on-status-warning: #0f1514;
-    --on-status-neutral: #0f1514;
-    --text-good: #6cc38a;
-    --text-critical: #e2806f;
-    --focus: #e4ebe9;
+    --status-critical: #d9705a;
+    --status-neutral: #87999f;
+    --on-status-good: #0a1216;
+    --on-status-warning: #0a1216;
+    --on-status-critical: #0a1216;
+    --on-status-neutral: #0a1216;
+    --text-good: #5cd6a8;
+    --text-critical: #e8927c;
+    --focus: #7fe8d2;
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0f1514;
-  --surface: #0f1514;
-  --raised: #182120;
-  --ink-1: #e4ebe9;
-  --ink-2: #aab5b2;
-  --ink-3: #8d9895;
-  --grid: #232b2a;
-  --axis: #37403e;
-  --rule: #e4ebe9;
-  --border: rgba(228, 235, 233, 0.16);
-  --wash: rgba(228, 235, 233, 0.05);
-  --wash-strong: rgba(228, 235, 233, 0.09);
+  --page: #0a1216;
+  --surface: #101b21;
+  --raised: #16232a;
+  --ink-1: #e9f1f0;
+  --ink-2: #aebdc0;
+  --ink-3: #87999f;
+  --grid: #1c2930;
+  --axis: #3e4e56;
+  --rule: #e9f1f0;
+  --border: rgba(233, 241, 240, 0.12);
+  --wash: rgba(233, 241, 240, 0.05);
+  --wash-strong: rgba(233, 241, 240, 0.09);
   --shadow-tip: 0 6px 18px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
   --series-1: #19a0a0;
   --series-2: #bd8630;
-  --series-3: #9a4873;
-  --deemph: #707a77;
+  --series-3: #a24e7b;
+  --deemph: #6f7e80;
   --div-pos: #19a0a0;
   --div-neg: #d06551;
-  --div-mid: #2b3432;
-  --on-div-3: #0f1514;
-  --on-div-2: #e4ebe9;
-  --on-div-1: #e4ebe9;
-  --on-div-0: #e4ebe9;
+  --div-mid: #263239;
+  --on-div-3: #0a1216;
+  --on-div-2: #e9f1f0;
+  --on-div-1: #e9f1f0;
+  --on-div-0: #e9f1f0;
   --seq-1: var(--teal-700);
   --seq-2: var(--teal-600);
   --seq-3: color-mix(in oklab, var(--teal-500) 80%, var(--teal-600));
@@ -245,23 +253,25 @@
   --seq-5: var(--teal-400);
   --seq-6: var(--teal-300);
   --seq-7: var(--teal-200);
-  --on-seq-1: #e4ebe9;
-  --on-seq-2: #e4ebe9;
-  --on-seq-3: #0f1514;
-  --on-seq-4: #0f1514;
-  --on-seq-5: #0f1514;
-  --on-seq-6: #0f1514;
-  --on-seq-7: #0f1514;
-  --missing: #1f2625;
-  --status-good: #4fb06f;
+  --on-seq-1: #e9f1f0;
+  --on-seq-2: #e9f1f0;
+  --on-seq-3: #0a1216;
+  --on-seq-4: #0a1216;
+  --on-seq-5: #0a1216;
+  --on-seq-6: #0a1216;
+  --on-seq-7: #0a1216;
+  --missing: #1a252b;
+  --status-good: #4cc08a;
   --status-warning: #d39a3a;
-  --status-critical: #d9695b;
-  --status-neutral: #8d9895;
-  --on-status-warning: #0f1514;
-  --on-status-neutral: #0f1514;
-  --text-good: #6cc38a;
-  --text-critical: #e2806f;
-  --focus: #e4ebe9;
+  --status-critical: #d9705a;
+  --status-neutral: #87999f;
+  --on-status-good: #0a1216;
+  --on-status-warning: #0a1216;
+  --on-status-critical: #0a1216;
+  --on-status-neutral: #0a1216;
+  --text-good: #5cd6a8;
+  --text-critical: #e8927c;
+  --focus: #7fe8d2;
 }
 
 /*
@@ -289,6 +299,7 @@
     --border: rgba(0, 0, 0, 0.32);
     --wash: rgba(0, 0, 0, 0.05);
     --wash-strong: rgba(0, 0, 0, 0.1);
+    --shadow-card: none;
     --missing: #eceeed;
     --div-mid: #eceeed;
   }
