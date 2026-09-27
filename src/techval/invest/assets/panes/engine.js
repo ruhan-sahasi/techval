@@ -131,6 +131,15 @@
       )
     );
 
+    if (!reads.length) {
+      var empty = IV.card("Nothing to read yet", "The ledger holds only cash.");
+      empty.appendChild(
+        IV.note("The engine reads positions: once the book holds a US TMT filer, its DCF, warranted residual and fade path appear here.")
+      );
+      host.appendChild(empty);
+      return;
+    }
+
     covered
       .sort(function (a, b) {
         return a.symbol < b.symbol ? -1 : 1;

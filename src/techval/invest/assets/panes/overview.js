@@ -46,7 +46,11 @@
       { class: "iv-tiles" },
       IV.tile("Today", IV.fmt.signedPct(over.day_pct), IV.fmt.signedMoney(over.day_abs), { signed: over.day_pct }),
       IV.tile("vs " + snapshot.meta.benchmark, TV.fmt.points(vs, 1), "time-weighted, since inception", { signed: vs }),
-      IV.tile("Top 5 weight", TV.fmt.pct(over.top5_share, 0), over.n_positions + " positions and cash"),
+      IV.tile(
+        "Top 5 weight",
+        TV.fmt.pct(over.top5_share, 0),
+        over.n_positions ? over.n_positions + " positions and cash" : "cash only, so far"
+      ),
       IV.tile(
         "Engine coverage",
         TV.fmt.pct(over.covered_value_share, 0),
@@ -86,6 +90,9 @@
 
     /* Movers: the day's largest absolute moves. */
     var movers = IV.card("Today's movers", "The three largest moves in dollars");
+    if (!over.movers.length) {
+      movers.appendChild(IV.note("Nothing moved: the book holds no positions yet."));
+    }
     over.movers.forEach(function (m) {
       movers.appendChild(
         el(

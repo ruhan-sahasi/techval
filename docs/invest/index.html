@@ -6645,6 +6645,15 @@ body {
       )
     );
 
+    if (!reads.length) {
+      var empty = IV.card("Nothing to read yet", "The ledger holds only cash.");
+      empty.appendChild(
+        IV.note("The engine reads positions: once the book holds a US TMT filer, its DCF, warranted residual and fade path appear here.")
+      );
+      host.appendChild(empty);
+      return;
+    }
+
     covered
       .sort(function (a, b) {
         return a.symbol < b.symbol ? -1 : 1;
@@ -6732,6 +6741,15 @@ body {
   function render(host, snapshot) {
     var rows = snapshot.positions;
     var over = snapshot.overview;
+
+    if (!rows.length) {
+      var empty = IV.card("The book", "All cash so far: " + IV.fmt.money(over.cash, 0) + ".");
+      empty.appendChild(
+        IV.note("Add a buy to portfolio.yaml and run techval invest; the book, the lots and the engine read all start from that first row.")
+      );
+      host.appendChild(empty);
+      return;
+    }
 
     var head = el(
       "tr",
@@ -6993,7 +7011,11 @@ body {
       { class: "iv-tiles" },
       IV.tile("Today", IV.fmt.signedPct(over.day_pct), IV.fmt.signedMoney(over.day_abs), { signed: over.day_pct }),
       IV.tile("vs " + snapshot.meta.benchmark, TV.fmt.points(vs, 1), "time-weighted, since inception", { signed: vs }),
-      IV.tile("Top 5 weight", TV.fmt.pct(over.top5_share, 0), over.n_positions + " positions and cash"),
+      IV.tile(
+        "Top 5 weight",
+        TV.fmt.pct(over.top5_share, 0),
+        over.n_positions ? over.n_positions + " positions and cash" : "cash only, so far"
+      ),
       IV.tile(
         "Engine coverage",
         TV.fmt.pct(over.covered_value_share, 0),
@@ -7033,6 +7055,9 @@ body {
 
     /* Movers: the day's largest absolute moves. */
     var movers = IV.card("Today's movers", "The three largest moves in dollars");
+    if (!over.movers.length) {
+      movers.appendChild(IV.note("Nothing moved: the book holds no positions yet."));
+    }
     over.movers.forEach(function (m) {
       movers.appendChild(
         el(
@@ -7085,6 +7110,13 @@ body {
         IV.tile("Dividends", IV.fmt.money(perf.dividends_total, 0), "received to cash")
       )
     );
+
+    if (!perf.contributions.length) {
+      var empty = IV.card("No positions yet", "Contribution and lots start with the first buy.");
+      empty.appendChild(IV.note("The return tiles above are already honest: cash earns the book 0.0% however the benchmark moves."));
+      host.appendChild(empty);
+      return;
+    }
 
     /* Contribution by position, dollars, positive right and negative left. */
     var fig = TV.figure(host, {
