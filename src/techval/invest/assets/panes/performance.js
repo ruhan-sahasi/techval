@@ -28,6 +28,13 @@
       )
     );
 
+    if (!perf.contributions.length) {
+      var empty = IV.card("No positions yet", "Contribution and lots start with the first buy.");
+      empty.appendChild(IV.note("The return tiles above are already honest: cash earns the book 0.0% however the benchmark moves."));
+      host.appendChild(empty);
+      return;
+    }
+
     /* Contribution by position, dollars, positive right and negative left. */
     var fig = TV.figure(host, {
       title: "What each position added, in dollars",

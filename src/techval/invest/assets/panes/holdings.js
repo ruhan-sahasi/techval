@@ -60,6 +60,15 @@
     var rows = snapshot.positions;
     var over = snapshot.overview;
 
+    if (!rows.length) {
+      var empty = IV.card("The book", "All cash so far: " + IV.fmt.money(over.cash, 0) + ".");
+      empty.appendChild(
+        IV.note("Add a buy to portfolio.yaml and run techval invest; the book, the lots and the engine read all start from that first row.")
+      );
+      host.appendChild(empty);
+      return;
+    }
+
     var head = el(
       "tr",
       null,
