@@ -559,11 +559,12 @@ def test_the_gallery_shell_matches_the_page_shell(gallery):
     # The gallery copies the embedding contract so it can be rendered without
     # the package. The copy is only worth having while it agrees with the page
     # it stands in for.
-    from techval.dashboard.render import FONTS_HREF, SCRIPTS, STYLESHEETS
+    from techval.dashboard.render import FAVICON_HREF, FONTS_HREF, SCRIPTS, STYLESHEETS
 
     assert gallery.STYLESHEETS == STYLESHEETS
     assert gallery.SCRIPTS == SCRIPTS
     assert gallery.FONTS_HREF == FONTS_HREF
+    assert gallery.FAVICON_HREF == FAVICON_HREF
 
 
 def test_gallery_is_deterministic_and_self_contained(gallery, gallery_page):

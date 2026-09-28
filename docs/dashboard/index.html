@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Newsreader:ital,wght@0,400;0,500;1,400&amp;family=Public+Sans:wght@400;500;650&amp;display=swap">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%230a1216'/%3E%3Cpath d='M3.2 10.8 6.2 7.2l2.3 1.9 4.3-5.3' stroke='%232aa98c' stroke-width='1.7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='12.8' cy='3.8' r='1.1' fill='%237fe8d2'/%3E%3C/svg%3E">
 <style>
 /*
  * techval dashboard tokens.
@@ -2431,6 +2432,9 @@ a.tv-tile:hover .tv-tile__label {
     loses: { label: "Loses to baseline", short: "Loses", tone: "critical", glyph: "cross" },
     not_significant: { label: "Not significant", short: "Not sig.", tone: "warning", glyph: "ring" },
     refused: { label: "Refused", short: "Refused", tone: "neutral", glyph: "slash" },
+    /* The portfolio page's calls against the warranted line. */
+    rich: { label: "Rich to warranted", short: "Rich", tone: "warning", glyph: "up" },
+    cheap: { label: "Cheap to warranted", short: "Cheap", tone: "good", glyph: "down" },
   };
 
   var GLYPHS = {
@@ -2440,6 +2444,8 @@ a.tv-tile:hover .tv-tile__label {
     cross: [["path", { d: "M5.6 5.6 L10.4 10.4 M10.4 5.6 L5.6 10.4" }]],
     ring: [["circle", { cx: 8, cy: 8, r: 2.6 }]],
     slash: [["path", { d: "M5.2 10.8 L10.8 5.2" }]],
+    up: [["path", { d: "M8 11.2 V5.4 M5.5 7.9 L8 5.4 L10.5 7.9" }]],
+    down: [["path", { d: "M8 4.8 V10.6 M5.5 8.1 L8 10.6 L10.5 8.1" }]],
   };
 
   function statusInfo(status) {

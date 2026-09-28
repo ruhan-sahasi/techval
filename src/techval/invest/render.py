@@ -12,7 +12,7 @@ from __future__ import annotations
 import html
 from pathlib import Path
 
-from ..dashboard.render import FONTS_HREF, embed_json
+from ..dashboard.render import FAVICON_HREF, FONTS_HREF, embed_json
 from .snapshot import validate_snapshot
 
 ASSETS = Path(__file__).parent / "assets"
@@ -68,6 +68,7 @@ def render_page(snapshot: dict) -> str:
         '<link rel="preconnect" href="https://fonts.googleapis.com">\n',
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n',
         f'<link rel="stylesheet" href="{html.escape(FONTS_HREF)}">\n',
+        f'<link rel="icon" href="{FAVICON_HREF}">\n',
         "<style>\n",
         styles,
         "</style>\n",
