@@ -48,6 +48,12 @@ def test_the_title_names_the_portfolio(page, snapshot):
     assert f"<title>{snapshot['meta']['name']} · techval invest</title>" in page
 
 
+def test_the_page_carries_the_house_favicon(page):
+    from techval.dashboard.render import FAVICON_HREF
+
+    assert f'<link rel="icon" href="{FAVICON_HREF}">' in page
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
 def test_every_invest_script_parses():
     for path in sorted(ASSETS.rglob("*.js")):

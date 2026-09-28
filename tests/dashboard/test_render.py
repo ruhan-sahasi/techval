@@ -166,7 +166,10 @@ def test_no_external_resource_but_the_fonts(tmp_path):
     urls = re.findall(r'(?:src|href)="([^"]+)"', page)
     assert urls, "the font links should be found"
     for url in urls:
-        assert url.startswith(("https://fonts.googleapis.com", "https://fonts.gstatic.com")), url
+        # The favicon is an inline data URI: carried in the page, fetched from nowhere.
+        assert url.startswith(
+            ("https://fonts.googleapis.com", "https://fonts.gstatic.com", "data:image/svg+xml,")
+        ), url
     assert not re.search(r"<script[^>]*\ssrc=", page)
 
 

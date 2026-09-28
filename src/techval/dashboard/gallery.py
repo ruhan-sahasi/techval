@@ -71,6 +71,15 @@ FONTS_HREF = (
     "&display=swap"
 )
 
+FAVICON_HREF = (
+    "data:image/svg+xml,"
+    "%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E"
+    "%3Crect width='16' height='16' rx='4' fill='%230a1216'/%3E"
+    "%3Cpath d='M3.2 10.8 6.2 7.2l2.3 1.9 4.3-5.3' stroke='%232aa98c'"
+    " stroke-width='1.7' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E"
+    "%3Ccircle cx='12.8' cy='3.8' r='1.1' fill='%237fe8d2'/%3E%3C/svg%3E"
+)
+
 GALLERY_ENTRY_POINT = "techval.dashboard.gallery.render_gallery"
 
 NOTICE = (
@@ -129,6 +138,7 @@ def render_gallery() -> str:
         '<link rel="preconnect" href="https://fonts.googleapis.com">\n',
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n',
         f'<link rel="stylesheet" href="{html.escape(FONTS_HREF)}">\n',
+        f'<link rel="icon" href="{FAVICON_HREF}">\n',
         "<style>\n",
         styles,
         "</style>\n",
