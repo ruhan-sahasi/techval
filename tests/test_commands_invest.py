@@ -90,3 +90,18 @@ def test_render_without_a_snapshot_refuses(tmp_path):
     result = runner.invoke(app, ["--dir", str(tmp_path), "--render"])
     assert result.exit_code == 1
     assert "snapshot" in result.output
+
+
+def test_a_run_without_the_model_panels_still_renders_and_says_why(tmp_path):
+    book = tmp_path / "book"
+    book.mkdir()
+    shutil.copy(FIXTURES / "invest" / "portfolio.yaml", book / "portfolio.yaml")
+    empty = tmp_path / "no-panels"
+    empty.mkdir()
+    result = runner.invoke(
+        app,
+        ["--dir", str(book), "--config", str(write_config(tmp_path)), "--offline", "--panels", str(empty)],
+    )
+    assert result.exit_code == 0, result.output
+    assert "model panels" in flat(result.output)
+    assert (book / "index.html").is_file()
