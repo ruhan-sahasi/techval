@@ -40,6 +40,11 @@ _RENDER = typer.Option(
     "--render",
     help="Re-render the page from the existing snapshot. Touches no network.",
 )
+_REFIT = typer.Option(
+    False,
+    "--refit",
+    help="Refit the fade and warranted models instead of loading them from ml.cache_dir.",
+)
 
 STARTER = """\
 # Your portfolio, as a ledger. techval invest reads this file and writes
@@ -71,12 +76,13 @@ def invest(
     config: Path = _CFG,
     offline: bool = _OFFLINE,
     render_only: bool = _RENDER,
+    refit: bool = _REFIT,
 ) -> None:
     """Refresh quotes and the engine read, then render portfolio/index.html."""
     if ctx.invoked_subcommand is not None:
         return
     try:
-        _build(directory, config, offline, render_only)
+        _build(directory, config, offline, render_only, refit)
     except TechvalError as err:
         console.print(f"[red]{escape(str(err))}[/red]")
         raise typer.Exit(1)
@@ -94,7 +100,12 @@ def init(directory: Path = _DIR) -> None:
     console.print(f"Wrote {escape(str(path))}. Edit it, then run: techval invest")
 
 
-def _build(directory: Path, config: Path | None, offline: bool, render_only: bool) -> None:
+def _cache_root(assumptions: Assumptions) -> Path:
+    configured = assumptions.ml.cache_dir
+    return Path(configured).expanduser() if configured else Path.home() / ".techval" / "ml"
+
+
+def _build(directory: Path, config: Path | None, offline: bool, render_only: bool, refit: bool = False) -> None:
     from .invest.render import write_page
     from .invest.snapshot import validate_snapshot
 
@@ -144,6 +155,8 @@ def _build(directory: Path, config: Path | None, offline: bool, render_only: boo
         today=today,
         facts_for=facts_for,
         market=market,
+        cache_root=_cache_root(assumptions),
+        refit=refit,
     )
     write_snapshot(snapshot, snapshot_path)
     write_page(snapshot, page_path)

@@ -55,6 +55,8 @@ def build_snapshot(
     today: date,
     facts_for=None,
     market=None,
+    cache_root: Path | None = None,
+    refit: bool = False,
 ) -> dict:
     positions = ledger.positions()
     held = [p for p in positions.values() if p.shares > 0]
@@ -64,6 +66,8 @@ def build_snapshot(
         [p.symbol for p in held if p.kind == "stock"],
         fixtures=fixtures,
         assumptions=assumptions,
+        cache_root=cache_root,
+        refit=refit,
     )
     for p in held:
         if p.kind != "stock":
@@ -206,7 +210,7 @@ def build_snapshot(
             }
             for symbol, read in sorted(reads.items())
         },
-        "ideas": _ideas_pane(fixtures, {p.symbol for p in held}),
+        "ideas": _ideas_pane(fixtures, {p.symbol for p in held}, cache_root, refit),
         "activity": [
             {
                 "date": t.date.isoformat(),
@@ -235,10 +239,10 @@ def _uncovered(symbol: str, kind: str):
     return read
 
 
-def _ideas_pane(fixtures: Path, held: set[str]) -> dict:
+def _ideas_pane(fixtures: Path, held: set[str], cache_root: Path | None, refit: bool) -> dict:
     from .engine_read import warranted_model
 
-    pane = ideas(warranted_model(Path(fixtures)), held)
+    pane = ideas(warranted_model(Path(fixtures), cache_root, refit), held)
     return {
         "as_of": pane["as_of"],
         "cheap": [asdict(i) for i in pane["cheap"]],
