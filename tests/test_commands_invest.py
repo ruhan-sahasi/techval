@@ -105,3 +105,29 @@ def test_a_run_without_the_model_panels_still_renders_and_says_why(tmp_path):
     assert result.exit_code == 0, result.output
     assert "model panels" in flat(result.output)
     assert (book / "index.html").is_file()
+
+
+def test_open_hands_the_rendered_page_to_the_browser(tmp_path, monkeypatch):
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    book = tmp_path / "book"
+    book.mkdir()
+    shutil.copy(FIXTURES / "invest" / "portfolio.yaml", book / "portfolio.yaml")
+    built = runner.invoke(
+        app, ["--dir", str(book), "--config", str(write_config(tmp_path)), "--offline", "--open"]
+    )
+    assert built.exit_code == 0, built.output
+    assert opened == [(book / "index.html").resolve().as_uri()]
+    again = runner.invoke(app, ["--dir", str(book), "--render", "--open"])
+    assert again.exit_code == 0, again.output
+    assert len(opened) == 2
+
+
+def test_without_open_nothing_is_launched(tmp_path, monkeypatch):
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    book = tmp_path / "book"
+    book.mkdir()
+    shutil.copy(FIXTURES / "invest" / "portfolio.yaml", book / "portfolio.yaml")
+    runner.invoke(app, ["--dir", str(book), "--config", str(write_config(tmp_path)), "--offline"])
+    assert opened == []

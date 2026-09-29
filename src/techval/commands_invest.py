@@ -48,6 +48,7 @@ _PANELS = typer.Option(
         "warranted/observations.json.gz). Defaults to tests/fixtures in this checkout."
     ),
 )
+_OPEN = typer.Option(False, "--open", help="Open the rendered page in the default browser.")
 _REFIT = typer.Option(
     False,
     "--refit",
@@ -86,6 +87,7 @@ def invest(
     render_only: bool = _RENDER,
     refit: bool = _REFIT,
     panels: Path = _PANELS,
+    open_page: bool = _OPEN,
 ) -> None:
     """Refresh quotes and the engine read, then render portfolio/index.html."""
     if ctx.invoked_subcommand is not None:
@@ -95,6 +97,10 @@ def invest(
     except TechvalError as err:
         console.print(f"[red]{escape(str(err))}[/red]")
         raise typer.Exit(1)
+    if open_page:
+        import webbrowser
+
+        webbrowser.open((directory / "index.html").resolve().as_uri())
 
 
 @app.command()
