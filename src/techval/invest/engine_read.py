@@ -87,6 +87,20 @@ def cached_fit(kind: str, inputs: list[Path], modules: tuple[str, ...], build, c
     return model
 
 
+def missing_panels(fixtures: Path) -> dict[str, Path]:
+    """Which committed panels are absent, by the pane that reads them."""
+    fixtures = Path(fixtures)
+    wanted = {"Fade path": fixtures / FADE_PANEL, "Warranted multiple": fixtures / WARRANTED_PANEL}
+    return {pane: path for pane, path in wanted.items() if not path.is_file()}
+
+
+def panel_refusal(path: Path) -> str:
+    return (
+        f"the model panel {path.name} is not at {path}. The panels ship in a techval "
+        "checkout under tests/fixtures; point --panels at that directory"
+    )
+
+
 def _normal(fixtures, cache_root, refit) -> tuple:
     """One lru key per fit however the call spells its arguments."""
     return Path(fixtures), None if cache_root is None else Path(cache_root), bool(refit)
@@ -158,6 +172,7 @@ def read_holdings(
 
     universe = fade_universe()
     fixtures = Path(fixtures)
+    absent = missing_panels(fixtures)
     out: dict[str, EngineRead] = {}
     for raw in symbols:
         symbol = raw.upper()
@@ -170,8 +185,18 @@ def read_holdings(
             ]
             out[symbol] = read
             continue
-        read.fade = _fade_read(fade_model(fixtures, cache_root, refit), symbol, assumptions, read.refusals)
-        read.warranted = _warranted_read(warranted_model(fixtures, cache_root, refit), symbol, read.refusals)
+        # A missing panel refuses its pane for every holding; the other pane,
+        # and the rest of the page, carry on without it.
+        if "Fade path" in absent:
+            read.refusals.append({"what": "Fade path", "why": f"{symbol}: {panel_refusal(absent['Fade path'])}"})
+        else:
+            read.fade = _fade_read(fade_model(fixtures, cache_root, refit), symbol, assumptions, read.refusals)
+        if "Warranted multiple" in absent:
+            read.refusals.append(
+                {"what": "Warranted multiple", "why": f"{symbol}: {panel_refusal(absent['Warranted multiple'])}"}
+            )
+        else:
+            read.warranted = _warranted_read(warranted_model(fixtures, cache_root, refit), symbol, read.refusals)
         out[symbol] = read
     return out
 

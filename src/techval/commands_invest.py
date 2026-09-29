@@ -40,6 +40,14 @@ _RENDER = typer.Option(
     "--render",
     help="Re-render the page from the existing snapshot. Touches no network.",
 )
+_PANELS = typer.Option(
+    None,
+    "--panels",
+    help=(
+        "Directory holding the committed model panels (fade_companyfacts.json.gz, "
+        "warranted/observations.json.gz). Defaults to tests/fixtures in this checkout."
+    ),
+)
 _REFIT = typer.Option(
     False,
     "--refit",
@@ -77,12 +85,13 @@ def invest(
     offline: bool = _OFFLINE,
     render_only: bool = _RENDER,
     refit: bool = _REFIT,
+    panels: Path = _PANELS,
 ) -> None:
     """Refresh quotes and the engine read, then render portfolio/index.html."""
     if ctx.invoked_subcommand is not None:
         return
     try:
-        _build(directory, config, offline, render_only, refit)
+        _build(directory, config, offline, render_only, refit, panels)
     except TechvalError as err:
         console.print(f"[red]{escape(str(err))}[/red]")
         raise typer.Exit(1)
@@ -105,7 +114,20 @@ def _cache_root(assumptions: Assumptions) -> Path:
     return Path(configured).expanduser() if configured else Path.home() / ".techval" / "ml"
 
 
-def _build(directory: Path, config: Path | None, offline: bool, render_only: bool, refit: bool = False) -> None:
+# The panels ship with a checkout, not with the package: resolved from here
+# they are found in a source tree and missing from an installed wheel, where
+# --panels names them instead.
+CHECKOUT_PANELS = Path(__file__).resolve().parent.parent.parent / "tests" / "fixtures"
+
+
+def _build(
+    directory: Path,
+    config: Path | None,
+    offline: bool,
+    render_only: bool,
+    refit: bool = False,
+    panels: Path | None = None,
+) -> None:
     from .invest.render import write_page
     from .invest.snapshot import validate_snapshot
 
@@ -146,7 +168,21 @@ def _build(directory: Path, config: Path | None, offline: bool, render_only: boo
         facts_for = client.company_facts
         market = MarketData(source, cache, today=today)
 
-    fixtures = Path(__file__).parent.parent.parent / "tests" / "fixtures"
+    from .invest.engine_read import missing_panels
+
+    fixtures = Path(panels) if panels is not None else CHECKOUT_PANELS
+    absent = missing_panels(fixtures)
+    if absent:
+        console.print(
+            "[yellow]"
+            + escape(
+                f"The model panels are not all under {fixtures} "
+                f"({', '.join(p.name for p in absent.values())} missing), so "
+                f"{' and '.join(sorted(absent))} refuse by name on the page. "
+                "Point --panels at a techval checkout's tests/fixtures to restore them."
+            )
+            + "[/yellow]"
+        )
     snapshot = build_snapshot(
         ledger,
         quotes,

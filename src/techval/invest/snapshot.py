@@ -257,8 +257,12 @@ def _uncovered(symbol: str, kind: str):
 
 
 def _ideas_pane(fixtures: Path, held: set[str], cache_root: Path | None, refit: bool) -> dict:
-    from .engine_read import warranted_model
+    from .engine_read import missing_panels, panel_refusal, warranted_model
+    from .ideas import SIGNAL_VERDICT
 
+    absent = missing_panels(fixtures).get("Warranted multiple")
+    if absent is not None:
+        return {"as_of": None, "cheap": [], "rich": [], "verdict": SIGNAL_VERDICT, "refusal": panel_refusal(absent)}
     pane = ideas(warranted_model(Path(fixtures), cache_root, refit), held)
     return {
         "as_of": pane["as_of"],
