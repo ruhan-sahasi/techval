@@ -130,3 +130,39 @@ transactions:
         assert row.realized == pytest.approx(p.realized)
         assert row.dividends == pytest.approx(p.dividends)
         assert row.total == pytest.approx(unrealized + p.realized + p.dividends)
+
+
+class AdjustedSource:
+    """A vendor-style series: history restated for a 10:1 split on 2024-06-10.
+
+    The stock never moved. Before the split it traded at 1,000; the vendor
+    reports those days at 100, the post-split scale, as every source the engine
+    ships does.
+    """
+
+    name = "adjusted"
+
+    def fetch(self, symbol, start, end):
+        from techval.market import PriceSeries
+
+        days = [date(2024, 6, d) for d in (5, 6, 7, 10, 11, 12)]
+        return PriceSeries(symbol, days, np.array([100.0] * len(days)), self.name)
+
+
+def test_a_split_does_not_move_the_value_of_an_unchanged_holding(tmp_path):
+    ledger = load(
+        tmp_path,
+        """
+benchmark: BENCH
+transactions:
+  - {date: 2024-06-05, type: deposit, amount: 10000}
+  - {date: 2024-06-05, type: buy, symbol: AAA, shares: 10, price: 1000}
+  - {date: 2024-06-10, type: split, symbol: AAA, ratio: 10}
+""",
+    )
+    quotes = Quotes(AdjustedSource(), start=date(2024, 6, 5), today=date(2024, 6, 12))
+    series = value_series(ledger, quotes)
+    # Ten shares at a restated 100 are a thousand-dollar stake at the time's
+    # own price: 10,000 every day, before the split and after it.
+    assert list(series.values) == pytest.approx([10000.0] * len(series.dates))
+    assert twr(series, ledger.flows())[-1] == pytest.approx(1.0)
