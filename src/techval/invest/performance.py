@@ -27,8 +27,24 @@ class Series:
     values: np.ndarray
 
 
+def _later_splits(ledger: Ledger, symbol: str, day: date) -> float:
+    """The product of the symbol's split ratios dated after ``day``."""
+    factor = 1.0
+    for t in ledger.transactions:
+        if t.type == "split" and t.symbol == symbol and t.date > day:
+            factor *= t.ratio
+    return factor
+
+
 def value_series(ledger: Ledger, quotes: Quotes) -> Series:
-    """Positions plus cash at every benchmark trading day from the first flow."""
+    """Positions plus cash at every benchmark trading day from the first flow.
+
+    Every source the engine ships restates history for splits, so a close
+    from before a split is quoted on the post-split scale. The ledger holds
+    the share count as it stood on the day, so each holding is converted into
+    today's units, multiplied by every split still to come, before it meets
+    that close. Without the conversion a 10:1 split reads as a tenfold gain.
+    """
     calendar = [
         d
         for d in quotes.series(ledger.benchmark, ledger.kind(ledger.benchmark)).dates
@@ -40,7 +56,8 @@ def value_series(ledger: Ledger, quotes: Quotes) -> Series:
         total = ledger.cash(as_of=day)
         for p in positions.values():
             if p.shares > 0:
-                total += p.shares * quotes.close_on(p.symbol, day, p.kind)
+                units = p.shares * _later_splits(ledger, p.symbol, day)
+                total += units * quotes.close_on(p.symbol, day, p.kind)
         values.append(total)
     return Series(calendar, np.asarray(values, dtype=float))
 

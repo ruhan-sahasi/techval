@@ -67,3 +67,61 @@ def test_the_models_fit_once_and_the_reads_are_deterministic(assumptions):
     first = read_holdings(["DDOG", "JPM"], fixtures=FIXTURES, assumptions=assumptions)
     assert first["DDOG"].fade == again["DDOG"].fade
     assert first["DDOG"].warranted == again["DDOG"].warranted
+
+
+def test_a_cached_fit_is_built_once_and_loaded_after(tmp_path):
+    from techval.invest.engine_read import cached_fit
+
+    panel = tmp_path / "panel.bin"
+    panel.write_bytes(b"one")
+    built = []
+
+    def build():
+        built.append(1)
+        return {"fit": len(built)}
+
+    modules = ("techval.invest.engine_read",)
+    first = cached_fit("probe", [panel], modules, build, tmp_path / "cache")
+    second = cached_fit("probe", [panel], modules, build, tmp_path / "cache")
+    assert first == second == {"fit": 1}
+    assert len(built) == 1
+    assert len(list((tmp_path / "cache").glob("invest_probe_*.joblib"))) == 1
+
+
+def test_changed_panel_bytes_are_a_cache_miss(tmp_path):
+    from techval.invest.engine_read import cached_fit, fit_key
+
+    panel = tmp_path / "panel.bin"
+    modules = ("techval.invest.engine_read",)
+    panel.write_bytes(b"one")
+    before = fit_key("probe", [panel], modules)
+    panel.write_bytes(b"two")
+    assert fit_key("probe", [panel], modules) != before
+    built = []
+    cached_fit("probe", [panel], modules, lambda: built.append(1) or "a", tmp_path / "cache")
+    panel.write_bytes(b"three")
+    cached_fit("probe", [panel], modules, lambda: built.append(1) or "b", tmp_path / "cache")
+    assert len(built) == 2
+
+
+def test_an_unreadable_entry_is_a_miss_and_refit_rebuilds(tmp_path):
+    from techval.invest.engine_read import cached_fit, fit_key
+
+    panel = tmp_path / "panel.bin"
+    panel.write_bytes(b"one")
+    modules = ("techval.invest.engine_read",)
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    (cache / f"invest_probe_{fit_key('probe', [panel], modules)}.joblib").write_bytes(b"not a pickle")
+    assert cached_fit("probe", [panel], modules, lambda: "rebuilt", cache) == "rebuilt"
+    assert cached_fit("probe", [panel], modules, lambda: "refit", cache, refit=True) == "refit"
+    assert cached_fit("probe", [panel], modules, lambda: "never", cache) == "refit"
+
+
+def test_no_cache_root_means_no_disk_cache(tmp_path):
+    from techval.invest.engine_read import cached_fit
+
+    calls = []
+    for _ in range(2):
+        cached_fit("probe", [], (), lambda: calls.append(1), None)
+    assert len(calls) == 2

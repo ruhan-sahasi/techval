@@ -21,16 +21,20 @@ from .ledger import Ledger
 from .performance import benchmark_growth, contributions, twr, value_series
 from .quotes import Quotes
 
-SCHEMA = 1
+# 2: prices carry the session they closed in, and mismatched closes are named.
+SCHEMA = 2
 
 # The contract: every pane and the keys it must carry. Types are spot-checked
 # where a wrong one would draw nonsense rather than crash.
 _REQUIRED = {
-    "meta": ("name", "benchmark", "generated", "first_date", "price_source", "schema"),
+    "meta": (
+        "name", "benchmark", "generated", "first_date", "price_source", "schema",
+        "prices_as_of", "prices_age_days",
+    ),
     "overview": (
         "value", "cash", "day_abs", "day_pct", "twr_pct", "benchmark_twr_pct",
         "n_positions", "cheap", "rich", "uncovered", "top5_share",
-        "covered_value_share", "movers",
+        "covered_value_share", "movers", "mismatched_closes",
     ),
     "performance": (
         "dates", "growth", "benchmark_growth", "benchmark", "contributions",
@@ -43,6 +47,7 @@ _REQUIRED = {
 _POSITION_KEYS = (
     "symbol", "kind", "shares", "price", "day_pct", "value", "weight", "cost",
     "unrealized", "unrealized_pct", "realized", "dividends", "covered", "engine",
+    "price_date",
 )
 
 
@@ -55,6 +60,8 @@ def build_snapshot(
     today: date,
     facts_for=None,
     market=None,
+    cache_root: Path | None = None,
+    refit: bool = False,
 ) -> dict:
     positions = ledger.positions()
     held = [p for p in positions.values() if p.shares > 0]
@@ -64,6 +71,8 @@ def build_snapshot(
         [p.symbol for p in held if p.kind == "stock"],
         fixtures=fixtures,
         assumptions=assumptions,
+        cache_root=cache_root,
+        refit=refit,
     )
     for p in held:
         if p.kind != "stock":
@@ -86,10 +95,18 @@ def build_snapshot(
     growth = twr(series, ledger.flows())
     bench = benchmark_growth(quotes, ledger.benchmark, series.dates)
 
+    # The benchmark's last session dates the page. A holding whose last close
+    # is from another session is named, because its day move and its value
+    # then belong to a different day from everything beside them.
+    prices_as_of = quotes.last_close_date(ledger.benchmark, ledger.kind(ledger.benchmark))
     rows = []
     movers = []
+    mismatched = []
     for p in sorted(held, key=lambda p: -weight_by[p.symbol].value):
         price, previous = quotes.last_two(p.symbol, p.kind)
+        price_date = quotes.last_close_date(p.symbol, p.kind)
+        if price_date != prices_as_of:
+            mismatched.append(p.symbol)
         value = weight_by[p.symbol].value
         day_pct = price / previous - 1.0 if previous else 0.0
         read = reads.get(p.symbol)
@@ -112,6 +129,7 @@ def build_snapshot(
                 "dividends": round(p.dividends, 2),
                 "covered": bool(read is not None and read.covered),
                 "engine": engine,
+                "price_date": price_date.isoformat(),
             }
         )
         movers.append({"symbol": p.symbol, "day_pct": round(day_pct, 6), "day_abs": round(value - value / (1 + day_pct), 2) if day_pct > -1 else 0.0})
@@ -145,6 +163,8 @@ def build_snapshot(
             "first_date": ledger.first_date.isoformat(),
             "price_source": quotes.source.name,
             "schema": SCHEMA,
+            "prices_as_of": prices_as_of.isoformat(),
+            "prices_age_days": (today - prices_as_of).days,
         },
         "overview": {
             "value": round(total, 2),
@@ -160,6 +180,7 @@ def build_snapshot(
             "top5_share": round(top_share(weight_rows, 5), 6),
             "covered_value_share": round(cov["covered_value_share"], 6),
             "movers": movers[:3],
+            "mismatched_closes": sorted(mismatched),
         },
         "positions": rows,
         "performance": {
@@ -206,7 +227,7 @@ def build_snapshot(
             }
             for symbol, read in sorted(reads.items())
         },
-        "ideas": _ideas_pane(fixtures, {p.symbol for p in held}),
+        "ideas": _ideas_pane(fixtures, {p.symbol for p in held}, cache_root, refit),
         "activity": [
             {
                 "date": t.date.isoformat(),
@@ -235,10 +256,14 @@ def _uncovered(symbol: str, kind: str):
     return read
 
 
-def _ideas_pane(fixtures: Path, held: set[str]) -> dict:
-    from .engine_read import warranted_model
+def _ideas_pane(fixtures: Path, held: set[str], cache_root: Path | None, refit: bool) -> dict:
+    from .engine_read import missing_panels, panel_refusal, warranted_model
+    from .ideas import SIGNAL_VERDICT
 
-    pane = ideas(warranted_model(Path(fixtures)), held)
+    absent = missing_panels(fixtures).get("Warranted multiple")
+    if absent is not None:
+        return {"as_of": None, "cheap": [], "rich": [], "verdict": SIGNAL_VERDICT, "refusal": panel_refusal(absent)}
+    pane = ideas(warranted_model(Path(fixtures), cache_root, refit), held)
     return {
         "as_of": pane["as_of"],
         "cheap": [asdict(i) for i in pane["cheap"]],

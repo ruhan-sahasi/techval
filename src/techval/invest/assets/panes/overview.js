@@ -32,7 +32,7 @@
         el(
           "div",
           { class: "iv-hero__delta" },
-          el("span", { class: dayClass }, IV.fmt.signedMoney(over.day_abs) + " (" + IV.fmt.signedPct(over.day_pct) + ") today"),
+          el("span", { class: dayClass }, IV.fmt.signedMoney(over.day_abs) + " (" + IV.fmt.signedPct(over.day_pct) + ") on " + snapshot.meta.prices_as_of),
           el("span", { class: sinceClass }, IV.fmt.signedPct(over.twr_pct) + " time-weighted since " + snapshot.meta.first_date),
           el("span", null, IV.fmt.money(over.cash, 0) + " cash")
         )
@@ -44,7 +44,7 @@
     var tiles = el(
       "div",
       { class: "iv-tiles" },
-      IV.tile("Today", IV.fmt.signedPct(over.day_pct), IV.fmt.signedMoney(over.day_abs), { signed: over.day_pct }),
+      IV.tile("Last session", IV.fmt.signedPct(over.day_pct), IV.fmt.signedMoney(over.day_abs) + " on " + snapshot.meta.prices_as_of, { signed: over.day_pct }),
       IV.tile("vs " + snapshot.meta.benchmark, TV.fmt.points(vs, 1), "time-weighted, since inception", { signed: vs }),
       IV.tile(
         "Top 5 weight",
@@ -89,7 +89,7 @@
     });
 
     /* Movers: the day's largest absolute moves. */
-    var movers = IV.card("Today's movers", "The three largest moves in dollars");
+    var movers = IV.card("Biggest movers", "The three largest moves in dollars, session of " + snapshot.meta.prices_as_of);
     if (!over.movers.length) {
       movers.appendChild(IV.note("Nothing moved: the book holds no positions yet."));
     }
@@ -105,6 +105,8 @@
       );
     });
 
+    var fresh = IV.freshness(snapshot);
+    if (fresh) host.appendChild(fresh);
     host.appendChild(hero);
     host.appendChild(tiles);
     /* fig is already on host; move it after the tiles. */

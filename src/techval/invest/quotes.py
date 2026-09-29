@@ -68,6 +68,18 @@ class Quotes:
             )
         return float(series.closes[i - 1])
 
+    def last_close_date(self, symbol: str, kind: str = "stock") -> date:
+        """The session the latest close belongs to, on or before today."""
+        series = self.series(symbol, kind)
+        i = bisect_right(series.dates, self.today)
+        if i == 0:
+            raise MissingDataError(
+                "price history",
+                ticker=symbol.upper(),
+                hint=f"the {series.source} series has no close on or before {self.today}",
+            )
+        return series.dates[i - 1]
+
     def last_two(self, symbol: str, kind: str = "stock") -> tuple[float, float]:
         """The final close and the one before it, for a day move."""
         series = self.series(symbol, kind)

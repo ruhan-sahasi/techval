@@ -92,9 +92,21 @@ class Ledger:
             raise ConfigError("targets must map symbols to weights of value")
         clean_targets: dict[str, float] = {}
         for key, value in targets.items():
-            if not isinstance(value, (int, float)) or value < 0:
-                raise ConfigError(f"target for {key} must be a non-negative weight, not {value!r}")
-            clean_targets[str(key)] = float(value)
+            # Symbols are upper case everywhere else in the ledger, so a target
+            # spelled msft must land on MSFT, not beside it as a 0% holding.
+            name = "cash" if str(key).lower() == "cash" else str(key).upper()
+            if not isinstance(value, (int, float)) or value < 0 or value > 1:
+                raise ConfigError(
+                    f"target for {name} must be a weight of the whole book between 0 and 1, not {value!r}"
+                )
+            if name in clean_targets:
+                raise ConfigError(f"{name} has two targets; keep one")
+            clean_targets[name] = float(value)
+        total = sum(clean_targets.values())
+        if total > 1 + 1e-9:
+            raise ConfigError(
+                f"targets add up to {total:.0%} of the book; no book can hold more than 100%"
+            )
         return cls(
             name=str(raw.get("name") or "Portfolio"),
             benchmark=str(raw.get("benchmark") or "SPY").upper(),
