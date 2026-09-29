@@ -16,7 +16,7 @@
   var svg = TV.svg;
 
   var SNAPSHOT_ID = "iv-snapshot";
-  var SCHEMA = 1;
+  var SCHEMA = 2;
 
   var IV = { panes: {} };
   global.IV = IV;
@@ -153,6 +153,33 @@
     return el("p", { class: "iv-note" }, text);
   };
 
+  /*
+   * Say how old the prices are when it matters: a book priced days ago, or a
+   * holding whose last close is from another session than the benchmark's.
+   * Four days covers a long weekend; past that the numbers are a record, not
+   * a quote.
+   */
+  IV.freshness = function (snapshot) {
+    var meta = snapshot.meta;
+    var odd = snapshot.overview.mismatched_closes || [];
+    var lines = [];
+    if (meta.prices_age_days > 4) {
+      lines.push(
+        "Prices are " + meta.prices_age_days + " days old: the last close any source returned is " +
+          meta.prices_as_of + ". An --offline run prices from local CSVs; run without it to refresh."
+      );
+    }
+    if (odd.length) {
+      lines.push(
+        odd.join(", ") + " last closed" +
+          " in a different session from " + meta.benchmark + ", so " + (odd.length === 1 ? "its" : "their") +
+          " value and day move are from that session, not " + meta.prices_as_of + "."
+      );
+    }
+    if (!lines.length) return null;
+    return el("div", { class: "iv-banner" }, lines.join(" "));
+  };
+
   /* The destinations, in rail order. ---------------------------------------- */
 
   var DESTINATIONS = [
@@ -261,7 +288,8 @@
         el(
           "div",
           { class: "iv-rail__meta" },
-          el("span", null, "As of " + meta.generated),
+          el("span", null, "Built " + meta.generated),
+          el("span", null, "Last close " + meta.prices_as_of),
           el("span", null, "Prices: " + meta.price_source),
           el("span", null, "Benchmark: " + meta.benchmark)
         )
@@ -273,7 +301,7 @@
           "header",
           { class: "iv-topbar" },
           refs.title,
-          el("span", { class: "iv-topbar__meta" }, "As of " + meta.generated),
+          el("span", { class: "iv-topbar__meta" }, "Prices as of " + meta.prices_as_of),
           toggle
         ),
         refs.pane
