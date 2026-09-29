@@ -107,3 +107,55 @@ def test_write_is_byte_stable(snapshot, tmp_path):
     write_snapshot(snapshot, b)
     assert a.read_bytes() == b.read_bytes()
     assert a.read_bytes().endswith(b"\n")
+
+
+def test_prices_are_dated_and_a_mismatched_close_is_named(tmp_path):
+    path = tmp_path / "portfolio.yaml"
+    path.write_text(
+        """
+benchmark: SPY
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 100000}
+  - {date: 2024-01-08, type: buy, symbol: DDOG, shares: 10, price: 120}
+  - {date: 2024-01-08, type: buy, symbol: DIS, shares: 10, price: 90}
+""",
+        encoding="utf-8",
+    )
+    ledger = Ledger.load(path)
+    today = date(2026, 9, 28)
+    quotes = Quotes(CsvSource(FIXTURES / "prices"), start=ledger.first_date, today=today)
+    snap = build_snapshot(ledger, quotes, fixtures=FIXTURES, assumptions=Assumptions(), today=today)
+    meta = snap["meta"]
+    assert meta["prices_as_of"] == "2026-09-09"
+    assert meta["prices_age_days"] == 19
+    by = {p["symbol"]: p for p in snap["positions"]}
+    assert by["DDOG"]["price_date"] == "2026-09-09"
+    assert by["DIS"]["price_date"] == "2026-09-10"
+    assert snap["overview"]["mismatched_closes"] == ["DIS"]
+
+
+def test_a_fresh_book_has_no_mismatched_closes(snapshot):
+    assert snapshot["meta"]["prices_as_of"] == "2024-06-03"
+    assert snapshot["meta"]["prices_age_days"] == 0
+    assert snapshot["overview"]["mismatched_closes"] == []
+
+
+def test_missing_model_panels_refuse_by_name_and_the_rest_still_builds(tmp_path):
+    path = tmp_path / "portfolio.yaml"
+    path.write_text(BOOK, encoding="utf-8")
+    ledger = Ledger.load(path)
+    quotes = Quotes(CsvSource(FIXTURES / "prices"), start=ledger.first_date, today=TODAY)
+    empty = tmp_path / "no-panels"
+    empty.mkdir()
+    snap = build_snapshot(ledger, quotes, fixtures=empty, assumptions=Assumptions(), today=TODAY)
+    validate_snapshot(snap)
+    assert len(snap["positions"]) == 3
+    ddog = snap["engine"]["DDOG"]
+    assert ddog["fade"] is None and ddog["warranted"] is None
+    whats = {r["what"]: r["why"] for r in ddog["refusals"]}
+    assert "fade_companyfacts.json.gz" in whats["Fade path"]
+    assert "observations.json.gz" in whats["Warranted multiple"]
+    assert "--panels" in whats["Fade path"]
+    ideas = snap["ideas"]
+    assert ideas["cheap"] == [] and ideas["rich"] == [] and ideas["as_of"] is None
+    assert "observations.json.gz" in ideas["refusal"]

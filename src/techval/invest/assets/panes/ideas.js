@@ -47,6 +47,12 @@
   function render(host, snapshot) {
     var ideas = snapshot.ideas;
     host.appendChild(el("div", { class: "iv-banner" }, ideas.verdict));
+    if (ideas.refusal) {
+      var refused = IV.card("No screen on this run", "The ideas come from the recorded warranted panel.");
+      refused.appendChild(IV.note(ideas.refusal + "."));
+      host.appendChild(refused);
+      return;
+    }
     table(host, "Cheapest to the warranted line", { list: ideas.cheap, as_of: ideas.as_of }, "cheap");
     table(host, "Richest to the warranted line", { list: ideas.rich, as_of: ideas.as_of }, "rich");
     host.appendChild(

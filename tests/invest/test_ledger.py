@@ -122,3 +122,55 @@ def test_transactions_are_frozen():
     txn = Transaction(date(2024, 1, 2), "deposit", amount=5.0)
     with pytest.raises(AttributeError):
         txn.amount = 6.0
+
+
+def test_target_keys_match_symbols_however_they_are_cased(tmp_path):
+    body = """
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 1000}
+  - {date: 2024-01-03, type: buy, symbol: msft, shares: 1, price: 400}
+targets:
+  msft: 0.5
+  CASH: 0.1
+"""
+    ledger = Ledger.load(write(tmp_path, body))
+    assert ledger.symbols() == ["MSFT"]
+    assert ledger.targets == {"MSFT": 0.5, "cash": 0.1}
+
+
+def test_targets_that_sum_past_the_whole_book_refuse(tmp_path):
+    body = """
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 1000}
+targets:
+  AAA: 0.7
+  BBB: 0.5
+"""
+    with pytest.raises(ConfigError) as err:
+        Ledger.load(write(tmp_path, body))
+    assert "120" in str(err.value)
+
+
+def test_a_single_target_above_the_whole_book_refuses(tmp_path):
+    body = """
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 1000}
+targets:
+  AAA: 1.5
+"""
+    with pytest.raises(ConfigError) as err:
+        Ledger.load(write(tmp_path, body))
+    assert "AAA" in str(err.value)
+
+
+def test_the_same_target_twice_under_two_casings_refuses(tmp_path):
+    body = """
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 1000}
+targets:
+  aaa: 0.2
+  AAA: 0.3
+"""
+    with pytest.raises(ConfigError) as err:
+        Ledger.load(write(tmp_path, body))
+    assert "AAA" in str(err.value)

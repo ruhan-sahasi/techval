@@ -73,3 +73,12 @@ def test_an_unmapped_crypto_refuses_with_a_hint():
     with pytest.raises(MissingDataError) as err:
         quotes.series("WEIRDCOIN", kind="crypto")
     assert "CRYPTO_USD" in str(err.value.hint or err.value)
+
+
+def test_the_last_close_date_is_the_final_session_on_or_before_today():
+    quotes = Quotes(CsvSource(PRICES), start=date(2023, 9, 1), today=date(2026, 9, 28))
+    assert quotes.last_close_date("SPY") == date(2026, 9, 9)
+    # DIS's committed closes run a session past everything else.
+    assert quotes.last_close_date("DIS") == date(2026, 9, 10)
+    capped = Quotes(CsvSource(PRICES), start=date(2023, 9, 1), today=date(2024, 3, 3))
+    assert capped.last_close_date("SPY") == date(2024, 3, 1)
