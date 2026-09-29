@@ -1447,9 +1447,22 @@ dark-first page in the same visual system as the results dashboard. A demo
 built from a fictional book is committed at `docs/invest/index.html`; open it
 from a checkout and click through the rail.
 
-    techval invest init      write a commented starter portfolio.yaml under portfolio/
-    techval invest           refresh quotes, run the engine over the holdings, render the page
-    techval invest --render  redraw the page from the last snapshot, touching nothing
+    techval invest init       write a commented starter portfolio.yaml under portfolio/
+    techval invest            refresh quotes, run the engine over the holdings, render the page
+    techval invest --render   redraw the page from the last snapshot, touching nothing
+    techval invest --open     open the page in the browser once it is written
+    techval invest --offline  price from local CSVs and skip the live DCFs
+    techval invest --refit    refit the fade and warranted models instead of loading them
+    techval invest --panels   point at a checkout's tests/fixtures from an installed copy
+
+The two model fits take about nine seconds and are cached in `ml.cache_dir`,
+keyed on the panels and the code that fits them, so a second run takes about
+three. Prices are dated: the page names the session they closed in rather
+than saying today, flags a holding that closed in a different session from
+the benchmark, and warns when the last close is more than four days old. The
+ledger records splits as they happened and the price sources restate history
+for them, so each day's holding is converted into post-split units before it
+is valued; a split never shows up as a gain.
 
 Seven panes. Overview: the balance, the day, and growth of a dollar against
 the benchmark, time-weighted so deposits are not performance. Holdings: the
