@@ -90,6 +90,9 @@
             var cls = c.num ? "tv-num" : null;
             if (c.signed) cls = IV.signClass(row[c.key], cls) || cls;
             var content = c.key === "engine" ? engineCell(row) : cellText(row, c);
+            if (c.key === "price" && row.price_date !== snapshot.meta.prices_as_of) {
+              content = [content, el("span", { class: "tv-muted", style: { fontSize: "var(--fs-micro)" } }, " " + row.price_date)];
+            }
             if (c.key === "symbol") {
               content = [el("span", { style: { fontWeight: "650" } }, row.symbol), el("span", { class: "tv-muted" }, " " + row.kind)];
             }
@@ -110,6 +113,9 @@
     );
     var wrap = el("div", { class: "tv-table-wrap iv-book", tabindex: "0", role: "region", "aria-label": "Holdings, sortable table" }, table);
     IV.sortable(wrap);
+
+    var fresh = IV.freshness(snapshot);
+    if (fresh) host.appendChild(fresh);
 
     var card = IV.card(
       "The book",
