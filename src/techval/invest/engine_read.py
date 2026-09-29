@@ -10,6 +10,8 @@ signal lost to a random score" is how a research tool becomes a tip sheet.
 from __future__ import annotations
 
 import gzip
+import hashlib
+import importlib
 import json
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -30,33 +32,107 @@ class EngineRead:
     refusals: list[dict] = field(default_factory=list)
 
 
-@lru_cache(maxsize=2)
-def fade_model(fixtures: Path):
+# Bumped whenever what a cached fit means changes without its inputs changing.
+FIT_SCHEMA = 1
+
+FADE_PANEL = "fade_companyfacts.json.gz"
+WARRANTED_PANEL = "warranted/observations.json.gz"
+
+# The modules whose source moves each fit. A change to any of them is a cache
+# miss, the same rule the dashboard collector keys its sections on.
+_FADE_MODULES = ("techval.ml.forecast", "techval.tmt.taxonomy", "techval.invest.engine_read")
+_WARRANTED_MODULES = (
+    "techval.ml.warranted",
+    "techval.ml.nn",
+    "techval.ml.features",
+    "techval.commands_peers",
+    "techval.invest.engine_read",
+)
+
+
+def fit_key(kind: str, inputs: list[Path], modules: tuple[str, ...]) -> str:
+    """A key over the panel bytes, the fitting code and the cache schema."""
+    h = hashlib.sha256(f"{kind}:{FIT_SCHEMA}".encode())
+    for path in inputs:
+        h.update(Path(path).read_bytes())
+    for name in modules:
+        h.update(Path(importlib.import_module(name).__file__).read_bytes())
+    return h.hexdigest()[:16]
+
+
+def cached_fit(kind: str, inputs: list[Path], modules: tuple[str, ...], build, cache_root: Path | None, refit: bool = False):
+    """Load a fit from the disk cache, or build it and store it.
+
+    The fits take nine seconds together and are pure functions of committed
+    panels, so a second run of techval invest should not pay for them again.
+    An unreadable or unwritable entry is a miss, never a failed run; with no
+    cache root there is no disk cache at all, which is how the tests run.
+    """
+    if cache_root is None:
+        return build()
+    import joblib
+
+    path = Path(cache_root).expanduser() / f"invest_{kind}_{fit_key(kind, inputs, modules)}.joblib"
+    if path.is_file() and not refit:
+        try:
+            return joblib.load(path)
+        except Exception:  # noqa: BLE001 - an unreadable cache is a miss
+            pass
+    model = build()
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        joblib.dump(model, path, compress=3)
+    except Exception:  # noqa: BLE001 - an unwritable cache slows the next run only
+        pass
+    return model
+
+
+def _normal(fixtures, cache_root, refit) -> tuple:
+    """One lru key per fit however the call spells its arguments."""
+    return Path(fixtures), None if cache_root is None else Path(cache_root), bool(refit)
+
+
+def fade_model(fixtures: Path, cache_root: Path | None = None, refit: bool = False):
     """One fade fit on the committed panel, shared by every read."""
-    from ..edgar import CompanyFacts
-    from ..ml.forecast import build_fade_panel, fade_universe, fit_fade
-
-    blob = json.load(gzip.open(Path(fixtures) / "fade_companyfacts.json.gz", "rt"))
-
-    class _Client:
-        def company_facts(self, ticker: str) -> CompanyFacts:
-            return CompanyFacts(blob["payloads"][ticker.upper()], ticker)
-
-    universe = {t: v for t, v in fade_universe().items() if t in blob["payloads"]}
-    panel = build_fade_panel(universe, _Client())
-    assumptions = Assumptions()
-    assumptions.ml.forecast.enabled = True
-    return fit_fade(panel, assumptions)
+    return _fade_model(*_normal(fixtures, cache_root, refit))
 
 
-@lru_cache(maxsize=2)
-def warranted_model(fixtures: Path):
+def warranted_model(fixtures: Path, cache_root: Path | None = None, refit: bool = False):
     """One warranted fit on the recorded panel, shared by every read."""
-    from ..commands_peers import _load_observations
-    from ..ml.warranted import fit_warranted
+    return _warranted_model(*_normal(fixtures, cache_root, refit))
 
-    panel = _load_observations(Path(fixtures) / "warranted" / "observations.json.gz")
-    return fit_warranted(panel, Assumptions(), model="mlp")
+
+@lru_cache(maxsize=4)
+def _fade_model(fixtures: Path, cache_root: Path | None, refit: bool):
+    def build():
+        from ..edgar import CompanyFacts
+        from ..ml.forecast import build_fade_panel, fade_universe, fit_fade
+
+        blob = json.load(gzip.open(fixtures / FADE_PANEL, "rt"))
+
+        class _Client:
+            def company_facts(self, ticker: str) -> CompanyFacts:
+                return CompanyFacts(blob["payloads"][ticker.upper()], ticker)
+
+        universe = {t: v for t, v in fade_universe().items() if t in blob["payloads"]}
+        panel = build_fade_panel(universe, _Client())
+        assumptions = Assumptions()
+        assumptions.ml.forecast.enabled = True
+        return fit_fade(panel, assumptions)
+
+    return cached_fit("fade", [fixtures / FADE_PANEL], _FADE_MODULES, build, cache_root, refit)
+
+
+@lru_cache(maxsize=4)
+def _warranted_model(fixtures: Path, cache_root: Path | None, refit: bool):
+    def build():
+        from ..commands_peers import _load_observations
+        from ..ml.warranted import fit_warranted
+
+        panel = _load_observations(fixtures / WARRANTED_PANEL)
+        return fit_warranted(panel, Assumptions(), model="mlp")
+
+    return cached_fit("warranted", [fixtures / WARRANTED_PANEL], _WARRANTED_MODULES, build, cache_root, refit)
 
 
 def _assumed_line(assumptions: Assumptions) -> list[float]:
@@ -75,6 +151,8 @@ def read_holdings(
     *,
     fixtures: Path,
     assumptions: Assumptions,
+    cache_root: Path | None = None,
+    refit: bool = False,
 ) -> dict[str, EngineRead]:
     from ..ml.forecast import fade_universe
 
@@ -92,14 +170,13 @@ def read_holdings(
             ]
             out[symbol] = read
             continue
-        read.fade = _fade_read(symbol, fixtures, assumptions, read.refusals)
-        read.warranted = _warranted_read(symbol, fixtures, read.refusals)
+        read.fade = _fade_read(fade_model(fixtures, cache_root, refit), symbol, assumptions, read.refusals)
+        read.warranted = _warranted_read(warranted_model(fixtures, cache_root, refit), symbol, read.refusals)
         out[symbol] = read
     return out
 
 
-def _fade_read(symbol: str, fixtures: Path, assumptions: Assumptions, refusals: list[dict]) -> dict | None:
-    model = fade_model(fixtures)
+def _fade_read(model, symbol: str, assumptions: Assumptions, refusals: list[dict]) -> dict | None:
     years = assumptions.dcf.projection_years
     try:
         path = model.path(symbol, years)
@@ -121,8 +198,7 @@ def _fade_read(symbol: str, fixtures: Path, assumptions: Assumptions, refusals: 
     }
 
 
-def _warranted_read(symbol: str, fixtures: Path, refusals: list[dict]) -> dict | None:
-    model = warranted_model(fixtures)
+def _warranted_read(model, symbol: str, refusals: list[dict]) -> dict | None:
     try:
         read = model.warranted(symbol)
     except TechvalError as err:
