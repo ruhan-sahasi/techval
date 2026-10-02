@@ -59,34 +59,59 @@
       )
     );
 
-    /* Growth of one dollar against the benchmark, the kit's own line chart. */
+    /* Growth of one dollar against the benchmark, with a brokerage-style range. */
     var fig = TV.figure(host, {
       title: "Growth of $1 against " + perf.benchmark,
-      subtitle:
-        "Time-weighted, so deposits and withdrawals move neither line. " +
-        "Both start at the first transaction, " + snapshot.meta.first_date + ".",
+      subtitle: "Time-weighted, so deposits and withdrawals move neither line. Both lines start at $1 on the range's first session.",
       id: "iv-growth",
     });
-    TV.charts.line(fig.body, {
-      x: { type: "date", label: "Date" },
-      format: "num:2",
-      series: [
-        {
-          name: snapshot.meta.name,
-          role: "model",
-          values: perf.dates.map(function (d, i) {
-            return { x: d, y: perf.growth[i] };
-          }),
-        },
-        {
-          name: perf.benchmark,
-          role: "baseline",
-          values: perf.dates.map(function (d, i) {
-            return { x: d, y: perf.benchmark_growth[i] };
-          }),
-        },
-      ],
+    var buttons = {};
+    var bar = el("div", { class: "iv-range", role: "group", "aria-label": "Chart range" });
+    IV.range.KEYS.forEach(function (key) {
+      var b = el("button", { class: "iv-range__btn", type: "button", "aria-pressed": "false" }, key);
+      b.addEventListener("click", function () {
+        draw(key);
+      });
+      buttons[key] = b;
+      bar.appendChild(b);
     });
+    fig.root.firstChild.appendChild(bar);
+
+    function draw(key) {
+      IV.range.current = key;
+      Object.keys(buttons).forEach(function (k) {
+        buttons[k].setAttribute("aria-pressed", k === key ? "true" : "false");
+      });
+      var i = IV.range.startIndex(perf.dates, key);
+      var dates = perf.dates.slice(i);
+      var mine = IV.range.rebase(perf.growth, i);
+      var theirs = IV.range.rebase(perf.benchmark_growth, i);
+      /* A redraw replaces the chart, its legend and its table view together. */
+      TV.clear(fig.body);
+      TV.clear(fig.legend);
+      TV.clear(fig.table);
+      TV.charts.line(fig.body, {
+        x: { type: "date", label: "Date" },
+        format: "num:2",
+        series: [
+          {
+            name: snapshot.meta.name,
+            role: "model",
+            values: dates.map(function (d, j) {
+              return { x: d, y: mine[j] };
+            }),
+          },
+          {
+            name: perf.benchmark,
+            role: "baseline",
+            values: dates.map(function (d, j) {
+              return { x: d, y: theirs[j] };
+            }),
+          },
+        ],
+      });
+    }
+    draw(IV.range.current || "ALL");
 
     /* Movers: the day's largest absolute moves. */
     var movers = IV.card("Biggest movers", "The three largest moves in dollars, session of " + snapshot.meta.prices_as_of);

@@ -1883,6 +1883,42 @@ body {
   padding-top: var(--space-3);
 }
 
+/* The chart range: a segmented control in the figure head. */
+.iv-range {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: var(--space-2);
+  padding: 2px;
+  width: fit-content;
+  background: var(--wash);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+
+.iv-range__btn {
+  appearance: none;
+  min-width: 40px;
+  padding: 4px var(--space-2);
+  border: 0;
+  border-radius: calc(var(--radius-control) - 2px);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+}
+
+.iv-range__btn:hover {
+  color: var(--ink-1);
+}
+
+.iv-range__btn[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink-1);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
 /* Figures keep the kit's chrome but drop the document's exhibit numbering. */
 .iv-pane .tv-figure > .tv-figure__head > .tv-figure__title::before {
   content: none;
@@ -6209,6 +6245,43 @@ body {
     global.requestAnimationFrame(step);
   };
 
+  /*
+   * Chart ranges, the way a brokerage app slices its main chart. A range
+   * starts a calendar offset before the last date (1M, 3M, 1Y; YTD at 1
+   * January), lands on the first session on or after that day, and the
+   * lines are rebased to one there, so every range reads as growth of $1.
+   */
+  function isoMinusMonths(iso, months) {
+    var y = +iso.slice(0, 4);
+    var m = +iso.slice(5, 7) - 1 - months;
+    var d = +iso.slice(8, 10);
+    y += Math.floor(m / 12);
+    m = ((m % 12) + 12) % 12;
+    var last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    var dd = Math.min(d, last);
+    return y + "-" + String(m + 1).padStart(2, "0") + "-" + String(dd).padStart(2, "0");
+  }
+
+  IV.range = {
+    KEYS: ["1M", "3M", "YTD", "1Y", "ALL"],
+    startIndex: function (dates, key) {
+      if (!dates.length || key === "ALL") return 0;
+      var last = dates[dates.length - 1];
+      var start =
+        key === "YTD" ? last.slice(0, 4) + "-01-01" : isoMinusMonths(last, { "1M": 1, "3M": 3, "1Y": 12 }[key] || 0);
+      for (var i = 0; i < dates.length; i++) {
+        if (dates[i] >= start) return i;
+      }
+      return dates.length - 1;
+    },
+    rebase: function (series, i) {
+      var base = series[i];
+      return series.slice(i).map(function (v) {
+        return v / base;
+      });
+    },
+  };
+
   /* A dense sortable table: click a header, the rows re-order in place. ----- */
 
   IV.sortable = function (wrap) {
@@ -7067,34 +7140,59 @@ body {
       )
     );
 
-    /* Growth of one dollar against the benchmark, the kit's own line chart. */
+    /* Growth of one dollar against the benchmark, with a brokerage-style range. */
     var fig = TV.figure(host, {
       title: "Growth of $1 against " + perf.benchmark,
-      subtitle:
-        "Time-weighted, so deposits and withdrawals move neither line. " +
-        "Both start at the first transaction, " + snapshot.meta.first_date + ".",
+      subtitle: "Time-weighted, so deposits and withdrawals move neither line. Both lines start at $1 on the range's first session.",
       id: "iv-growth",
     });
-    TV.charts.line(fig.body, {
-      x: { type: "date", label: "Date" },
-      format: "num:2",
-      series: [
-        {
-          name: snapshot.meta.name,
-          role: "model",
-          values: perf.dates.map(function (d, i) {
-            return { x: d, y: perf.growth[i] };
-          }),
-        },
-        {
-          name: perf.benchmark,
-          role: "baseline",
-          values: perf.dates.map(function (d, i) {
-            return { x: d, y: perf.benchmark_growth[i] };
-          }),
-        },
-      ],
+    var buttons = {};
+    var bar = el("div", { class: "iv-range", role: "group", "aria-label": "Chart range" });
+    IV.range.KEYS.forEach(function (key) {
+      var b = el("button", { class: "iv-range__btn", type: "button", "aria-pressed": "false" }, key);
+      b.addEventListener("click", function () {
+        draw(key);
+      });
+      buttons[key] = b;
+      bar.appendChild(b);
     });
+    fig.root.firstChild.appendChild(bar);
+
+    function draw(key) {
+      IV.range.current = key;
+      Object.keys(buttons).forEach(function (k) {
+        buttons[k].setAttribute("aria-pressed", k === key ? "true" : "false");
+      });
+      var i = IV.range.startIndex(perf.dates, key);
+      var dates = perf.dates.slice(i);
+      var mine = IV.range.rebase(perf.growth, i);
+      var theirs = IV.range.rebase(perf.benchmark_growth, i);
+      /* A redraw replaces the chart, its legend and its table view together. */
+      TV.clear(fig.body);
+      TV.clear(fig.legend);
+      TV.clear(fig.table);
+      TV.charts.line(fig.body, {
+        x: { type: "date", label: "Date" },
+        format: "num:2",
+        series: [
+          {
+            name: snapshot.meta.name,
+            role: "model",
+            values: dates.map(function (d, j) {
+              return { x: d, y: mine[j] };
+            }),
+          },
+          {
+            name: perf.benchmark,
+            role: "baseline",
+            values: dates.map(function (d, j) {
+              return { x: d, y: theirs[j] };
+            }),
+          },
+        ],
+      });
+    }
+    draw(IV.range.current || "ALL");
 
     /* Movers: the day's largest absolute moves. */
     var movers = IV.card("Biggest movers", "The three largest moves in dollars, session of " + snapshot.meta.prices_as_of);

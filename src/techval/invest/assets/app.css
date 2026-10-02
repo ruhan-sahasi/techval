@@ -280,6 +280,42 @@ body {
   padding-top: var(--space-3);
 }
 
+/* The chart range: a segmented control in the figure head. */
+.iv-range {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: var(--space-2);
+  padding: 2px;
+  width: fit-content;
+  background: var(--wash);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+
+.iv-range__btn {
+  appearance: none;
+  min-width: 40px;
+  padding: 4px var(--space-2);
+  border: 0;
+  border-radius: calc(var(--radius-control) - 2px);
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+}
+
+.iv-range__btn:hover {
+  color: var(--ink-1);
+}
+
+.iv-range__btn[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--ink-1);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
 /* Figures keep the kit's chrome but drop the document's exhibit numbering. */
 .iv-pane .tv-figure > .tv-figure__head > .tv-figure__title::before {
   content: none;
