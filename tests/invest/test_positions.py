@@ -137,3 +137,99 @@ transactions:
 """,
         ).positions()
     assert "GGG" in str(err.value)
+
+
+def test_a_buy_fee_joins_the_cost_basis_and_leaves_cash(tmp_path):
+    ledger = load(
+        tmp_path,
+        """
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 2000}
+  - {date: 2024-01-03, type: buy, symbol: HHH, shares: 10, price: 100, fee: 5}
+""",
+    )
+    hhh = ledger.positions()["HHH"]
+    assert hhh.cost == pytest.approx(1005.0)
+    assert hhh.lots[0].cost_per_share == pytest.approx(100.5)
+    assert ledger.cash() == pytest.approx(995.0)
+
+
+def test_a_sell_fee_comes_off_the_proceeds_and_the_gain(tmp_path):
+    ledger = load(
+        tmp_path,
+        """
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 2000}
+  - {date: 2024-01-03, type: buy, symbol: HHH, shares: 10, price: 100}
+  - {date: 2024-02-01, type: sell, symbol: HHH, shares: 10, price: 120, fee: 7}
+""",
+    )
+    hhh = ledger.positions()["HHH"]
+    assert hhh.realized == pytest.approx(200.0 - 7.0)
+    assert ledger.cash() == pytest.approx(2000 - 1000 + 1200 - 7)
+
+
+def test_a_fee_off_a_trade_refuses(tmp_path):
+    with pytest.raises(ConfigError) as err:
+        load(tmp_path, "transactions:\n  - {date: 2024-01-02, type: deposit, amount: 5, fee: 1}\n")
+    assert "fee" in str(err.value)
+
+
+def test_a_negative_fee_refuses(tmp_path):
+    with pytest.raises(ConfigError) as err:
+        load(
+            tmp_path,
+            "transactions:\n  - {date: 2024-01-02, type: deposit, amount: 500}\n"
+            "  - {date: 2024-01-03, type: buy, symbol: HHH, shares: 1, price: 100, fee: -1}\n",
+        )
+    assert "fee" in str(err.value)
+
+
+def test_each_sale_realizes_per_lot_with_its_holding_period(tmp_path):
+    ledger = load(
+        tmp_path,
+        """
+transactions:
+  - {date: 2023-01-02, type: deposit, amount: 10000}
+  - {date: 2023-01-10, type: buy, symbol: TTT, shares: 10, price: 100}
+  - {date: 2023-06-01, type: buy, symbol: TTT, shares: 10, price: 150}
+  - {date: 2023-12-01, type: sell, symbol: TTT, shares: 5, price: 200}
+  - {date: 2024-03-01, type: sell, symbol: TTT, shares: 10, price: 210, fee: 10}
+""",
+    )
+    events = ledger.realized_events()
+    assert [(e.sold.isoformat(), e.opened.isoformat(), e.shares, e.term) for e in events] == [
+        ("2023-12-01", "2023-01-10", 5, "short"),
+        ("2024-03-01", "2023-01-10", 5, "long"),
+        ("2024-03-01", "2023-06-01", 5, "short"),
+    ]
+    # The second sale's fee is shared across the lots it consumed, by shares.
+    assert events[1].gain == pytest.approx(5 * (210 - 100) - 5)
+    assert events[2].gain == pytest.approx(5 * (210 - 150) - 5)
+    assert sum(e.gain for e in events) == pytest.approx(ledger.positions()["TTT"].realized)
+
+
+def test_held_exactly_one_year_is_still_short_term(tmp_path):
+    ledger = load(
+        tmp_path,
+        """
+transactions:
+  - {date: 2023-01-02, type: deposit, amount: 1000}
+  - {date: 2023-03-15, type: buy, symbol: UUU, shares: 1, price: 100}
+  - {date: 2024-03-15, type: sell, symbol: UUU, shares: 1, price: 120}
+""",
+    )
+    assert ledger.realized_events()[0].term == "short"
+
+
+def test_a_leap_day_purchase_reaches_its_anniversary_on_the_28th(tmp_path):
+    ledger = load(
+        tmp_path,
+        """
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 1000}
+  - {date: 2024-02-29, type: buy, symbol: VVV, shares: 1, price: 100}
+  - {date: 2025-03-01, type: sell, symbol: VVV, shares: 1, price: 120}
+""",
+    )
+    assert ledger.realized_events()[0].term == "long"

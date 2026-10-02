@@ -28,6 +28,92 @@
       )
     );
 
+    /* Risk beside return, the book against the benchmark on the same days. */
+    var risk = perf.risk;
+    var pct = function (v, dp) {
+      return v === null || v === undefined ? "n/a" : TV.fmt.pct(v, dp === undefined ? 1 : dp);
+    };
+    var riskCard = IV.card(
+      "Return and risk",
+      "Time-weighted, so deposits are neither return nor drawdown. Annualized only over a year or more."
+    );
+    var riskTable = el(
+      "table",
+      { class: "tv-table" },
+      el("caption", { class: "tv-visually-hidden" }, "Return and risk"),
+      el(
+        "thead",
+        null,
+        el(
+          "tr",
+          null,
+          ["", "Annualized", "Volatility", "Max drawdown", "Peak", "Trough"].map(function (label, i) {
+            return el("th", { scope: "col", class: i >= 1 && i <= 3 ? "tv-num" : null }, label);
+          })
+        )
+      ),
+      el(
+        "tbody",
+        null,
+        [
+          [snapshot.meta.name, risk.portfolio],
+          [perf.benchmark, risk.benchmark],
+        ].map(function (pair) {
+          var r = pair[1];
+          return el(
+            "tr",
+            null,
+            el("th", { scope: "row", style: { fontWeight: "650" } }, pair[0]),
+            el("td", { class: IV.signClass(r.annualized, "tv-num") || "tv-num" }, r.annualized === null ? "under a year" : IV.fmt.signedPct(r.annualized, 1)),
+            el("td", { class: "tv-num" }, pct(r.volatility)),
+            el("td", { class: IV.signClass(r.max_drawdown, "tv-num") || "tv-num" }, r.max_drawdown ? TV.fmt.pct(r.max_drawdown, 1) : "none"),
+            el("td", null, r.drawdown_peak || ""),
+            el("td", null, r.drawdown_trough || "")
+          );
+        })
+      )
+    );
+    riskCard.appendChild(el("div", { class: "tv-table-wrap", tabindex: "0", role: "region", "aria-label": "Return and risk" }, riskTable));
+    host.appendChild(riskCard);
+
+    /* Underwater: how far each line sits below its own running peak, every day. */
+    function underwater(path) {
+      var peak = -Infinity;
+      return path.map(function (g) {
+        peak = Math.max(peak, g);
+        return g / peak - 1;
+      });
+    }
+    if (perf.dates.length > 1) {
+      var mine = underwater(perf.growth);
+      var theirs = underwater(perf.benchmark_growth);
+      var water = TV.figure(host, {
+        title: "Below the last high",
+        subtitle: "Each line's distance under its own running peak, time-weighted. The deepest point is the max drawdown above.",
+        id: "iv-drawdown",
+      });
+      TV.charts.line(water.body, {
+        x: { type: "date", label: "Date" },
+        format: "pct:0",
+        series: [
+          {
+            name: snapshot.meta.name,
+            role: "model",
+            values: perf.dates.map(function (d, i) {
+              return { x: d, y: mine[i] };
+            }),
+          },
+          {
+            name: perf.benchmark,
+            role: "baseline",
+            values: perf.dates.map(function (d, i) {
+              return { x: d, y: theirs[i] };
+            }),
+          },
+        ],
+      });
+    }
+
     if (!perf.contributions.length) {
       var empty = IV.card("No positions yet", "Contribution and lots start with the first buy.");
       empty.appendChild(IV.note("The return tiles above are already honest: cash earns the book 0.0% however the benchmark moves."));
@@ -64,6 +150,74 @@
         rows: perf.contributions,
       },
     });
+
+    /* Dividend income by calendar year, read straight off the ledger rows. */
+    var byYear = {};
+    snapshot.activity.forEach(function (row) {
+      if (row.type !== "dividend") return;
+      var year = row.date.slice(0, 4);
+      byYear[year] = (byYear[year] || 0) + row.amount;
+    });
+    var years = Object.keys(byYear).sort();
+    if (years.length) {
+      var income = TV.figure(host, {
+        title: "Dividend income by year",
+        subtitle: "Cash paid into the book, by the year it arrived",
+        id: "iv-dividends",
+      });
+      TV.charts.column(income.body, {
+        format: "num:2",
+        legend: false,
+        labels: "all",
+        rows: years.map(function (y) {
+          return { label: y, value: Math.round(byYear[y] * 100) / 100, role: "model" };
+        }),
+      });
+    }
+
+    /* Realized gains by the year of sale, the way a tax form asks for them. */
+    if (perf.realized_by_year.length) {
+      var tax = IV.card(
+        "Realized gains by tax year",
+        "FIFO lots, fees in the basis and off the proceeds. Long term means held more than a year."
+      );
+      var money = function (v) {
+        return el("td", { class: IV.signClass(v, "tv-num") || "tv-num" }, IV.fmt.signedMoney(v));
+      };
+      tax.appendChild(
+        el(
+          "div",
+          { class: "tv-table-wrap", tabindex: "0", role: "region", "aria-label": "Realized gains by tax year" },
+          el(
+            "table",
+            { class: "tv-table" },
+            el("caption", { class: "tv-visually-hidden" }, "Realized gains by tax year"),
+            el(
+              "thead",
+              null,
+              el(
+                "tr",
+                null,
+                ["Year", "Short term", "Long term", "Total"].map(function (label, i) {
+                  return el("th", { scope: "col", class: i ? "tv-num" : null }, label);
+                })
+              )
+            ),
+            el(
+              "tbody",
+              null,
+              perf.realized_by_year.map(function (y) {
+                return el("tr", null, el("th", { scope: "row" }, String(y.year)), money(y.short), money(y.long), money(y.total));
+              })
+            )
+          )
+        )
+      );
+      tax.appendChild(
+        IV.note("Arithmetic on your own ledger, not tax advice: wash sales, specific-lot elections and anything a broker adjusts are outside it.")
+      );
+      host.appendChild(tax);
+    }
 
     /* The lots, oldest first, each against today's price. */
     var lots = IV.card("Open lots", perf.lots.length + " lots, FIFO. Split-adjusted where a split arrived.");

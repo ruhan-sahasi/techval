@@ -102,12 +102,20 @@ class HttpCache:
 
     Determinism is the point: the same ticker against the same cached filings
     must produce byte-identical valuations, so that a number in a memo can be
-    reproduced later.
+    reproduced later. That is why nothing expires by default.
+
+    ``max_age`` (seconds) is for callers that want the opposite of a memo: a
+    portfolio tracker run every morning. An entry older than it reads as a
+    miss and is overwritten by the next fetch. It is a property of the cache
+    a caller builds, so the valuation commands' forever-cache never changes.
     """
 
-    def __init__(self, root: Path = CACHE_ROOT, enabled: bool = True) -> None:
+    def __init__(
+        self, root: Path = CACHE_ROOT, enabled: bool = True, max_age: float | None = None
+    ) -> None:
         self.root = Path(root)
         self.enabled = enabled
+        self.max_age = max_age
         if enabled:
             self.root.mkdir(parents=True, exist_ok=True)
 
@@ -119,7 +127,11 @@ class HttpCache:
         if not self.enabled:
             return None
         p = self._path(url)
-        return p.read_bytes() if p.exists() else None
+        if not p.exists():
+            return None
+        if self.max_age is not None and time.time() - p.stat().st_mtime > self.max_age:
+            return None
+        return p.read_bytes()
 
     def put(self, url: str, body: bytes) -> None:
         if not self.enabled:

@@ -47,6 +47,7 @@ from rich.text import Text
 from .comps import run_comps
 from .apv import run_apv
 from .commands_forecast import app as _forecast_app
+from .commands_cache import app as _cache_app
 from .commands_invest import app as _invest_app
 from .commands_mna import app as _mna_app
 from .commands_peers import app as _peers_app
@@ -119,6 +120,23 @@ app = typer.Typer(
 console = Console(width=None if sys.stdout.isatty() else 120)
 
 
+def _print_version(value: bool) -> None:
+    if value:
+        from . import __version__
+
+        console.print(f"techval {__version__}", highlight=False)
+        raise typer.Exit()
+
+
+@app.callback()
+def _root(
+    version: bool = typer.Option(
+        False, "--version", callback=_print_version, is_eager=True, help="Print the version and exit."
+    ),
+) -> None:
+    """DCF, trading comps and merger analysis for US-listed technology companies."""
+
+
 def _mount(sub_app: typer.Typer, panel: str) -> None:
     """Mount a command module's commands at the top level, under a help heading.
 
@@ -146,6 +164,7 @@ _mount(_mna_app, "M&A")
 # are too generic to stand at the top level beside "value" and "comps".
 app.add_typer(_rag_app, name="rag", rich_help_panel="Filing reader")
 app.add_typer(_invest_app, rich_help_panel="Portfolio")
+app.add_typer(_cache_app, rich_help_panel="Housekeeping")
 
 _CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
 _NOCACHE = typer.Option(False, "--no-cache", help="Bypass the HTTP cache.")
