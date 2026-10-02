@@ -182,3 +182,78 @@ def test_check_names_the_row_that_cannot_be_true(tmp_path):
     result = runner.invoke(app, ["check", "--dir", str(book)])
     assert result.exit_code == 1
     assert "2024-01-03" in flat(result.output)
+
+
+STARTER_WITH_TARGETS = """\
+# my book
+name: Mine
+transactions:
+  - {date: 2026-01-02, type: deposit, amount: 10000}  # opening cash
+  - {date: 2026-01-05, type: buy, symbol: DDOG, shares: 10, price: 120}
+# targets after the list, with a comment between
+targets:
+  DDOG: 0.5
+"""
+
+
+def test_add_appends_to_the_list_and_keeps_every_comment(tmp_path):
+    book = tmp_path / "book"
+    book.mkdir()
+    (book / "portfolio.yaml").write_text(STARTER_WITH_TARGETS, encoding="utf-8")
+    result = runner.invoke(
+        app, ["add", "buy", "net", "5", "80.5", "--date", "2026-02-03", "--fee", "1", "--dir", str(book)]
+    )
+    assert result.exit_code == 0, result.output
+    text = (book / "portfolio.yaml").read_text(encoding="utf-8")
+    assert "# my book" in text and "# opening cash" in text and "# targets after the list" in text
+    lines = text.splitlines()
+    added = lines.index("  - {date: 2026-02-03, type: buy, symbol: NET, shares: 5, price: 80.5, fee: 1}")
+    assert lines[added - 1].startswith("  - {date: 2026-01-05")
+    from techval.invest.ledger import Ledger
+
+    ledger = Ledger.load(book / "portfolio.yaml")
+    assert ledger.positions()["NET"].shares == 5
+    assert ledger.targets == {"DDOG": 0.5}
+
+
+def test_add_each_kind_of_row(tmp_path):
+    book = tmp_path / "book"
+    book.mkdir()
+    (book / "portfolio.yaml").write_text(STARTER_WITH_TARGETS, encoding="utf-8")
+    for args in (
+        ["deposit", "500", "--date", "2026-03-01"],
+        ["dividend", "DDOG", "4.25", "--date", "2026-03-02"],
+        ["split", "DDOG", "2", "--date", "2026-03-03"],
+        ["sell", "DDOG", "4", "70", "--date", "2026-03-04"],
+        ["withdraw", "100", "--date", "2026-03-05"],
+        ["buy", "VOO", "1", "500", "--kind", "etf", "--date", "2026-03-06"],
+    ):
+        result = runner.invoke(app, ["add", *args, "--dir", str(book)])
+        assert result.exit_code == 0, (args, result.output)
+    from techval.invest.ledger import Ledger
+
+    ledger = Ledger.load(book / "portfolio.yaml")
+    assert [t.type for t in ledger.transactions][-6:] == ["deposit", "dividend", "split", "sell", "withdraw", "buy"]
+    assert ledger.positions()["DDOG"].shares == 16
+    assert ledger.kind("VOO") == "etf"
+
+
+def test_add_refuses_a_row_the_ledger_cannot_hold_and_leaves_the_file_alone(tmp_path):
+    book = tmp_path / "book"
+    book.mkdir()
+    path = book / "portfolio.yaml"
+    path.write_text(STARTER_WITH_TARGETS, encoding="utf-8")
+    before = path.read_bytes()
+    result = runner.invoke(app, ["add", "buy", "AAPL", "1000", "200", "--date", "2026-02-01", "--dir", str(book)])
+    assert result.exit_code == 1
+    assert "cash" in flat(result.output).lower()
+    assert path.read_bytes() == before
+
+
+def test_add_refuses_the_wrong_number_of_values(tmp_path):
+    book = tmp_path / "book"
+    book.mkdir()
+    (book / "portfolio.yaml").write_text(STARTER_WITH_TARGETS, encoding="utf-8")
+    result = runner.invoke(app, ["add", "buy", "NET", "5", "--dir", str(book)])
+    assert result.exit_code == 1
+    assert "SYMBOL SHARES PRICE" in flat(result.output)

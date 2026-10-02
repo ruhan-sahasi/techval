@@ -133,6 +133,66 @@ def init(directory: Path = _DIR) -> None:
 
 
 @app.command()
+def add(
+    kind_of: str = typer.Argument(..., metavar="TYPE", help="buy, sell, deposit, withdraw, dividend or split."),
+    values: list[str] = typer.Argument(..., metavar="VALUES", help="buy/sell: SYMBOL SHARES PRICE. deposit/withdraw: AMOUNT. dividend: SYMBOL AMOUNT. split: SYMBOL RATIO."),
+    when: str = typer.Option(None, "--date", help="The transaction date, YYYY-MM-DD. Defaults to today."),
+    fee: float = typer.Option(None, "--fee", help="A trade's fee, for a buy or a sell."),
+    kind: str = typer.Option(None, "--kind", help="etf or crypto, the first time a symbol appears."),
+    note: str = typer.Option(None, "--note", help="A note kept on the row."),
+    directory: Path = _DIR,
+) -> None:
+    """Append one transaction to the ledger, after replaying the whole ledger with it."""
+    import os
+    import tempfile
+
+    from .invest.ledger import ADD_SHAPES, Ledger, append_row, flow_row
+
+    path = directory / "portfolio.yaml"
+    try:
+        shape = ADD_SHAPES.get(kind_of)
+        if shape is None:
+            raise TechvalError(f"type must be one of {', '.join(ADD_SHAPES)}, not {kind_of!r}")
+        if len(values) != len(shape):
+            raise TechvalError(
+                f"a {kind_of} takes {' '.join(f.upper() for f in shape)}; got {len(values)} value"
+                f"{'s' if len(values) != 1 else ''}"
+            )
+        row: dict = {"date": when or date.today().isoformat(), "type": kind_of}
+        for field_name, raw in zip(shape, values):
+            if field_name == "symbol":
+                row[field_name] = raw.upper()
+                continue
+            try:
+                row[field_name] = float(raw)
+            except ValueError:
+                raise TechvalError(f"{field_name} must be a number, not {raw!r}") from None
+        row["fee"] = fee
+        row["kind"] = kind
+        row["note"] = note
+        if not path.is_file():
+            raise TechvalError(f"no portfolio file at {path}. techval invest init writes a starter.")
+        line = flow_row(row)
+        updated = append_row(path.read_text(encoding="utf-8"), line)
+        # Replay the whole ledger with the row before anything touches the file.
+        fd, tmp = tempfile.mkstemp(dir=directory, prefix=".portfolio-", suffix=".yaml")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(updated)
+            ledger = Ledger.load(Path(tmp))
+            ledger.positions()
+            os.replace(tmp, path)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+    except TechvalError as err:
+        console.print(f"[red]{escape(str(err))}[/red]")
+        raise typer.Exit(1)
+    console.print(f"Added {escape(line.strip())}", highlight=False)
+    console.print(f"Cash after the ledger's last row: {ledger.cash():,.2f}", highlight=False)
+
+
+@app.command()
 def check(directory: Path = _DIR) -> None:
     """Replay the ledger offline and print what it holds; no quotes, no models."""
     from .invest.ledger import Ledger

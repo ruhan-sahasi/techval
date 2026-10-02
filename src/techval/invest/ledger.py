@@ -295,3 +295,62 @@ def _walk(ledger: "Ledger", as_of: date | None):
                 "is missing a deposit."
             )
     return positions, cash
+
+
+# Positional values each row type takes on the command line, in order.
+ADD_SHAPES = {
+    "buy": ("symbol", "shares", "price"),
+    "sell": ("symbol", "shares", "price"),
+    "deposit": ("amount",),
+    "withdraw": ("amount",),
+    "dividend": ("symbol", "amount"),
+    "split": ("symbol", "ratio"),
+}
+
+
+def _plain(value: float) -> str:
+    """A number as a person would type it: 10, not 10.0."""
+    return f"{value:g}" if float(value).is_integer() and abs(value) < 1e15 else repr(float(value))
+
+
+def flow_row(row: dict) -> str:
+    """One transaction as a YAML flow mapping, in the field order the starter uses."""
+    order = ("date", "type", "symbol", "shares", "price", "amount", "ratio", "fee", "kind", "note")
+    parts = []
+    for key in order:
+        if row.get(key) is None:
+            continue
+        value = row[key]
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            text = _plain(value)
+        elif key == "note":
+            text = '"' + str(value).replace("\\", "\\\\").replace('"', '\\"') + '"'
+        else:
+            text = str(value)
+        parts.append(f"{key}: {text}")
+    return "  - {" + ", ".join(parts) + "}"
+
+
+def append_row(text: str, line: str) -> str:
+    """The ledger text with one transaction line added after the last one.
+
+    A line edit rather than a YAML round trip, because a round trip drops every
+    comment the owner wrote. The list is found by its key; it ends at the next
+    top-level key, and the new line goes after its last indented line, so
+    comments between the list and the next key stay where they were.
+    """
+    lines = text.splitlines()
+    start = next((i for i, l in enumerate(lines) if l.rstrip() == "transactions:"), None)
+    if start is None:
+        raise ConfigError(
+            "the ledger's transactions are not a block list under a 'transactions:' line; add this row by hand"
+        )
+    last = start
+    for i in range(start + 1, len(lines)):
+        current = lines[i]
+        if current and not current[0].isspace() and not current.startswith("#"):
+            break
+        if current.strip() and not current.lstrip().startswith("#") and current[0].isspace():
+            last = i
+    lines.insert(last + 1, line)
+    return "\n".join(lines) + "\n"
