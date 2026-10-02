@@ -16,7 +16,7 @@
   var svg = TV.svg;
 
   var SNAPSHOT_ID = "iv-snapshot";
-  var SCHEMA = 2;
+  var SCHEMA = 3;
 
   var IV = { panes: {} };
   global.IV = IV;

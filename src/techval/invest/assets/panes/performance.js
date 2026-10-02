@@ -28,6 +28,54 @@
       )
     );
 
+    /* Risk beside return, the book against the benchmark on the same days. */
+    var risk = perf.risk;
+    var pct = function (v, dp) {
+      return v === null || v === undefined ? "n/a" : TV.fmt.pct(v, dp === undefined ? 1 : dp);
+    };
+    var riskCard = IV.card(
+      "Return and risk",
+      "Time-weighted, so deposits are neither return nor drawdown. Annualized only over a year or more."
+    );
+    var riskTable = el(
+      "table",
+      { class: "tv-table" },
+      el("caption", { class: "tv-visually-hidden" }, "Return and risk"),
+      el(
+        "thead",
+        null,
+        el(
+          "tr",
+          null,
+          ["", "Annualized", "Volatility", "Max drawdown", "Peak", "Trough"].map(function (label, i) {
+            return el("th", { scope: "col", class: i >= 1 && i <= 3 ? "tv-num" : null }, label);
+          })
+        )
+      ),
+      el(
+        "tbody",
+        null,
+        [
+          [snapshot.meta.name, risk.portfolio],
+          [perf.benchmark, risk.benchmark],
+        ].map(function (pair) {
+          var r = pair[1];
+          return el(
+            "tr",
+            null,
+            el("th", { scope: "row", style: { fontWeight: "650" } }, pair[0]),
+            el("td", { class: IV.signClass(r.annualized, "tv-num") || "tv-num" }, r.annualized === null ? "under a year" : IV.fmt.signedPct(r.annualized, 1)),
+            el("td", { class: "tv-num" }, pct(r.volatility)),
+            el("td", { class: IV.signClass(r.max_drawdown, "tv-num") || "tv-num" }, r.max_drawdown ? TV.fmt.pct(r.max_drawdown, 1) : "none"),
+            el("td", null, r.drawdown_peak || ""),
+            el("td", null, r.drawdown_trough || "")
+          );
+        })
+      )
+    );
+    riskCard.appendChild(el("div", { class: "tv-table-wrap", tabindex: "0", role: "region", "aria-label": "Return and risk" }, riskTable));
+    host.appendChild(riskCard);
+
     if (!perf.contributions.length) {
       var empty = IV.card("No positions yet", "Contribution and lots start with the first buy.");
       empty.appendChild(IV.note("The return tiles above are already honest: cash earns the book 0.0% however the benchmark moves."));

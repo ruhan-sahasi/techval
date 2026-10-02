@@ -119,3 +119,40 @@ def contributions(ledger: Ledger, quotes: Quotes) -> list[Contribution]:
         )
     rows.sort(key=lambda r: (-r.total, r.symbol))
     return rows
+
+
+# Under a year a return is reported as earned, never annualized: a 9% quarter
+# compounded to 41% a year is a number nobody earned.
+_ANNUALIZE_MIN_DAYS = 365
+# Volatility from fewer daily returns than this is noise about noise.
+_VOLATILITY_MIN_POINTS = 20
+_TRADING_DAYS = 252
+
+
+def risk_stats(dates: list[date], growth: np.ndarray) -> dict:
+    """Annualized return, volatility and the worst drawdown of a growth path.
+
+    The path is a time-weighted growth of one, so a deposit is neither return
+    nor drawdown. The return annualizes only over a year or more; volatility
+    is the standard deviation of daily log returns scaled by 252 sessions; the
+    drawdown is the worst fall from a running peak, with the dates of both.
+    """
+    growth = np.asarray(growth, dtype=float)
+    out: dict = {"annualized": None, "volatility": None, "max_drawdown": 0.0, "drawdown_peak": None, "drawdown_trough": None}
+    if len(growth) < 2:
+        return out
+    days = (dates[-1] - dates[0]).days
+    if days >= _ANNUALIZE_MIN_DAYS and growth[-1] > 0:
+        out["annualized"] = round(float(growth[-1] ** (365.25 / days) - 1.0), 6)
+    if len(growth) - 1 >= _VOLATILITY_MIN_POINTS and np.all(growth > 0):
+        daily = np.diff(np.log(growth))
+        out["volatility"] = round(float(daily.std(ddof=1) * np.sqrt(_TRADING_DAYS)), 6)
+    peaks = np.maximum.accumulate(growth)
+    drawdowns = growth / peaks - 1.0
+    trough = int(np.argmin(drawdowns))
+    if drawdowns[trough] < 0:
+        peak = int(np.argmax(growth[: trough + 1]))
+        out["max_drawdown"] = round(float(drawdowns[trough]), 6)
+        out["drawdown_peak"] = dates[peak].isoformat()
+        out["drawdown_trough"] = dates[trough].isoformat()
+    return out

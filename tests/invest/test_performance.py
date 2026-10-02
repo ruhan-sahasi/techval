@@ -6,7 +6,7 @@ The time-weighted case is the one that matters: money doubled by skill reads
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -166,3 +166,42 @@ transactions:
     # own price: 10,000 every day, before the split and after it.
     assert list(series.values) == pytest.approx([10000.0] * len(series.dates))
     assert twr(series, ledger.flows())[-1] == pytest.approx(1.0)
+
+
+def test_max_drawdown_finds_the_worst_peak_to_trough():
+    from techval.invest.performance import risk_stats
+
+    dates = [date(2024, 1, 1) + timedelta(days=i) for i in range(6)]
+    growth = np.array([1.0, 1.2, 0.9, 1.1, 0.96, 1.3])
+    stats = risk_stats(dates, growth)
+    assert stats["max_drawdown"] == pytest.approx(0.9 / 1.2 - 1)
+    assert stats["drawdown_peak"] == "2024-01-02"
+    assert stats["drawdown_trough"] == "2024-01-03"
+
+
+def test_a_return_is_annualized_only_over_a_year_or_more():
+    from techval.invest.performance import risk_stats
+
+    short = [date(2024, 1, 1) + timedelta(days=i) for i in range(100)]
+    assert risk_stats(short, np.linspace(1.0, 1.1, 100))["annualized"] is None
+    long = [date(2022, 1, 1), date(2024, 1, 1)]
+    stats = risk_stats(long, np.array([1.0, 1.21]))
+    assert stats["annualized"] == pytest.approx(1.21 ** (365.25 / 730) - 1, abs=1e-6)
+
+
+def test_volatility_is_daily_log_returns_scaled_to_a_year():
+    from techval.invest.performance import risk_stats
+
+    dates = [date(2024, 1, 1) + timedelta(days=i) for i in range(41)]
+    up, down = 1.01, 1 / 1.01
+    growth = np.cumprod([1.0] + [up if i % 2 == 0 else down for i in range(40)])
+    stats = risk_stats(dates, growth)
+    daily = np.diff(np.log(growth))
+    assert stats["volatility"] == pytest.approx(daily.std(ddof=1) * np.sqrt(252), abs=1e-6)
+
+
+def test_too_few_points_report_no_volatility():
+    from techval.invest.performance import risk_stats
+
+    dates = [date(2024, 1, 1) + timedelta(days=i) for i in range(5)]
+    assert risk_stats(dates, np.ones(5))["volatility"] is None
