@@ -18,11 +18,12 @@ from .engine_read import attach_dcf, read_holdings
 from .hygiene import coverage, drift, exposure, top_share, weights
 from .ideas import ideas
 from .ledger import Ledger
-from .performance import benchmark_growth, contributions, twr, value_series
+from .performance import benchmark_growth, contributions, risk_stats, twr, value_series
 from .quotes import Quotes
 
 # 2: prices carry the session they closed in, and mismatched closes are named.
-SCHEMA = 2
+# 3: performance carries risk statistics for the book and the benchmark.
+SCHEMA = 3
 
 # The contract: every pane and the keys it must carry. Types are spot-checked
 # where a wrong one would draw nonsense rather than crash.
@@ -38,7 +39,7 @@ _REQUIRED = {
     ),
     "performance": (
         "dates", "growth", "benchmark_growth", "benchmark", "contributions",
-        "lots", "realized_total", "dividends_total",
+        "lots", "realized_total", "dividends_total", "risk",
     ),
     "hygiene": ("weights", "top5_share", "exposure", "drift", "coverage"),
     "ideas": ("as_of", "cheap", "rich", "verdict"),
@@ -199,6 +200,10 @@ def build_snapshot(
                 for c in contributions(ledger, quotes)
             ],
             "lots": lots,
+            "risk": {
+                "portfolio": risk_stats(series.dates, growth),
+                "benchmark": risk_stats(series.dates, bench),
+            },
             "realized_total": round(sum(p.realized for p in held), 2),
             "dividends_total": round(sum(p.dividends for p in held), 2),
         },
