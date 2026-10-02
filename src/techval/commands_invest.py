@@ -290,6 +290,42 @@ def check(directory: Path = _DIR) -> None:
     console.print("The ledger replays cleanly.")
 
 
+def _signed_pct(v: float | None, dp: int = 2) -> str:
+    return "n/a" if v is None else f"{v * 100:+.{dp}f}%"
+
+
+def _print_summary(snapshot: dict) -> None:
+    """The headline numbers in the terminal, for a run nobody opens the page after."""
+    from rich.table import Table
+
+    meta, over = snapshot["meta"], snapshot["overview"]
+    risk = snapshot["performance"]["risk"]["portfolio"]
+    gap = over["twr_pct"] - over["benchmark_twr_pct"]
+    table = Table(title=escape(meta["name"]), show_header=False, box=None, pad_edge=False)
+    table.add_column(style="dim")
+    table.add_column(justify="right")
+    rows = [
+        ("Total value", f"${over['value']:,.0f}"),
+        ("Last session", f"{_signed_pct(over['day_pct'])} ({over['day_abs']:+,.0f})"),
+        ("Time-weighted", f"{_signed_pct(over['twr_pct'], 1)} since {meta['first_date']}"),
+        (f"vs {meta['benchmark']}", f"{gap * 100:+.1f} pts"),
+        ("Max drawdown", _signed_pct(risk["max_drawdown"], 1) if risk["max_drawdown"] else "none"),
+        ("Positions", f"{over['n_positions']} and ${over['cash']:,.0f} cash"),
+        ("Engine coverage", f"{over['covered_value_share']:.0%}: {over['cheap']} cheap, {over['rich']} rich, {over['uncovered']} unvalued"),
+        ("Prices as of", meta["prices_as_of"]),
+    ]
+    for label, value in rows:
+        table.add_row(label, escape(value))
+    console.print(table)
+    if meta["prices_age_days"] > 4:
+        console.print(f"[yellow]Prices are {meta['prices_age_days']} days old.[/yellow]")
+    if over["mismatched_closes"]:
+        console.print(
+            f"[yellow]{escape(', '.join(over['mismatched_closes']))} closed in a different session from "
+            f"{escape(meta['benchmark'])}.[/yellow]"
+        )
+
+
 def _cache_root(assumptions: Assumptions) -> Path:
     configured = assumptions.ml.cache_dir
     return Path(configured).expanduser() if configured else Path.home() / ".techval" / "ml"
@@ -380,10 +416,6 @@ def _build(
     )
     write_snapshot(snapshot, snapshot_path)
     write_page(snapshot, page_path)
-    over = snapshot["overview"]
-    console.print(
-        f"{escape(ledger.name)}: {len(snapshot['positions'])} positions, "
-        f"total {over['value']:,.0f}."
-    )
+    _print_summary(snapshot)
     console.print(f"Wrote {escape(str(snapshot_path))}")
     console.print(f"Wrote {escape(str(page_path))}")

@@ -300,3 +300,17 @@ def test_export_refuses_an_unknown_table(tmp_path):
     result = runner.invoke(app, ["export", "taxes", "--dir", str(book), "--out", str(tmp_path / "x.csv")])
     assert result.exit_code == 1
     assert "realized, lots or activity" in flat(result.output)
+
+
+def test_a_run_prints_the_headline_numbers(tmp_path):
+    book = tmp_path / "book"
+    book.mkdir()
+    shutil.copy(FIXTURES / "invest" / "portfolio.yaml", book / "portfolio.yaml")
+    result = runner.invoke(
+        app, ["--dir", str(book), "--config", str(write_config(tmp_path)), "--offline"]
+    )
+    assert result.exit_code == 0, result.output
+    text = flat(result.output)
+    for label in ("Total value", "Last session", "Time-weighted", "vs SPY", "Max drawdown", "Engine coverage", "Prices as of"):
+        assert label in text, label
+    assert "$116,785" in text
