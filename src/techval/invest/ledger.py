@@ -45,6 +45,7 @@ class Transaction:
     ratio: float | None = None
     kind: str | None = None
     note: str | None = None
+    fee: float = 0.0
 
 
 class Ledger:
@@ -172,6 +173,12 @@ def _parse_row(row: object, index: int, kinds: dict[str, str]) -> Transaction:
     price = row.get("price")
     if price is not None and (not isinstance(price, (int, float)) or price < 0):
         raise ConfigError(f"{where}: price must be zero or more, not {price!r}")
+    fee = row.get("fee")
+    if fee is not None:
+        if kind_of not in ("buy", "sell"):
+            raise ConfigError(f"{where}: a fee belongs to a buy or a sell, not a {kind_of}")
+        if not isinstance(fee, (int, float)) or fee < 0:
+            raise ConfigError(f"{where}: fee must be zero or more, not {fee!r}")
     stated = row.get("kind")
     if stated is not None and stated not in KINDS:
         raise ConfigError(f"{where}: kind {stated!r} is not one of {', '.join(KINDS)}")
@@ -195,6 +202,7 @@ def _parse_row(row: object, index: int, kinds: dict[str, str]) -> Transaction:
         ratio=_number(row.get("ratio")),
         kind=stated,
         note=None if row.get("note") is None else str(row.get("note")),
+        fee=float(fee or 0.0),
     )
 
 
@@ -248,9 +256,10 @@ def _walk(ledger: "Ledger", as_of: date | None):
         elif t.type == "withdraw":
             cash -= t.amount
         elif t.type == "buy":
-            position.lots.append(Lot(t.symbol, t.date, t.shares, t.price))
+            # A buy's fee is part of what the shares cost: it joins the basis.
+            position.lots.append(Lot(t.symbol, t.date, t.shares, t.price + t.fee / t.shares))
             position.shares += t.shares
-            cash -= t.shares * t.price
+            cash -= t.shares * t.price + t.fee
         elif t.type == "sell":
             if t.shares > position.shares + 1e-9:
                 raise ConfigError(
@@ -266,8 +275,10 @@ def _walk(ledger: "Ledger", as_of: date | None):
                 left -= taken
                 if lot.shares <= 1e-12:
                     position.lots.pop(0)
+            # A sell's fee comes off the proceeds, and so off the gain.
+            position.realized -= t.fee
             position.shares -= t.shares
-            cash += t.shares * t.price
+            cash += t.shares * t.price - t.fee
         elif t.type == "dividend":
             if not position.lots and position.shares <= 0:
                 raise ConfigError(f"{t.date}: a dividend on {t.symbol}, which the ledger never bought")

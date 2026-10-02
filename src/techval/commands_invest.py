@@ -78,6 +78,9 @@ STARTER = """\
 #   - {date: 2024-01-16, type: buy, symbol: MSFT, shares: 10, price: 390.00}
 #   - {date: 2024-06-12, type: dividend, symbol: MSFT, amount: 7.50}
 #   - {date: 2024-08-05, type: split, symbol: NVDA, ratio: 10}
+# A buy or sell may carry a fee: it joins a buy's cost basis and comes off a
+# sell's proceeds.
+#   - {date: 2024-09-03, type: sell, symbol: MSFT, shares: 2, price: 410.00, fee: 1.50}
 # kind marks non-stocks once per symbol: etf or crypto.
 #   - {date: 2024-02-01, type: buy, symbol: VOO, shares: 4, price: 460, kind: etf}
 name: My portfolio

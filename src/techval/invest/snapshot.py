@@ -237,6 +237,7 @@ def build_snapshot(
                 "price": t.price,
                 "amount": t.amount,
                 "ratio": t.ratio,
+                "fee": t.fee,
             }
             for t in reversed(ledger.transactions)
         ],

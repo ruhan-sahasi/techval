@@ -137,3 +137,49 @@ transactions:
 """,
         ).positions()
     assert "GGG" in str(err.value)
+
+
+def test_a_buy_fee_joins_the_cost_basis_and_leaves_cash(tmp_path):
+    ledger = load(
+        tmp_path,
+        """
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 2000}
+  - {date: 2024-01-03, type: buy, symbol: HHH, shares: 10, price: 100, fee: 5}
+""",
+    )
+    hhh = ledger.positions()["HHH"]
+    assert hhh.cost == pytest.approx(1005.0)
+    assert hhh.lots[0].cost_per_share == pytest.approx(100.5)
+    assert ledger.cash() == pytest.approx(995.0)
+
+
+def test_a_sell_fee_comes_off_the_proceeds_and_the_gain(tmp_path):
+    ledger = load(
+        tmp_path,
+        """
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 2000}
+  - {date: 2024-01-03, type: buy, symbol: HHH, shares: 10, price: 100}
+  - {date: 2024-02-01, type: sell, symbol: HHH, shares: 10, price: 120, fee: 7}
+""",
+    )
+    hhh = ledger.positions()["HHH"]
+    assert hhh.realized == pytest.approx(200.0 - 7.0)
+    assert ledger.cash() == pytest.approx(2000 - 1000 + 1200 - 7)
+
+
+def test_a_fee_off_a_trade_refuses(tmp_path):
+    with pytest.raises(ConfigError) as err:
+        load(tmp_path, "transactions:\n  - {date: 2024-01-02, type: deposit, amount: 5, fee: 1}\n")
+    assert "fee" in str(err.value)
+
+
+def test_a_negative_fee_refuses(tmp_path):
+    with pytest.raises(ConfigError) as err:
+        load(
+            tmp_path,
+            "transactions:\n  - {date: 2024-01-02, type: deposit, amount: 500}\n"
+            "  - {date: 2024-01-03, type: buy, symbol: HHH, shares: 1, price: 100, fee: -1}\n",
+        )
+    assert "fee" in str(err.value)

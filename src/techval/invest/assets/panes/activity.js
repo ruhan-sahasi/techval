@@ -21,7 +21,8 @@
 
   function amount(row) {
     if (row.type === "buy" || row.type === "sell") {
-      var total = row.shares * row.price;
+      /* The cash that actually moved: a fee adds to a buy and comes off a sell. */
+      var total = row.shares * row.price + (row.type === "buy" ? 1 : -1) * (row.fee || 0);
       return (row.type === "buy" ? "−" : "+") + IV.fmt.money(total, 0);
     }
     if (row.type === "deposit") return "+" + IV.fmt.money(row.amount, 0);
@@ -33,7 +34,8 @@
 
   function detail(row) {
     if (row.type === "buy" || row.type === "sell") {
-      return TV.fmt.num(row.shares, Number.isInteger(row.shares) ? 0 : 4) + " sh at " + IV.fmt.money(row.price, 2);
+      var trade = TV.fmt.num(row.shares, Number.isInteger(row.shares) ? 0 : 4) + " sh at " + IV.fmt.money(row.price, 2);
+      return row.fee ? trade + ", fee " + IV.fmt.money(row.fee, 2) : trade;
     }
     if (row.type === "split") return "share count times " + TV.fmt.num(row.ratio, 0);
     return "";
