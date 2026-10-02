@@ -49,6 +49,11 @@ _PANELS = typer.Option(
     ),
 )
 _OPEN = typer.Option(False, "--open", help="Open the rendered page in the default browser.")
+_BENCHMARK = typer.Option(
+    None,
+    "--benchmark",
+    help="Compare against this symbol for one run, QQQ say, instead of the ledger's benchmark.",
+)
 _MAX_AGE = typer.Option(
     20.0,
     "--max-age",
@@ -105,12 +110,13 @@ def invest(
     panels: Path = _PANELS,
     open_page: bool = _OPEN,
     max_age: float = _MAX_AGE,
+    benchmark: str = _BENCHMARK,
 ) -> None:
     """Refresh quotes and the engine read, then render portfolio/index.html."""
     if ctx.invoked_subcommand is not None:
         return
     try:
-        _build(directory, config, offline, render_only, refit, panels, max_age)
+        _build(directory, config, offline, render_only, refit, panels, max_age, benchmark)
     except TechvalError as err:
         console.print(f"[red]{escape(str(err))}[/red]")
         raise typer.Exit(1)
@@ -345,6 +351,7 @@ def _build(
     refit: bool = False,
     panels: Path | None = None,
     max_age_hours: float = DEFAULT_MAX_AGE_HOURS,
+    benchmark: str | None = None,
 ) -> None:
     from .invest.render import write_page
     from .invest.snapshot import validate_snapshot
@@ -370,6 +377,9 @@ def _build(
     from .market import MarketData, make_price_source
 
     ledger = Ledger.load(directory / "portfolio.yaml")
+    if benchmark:
+        # For this run only; the ledger file keeps its own benchmark.
+        ledger.benchmark = benchmark.upper()
     assumptions = Assumptions.load(config)
     # Unlike the valuation commands, the tracker wants yesterday's close and
     # this quarter's filings, so its cache entries age out.
