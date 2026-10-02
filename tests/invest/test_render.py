@@ -59,3 +59,42 @@ def test_every_invest_script_parses():
     for path in sorted(ASSETS.rglob("*.js")):
         result = subprocess.run(["node", "--check", str(path)], capture_output=True, text=True, timeout=60)
         assert result.returncode == 0, f"{path.name}: {result.stderr}"
+
+
+INVEST_JS = ASSETS / "invest.js"
+KIT_JS = ASSETS.parent.parent / "dashboard" / "assets" / "kit.js"
+
+
+def _run_invest(expr: str):
+    import json as _json
+
+    script = (
+        "const vm = require('vm'), fs = require('fs');"
+        "const stub = { setAttribute() {}, appendChild() {}, style: {},"
+        " getContext: () => ({ measureText: () => ({ width: 5 }) }) };"
+        "const document = { readyState: 'loading', createElementNS: () => stub, createElement: () => stub,"
+        " body: stub, addEventListener() {}, documentElement: stub };"
+        "const window = { location: { search: '' }, matchMedia: () => ({ matches: false }) };"
+        "const ctx = { window, document, console };"
+        "vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), ctx);"
+        "vm.runInNewContext(fs.readFileSync(process.argv[2], 'utf8'), ctx);"
+        f"process.stdout.write(JSON.stringify({expr}));"
+    )
+    out = subprocess.run(["node", "-e", script, str(KIT_JS), str(INVEST_JS)], capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    return _json.loads(out.stdout)
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_range_starts_are_calendar_offsets_from_the_last_date():
+    dates = ["2025-01-02", "2025-06-30", "2025-12-31", "2026-03-31", "2026-08-31", "2026-09-09"]
+    got = _run_invest(
+        "['1M','3M','YTD','1Y','ALL'].map(k => window.IV.range.startIndex(" + json.dumps(dates) + ", k))"
+    )
+    assert got == [4, 4, 3, 2, 0]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_a_range_rebases_both_lines_to_one_at_its_start():
+    got = _run_invest("window.IV.range.rebase([1.0, 1.2, 1.5, 1.8], 1)")
+    assert got == pytest.approx([1.0, 1.25, 1.5])

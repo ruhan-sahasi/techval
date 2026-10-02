@@ -93,6 +93,43 @@
     global.requestAnimationFrame(step);
   };
 
+  /*
+   * Chart ranges, the way a brokerage app slices its main chart. A range
+   * starts a calendar offset before the last date (1M, 3M, 1Y; YTD at 1
+   * January), lands on the first session on or after that day, and the
+   * lines are rebased to one there, so every range reads as growth of $1.
+   */
+  function isoMinusMonths(iso, months) {
+    var y = +iso.slice(0, 4);
+    var m = +iso.slice(5, 7) - 1 - months;
+    var d = +iso.slice(8, 10);
+    y += Math.floor(m / 12);
+    m = ((m % 12) + 12) % 12;
+    var last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    var dd = Math.min(d, last);
+    return y + "-" + String(m + 1).padStart(2, "0") + "-" + String(dd).padStart(2, "0");
+  }
+
+  IV.range = {
+    KEYS: ["1M", "3M", "YTD", "1Y", "ALL"],
+    startIndex: function (dates, key) {
+      if (!dates.length || key === "ALL") return 0;
+      var last = dates[dates.length - 1];
+      var start =
+        key === "YTD" ? last.slice(0, 4) + "-01-01" : isoMinusMonths(last, { "1M": 1, "3M": 3, "1Y": 12 }[key] || 0);
+      for (var i = 0; i < dates.length; i++) {
+        if (dates[i] >= start) return i;
+      }
+      return dates.length - 1;
+    },
+    rebase: function (series, i) {
+      var base = series[i];
+      return series.slice(i).map(function (v) {
+        return v / base;
+      });
+    },
+  };
+
   /* A dense sortable table: click a header, the rows re-order in place. ----- */
 
   IV.sortable = function (wrap) {
