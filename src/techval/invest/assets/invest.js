@@ -22,6 +22,31 @@
   global.IV = IV;
 
   /*
+   * Per-viewer conveniences: theme, chart range, book sort. They live in this
+   * browser only, and storage can be empty or refuse outright in a private
+   * window, so every read falls back to a default and every write may fail.
+   */
+  var PREFIX = "techval-invest:";
+
+  IV.pref = {
+    get: function (key, fallback) {
+      try {
+        var v = global.localStorage.getItem(PREFIX + key);
+        return v === null || v === undefined ? fallback : v;
+      } catch (e) {
+        return fallback;
+      }
+    },
+    set: function (key, value) {
+      try {
+        global.localStorage.setItem(PREFIX + key, value);
+      } catch (e) {
+        /* A preference that cannot be kept is only forgotten. */
+      }
+    },
+  };
+
+  /*
    * The app opens dark unless the system asks for light; ?theme= still forces
    * either, so a headless screenshot can pin the theme. Stamped at once so the
    * first paint is already right.
@@ -30,6 +55,11 @@
     var match = /[?&]theme=(dark|light)(?:&|#|$)/.exec(global.location ? global.location.search : "");
     if (match) {
       document.documentElement.setAttribute("data-theme", match[1]);
+      return;
+    }
+    var chosen = IV.pref.get("theme", null);
+    if (chosen === "dark" || chosen === "light") {
+      document.documentElement.setAttribute("data-theme", chosen);
       return;
     }
     var lighter = global.matchMedia && global.matchMedia("(prefers-color-scheme: light)").matches;
@@ -137,29 +167,41 @@
     if (!table) return;
     var body = table.tBodies[0];
     var headers = Array.prototype.slice.call(table.tHead.rows[0].cells);
+    var key = "sort:" + (wrap.getAttribute("aria-label") || "table");
+
+    function apply(index, direction) {
+      headers.forEach(function (other) {
+        if (other.hasAttribute("data-sort")) other.setAttribute("aria-sort", "none");
+      });
+      headers[index].setAttribute("aria-sort", direction);
+      var rows = Array.prototype.slice.call(body.rows);
+      rows.sort(function (a, b) {
+        var x = parseFloat(a.cells[index].getAttribute("data-value"));
+        var y = parseFloat(b.cells[index].getAttribute("data-value"));
+        if (isNaN(x) && isNaN(y)) return 0;
+        if (isNaN(x)) return 1;
+        if (isNaN(y)) return -1;
+        return direction === "descending" ? y - x : x - y;
+      });
+      rows.forEach(function (row) {
+        body.appendChild(row);
+      });
+    }
+
     headers.forEach(function (th, index) {
       if (!th.hasAttribute("data-sort")) return;
       th.setAttribute("aria-sort", "none");
       th.addEventListener("click", function () {
         var direction = th.getAttribute("aria-sort") === "descending" ? "ascending" : "descending";
-        headers.forEach(function (other) {
-          if (other.hasAttribute("data-sort")) other.setAttribute("aria-sort", "none");
-        });
-        th.setAttribute("aria-sort", direction);
-        var rows = Array.prototype.slice.call(body.rows);
-        rows.sort(function (a, b) {
-          var x = parseFloat(a.cells[index].getAttribute("data-value"));
-          var y = parseFloat(b.cells[index].getAttribute("data-value"));
-          if (isNaN(x) && isNaN(y)) return 0;
-          if (isNaN(x)) return 1;
-          if (isNaN(y)) return -1;
-          return direction === "descending" ? y - x : x - y;
-        });
-        rows.forEach(function (row) {
-          body.appendChild(row);
-        });
+        apply(index, direction);
+        IV.pref.set(key, index + ":" + direction);
       });
     });
+
+    var saved = /^(\d+):(ascending|descending)$/.exec(IV.pref.get(key, ""));
+    if (saved && headers[+saved[1]] && headers[+saved[1]].hasAttribute("data-sort")) {
+      apply(+saved[1], saved[2]);
+    }
   };
 
   /* Shared card scaffolding for the panes. ---------------------------------- */
@@ -306,6 +348,7 @@
       var root = document.documentElement;
       var dark = root.getAttribute("data-theme") !== "light";
       root.setAttribute("data-theme", dark ? "light" : "dark");
+      IV.pref.set("theme", dark ? "light" : "dark");
     });
     refs.title = el("h1", { class: "iv-topbar__title" }, "");
     refs.pane = el("div", { class: "iv-pane" });

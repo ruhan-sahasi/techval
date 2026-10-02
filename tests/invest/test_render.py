@@ -98,3 +98,37 @@ def test_range_starts_are_calendar_offsets_from_the_last_date():
 def test_a_range_rebases_both_lines_to_one_at_its_start():
     got = _run_invest("window.IV.range.rebase([1.0, 1.2, 1.5, 1.8], 1)")
     assert got == pytest.approx([1.0, 1.25, 1.5])
+
+
+def _run_with_storage(storage_js: str, expr: str):
+    import json as _json
+
+    script = (
+        "const vm = require('vm'), fs = require('fs');"
+        "const stub = { setAttribute() {}, getAttribute() { return null; }, appendChild() {}, style: {},"
+        " getContext: () => ({ measureText: () => ({ width: 5 }) }) };"
+        "const document = { readyState: 'loading', createElementNS: () => stub, createElement: () => stub,"
+        " body: stub, addEventListener() {}, documentElement: stub };"
+        f"const window = {{ location: {{ search: '' }}, matchMedia: () => ({{ matches: false }}), {storage_js} }};"
+        "const ctx = { window, document, console };"
+        "vm.runInNewContext(fs.readFileSync(process.argv[1], 'utf8'), ctx);"
+        "vm.runInNewContext(fs.readFileSync(process.argv[2], 'utf8'), ctx);"
+        f"process.stdout.write(JSON.stringify({expr}));"
+    )
+    out = subprocess.run(["node", "-e", script, str(KIT_JS), str(INVEST_JS)], capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    return _json.loads(out.stdout)
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_preferences_round_trip_through_local_storage():
+    store = "localStorage: (() => { const m = {}; return { getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); } }; })()"
+    got = _run_with_storage(store, "(window.IV.pref.set('range', '1Y'), [window.IV.pref.get('range'), window.IV.pref.get('nothing', 'ALL')])")
+    assert got == ["1Y", "ALL"]
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_a_storage_that_throws_falls_back_to_defaults():
+    throwing = "get localStorage() { throw new Error('denied'); }"
+    got = _run_with_storage(throwing, "(window.IV.pref.set('range', '1Y'), window.IV.pref.get('range', 'ALL'))")
+    assert got == "ALL"

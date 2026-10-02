@@ -79,6 +79,7 @@
 
     function draw(key) {
       IV.range.current = key;
+      IV.pref.set("range", key);
       Object.keys(buttons).forEach(function (k) {
         buttons[k].setAttribute("aria-pressed", k === key ? "true" : "false");
       });
@@ -111,7 +112,8 @@
         ],
       });
     }
-    draw(IV.range.current || "ALL");
+    var remembered = IV.pref.get("range", "ALL");
+    draw(IV.range.current || (IV.range.KEYS.indexOf(remembered) >= 0 ? remembered : "ALL"));
 
     /* Movers: the day's largest absolute moves. */
     var movers = IV.card("Biggest movers", "The three largest moves in dollars, session of " + snapshot.meta.prices_as_of);
