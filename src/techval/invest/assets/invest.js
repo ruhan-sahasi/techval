@@ -271,6 +271,24 @@
     { id: "activity", title: "Activity" },
   ];
 
+  /*
+   * Keys: 1 to 7 jump to a pane in rail order, [ and ] step back and forward,
+   * wrapping at the ends. Anything else, or a key pressed while typing or
+   * with a modifier, is left to the browser.
+   */
+  IV.keyTarget = function (key, current) {
+    var ids = DESTINATIONS.map(function (d) {
+      return d.id;
+    });
+    if (/^[1-9]$/.test(key)) {
+      return ids[+key - 1] || null;
+    }
+    var at = ids.indexOf(current);
+    if (key === "]") return ids[(at + 1) % ids.length];
+    if (key === "[") return ids[(at - 1 + ids.length) % ids.length];
+    return null;
+  };
+
   var ICONS = {
     overview: [["path", { d: "M2.5 2.5h4.6v4.6H2.5zM8.9 2.5h4.6v4.6H8.9zM2.5 8.9h4.6v4.6H2.5zM8.9 8.9h4.6v4.6H8.9z" }]],
     holdings: [["path", { d: "M2.5 4.4h11M2.5 8h11M2.5 11.6h11" }]],
@@ -307,13 +325,38 @@
     }
   }
 
+  /*
+   * Routing is by location hash, so a pane has a link and survives a reload.
+   * Some viewers serve the page from a data: URL, where the hash cannot be
+   * set at all; there the pane is drawn directly and remembered here.
+   */
+  var forced = null;
+
   function currentPane() {
     var hash = (global.location.hash || "").replace("#", "");
+    if (forced && hash !== forced) return forced;
     for (var i = 0; i < DESTINATIONS.length; i++) {
       if (DESTINATIONS[i].id === hash) return hash;
     }
     return DESTINATIONS[0].id;
   }
+
+  var redraw = null;
+
+  function go(id) {
+    forced = null;
+    try {
+      global.location.hash = id;
+    } catch (e) {
+      /* Handled below: the hash did not change. */
+    }
+    if ((global.location.hash || "").replace("#", "") !== id) {
+      forced = id;
+      if (redraw) redraw();
+    }
+  }
+
+  IV.go = go;
 
   function boot() {
     var read = readSnapshot();
@@ -323,8 +366,21 @@
     }
     var snapshot = read.snapshot;
     document.body.appendChild(shell(snapshot));
-    global.addEventListener("hashchange", function () {
+    redraw = function () {
       draw(snapshot);
+    };
+    global.addEventListener("hashchange", function () {
+      forced = null;
+      draw(snapshot);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
+      var t = e.target;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      var next = IV.keyTarget(e.key, currentPane());
+      if (!next) return;
+      e.preventDefault();
+      go(next);
     });
     draw(snapshot);
   }
@@ -339,6 +395,11 @@
       { class: "iv-nav" },
       DESTINATIONS.map(function (d) {
         var link = el("a", { class: "iv-nav__link", href: "#" + d.id }, icon(d.id), d.title);
+        link.addEventListener("click", function (e) {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+          e.preventDefault();
+          go(d.id);
+        });
         refs.links[d.id] = link;
         return el("li", null, link);
       })
@@ -371,7 +432,8 @@
           el("span", null, "Built " + meta.generated),
           el("span", null, "Last close " + meta.prices_as_of),
           el("span", null, "Prices: " + meta.price_source),
-          el("span", null, "Benchmark: " + meta.benchmark)
+          el("span", null, "Benchmark: " + meta.benchmark),
+          el("span", null, "Keys 1 to 7, [ and ] switch panes")
         )
       ),
       el(
