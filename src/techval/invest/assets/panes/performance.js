@@ -76,6 +76,44 @@
     riskCard.appendChild(el("div", { class: "tv-table-wrap", tabindex: "0", role: "region", "aria-label": "Return and risk" }, riskTable));
     host.appendChild(riskCard);
 
+    /* Underwater: how far each line sits below its own running peak, every day. */
+    function underwater(path) {
+      var peak = -Infinity;
+      return path.map(function (g) {
+        peak = Math.max(peak, g);
+        return g / peak - 1;
+      });
+    }
+    if (perf.dates.length > 1) {
+      var mine = underwater(perf.growth);
+      var theirs = underwater(perf.benchmark_growth);
+      var water = TV.figure(host, {
+        title: "Below the last high",
+        subtitle: "Each line's distance under its own running peak, time-weighted. The deepest point is the max drawdown above.",
+        id: "iv-drawdown",
+      });
+      TV.charts.line(water.body, {
+        x: { type: "date", label: "Date" },
+        format: "pct:0",
+        series: [
+          {
+            name: snapshot.meta.name,
+            role: "model",
+            values: perf.dates.map(function (d, i) {
+              return { x: d, y: mine[i] };
+            }),
+          },
+          {
+            name: perf.benchmark,
+            role: "baseline",
+            values: perf.dates.map(function (d, i) {
+              return { x: d, y: theirs[i] };
+            }),
+          },
+        ],
+      });
+    }
+
     if (!perf.contributions.length) {
       var empty = IV.card("No positions yet", "Contribution and lots start with the first buy.");
       empty.appendChild(IV.note("The return tiles above are already honest: cash earns the book 0.0% however the benchmark moves."));
