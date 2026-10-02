@@ -132,6 +132,32 @@ def init(directory: Path = _DIR) -> None:
     console.print(f"Wrote {escape(str(path))}. Edit it, then run: techval invest")
 
 
+@app.command()
+def check(directory: Path = _DIR) -> None:
+    """Replay the ledger offline and print what it holds; no quotes, no models."""
+    from .invest.ledger import Ledger
+
+    try:
+        ledger = Ledger.load(directory / "portfolio.yaml")
+        positions = ledger.positions()
+        cash = ledger.cash()
+    except TechvalError as err:
+        console.print(f"[red]{escape(str(err))}[/red]")
+        raise typer.Exit(1)
+    held = sorted((p for p in positions.values() if p.shares > 0), key=lambda p: p.symbol)
+    console.print(
+        f"{escape(ledger.name)}: {len(ledger.transactions)} transactions from "
+        f"{ledger.first_date} to {ledger.transactions[-1].date}, {len(held)} open positions."
+    )
+    for p in held:
+        shares = f"{p.shares:,.0f}" if float(p.shares).is_integer() else f"{p.shares:,.4f}"
+        console.print(f"  {p.symbol} {shares} {p.kind}, cost {p.cost:,.2f}", highlight=False)
+    console.print(f"Cash {cash:,.2f}", highlight=False)
+    if ledger.targets:
+        console.print(f"Drift targets {sum(ledger.targets.values()):.0%} of the book", highlight=False)
+    console.print("The ledger replays cleanly.")
+
+
 def _cache_root(assumptions: Assumptions) -> Path:
     configured = assumptions.ml.cache_dir
     return Path(configured).expanduser() if configured else Path.home() / ".techval" / "ml"

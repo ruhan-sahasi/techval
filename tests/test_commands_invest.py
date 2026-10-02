@@ -154,3 +154,31 @@ def test_the_tracker_builds_its_cache_with_an_age_limit(tmp_path, monkeypatch):
     )
     assert result.exit_code == 0, result.output
     assert built and built[0].max_age == 6 * 3600
+
+
+def test_check_replays_the_ledger_without_quotes(tmp_path):
+    book = tmp_path / "book"
+    book.mkdir()
+    shutil.copy(FIXTURES / "invest" / "portfolio.yaml", book / "portfolio.yaml")
+    result = runner.invoke(app, ["check", "--dir", str(book)])
+    assert result.exit_code == 0, result.output
+    text = flat(result.output)
+    assert "17 transactions" in text
+    assert "9 open positions" in text
+    assert "DDOG 80" in text
+    assert "cash" in text.lower()
+    assert "targets 47%" in text
+
+
+def test_check_names_the_row_that_cannot_be_true(tmp_path):
+    book = tmp_path / "book"
+    book.mkdir()
+    (book / "portfolio.yaml").write_text(
+        "transactions:\n"
+        "  - {date: 2024-01-02, type: deposit, amount: 100}\n"
+        "  - {date: 2024-01-03, type: buy, symbol: AAA, shares: 5, price: 100}\n",
+        encoding="utf-8",
+    )
+    result = runner.invoke(app, ["check", "--dir", str(book)])
+    assert result.exit_code == 1
+    assert "2024-01-03" in flat(result.output)
