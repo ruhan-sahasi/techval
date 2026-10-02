@@ -131,3 +131,26 @@ def test_without_open_nothing_is_launched(tmp_path, monkeypatch):
     shutil.copy(FIXTURES / "invest" / "portfolio.yaml", book / "portfolio.yaml")
     runner.invoke(app, ["--dir", str(book), "--config", str(write_config(tmp_path)), "--offline"])
     assert opened == []
+
+
+def test_the_tracker_builds_its_cache_with_an_age_limit(tmp_path, monkeypatch):
+    import techval.edgar as edgar
+
+    built = []
+    real = edgar.HttpCache
+
+    def spy(*args, **kwargs):
+        cache = real(*args, **{**kwargs, "root": tmp_path / "http"})
+        built.append(cache)
+        return cache
+
+    monkeypatch.setattr(edgar, "HttpCache", spy)
+    book = tmp_path / "book"
+    book.mkdir()
+    shutil.copy(FIXTURES / "invest" / "portfolio.yaml", book / "portfolio.yaml")
+    result = runner.invoke(
+        app,
+        ["--dir", str(book), "--config", str(write_config(tmp_path)), "--offline", "--max-age", "6"],
+    )
+    assert result.exit_code == 0, result.output
+    assert built and built[0].max_age == 6 * 3600

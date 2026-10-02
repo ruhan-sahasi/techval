@@ -49,6 +49,19 @@ _PANELS = typer.Option(
     ),
 )
 _OPEN = typer.Option(False, "--open", help="Open the rendered page in the default browser.")
+_MAX_AGE = typer.Option(
+    20.0,
+    "--max-age",
+    min=0.0,
+    help=(
+        "Hours a cached price or filing stays fresh. A tracker is run every day, so "
+        "the default refetches anything older than 20 hours; 0 refetches everything."
+    ),
+)
+
+# A morning run should see last night's close and any 10-K filed since the
+# last run. Twenty hours covers a daily habit without refetching twice a day.
+DEFAULT_MAX_AGE_HOURS = 20.0
 _REFIT = typer.Option(
     False,
     "--refit",
@@ -88,12 +101,13 @@ def invest(
     refit: bool = _REFIT,
     panels: Path = _PANELS,
     open_page: bool = _OPEN,
+    max_age: float = _MAX_AGE,
 ) -> None:
     """Refresh quotes and the engine read, then render portfolio/index.html."""
     if ctx.invoked_subcommand is not None:
         return
     try:
-        _build(directory, config, offline, render_only, refit, panels)
+        _build(directory, config, offline, render_only, refit, panels, max_age)
     except TechvalError as err:
         console.print(f"[red]{escape(str(err))}[/red]")
         raise typer.Exit(1)
@@ -133,6 +147,7 @@ def _build(
     render_only: bool,
     refit: bool = False,
     panels: Path | None = None,
+    max_age_hours: float = DEFAULT_MAX_AGE_HOURS,
 ) -> None:
     from .invest.render import write_page
     from .invest.snapshot import validate_snapshot
@@ -159,7 +174,9 @@ def _build(
 
     ledger = Ledger.load(directory / "portfolio.yaml")
     assumptions = Assumptions.load(config)
-    cache = HttpCache(enabled=True)
+    # Unlike the valuation commands, the tracker wants yesterday's close and
+    # this quarter's filings, so its cache entries age out.
+    cache = HttpCache(max_age=max_age_hours * 3600)
     source_kind = "csv" if offline else assumptions.price_source
     source = make_price_source(source_kind, cache, assumptions.price_csv_dir)
     today = date.today()
