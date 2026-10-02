@@ -192,6 +192,78 @@ def add(
     console.print(f"Cash after the ledger's last row: {ledger.cash():,.2f}", highlight=False)
 
 
+EXPORTS = ("realized", "lots", "activity")
+
+
+def _share_text(n: float) -> str:
+    return f"{n:g}" if float(n).is_integer() else f"{n:.6f}".rstrip("0")
+
+
+@app.command()
+def export(
+    what: str = typer.Argument(..., metavar="TABLE", help="realized, lots or activity."),
+    out: Path = typer.Option(..., "--out", "-o", help="The CSV file to write."),
+    directory: Path = _DIR,
+) -> None:
+    """Write the ledger's realized sales, open lots or raw activity as CSV.
+
+    realized has the columns of IRS Form 8949, one row per lot slice a sale
+    closed, so it can be checked line by line against a broker's 1099-B.
+    """
+    import csv
+
+    from .invest.ledger import Ledger
+
+    try:
+        if what not in EXPORTS:
+            raise TechvalError(f"export takes realized, lots or activity, not {what!r}")
+        ledger = Ledger.load(directory / "portfolio.yaml")
+        if what == "realized":
+            header = ["description", "date_acquired", "date_sold", "proceeds", "cost_basis", "gain", "term"]
+            rows = [
+                [
+                    f"{_share_text(e.shares)} sh {e.symbol}",
+                    e.opened.isoformat(),
+                    e.sold.isoformat(),
+                    f"{e.proceeds:.2f}",
+                    f"{e.basis:.2f}",
+                    f"{e.gain:.2f}",
+                    e.term,
+                ]
+                for e in ledger.realized_events()
+            ]
+        elif what == "lots":
+            header = ["symbol", "kind", "opened", "shares", "cost_per_share", "cost"]
+            rows = [
+                [p.symbol, p.kind, lot.opened.isoformat(), _share_text(lot.shares), f"{lot.cost_per_share:.6f}", f"{lot.shares * lot.cost_per_share:.2f}"]
+                for p in sorted(ledger.positions().values(), key=lambda p: p.symbol)
+                for lot in p.lots
+            ]
+        else:
+            header = ["date", "type", "symbol", "shares", "price", "amount", "ratio", "fee", "kind", "note"]
+            rows = [
+                [
+                    t.date.isoformat(), t.type, t.symbol or "",
+                    "" if t.shares is None else _share_text(t.shares),
+                    "" if t.price is None else f"{t.price:g}",
+                    "" if t.amount is None else f"{t.amount:g}",
+                    "" if t.ratio is None else f"{t.ratio:g}",
+                    f"{t.fee:g}" if t.fee else "",
+                    t.kind or "", t.note or "",
+                ]
+                for t in ledger.transactions
+            ]
+    except TechvalError as err:
+        console.print(f"[red]{escape(str(err))}[/red]")
+        raise typer.Exit(1)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(header)
+        writer.writerows(rows)
+    console.print(f"Wrote {len(rows)} rows to {escape(str(out))}", highlight=False)
+
+
 @app.command()
 def check(directory: Path = _DIR) -> None:
     """Replay the ledger offline and print what it holds; no quotes, no models."""

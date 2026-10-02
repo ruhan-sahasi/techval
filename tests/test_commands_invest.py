@@ -257,3 +257,46 @@ def test_add_refuses_the_wrong_number_of_values(tmp_path):
     result = runner.invoke(app, ["add", "buy", "NET", "5", "--dir", str(book)])
     assert result.exit_code == 1
     assert "SYMBOL SHARES PRICE" in flat(result.output)
+
+
+def _export(tmp_path, what):
+    book = tmp_path / "book"
+    book.mkdir(exist_ok=True)
+    shutil.copy(FIXTURES / "invest" / "portfolio.yaml", book / "portfolio.yaml")
+    out = tmp_path / f"{what}.csv"
+    result = runner.invoke(app, ["export", what, "--dir", str(book), "--out", str(out)])
+    assert result.exit_code == 0, result.output
+    import csv
+
+    with out.open(newline="", encoding="utf-8") as handle:
+        return list(csv.DictReader(handle)), result
+
+
+def test_export_realized_writes_one_row_per_closed_lot_slice(tmp_path):
+    rows, result = _export(tmp_path, "realized")
+    assert list(rows[0]) == [
+        "description", "date_acquired", "date_sold", "proceeds", "cost_basis", "gain", "term",
+    ]
+    assert [(r["description"], r["date_sold"], r["term"]) for r in rows] == [
+        ("30 sh NET", "2024-08-15", "short"),
+        ("10 sh MDB", "2026-04-15", "long"),
+    ]
+    assert float(rows[1]["gain"]) == -1300.0
+    assert "2 rows" in flat(result.output)
+
+
+def test_export_lots_and_activity(tmp_path):
+    lots, _ = _export(tmp_path, "lots")
+    assert len(lots) == 10 and {"symbol", "opened", "shares", "cost_per_share", "cost"} <= set(lots[0])
+    activity, _ = _export(tmp_path, "activity")
+    assert len(activity) == 17
+    assert activity[0]["date"] == "2023-10-02" and activity[0]["type"] == "deposit"
+
+
+def test_export_refuses_an_unknown_table(tmp_path):
+    book = tmp_path / "book"
+    book.mkdir()
+    shutil.copy(FIXTURES / "invest" / "portfolio.yaml", book / "portfolio.yaml")
+    result = runner.invoke(app, ["export", "taxes", "--dir", str(book), "--out", str(tmp_path / "x.csv")])
+    assert result.exit_code == 1
+    assert "realized, lots or activity" in flat(result.output)
