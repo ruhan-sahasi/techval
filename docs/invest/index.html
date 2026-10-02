@@ -7279,6 +7279,30 @@ body {
       },
     });
 
+    /* Dividend income by calendar year, read straight off the ledger rows. */
+    var byYear = {};
+    snapshot.activity.forEach(function (row) {
+      if (row.type !== "dividend") return;
+      var year = row.date.slice(0, 4);
+      byYear[year] = (byYear[year] || 0) + row.amount;
+    });
+    var years = Object.keys(byYear).sort();
+    if (years.length) {
+      var income = TV.figure(host, {
+        title: "Dividend income by year",
+        subtitle: "Cash paid into the book, by the year it arrived",
+        id: "iv-dividends",
+      });
+      TV.charts.column(income.body, {
+        format: "num:2",
+        legend: false,
+        labels: "all",
+        rows: years.map(function (y) {
+          return { label: y, value: Math.round(byYear[y] * 100) / 100, role: "model" };
+        }),
+      });
+    }
+
     /* Realized gains by the year of sale, the way a tax form asks for them. */
     if (perf.realized_by_year.length) {
       var tax = IV.card(
