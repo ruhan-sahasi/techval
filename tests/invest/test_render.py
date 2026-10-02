@@ -132,3 +132,12 @@ def test_a_storage_that_throws_falls_back_to_defaults():
     throwing = "get localStorage() { throw new Error('denied'); }"
     got = _run_with_storage(throwing, "(window.IV.pref.set('range', '1Y'), window.IV.pref.get('range', 'ALL'))")
     assert got == "ALL"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is not installed")
+def test_number_keys_and_brackets_pick_a_pane():
+    got = _run_invest(
+        "[['1','engine'],['7','overview'],['8','overview'],[']','overview'],[']','activity'],['[','overview'],['x','overview']]"
+        ".map(p => window.IV.keyTarget(p[0], p[1]))"
+    )
+    assert got == ["overview", "activity", None, "holdings", "overview", "activity", None]
