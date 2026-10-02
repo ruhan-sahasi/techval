@@ -151,6 +151,50 @@
       },
     });
 
+    /* Realized gains by the year of sale, the way a tax form asks for them. */
+    if (perf.realized_by_year.length) {
+      var tax = IV.card(
+        "Realized gains by tax year",
+        "FIFO lots, fees in the basis and off the proceeds. Long term means held more than a year."
+      );
+      var money = function (v) {
+        return el("td", { class: IV.signClass(v, "tv-num") || "tv-num" }, IV.fmt.signedMoney(v));
+      };
+      tax.appendChild(
+        el(
+          "div",
+          { class: "tv-table-wrap", tabindex: "0", role: "region", "aria-label": "Realized gains by tax year" },
+          el(
+            "table",
+            { class: "tv-table" },
+            el("caption", { class: "tv-visually-hidden" }, "Realized gains by tax year"),
+            el(
+              "thead",
+              null,
+              el(
+                "tr",
+                null,
+                ["Year", "Short term", "Long term", "Total"].map(function (label, i) {
+                  return el("th", { scope: "col", class: i ? "tv-num" : null }, label);
+                })
+              )
+            ),
+            el(
+              "tbody",
+              null,
+              perf.realized_by_year.map(function (y) {
+                return el("tr", null, el("th", { scope: "row" }, String(y.year)), money(y.short), money(y.long), money(y.total));
+              })
+            )
+          )
+        )
+      );
+      tax.appendChild(
+        IV.note("Arithmetic on your own ledger, not tax advice: wash sales, specific-lot elections and anything a broker adjusts are outside it.")
+      );
+      host.appendChild(tax);
+    }
+
     /* The lots, oldest first, each against today's price. */
     var lots = IV.card("Open lots", perf.lots.length + " lots, FIFO. Split-adjusted where a split arrived.");
     var table = el(
