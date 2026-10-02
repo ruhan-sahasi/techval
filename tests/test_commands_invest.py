@@ -314,3 +314,20 @@ def test_a_run_prints_the_headline_numbers(tmp_path):
     for label in ("Total value", "Last session", "Time-weighted", "vs SPY", "Max drawdown", "Engine coverage", "Prices as of"):
         assert label in text, label
     assert "$116,785" in text
+
+
+def test_benchmark_overrides_the_ledgers_for_one_run(tmp_path):
+    book = tmp_path / "book"
+    book.mkdir()
+    shutil.copy(FIXTURES / "invest" / "portfolio.yaml", book / "portfolio.yaml")
+    result = runner.invoke(
+        app,
+        ["--dir", str(book), "--config", str(write_config(tmp_path)), "--offline", "--benchmark", "dis"],
+    )
+    assert result.exit_code == 0, result.output
+    snapshot = json.loads((book / "snapshot.json").read_text(encoding="utf-8"))
+    assert snapshot["meta"]["benchmark"] == "DIS"
+    assert snapshot["performance"]["benchmark"] == "DIS"
+    assert "vs DIS" in flat(result.output)
+    # The ledger file itself is untouched.
+    assert "benchmark: SPY" in (book / "portfolio.yaml").read_text(encoding="utf-8")
