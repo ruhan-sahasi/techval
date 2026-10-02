@@ -16,10 +16,35 @@
   var svg = TV.svg;
 
   var SNAPSHOT_ID = "iv-snapshot";
-  var SCHEMA = 2;
+  var SCHEMA = 4;
 
   var IV = { panes: {} };
   global.IV = IV;
+
+  /*
+   * Per-viewer conveniences: theme, chart range, book sort. They live in this
+   * browser only, and storage can be empty or refuse outright in a private
+   * window, so every read falls back to a default and every write may fail.
+   */
+  var PREFIX = "techval-invest:";
+
+  IV.pref = {
+    get: function (key, fallback) {
+      try {
+        var v = global.localStorage.getItem(PREFIX + key);
+        return v === null || v === undefined ? fallback : v;
+      } catch (e) {
+        return fallback;
+      }
+    },
+    set: function (key, value) {
+      try {
+        global.localStorage.setItem(PREFIX + key, value);
+      } catch (e) {
+        /* A preference that cannot be kept is only forgotten. */
+      }
+    },
+  };
 
   /*
    * The app opens dark unless the system asks for light; ?theme= still forces
@@ -30,6 +55,11 @@
     var match = /[?&]theme=(dark|light)(?:&|#|$)/.exec(global.location ? global.location.search : "");
     if (match) {
       document.documentElement.setAttribute("data-theme", match[1]);
+      return;
+    }
+    var chosen = IV.pref.get("theme", null);
+    if (chosen === "dark" || chosen === "light") {
+      document.documentElement.setAttribute("data-theme", chosen);
       return;
     }
     var lighter = global.matchMedia && global.matchMedia("(prefers-color-scheme: light)").matches;
@@ -93,6 +123,43 @@
     global.requestAnimationFrame(step);
   };
 
+  /*
+   * Chart ranges, the way a brokerage app slices its main chart. A range
+   * starts a calendar offset before the last date (1M, 3M, 1Y; YTD at 1
+   * January), lands on the first session on or after that day, and the
+   * lines are rebased to one there, so every range reads as growth of $1.
+   */
+  function isoMinusMonths(iso, months) {
+    var y = +iso.slice(0, 4);
+    var m = +iso.slice(5, 7) - 1 - months;
+    var d = +iso.slice(8, 10);
+    y += Math.floor(m / 12);
+    m = ((m % 12) + 12) % 12;
+    var last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    var dd = Math.min(d, last);
+    return y + "-" + String(m + 1).padStart(2, "0") + "-" + String(dd).padStart(2, "0");
+  }
+
+  IV.range = {
+    KEYS: ["1M", "3M", "YTD", "1Y", "ALL"],
+    startIndex: function (dates, key) {
+      if (!dates.length || key === "ALL") return 0;
+      var last = dates[dates.length - 1];
+      var start =
+        key === "YTD" ? last.slice(0, 4) + "-01-01" : isoMinusMonths(last, { "1M": 1, "3M": 3, "1Y": 12 }[key] || 0);
+      for (var i = 0; i < dates.length; i++) {
+        if (dates[i] >= start) return i;
+      }
+      return dates.length - 1;
+    },
+    rebase: function (series, i) {
+      var base = series[i];
+      return series.slice(i).map(function (v) {
+        return v / base;
+      });
+    },
+  };
+
   /* A dense sortable table: click a header, the rows re-order in place. ----- */
 
   IV.sortable = function (wrap) {
@@ -100,29 +167,41 @@
     if (!table) return;
     var body = table.tBodies[0];
     var headers = Array.prototype.slice.call(table.tHead.rows[0].cells);
+    var key = "sort:" + (wrap.getAttribute("aria-label") || "table");
+
+    function apply(index, direction) {
+      headers.forEach(function (other) {
+        if (other.hasAttribute("data-sort")) other.setAttribute("aria-sort", "none");
+      });
+      headers[index].setAttribute("aria-sort", direction);
+      var rows = Array.prototype.slice.call(body.rows);
+      rows.sort(function (a, b) {
+        var x = parseFloat(a.cells[index].getAttribute("data-value"));
+        var y = parseFloat(b.cells[index].getAttribute("data-value"));
+        if (isNaN(x) && isNaN(y)) return 0;
+        if (isNaN(x)) return 1;
+        if (isNaN(y)) return -1;
+        return direction === "descending" ? y - x : x - y;
+      });
+      rows.forEach(function (row) {
+        body.appendChild(row);
+      });
+    }
+
     headers.forEach(function (th, index) {
       if (!th.hasAttribute("data-sort")) return;
       th.setAttribute("aria-sort", "none");
       th.addEventListener("click", function () {
         var direction = th.getAttribute("aria-sort") === "descending" ? "ascending" : "descending";
-        headers.forEach(function (other) {
-          if (other.hasAttribute("data-sort")) other.setAttribute("aria-sort", "none");
-        });
-        th.setAttribute("aria-sort", direction);
-        var rows = Array.prototype.slice.call(body.rows);
-        rows.sort(function (a, b) {
-          var x = parseFloat(a.cells[index].getAttribute("data-value"));
-          var y = parseFloat(b.cells[index].getAttribute("data-value"));
-          if (isNaN(x) && isNaN(y)) return 0;
-          if (isNaN(x)) return 1;
-          if (isNaN(y)) return -1;
-          return direction === "descending" ? y - x : x - y;
-        });
-        rows.forEach(function (row) {
-          body.appendChild(row);
-        });
+        apply(index, direction);
+        IV.pref.set(key, index + ":" + direction);
       });
     });
+
+    var saved = /^(\d+):(ascending|descending)$/.exec(IV.pref.get(key, ""));
+    if (saved && headers[+saved[1]] && headers[+saved[1]].hasAttribute("data-sort")) {
+      apply(+saved[1], saved[2]);
+    }
   };
 
   /* Shared card scaffolding for the panes. ---------------------------------- */
@@ -192,6 +271,24 @@
     { id: "activity", title: "Activity" },
   ];
 
+  /*
+   * Keys: 1 to 7 jump to a pane in rail order, [ and ] step back and forward,
+   * wrapping at the ends. Anything else, or a key pressed while typing or
+   * with a modifier, is left to the browser.
+   */
+  IV.keyTarget = function (key, current) {
+    var ids = DESTINATIONS.map(function (d) {
+      return d.id;
+    });
+    if (/^[1-9]$/.test(key)) {
+      return ids[+key - 1] || null;
+    }
+    var at = ids.indexOf(current);
+    if (key === "]") return ids[(at + 1) % ids.length];
+    if (key === "[") return ids[(at - 1 + ids.length) % ids.length];
+    return null;
+  };
+
   var ICONS = {
     overview: [["path", { d: "M2.5 2.5h4.6v4.6H2.5zM8.9 2.5h4.6v4.6H8.9zM2.5 8.9h4.6v4.6H2.5zM8.9 8.9h4.6v4.6H8.9z" }]],
     holdings: [["path", { d: "M2.5 4.4h11M2.5 8h11M2.5 11.6h11" }]],
@@ -228,13 +325,38 @@
     }
   }
 
+  /*
+   * Routing is by location hash, so a pane has a link and survives a reload.
+   * Some viewers serve the page from a data: URL, where the hash cannot be
+   * set at all; there the pane is drawn directly and remembered here.
+   */
+  var forced = null;
+
   function currentPane() {
     var hash = (global.location.hash || "").replace("#", "");
+    if (forced && hash !== forced) return forced;
     for (var i = 0; i < DESTINATIONS.length; i++) {
       if (DESTINATIONS[i].id === hash) return hash;
     }
     return DESTINATIONS[0].id;
   }
+
+  var redraw = null;
+
+  function go(id) {
+    forced = null;
+    try {
+      global.location.hash = id;
+    } catch (e) {
+      /* Handled below: the hash did not change. */
+    }
+    if ((global.location.hash || "").replace("#", "") !== id) {
+      forced = id;
+      if (redraw) redraw();
+    }
+  }
+
+  IV.go = go;
 
   function boot() {
     var read = readSnapshot();
@@ -244,8 +366,21 @@
     }
     var snapshot = read.snapshot;
     document.body.appendChild(shell(snapshot));
-    global.addEventListener("hashchange", function () {
+    redraw = function () {
       draw(snapshot);
+    };
+    global.addEventListener("hashchange", function () {
+      forced = null;
+      draw(snapshot);
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return;
+      var t = e.target;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      var next = IV.keyTarget(e.key, currentPane());
+      if (!next) return;
+      e.preventDefault();
+      go(next);
     });
     draw(snapshot);
   }
@@ -260,6 +395,11 @@
       { class: "iv-nav" },
       DESTINATIONS.map(function (d) {
         var link = el("a", { class: "iv-nav__link", href: "#" + d.id }, icon(d.id), d.title);
+        link.addEventListener("click", function (e) {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+          e.preventDefault();
+          go(d.id);
+        });
         refs.links[d.id] = link;
         return el("li", null, link);
       })
@@ -269,6 +409,7 @@
       var root = document.documentElement;
       var dark = root.getAttribute("data-theme") !== "light";
       root.setAttribute("data-theme", dark ? "light" : "dark");
+      IV.pref.set("theme", dark ? "light" : "dark");
     });
     refs.title = el("h1", { class: "iv-topbar__title" }, "");
     refs.pane = el("div", { class: "iv-pane" });
@@ -291,7 +432,8 @@
           el("span", null, "Built " + meta.generated),
           el("span", null, "Last close " + meta.prices_as_of),
           el("span", null, "Prices: " + meta.price_source),
-          el("span", null, "Benchmark: " + meta.benchmark)
+          el("span", null, "Benchmark: " + meta.benchmark),
+          el("span", null, "Keys 1 to 7, [ and ] switch panes")
         )
       ),
       el(

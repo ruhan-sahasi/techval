@@ -49,6 +49,24 @@ _PANELS = typer.Option(
     ),
 )
 _OPEN = typer.Option(False, "--open", help="Open the rendered page in the default browser.")
+_BENCHMARK = typer.Option(
+    None,
+    "--benchmark",
+    help="Compare against this symbol for one run, QQQ say, instead of the ledger's benchmark.",
+)
+_MAX_AGE = typer.Option(
+    20.0,
+    "--max-age",
+    min=0.0,
+    help=(
+        "Hours a cached price or filing stays fresh. A tracker is run every day, so "
+        "the default refetches anything older than 20 hours; 0 refetches everything."
+    ),
+)
+
+# A morning run should see last night's close and any 10-K filed since the
+# last run. Twenty hours covers a daily habit without refetching twice a day.
+DEFAULT_MAX_AGE_HOURS = 20.0
 _REFIT = typer.Option(
     False,
     "--refit",
@@ -65,6 +83,9 @@ STARTER = """\
 #   - {date: 2024-01-16, type: buy, symbol: MSFT, shares: 10, price: 390.00}
 #   - {date: 2024-06-12, type: dividend, symbol: MSFT, amount: 7.50}
 #   - {date: 2024-08-05, type: split, symbol: NVDA, ratio: 10}
+# A buy or sell may carry a fee: it joins a buy's cost basis and comes off a
+# sell's proceeds.
+#   - {date: 2024-09-03, type: sell, symbol: MSFT, shares: 2, price: 410.00, fee: 1.50}
 # kind marks non-stocks once per symbol: etf or crypto.
 #   - {date: 2024-02-01, type: buy, symbol: VOO, shares: 4, price: 460, kind: etf}
 name: My portfolio
@@ -88,12 +109,14 @@ def invest(
     refit: bool = _REFIT,
     panels: Path = _PANELS,
     open_page: bool = _OPEN,
+    max_age: float = _MAX_AGE,
+    benchmark: str = _BENCHMARK,
 ) -> None:
     """Refresh quotes and the engine read, then render portfolio/index.html."""
     if ctx.invoked_subcommand is not None:
         return
     try:
-        _build(directory, config, offline, render_only, refit, panels)
+        _build(directory, config, offline, render_only, refit, panels, max_age, benchmark)
     except TechvalError as err:
         console.print(f"[red]{escape(str(err))}[/red]")
         raise typer.Exit(1)
@@ -115,6 +138,200 @@ def init(directory: Path = _DIR) -> None:
     console.print(f"Wrote {escape(str(path))}. Edit it, then run: techval invest")
 
 
+@app.command()
+def add(
+    kind_of: str = typer.Argument(..., metavar="TYPE", help="buy, sell, deposit, withdraw, dividend or split."),
+    values: list[str] = typer.Argument(..., metavar="VALUES", help="buy/sell: SYMBOL SHARES PRICE. deposit/withdraw: AMOUNT. dividend: SYMBOL AMOUNT. split: SYMBOL RATIO."),
+    when: str = typer.Option(None, "--date", help="The transaction date, YYYY-MM-DD. Defaults to today."),
+    fee: float = typer.Option(None, "--fee", help="A trade's fee, for a buy or a sell."),
+    kind: str = typer.Option(None, "--kind", help="etf or crypto, the first time a symbol appears."),
+    note: str = typer.Option(None, "--note", help="A note kept on the row."),
+    directory: Path = _DIR,
+) -> None:
+    """Append one transaction to the ledger, after replaying the whole ledger with it."""
+    import os
+    import tempfile
+
+    from .invest.ledger import ADD_SHAPES, Ledger, append_row, flow_row
+
+    path = directory / "portfolio.yaml"
+    try:
+        shape = ADD_SHAPES.get(kind_of)
+        if shape is None:
+            raise TechvalError(f"type must be one of {', '.join(ADD_SHAPES)}, not {kind_of!r}")
+        if len(values) != len(shape):
+            raise TechvalError(
+                f"a {kind_of} takes {' '.join(f.upper() for f in shape)}; got {len(values)} value"
+                f"{'s' if len(values) != 1 else ''}"
+            )
+        row: dict = {"date": when or date.today().isoformat(), "type": kind_of}
+        for field_name, raw in zip(shape, values):
+            if field_name == "symbol":
+                row[field_name] = raw.upper()
+                continue
+            try:
+                row[field_name] = float(raw)
+            except ValueError:
+                raise TechvalError(f"{field_name} must be a number, not {raw!r}") from None
+        row["fee"] = fee
+        row["kind"] = kind
+        row["note"] = note
+        if not path.is_file():
+            raise TechvalError(f"no portfolio file at {path}. techval invest init writes a starter.")
+        line = flow_row(row)
+        updated = append_row(path.read_text(encoding="utf-8"), line)
+        # Replay the whole ledger with the row before anything touches the file.
+        fd, tmp = tempfile.mkstemp(dir=directory, prefix=".portfolio-", suffix=".yaml")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(updated)
+            ledger = Ledger.load(Path(tmp))
+            ledger.positions()
+            os.replace(tmp, path)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+    except TechvalError as err:
+        console.print(f"[red]{escape(str(err))}[/red]")
+        raise typer.Exit(1)
+    console.print(f"Added {escape(line.strip())}", highlight=False)
+    console.print(f"Cash after the ledger's last row: {ledger.cash():,.2f}", highlight=False)
+
+
+EXPORTS = ("realized", "lots", "activity")
+
+
+def _share_text(n: float) -> str:
+    return f"{n:g}" if float(n).is_integer() else f"{n:.6f}".rstrip("0")
+
+
+@app.command()
+def export(
+    what: str = typer.Argument(..., metavar="TABLE", help="realized, lots or activity."),
+    out: Path = typer.Option(..., "--out", "-o", help="The CSV file to write."),
+    directory: Path = _DIR,
+) -> None:
+    """Write the ledger's realized sales, open lots or raw activity as CSV.
+
+    realized has the columns of IRS Form 8949, one row per lot slice a sale
+    closed, so it can be checked line by line against a broker's 1099-B.
+    """
+    import csv
+
+    from .invest.ledger import Ledger
+
+    try:
+        if what not in EXPORTS:
+            raise TechvalError(f"export takes realized, lots or activity, not {what!r}")
+        ledger = Ledger.load(directory / "portfolio.yaml")
+        if what == "realized":
+            header = ["description", "date_acquired", "date_sold", "proceeds", "cost_basis", "gain", "term"]
+            rows = [
+                [
+                    f"{_share_text(e.shares)} sh {e.symbol}",
+                    e.opened.isoformat(),
+                    e.sold.isoformat(),
+                    f"{e.proceeds:.2f}",
+                    f"{e.basis:.2f}",
+                    f"{e.gain:.2f}",
+                    e.term,
+                ]
+                for e in ledger.realized_events()
+            ]
+        elif what == "lots":
+            header = ["symbol", "kind", "opened", "shares", "cost_per_share", "cost"]
+            rows = [
+                [p.symbol, p.kind, lot.opened.isoformat(), _share_text(lot.shares), f"{lot.cost_per_share:.6f}", f"{lot.shares * lot.cost_per_share:.2f}"]
+                for p in sorted(ledger.positions().values(), key=lambda p: p.symbol)
+                for lot in p.lots
+            ]
+        else:
+            header = ["date", "type", "symbol", "shares", "price", "amount", "ratio", "fee", "kind", "note"]
+            rows = [
+                [
+                    t.date.isoformat(), t.type, t.symbol or "",
+                    "" if t.shares is None else _share_text(t.shares),
+                    "" if t.price is None else f"{t.price:g}",
+                    "" if t.amount is None else f"{t.amount:g}",
+                    "" if t.ratio is None else f"{t.ratio:g}",
+                    f"{t.fee:g}" if t.fee else "",
+                    t.kind or "", t.note or "",
+                ]
+                for t in ledger.transactions
+            ]
+    except TechvalError as err:
+        console.print(f"[red]{escape(str(err))}[/red]")
+        raise typer.Exit(1)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(header)
+        writer.writerows(rows)
+    console.print(f"Wrote {len(rows)} rows to {escape(str(out))}", highlight=False)
+
+
+@app.command()
+def check(directory: Path = _DIR) -> None:
+    """Replay the ledger offline and print what it holds; no quotes, no models."""
+    from .invest.ledger import Ledger
+
+    try:
+        ledger = Ledger.load(directory / "portfolio.yaml")
+        positions = ledger.positions()
+        cash = ledger.cash()
+    except TechvalError as err:
+        console.print(f"[red]{escape(str(err))}[/red]")
+        raise typer.Exit(1)
+    held = sorted((p for p in positions.values() if p.shares > 0), key=lambda p: p.symbol)
+    console.print(
+        f"{escape(ledger.name)}: {len(ledger.transactions)} transactions from "
+        f"{ledger.first_date} to {ledger.transactions[-1].date}, {len(held)} open positions."
+    )
+    for p in held:
+        shares = f"{p.shares:,.0f}" if float(p.shares).is_integer() else f"{p.shares:,.4f}"
+        console.print(f"  {p.symbol} {shares} {p.kind}, cost {p.cost:,.2f}", highlight=False)
+    console.print(f"Cash {cash:,.2f}", highlight=False)
+    if ledger.targets:
+        console.print(f"Drift targets {sum(ledger.targets.values()):.0%} of the book", highlight=False)
+    console.print("The ledger replays cleanly.")
+
+
+def _signed_pct(v: float | None, dp: int = 2) -> str:
+    return "n/a" if v is None else f"{v * 100:+.{dp}f}%"
+
+
+def _print_summary(snapshot: dict) -> None:
+    """The headline numbers in the terminal, for a run nobody opens the page after."""
+    from rich.table import Table
+
+    meta, over = snapshot["meta"], snapshot["overview"]
+    risk = snapshot["performance"]["risk"]["portfolio"]
+    gap = over["twr_pct"] - over["benchmark_twr_pct"]
+    table = Table(title=escape(meta["name"]), show_header=False, box=None, pad_edge=False)
+    table.add_column(style="dim")
+    table.add_column(justify="right")
+    rows = [
+        ("Total value", f"${over['value']:,.0f}"),
+        ("Last session", f"{_signed_pct(over['day_pct'])} ({over['day_abs']:+,.0f})"),
+        ("Time-weighted", f"{_signed_pct(over['twr_pct'], 1)} since {meta['first_date']}"),
+        (f"vs {meta['benchmark']}", f"{gap * 100:+.1f} pts"),
+        ("Max drawdown", _signed_pct(risk["max_drawdown"], 1) if risk["max_drawdown"] else "none"),
+        ("Positions", f"{over['n_positions']} and ${over['cash']:,.0f} cash"),
+        ("Engine coverage", f"{over['covered_value_share']:.0%}: {over['cheap']} cheap, {over['rich']} rich, {over['uncovered']} unvalued"),
+        ("Prices as of", meta["prices_as_of"]),
+    ]
+    for label, value in rows:
+        table.add_row(label, escape(value))
+    console.print(table)
+    if meta["prices_age_days"] > 4:
+        console.print(f"[yellow]Prices are {meta['prices_age_days']} days old.[/yellow]")
+    if over["mismatched_closes"]:
+        console.print(
+            f"[yellow]{escape(', '.join(over['mismatched_closes']))} closed in a different session from "
+            f"{escape(meta['benchmark'])}.[/yellow]"
+        )
+
+
 def _cache_root(assumptions: Assumptions) -> Path:
     configured = assumptions.ml.cache_dir
     return Path(configured).expanduser() if configured else Path.home() / ".techval" / "ml"
@@ -133,6 +350,8 @@ def _build(
     render_only: bool,
     refit: bool = False,
     panels: Path | None = None,
+    max_age_hours: float = DEFAULT_MAX_AGE_HOURS,
+    benchmark: str | None = None,
 ) -> None:
     from .invest.render import write_page
     from .invest.snapshot import validate_snapshot
@@ -158,8 +377,13 @@ def _build(
     from .market import MarketData, make_price_source
 
     ledger = Ledger.load(directory / "portfolio.yaml")
+    if benchmark:
+        # For this run only; the ledger file keeps its own benchmark.
+        ledger.benchmark = benchmark.upper()
     assumptions = Assumptions.load(config)
-    cache = HttpCache(enabled=True)
+    # Unlike the valuation commands, the tracker wants yesterday's close and
+    # this quarter's filings, so its cache entries age out.
+    cache = HttpCache(max_age=max_age_hours * 3600)
     source_kind = "csv" if offline else assumptions.price_source
     source = make_price_source(source_kind, cache, assumptions.price_csv_dir)
     today = date.today()
@@ -202,10 +426,6 @@ def _build(
     )
     write_snapshot(snapshot, snapshot_path)
     write_page(snapshot, page_path)
-    over = snapshot["overview"]
-    console.print(
-        f"{escape(ledger.name)}: {len(snapshot['positions'])} positions, "
-        f"total {over['value']:,.0f}."
-    )
+    _print_summary(snapshot)
     console.print(f"Wrote {escape(str(snapshot_path))}")
     console.print(f"Wrote {escape(str(page_path))}")

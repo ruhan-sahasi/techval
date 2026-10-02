@@ -45,6 +45,7 @@ class Transaction:
     ratio: float | None = None
     kind: str | None = None
     note: str | None = None
+    fee: float = 0.0
 
 
 class Ledger:
@@ -136,6 +137,10 @@ class Ledger:
     def cash(self, as_of: date | None = None) -> float:
         return _walk(self, as_of)[1]
 
+    def realized_events(self, as_of: date | None = None) -> list["Realization"]:
+        """Every lot slice a sale closed, in order, with its holding term."""
+        return _walk(self, as_of)[2]
+
     def flows(self) -> dict[date, float]:
         """External money in and out, the flows a time-weighted return strips."""
         out: dict[date, float] = {}
@@ -172,6 +177,12 @@ def _parse_row(row: object, index: int, kinds: dict[str, str]) -> Transaction:
     price = row.get("price")
     if price is not None and (not isinstance(price, (int, float)) or price < 0):
         raise ConfigError(f"{where}: price must be zero or more, not {price!r}")
+    fee = row.get("fee")
+    if fee is not None:
+        if kind_of not in ("buy", "sell"):
+            raise ConfigError(f"{where}: a fee belongs to a buy or a sell, not a {kind_of}")
+        if not isinstance(fee, (int, float)) or fee < 0:
+            raise ConfigError(f"{where}: fee must be zero or more, not {fee!r}")
     stated = row.get("kind")
     if stated is not None and stated not in KINDS:
         raise ConfigError(f"{where}: kind {stated!r} is not one of {', '.join(KINDS)}")
@@ -195,6 +206,7 @@ def _parse_row(row: object, index: int, kinds: dict[str, str]) -> Transaction:
         ratio=_number(row.get("ratio")),
         kind=stated,
         note=None if row.get("note") is None else str(row.get("note")),
+        fee=float(fee or 0.0),
     )
 
 
@@ -228,6 +240,36 @@ class Position:
         return sum(lot.shares * lot.cost_per_share for lot in self.lots)
 
 
+@dataclass(frozen=True)
+class Realization:
+    """One lot slice closed by one sale: the unit a tax form reports."""
+
+    symbol: str
+    opened: date
+    sold: date
+    shares: float
+    proceeds: float
+    basis: float
+    term: str
+
+    @property
+    def gain(self) -> float:
+        return self.proceeds - self.basis
+
+
+def anniversary(opened: date) -> date:
+    """The same day a year on; a leap-day purchase's falls on 28 February."""
+    try:
+        return opened.replace(year=opened.year + 1)
+    except ValueError:
+        return opened.replace(year=opened.year + 1, day=28)
+
+
+def holding_term(opened: date, sold: date) -> str:
+    """Long term only when held MORE than a year: sold after the anniversary."""
+    return "long" if sold > anniversary(opened) else "short"
+
+
 def _walk(ledger: "Ledger", as_of: date | None):
     """Replay the ledger to a date, refusing anything the record cannot support.
 
@@ -236,6 +278,7 @@ def _walk(ledger: "Ledger", as_of: date | None):
     """
     positions: dict[str, Position] = {}
     cash = 0.0
+    events: list[Realization] = []
     for t in ledger.transactions:
         if as_of is not None and t.date > as_of:
             break
@@ -248,9 +291,10 @@ def _walk(ledger: "Ledger", as_of: date | None):
         elif t.type == "withdraw":
             cash -= t.amount
         elif t.type == "buy":
-            position.lots.append(Lot(t.symbol, t.date, t.shares, t.price))
+            # A buy's fee is part of what the shares cost: it joins the basis.
+            position.lots.append(Lot(t.symbol, t.date, t.shares, t.price + t.fee / t.shares))
             position.shares += t.shares
-            cash -= t.shares * t.price
+            cash -= t.shares * t.price + t.fee
         elif t.type == "sell":
             if t.shares > position.shares + 1e-9:
                 raise ConfigError(
@@ -262,12 +306,26 @@ def _walk(ledger: "Ledger", as_of: date | None):
                 lot = position.lots[0]
                 taken = min(lot.shares, left)
                 position.realized += taken * (t.price - lot.cost_per_share)
+                # The sale's fee is shared across the lots it closes, by shares.
+                events.append(
+                    Realization(
+                        symbol=t.symbol,
+                        opened=lot.opened,
+                        sold=t.date,
+                        shares=taken,
+                        proceeds=taken * t.price - t.fee * taken / t.shares,
+                        basis=taken * lot.cost_per_share,
+                        term=holding_term(lot.opened, t.date),
+                    )
+                )
                 lot.shares -= taken
                 left -= taken
                 if lot.shares <= 1e-12:
                     position.lots.pop(0)
+            # A sell's fee comes off the proceeds, and so off the gain.
+            position.realized -= t.fee
             position.shares -= t.shares
-            cash += t.shares * t.price
+            cash += t.shares * t.price - t.fee
         elif t.type == "dividend":
             if not position.lots and position.shares <= 0:
                 raise ConfigError(f"{t.date}: a dividend on {t.symbol}, which the ledger never bought")
@@ -283,4 +341,63 @@ def _walk(ledger: "Ledger", as_of: date | None):
                 f"{t.date}: the {t.type} takes cash to {cash:,.2f}. The ledger "
                 "is missing a deposit."
             )
-    return positions, cash
+    return positions, cash, events
+
+
+# Positional values each row type takes on the command line, in order.
+ADD_SHAPES = {
+    "buy": ("symbol", "shares", "price"),
+    "sell": ("symbol", "shares", "price"),
+    "deposit": ("amount",),
+    "withdraw": ("amount",),
+    "dividend": ("symbol", "amount"),
+    "split": ("symbol", "ratio"),
+}
+
+
+def _plain(value: float) -> str:
+    """A number as a person would type it: 10, not 10.0."""
+    return f"{value:g}" if float(value).is_integer() and abs(value) < 1e15 else repr(float(value))
+
+
+def flow_row(row: dict) -> str:
+    """One transaction as a YAML flow mapping, in the field order the starter uses."""
+    order = ("date", "type", "symbol", "shares", "price", "amount", "ratio", "fee", "kind", "note")
+    parts = []
+    for key in order:
+        if row.get(key) is None:
+            continue
+        value = row[key]
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            text = _plain(value)
+        elif key == "note":
+            text = '"' + str(value).replace("\\", "\\\\").replace('"', '\\"') + '"'
+        else:
+            text = str(value)
+        parts.append(f"{key}: {text}")
+    return "  - {" + ", ".join(parts) + "}"
+
+
+def append_row(text: str, line: str) -> str:
+    """The ledger text with one transaction line added after the last one.
+
+    A line edit rather than a YAML round trip, because a round trip drops every
+    comment the owner wrote. The list is found by its key; it ends at the next
+    top-level key, and the new line goes after its last indented line, so
+    comments between the list and the next key stay where they were.
+    """
+    lines = text.splitlines()
+    start = next((i for i, l in enumerate(lines) if l.rstrip() == "transactions:"), None)
+    if start is None:
+        raise ConfigError(
+            "the ledger's transactions are not a block list under a 'transactions:' line; add this row by hand"
+        )
+    last = start
+    for i in range(start + 1, len(lines)):
+        current = lines[i]
+        if current and not current[0].isspace() and not current.startswith("#"):
+            break
+        if current.strip() and not current.lstrip().startswith("#") and current[0].isspace():
+            last = i
+    lines.insert(last + 1, line)
+    return "\n".join(lines) + "\n"

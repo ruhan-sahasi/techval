@@ -159,3 +159,22 @@ def test_missing_model_panels_refuse_by_name_and_the_rest_still_builds(tmp_path)
     ideas = snap["ideas"]
     assert ideas["cheap"] == [] and ideas["rich"] == [] and ideas["as_of"] is None
     assert "observations.json.gz" in ideas["refusal"]
+
+
+def test_risk_statistics_ride_with_performance(snapshot):
+    risk = snapshot["performance"]["risk"]
+    assert set(risk) == {"portfolio", "benchmark"}
+    for side in risk.values():
+        assert side["max_drawdown"] <= 0
+        assert side["volatility"] is not None and side["volatility"] > 0
+    # Five months of history is not annualized.
+    assert risk["portfolio"]["annualized"] is None
+
+
+def test_realized_gains_are_bucketed_by_year_and_term(snapshot):
+    years = snapshot["performance"]["realized_by_year"]
+    assert [y["year"] for y in years] == [2024]
+    # 20 DDOG sold on 2024-05-01 at 115 against a 120 lot opened 2024-01-08.
+    assert years[0]["short"] == pytest.approx(20 * (115 - 120))
+    assert years[0]["long"] == 0
+    assert years[0]["total"] == pytest.approx(snapshot["performance"]["realized_total"])
