@@ -1447,27 +1447,46 @@ dark-first page in the same visual system as the results dashboard. A demo
 built from a fictional book is committed at `docs/invest/index.html`; open it
 from a checkout and click through the rail.
 
-    techval invest init       write a commented starter portfolio.yaml under portfolio/
-    techval invest            refresh quotes, run the engine over the holdings, render the page
-    techval invest --render   redraw the page from the last snapshot, touching nothing
-    techval invest --open     open the page in the browser once it is written
-    techval invest --offline  price from local CSVs and skip the live DCFs
-    techval invest --refit    refit the fade and warranted models instead of loading them
-    techval invest --panels   point at a checkout's tests/fixtures from an installed copy
+    techval invest init                write a commented starter portfolio.yaml under portfolio/
+    techval invest add buy NET 5 80.5  append one transaction, replaying the ledger first
+    techval invest check               replay the ledger offline and print what it holds
+    techval invest                     refresh quotes, run the engine, render the page, print the headline
+    techval invest export realized     write realized sales as CSV in Form 8949 columns (or lots, activity)
+
+    --render      redraw the page from the last snapshot, touching nothing
+    --open        open the page in the browser once it is written
+    --offline     price from local CSVs and skip the live DCFs
+    --benchmark   compare against another symbol, QQQ say, for one run
+    --max-age     hours a cached price or filing stays fresh, 20 by default
+    --refit       refit the fade and warranted models instead of loading them
+    --panels      point at a checkout's tests/fixtures from an installed copy
+
+`add` takes `buy`/`sell SYMBOL SHARES PRICE`, `deposit`/`withdraw AMOUNT`,
+`dividend SYMBOL AMOUNT` or `split SYMBOL RATIO`, with `--date`, `--fee`,
+`--kind` and `--note`. It inserts a line rather than rewriting the file, so
+your comments survive, and a row the ledger cannot hold, an overdraft say,
+leaves the file untouched. A trade's fee joins a buy's cost basis and comes
+off a sell's proceeds.
 
 The two model fits take about nine seconds and are cached in `ml.cache_dir`,
 keyed on the panels and the code that fits them, so a second run takes about
-three. Prices are dated: the page names the session they closed in rather
+three. Prices and filings refresh once a day, where the valuation commands
+keep every response for ever so a memo reproduces; `techval cache info` shows
+what that has cost on disk and `techval cache prune --older-than 90` trims it.
+Prices are dated: the page names the session they closed in rather
 than saying today, flags a holding that closed in a different session from
 the benchmark, and warns when the last close is more than four days old. The
 ledger records splits as they happened and the price sources restate history
 for them, so each day's holding is converted into post-split units before it
 is valued; a split never shows up as a gain.
 
-Seven panes. Overview: the balance, the day, and growth of a dollar against
-the benchmark, time-weighted so deposits are not performance. Holdings: the
-sortable book with the warranted call on every covered name. Performance:
-contribution in dollars and the open lots at FIFO cost. Engine read: the DCF
+Seven panes, reachable with the keys 1 to 7. Overview: the balance, the day,
+and growth of a dollar against the benchmark over 1M, 3M, YTD, 1Y or all of
+it, time-weighted so deposits are not performance. Holdings: the sortable
+book with the warranted call on every covered name. Performance: annualized
+return, volatility and max drawdown beside the benchmark's with the drawdown
+charted, contribution in dollars, dividend income by year, realized gains by
+tax year split short and long term, and the open lots at FIFO cost. Engine read: the DCF
 against the price, traded against warranted, and the fitted fade against the
 typed line, each with the verdict its model earned. Hygiene: concentration,
 exposure through the engine's own sub-verticals, and drift against targets
