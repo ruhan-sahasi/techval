@@ -23,7 +23,8 @@ from .quotes import Quotes
 
 # 2: prices carry the session they closed in, and mismatched closes are named.
 # 3: performance carries risk statistics for the book and the benchmark.
-SCHEMA = 3
+# 4: performance carries realized gains by tax year, short and long term.
+SCHEMA = 4
 
 # The contract: every pane and the keys it must carry. Types are spot-checked
 # where a wrong one would draw nonsense rather than crash.
@@ -39,7 +40,7 @@ _REQUIRED = {
     ),
     "performance": (
         "dates", "growth", "benchmark_growth", "benchmark", "contributions",
-        "lots", "realized_total", "dividends_total", "risk",
+        "lots", "realized_total", "dividends_total", "risk", "realized_by_year",
     ),
     "hygiene": ("weights", "top5_share", "exposure", "drift", "coverage"),
     "ideas": ("as_of", "cheap", "rich", "verdict"),
@@ -204,6 +205,7 @@ def build_snapshot(
                 "portfolio": risk_stats(series.dates, growth),
                 "benchmark": risk_stats(series.dates, bench),
             },
+            "realized_by_year": _realized_by_year(ledger),
             "realized_total": round(sum(p.realized for p in held), 2),
             "dividends_total": round(sum(p.dividends for p in held), 2),
         },
@@ -249,6 +251,23 @@ def build_snapshot(
     }
     validate_snapshot(snapshot)
     return snapshot
+
+
+def _realized_by_year(ledger: Ledger) -> list[dict]:
+    """Realized gain per calendar year of sale, split by holding term."""
+    years: dict[int, dict[str, float]] = {}
+    for e in ledger.realized_events():
+        bucket = years.setdefault(e.sold.year, {"short": 0.0, "long": 0.0})
+        bucket[e.term] += e.gain
+    return [
+        {
+            "year": year,
+            "short": round(b["short"], 2),
+            "long": round(b["long"], 2),
+            "total": round(b["short"] + b["long"], 2),
+        }
+        for year, b in sorted(years.items())
+    ]
 
 
 def _uncovered(symbol: str, kind: str):

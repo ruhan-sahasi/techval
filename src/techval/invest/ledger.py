@@ -137,6 +137,10 @@ class Ledger:
     def cash(self, as_of: date | None = None) -> float:
         return _walk(self, as_of)[1]
 
+    def realized_events(self, as_of: date | None = None) -> list["Realization"]:
+        """Every lot slice a sale closed, in order, with its holding term."""
+        return _walk(self, as_of)[2]
+
     def flows(self) -> dict[date, float]:
         """External money in and out, the flows a time-weighted return strips."""
         out: dict[date, float] = {}
@@ -236,6 +240,36 @@ class Position:
         return sum(lot.shares * lot.cost_per_share for lot in self.lots)
 
 
+@dataclass(frozen=True)
+class Realization:
+    """One lot slice closed by one sale: the unit a tax form reports."""
+
+    symbol: str
+    opened: date
+    sold: date
+    shares: float
+    proceeds: float
+    basis: float
+    term: str
+
+    @property
+    def gain(self) -> float:
+        return self.proceeds - self.basis
+
+
+def anniversary(opened: date) -> date:
+    """The same day a year on; a leap-day purchase's falls on 28 February."""
+    try:
+        return opened.replace(year=opened.year + 1)
+    except ValueError:
+        return opened.replace(year=opened.year + 1, day=28)
+
+
+def holding_term(opened: date, sold: date) -> str:
+    """Long term only when held MORE than a year: sold after the anniversary."""
+    return "long" if sold > anniversary(opened) else "short"
+
+
 def _walk(ledger: "Ledger", as_of: date | None):
     """Replay the ledger to a date, refusing anything the record cannot support.
 
@@ -244,6 +278,7 @@ def _walk(ledger: "Ledger", as_of: date | None):
     """
     positions: dict[str, Position] = {}
     cash = 0.0
+    events: list[Realization] = []
     for t in ledger.transactions:
         if as_of is not None and t.date > as_of:
             break
@@ -271,6 +306,18 @@ def _walk(ledger: "Ledger", as_of: date | None):
                 lot = position.lots[0]
                 taken = min(lot.shares, left)
                 position.realized += taken * (t.price - lot.cost_per_share)
+                # The sale's fee is shared across the lots it closes, by shares.
+                events.append(
+                    Realization(
+                        symbol=t.symbol,
+                        opened=lot.opened,
+                        sold=t.date,
+                        shares=taken,
+                        proceeds=taken * t.price - t.fee * taken / t.shares,
+                        basis=taken * lot.cost_per_share,
+                        term=holding_term(lot.opened, t.date),
+                    )
+                )
                 lot.shares -= taken
                 left -= taken
                 if lot.shares <= 1e-12:
@@ -294,7 +341,7 @@ def _walk(ledger: "Ledger", as_of: date | None):
                 f"{t.date}: the {t.type} takes cash to {cash:,.2f}. The ledger "
                 "is missing a deposit."
             )
-    return positions, cash
+    return positions, cash, events
 
 
 # Positional values each row type takes on the command line, in order.
