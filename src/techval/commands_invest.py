@@ -302,6 +302,7 @@ def check(directory: Path = _DIR) -> None:
     console.print(f"Cash {cash:,.2f}", highlight=False)
     if ledger.targets:
         console.print(f"Drift targets {sum(ledger.targets.values()):.0%} of the book", highlight=False)
+    _warn_duplicates(ledger)
     console.print("The ledger replays cleanly.")
 
 
@@ -343,6 +344,17 @@ def _print_summary(snapshot: dict) -> None:
         console.print(
             f"[yellow]{escape(', '.join(over['mismatched_closes']))} closed in a different session from "
             f"{escape(meta['benchmark'])}.[/yellow]"
+        )
+
+
+def _warn_duplicates(ledger) -> None:
+    """Name rows entered more than once; a warning, since two equal trades can be real."""
+    for dupe in ledger.possible_duplicates():
+        rows = dupe["rows"]
+        listed = ", ".join(str(r) for r in rows[:-1]) + f" and {rows[-1]}"
+        console.print(
+            f"[yellow]{escape(dupe['summary'])} is entered {dupe['count']} times, rows {listed}. "
+            "If that is one trade pasted twice, delete the copy.[/yellow]"
         )
 
 
@@ -391,6 +403,7 @@ def _build(
     from .market import MarketData, make_price_source
 
     ledger = Ledger.load(directory / "portfolio.yaml")
+    _warn_duplicates(ledger)
     if benchmark:
         # For this run only; the ledger file keeps its own benchmark.
         ledger.benchmark = benchmark.upper()
