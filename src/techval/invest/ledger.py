@@ -16,7 +16,7 @@ import yaml
 
 from ..errors import ConfigError
 
-TYPES = ("buy", "sell", "deposit", "withdraw", "dividend", "split", "interest", "fee")
+TYPES = ("buy", "sell", "deposit", "withdraw", "dividend", "split", "interest", "fee", "transfer_in")
 KINDS = ("stock", "etf", "crypto")
 
 # What each type must carry. Everything else on the row must be absent or null.
@@ -27,6 +27,8 @@ _NEEDS = {
     "withdraw": ("amount",),
     "dividend": ("symbol", "amount"),
     "split": ("symbol", "ratio"),
+    # Shares moved in from another broker: their original basis, no cash.
+    "transfer_in": ("symbol", "shares", "price"),
     # Cash the account earned or paid, a sweep's interest or an advisory fee:
     # return, never a flow, so the time-weighted return counts both.
     "interest": ("amount",),
@@ -50,6 +52,7 @@ class Transaction:
     kind: str | None = None
     note: str | None = None
     fee: float = 0.0
+    acquired: date | None = None
 
 
 class Ledger:
@@ -181,6 +184,19 @@ def _parse_row(row: object, index: int, kinds: dict[str, str]) -> Transaction:
     price = row.get("price")
     if price is not None and (not isinstance(price, (int, float)) or price < 0):
         raise ConfigError(f"{where}: price must be zero or more, not {price!r}")
+    acquired = row.get("acquired")
+    if acquired is not None:
+        if kind_of != "transfer_in":
+            raise ConfigError(f"{where}: acquired belongs to a transfer_in, not a {kind_of}")
+        if isinstance(acquired, str):
+            try:
+                acquired = date.fromisoformat(acquired)
+            except ValueError:
+                acquired = None
+        if not isinstance(acquired, date) or acquired > when:
+            raise ConfigError(
+                f"{where}: acquired must be an ISO date on or before the transfer, not {row.get('acquired')!r}"
+            )
     fee = row.get("fee")
     if fee is not None:
         if kind_of not in ("buy", "sell"):
@@ -211,6 +227,7 @@ def _parse_row(row: object, index: int, kinds: dict[str, str]) -> Transaction:
         kind=stated,
         note=None if row.get("note") is None else str(row.get("note")),
         fee=float(fee or 0.0),
+        acquired=acquired,
     )
 
 
@@ -286,7 +303,7 @@ def _walk(ledger: "Ledger", as_of: date | None):
     for t in ledger.transactions:
         if as_of is not None and t.date > as_of:
             break
-        if t.type in ("buy", "sell", "dividend", "split"):
+        if t.type in ("buy", "sell", "dividend", "split", "transfer_in"):
             position = positions.setdefault(
                 t.symbol, Position(symbol=t.symbol, kind=ledger.kind(t.symbol))
             )
@@ -330,6 +347,10 @@ def _walk(ledger: "Ledger", as_of: date | None):
             position.realized -= t.fee
             position.shares -= t.shares
             cash += t.shares * t.price - t.fee
+        elif t.type == "transfer_in":
+            # A lot from another broker: its own basis and holding period, no cash.
+            position.lots.append(Lot(t.symbol, t.acquired or t.date, t.shares, t.price))
+            position.shares += t.shares
         elif t.type == "interest":
             cash += t.amount
         elif t.type == "fee":
@@ -360,6 +381,7 @@ ADD_SHAPES = {
     "withdraw": ("amount",),
     "dividend": ("symbol", "amount"),
     "split": ("symbol", "ratio"),
+    "transfer_in": ("symbol", "shares", "price"),
     "interest": ("amount",),
     "fee": ("amount",),
 }
@@ -372,7 +394,7 @@ def _plain(value: float) -> str:
 
 def flow_row(row: dict) -> str:
     """One transaction as a YAML flow mapping, in the field order the starter uses."""
-    order = ("date", "type", "symbol", "shares", "price", "amount", "ratio", "fee", "kind", "note")
+    order = ("date", "type", "symbol", "shares", "price", "amount", "ratio", "fee", "acquired", "kind", "note")
     parts = []
     for key in order:
         if row.get(key) is None:
