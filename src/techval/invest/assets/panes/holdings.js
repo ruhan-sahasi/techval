@@ -104,12 +104,44 @@
       })
     );
 
+    /* Totals in a footer, which a sort never moves. Weight sums the positions
+       only; cash is the rest of the book and is named in the card's subtitle. */
+    function sum(key) {
+      return rows.reduce(function (acc, r) {
+        return acc + (typeof r[key] === "number" ? r[key] : 0);
+      }, 0);
+    }
+    var cost = sum("cost");
+    var unreal = sum("unrealized");
+    var totals = {
+      symbol: "Total",
+      day_pct: IV.fmt.signedPct(over.day_pct),
+      value: IV.fmt.money(sum("value"), 0),
+      weight: TV.fmt.pct(sum("weight"), 1),
+      cost: IV.fmt.money(cost, 0),
+      unrealized: IV.fmt.signedMoney(unreal),
+      unrealized_pct: cost ? IV.fmt.signedPct(unreal / cost, 1) : "n/a",
+      realized: IV.fmt.signedMoney(sum("realized")),
+    };
+    var signs = { day_pct: over.day_pct, unrealized: unreal, unrealized_pct: unreal, realized: sum("realized") };
+    var foot = el(
+      "tr",
+      { class: "iv-total" },
+      COLUMNS.map(function (c, i) {
+        var cls = c.num ? "tv-num" : null;
+        if (c.key in signs) cls = IV.signClass(signs[c.key], cls) || cls;
+        var text = totals[c.key] || "";
+        return i === 0 ? el("th", { scope: "row", class: cls }, text) : el("td", { class: cls }, text);
+      })
+    );
+
     var table = el(
       "table",
       { class: "tv-table" },
       el("caption", { class: "tv-visually-hidden" }, "Holdings"),
       el("thead", null, head),
-      body
+      body,
+      el("tfoot", null, foot)
     );
     var wrap = el("div", { class: "tv-table-wrap iv-book", tabindex: "0", role: "region", "aria-label": "Holdings, sortable table" }, table);
     IV.sortable(wrap);
