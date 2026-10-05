@@ -233,3 +233,28 @@ transactions:
 """,
     )
     assert ledger.realized_events()[0].term == "long"
+
+
+def test_interest_is_cash_the_book_earned_and_a_fee_is_cash_it_paid(tmp_path):
+    ledger = load(
+        tmp_path,
+        """
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 1000}
+  - {date: 2024-02-01, type: interest, amount: 4.10}
+  - {date: 2024-03-01, type: fee, amount: 25}
+""",
+    )
+    assert ledger.cash() == pytest.approx(1000 + 4.10 - 25)
+    # Neither is money moving in or out of the account: both are return.
+    assert ledger.flows() == {date(2024, 1, 2): 1000.0}
+
+
+def test_a_fee_cannot_take_cash_below_zero(tmp_path):
+    with pytest.raises(ConfigError) as err:
+        load(
+            tmp_path,
+            "transactions:\n  - {date: 2024-01-02, type: deposit, amount: 10}\n"
+            "  - {date: 2024-01-03, type: fee, amount: 25}\n",
+        ).positions()
+    assert "2024-01-03" in str(err.value)

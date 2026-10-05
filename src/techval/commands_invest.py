@@ -78,7 +78,10 @@ STARTER = """\
 # snapshot.json and index.html beside it. The whole directory is gitignored;
 # nothing in it leaves your machine except price and filing requests.
 #
-# Transaction types: buy, sell, deposit, withdraw, dividend, split.
+# Transaction types: buy, sell, deposit, withdraw, dividend, split, interest, fee.
+# interest and fee are cash the account earned or paid, a cash sweep's interest
+# or an advisory fee; they count as return, unlike a deposit or a withdrawal.
+#   - {date: 2024-02-01, type: interest, amount: 4.10}
 #   - {date: 2024-01-15, type: deposit, amount: 5000}
 #   - {date: 2024-01-16, type: buy, symbol: MSFT, shares: 10, price: 390.00}
 #   - {date: 2024-06-12, type: dividend, symbol: MSFT, amount: 7.50}
@@ -140,8 +143,8 @@ def init(directory: Path = _DIR) -> None:
 
 @app.command()
 def add(
-    kind_of: str = typer.Argument(..., metavar="TYPE", help="buy, sell, deposit, withdraw, dividend or split."),
-    values: list[str] = typer.Argument(..., metavar="VALUES", help="buy/sell: SYMBOL SHARES PRICE. deposit/withdraw: AMOUNT. dividend: SYMBOL AMOUNT. split: SYMBOL RATIO."),
+    kind_of: str = typer.Argument(..., metavar="TYPE", help="buy, sell, deposit, withdraw, dividend, split, interest or fee."),
+    values: list[str] = typer.Argument(..., metavar="VALUES", help="buy/sell: SYMBOL SHARES PRICE. deposit/withdraw/interest/fee: AMOUNT. dividend: SYMBOL AMOUNT. split: SYMBOL RATIO."),
     when: str = typer.Option(None, "--date", help="The transaction date, YYYY-MM-DD. Defaults to today."),
     fee: float = typer.Option(None, "--fee", help="A trade's fee, for a buy or a sell."),
     kind: str = typer.Option(None, "--kind", help="etf or crypto, the first time a symbol appears."),
