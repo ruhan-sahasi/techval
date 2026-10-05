@@ -331,3 +331,34 @@ def test_benchmark_overrides_the_ledgers_for_one_run(tmp_path):
     assert "vs DIS" in flat(result.output)
     # The ledger file itself is untouched.
     assert "benchmark: SPY" in (book / "portfolio.yaml").read_text(encoding="utf-8")
+
+
+def test_check_warns_about_a_row_entered_twice_but_does_not_refuse(tmp_path):
+    book = tmp_path / "book"
+    book.mkdir()
+    (book / "portfolio.yaml").write_text(
+        "transactions:\n"
+        "  - {date: 2024-01-02, type: deposit, amount: 1000}\n"
+        "  - {date: 2024-01-03, type: buy, symbol: AAA, shares: 1, price: 100}\n"
+        "  - {date: 2024-01-03, type: buy, symbol: AAA, shares: 1, price: 100}\n",
+        encoding="utf-8",
+    )
+    result = runner.invoke(app, ["check", "--dir", str(book)])
+    assert result.exit_code == 0, result.output
+    text = flat(result.output)
+    assert "entered 2 times" in text and "rows 2 and 3" in text
+
+
+def test_quiet_prints_only_what_needs_attention(tmp_path):
+    book = tmp_path / "book"
+    book.mkdir()
+    shutil.copy(FIXTURES / "invest" / "portfolio.yaml", book / "portfolio.yaml")
+    result = runner.invoke(
+        app, ["--dir", str(book), "--config", str(write_config(tmp_path)), "--offline", "--quiet"]
+    )
+    assert result.exit_code == 0, result.output
+    text = flat(result.output)
+    assert "Total value" not in text and "Wrote" not in text
+    # The committed closes are weeks old by now: that still gets said.
+    assert "days old" in text
+    assert (book / "index.html").is_file()

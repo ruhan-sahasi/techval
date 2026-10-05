@@ -17,6 +17,9 @@
     withdraw: "Withdraw",
     dividend: "Dividend",
     split: "Split",
+    interest: "Interest",
+    fee: "Fee",
+    transfer_in: "Transfer in",
   };
 
   function amount(row) {
@@ -27,8 +30,11 @@
     }
     if (row.type === "deposit") return "+" + IV.fmt.money(row.amount, 0);
     if (row.type === "withdraw") return "−" + IV.fmt.money(row.amount, 0);
+    if (row.type === "interest") return "+" + IV.fmt.money(row.amount, 2);
+    if (row.type === "fee") return "−" + IV.fmt.money(row.amount, 2);
     if (row.type === "dividend") return "+" + IV.fmt.money(row.amount, 2);
     if (row.type === "split") return TV.fmt.num(row.ratio, 0) + ":1";
+    if (row.type === "transfer_in") return "+" + TV.fmt.num(row.shares, Number.isInteger(row.shares) ? 0 : 4) + " sh";
     return "";
   }
 
@@ -38,6 +44,9 @@
       return row.fee ? trade + ", fee " + IV.fmt.money(row.fee, 2) : trade;
     }
     if (row.type === "split") return "share count times " + TV.fmt.num(row.ratio, 0);
+    if (row.type === "transfer_in") {
+      return "basis " + IV.fmt.money(row.price, 2) + " a share" + (row.acquired ? ", acquired " + row.acquired : "") + ", no cash moved";
+    }
     return "";
   }
 
@@ -63,7 +72,7 @@
         "tbody",
         null,
         rows.map(function (row) {
-          var flow = row.type === "buy" ? -1 : row.type === "withdraw" ? -1 : row.type === "split" ? 0 : 1;
+          var flow = row.type === "buy" || row.type === "withdraw" || row.type === "fee" ? -1 : row.type === "split" || row.type === "transfer_in" ? 0 : 1;
           return el(
             "tr",
             null,

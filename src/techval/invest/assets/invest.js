@@ -16,7 +16,7 @@
   var svg = TV.svg;
 
   var SNAPSHOT_ID = "iv-snapshot";
-  var SCHEMA = 4;
+  var SCHEMA = 5;
 
   var IV = { panes: {} };
   global.IV = IV;
@@ -255,6 +255,12 @@
           " value and day move are from that session, not " + meta.prices_as_of + "."
       );
     }
+    (snapshot.overview.unpriced || []).forEach(function (u) {
+      lines.push(
+        u.symbol + " could not be quoted (" + u.reason + "), so it is valued at your last trade price, " +
+          IV.fmt.money(u.priced_at, 2) + " on " + u.price_date + ", and moves nothing on the day."
+      );
+    });
     if (!lines.length) return null;
     return el("div", { class: "iv-banner" }, lines.join(" "));
   };

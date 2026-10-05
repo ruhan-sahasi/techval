@@ -49,6 +49,12 @@ _PANELS = typer.Option(
     ),
 )
 _OPEN = typer.Option(False, "--open", help="Open the rendered page in the default browser.")
+_QUIET = typer.Option(
+    False,
+    "--quiet",
+    "-q",
+    help="Print only warnings and errors, for a scheduled run: stale prices, unquotable holdings, rows entered twice.",
+)
 _BENCHMARK = typer.Option(
     None,
     "--benchmark",
@@ -78,7 +84,13 @@ STARTER = """\
 # snapshot.json and index.html beside it. The whole directory is gitignored;
 # nothing in it leaves your machine except price and filing requests.
 #
-# Transaction types: buy, sell, deposit, withdraw, dividend, split.
+# Transaction types: buy, sell, deposit, withdraw, dividend, split, interest, fee.
+# interest and fee are cash the account earned or paid, a cash sweep's interest
+# or an advisory fee; they count as return, unlike a deposit or a withdrawal.
+#   - {date: 2024-02-01, type: interest, amount: 4.10}
+# transfer_in brings shares from another broker at their original cost basis
+# per share, with no cash; acquired keeps the original purchase date.
+#   - {date: 2024-03-01, type: transfer_in, symbol: AAPL, shares: 20, price: 142.10, acquired: 2021-06-14}
 #   - {date: 2024-01-15, type: deposit, amount: 5000}
 #   - {date: 2024-01-16, type: buy, symbol: MSFT, shares: 10, price: 390.00}
 #   - {date: 2024-06-12, type: dividend, symbol: MSFT, amount: 7.50}
@@ -111,12 +123,13 @@ def invest(
     open_page: bool = _OPEN,
     max_age: float = _MAX_AGE,
     benchmark: str = _BENCHMARK,
+    quiet: bool = _QUIET,
 ) -> None:
     """Refresh quotes and the engine read, then render portfolio/index.html."""
     if ctx.invoked_subcommand is not None:
         return
     try:
-        _build(directory, config, offline, render_only, refit, panels, max_age, benchmark)
+        _build(directory, config, offline, render_only, refit, panels, max_age, benchmark, quiet)
     except TechvalError as err:
         console.print(f"[red]{escape(str(err))}[/red]")
         raise typer.Exit(1)
@@ -140,12 +153,13 @@ def init(directory: Path = _DIR) -> None:
 
 @app.command()
 def add(
-    kind_of: str = typer.Argument(..., metavar="TYPE", help="buy, sell, deposit, withdraw, dividend or split."),
-    values: list[str] = typer.Argument(..., metavar="VALUES", help="buy/sell: SYMBOL SHARES PRICE. deposit/withdraw: AMOUNT. dividend: SYMBOL AMOUNT. split: SYMBOL RATIO."),
+    kind_of: str = typer.Argument(..., metavar="TYPE", help="buy, sell, deposit, withdraw, dividend, split, interest, fee or transfer_in."),
+    values: list[str] = typer.Argument(..., metavar="VALUES", help="buy/sell/transfer_in: SYMBOL SHARES PRICE. deposit/withdraw/interest/fee: AMOUNT. dividend: SYMBOL AMOUNT. split: SYMBOL RATIO."),
     when: str = typer.Option(None, "--date", help="The transaction date, YYYY-MM-DD. Defaults to today."),
     fee: float = typer.Option(None, "--fee", help="A trade's fee, for a buy or a sell."),
     kind: str = typer.Option(None, "--kind", help="etf or crypto, the first time a symbol appears."),
     note: str = typer.Option(None, "--note", help="A note kept on the row."),
+    acquired: str = typer.Option(None, "--acquired", help="A transfer_in's original purchase date, for its holding period."),
     directory: Path = _DIR,
 ) -> None:
     """Append one transaction to the ledger, after replaying the whole ledger with it."""
@@ -174,6 +188,7 @@ def add(
             except ValueError:
                 raise TechvalError(f"{field_name} must be a number, not {raw!r}") from None
         row["fee"] = fee
+        row["acquired"] = acquired
         row["kind"] = kind
         row["note"] = note
         if not path.is_file():
@@ -246,7 +261,7 @@ def export(
                 for lot in p.lots
             ]
         else:
-            header = ["date", "type", "symbol", "shares", "price", "amount", "ratio", "fee", "kind", "note"]
+            header = ["date", "type", "symbol", "shares", "price", "amount", "ratio", "fee", "acquired", "kind", "note"]
             rows = [
                 [
                     t.date.isoformat(), t.type, t.symbol or "",
@@ -255,6 +270,7 @@ def export(
                     "" if t.amount is None else f"{t.amount:g}",
                     "" if t.ratio is None else f"{t.ratio:g}",
                     f"{t.fee:g}" if t.fee else "",
+                    t.acquired.isoformat() if t.acquired else "",
                     t.kind or "", t.note or "",
                 ]
                 for t in ledger.transactions
@@ -293,6 +309,7 @@ def check(directory: Path = _DIR) -> None:
     console.print(f"Cash {cash:,.2f}", highlight=False)
     if ledger.targets:
         console.print(f"Drift targets {sum(ledger.targets.values()):.0%} of the book", highlight=False)
+    _warn_duplicates(ledger)
     console.print("The ledger replays cleanly.")
 
 
@@ -300,7 +317,7 @@ def _signed_pct(v: float | None, dp: int = 2) -> str:
     return "n/a" if v is None else f"{v * 100:+.{dp}f}%"
 
 
-def _print_summary(snapshot: dict) -> None:
+def _print_summary(snapshot: dict, quiet: bool = False) -> None:
     """The headline numbers in the terminal, for a run nobody opens the page after."""
     from rich.table import Table
 
@@ -322,13 +339,30 @@ def _print_summary(snapshot: dict) -> None:
     ]
     for label, value in rows:
         table.add_row(label, escape(value))
-    console.print(table)
+    if not quiet:
+        console.print(table)
     if meta["prices_age_days"] > 4:
         console.print(f"[yellow]Prices are {meta['prices_age_days']} days old.[/yellow]")
+    for u in over["unpriced"]:
+        console.print(
+            f"[yellow]{escape(u['symbol'])} could not be quoted, so it is valued at the last trade "
+            f"price, {u['priced_at']:,.2f} on {u['price_date']}: {escape(u['reason'])}[/yellow]"
+        )
     if over["mismatched_closes"]:
         console.print(
             f"[yellow]{escape(', '.join(over['mismatched_closes']))} closed in a different session from "
             f"{escape(meta['benchmark'])}.[/yellow]"
+        )
+
+
+def _warn_duplicates(ledger) -> None:
+    """Name rows entered more than once; a warning, since two equal trades can be real."""
+    for dupe in ledger.possible_duplicates():
+        rows = dupe["rows"]
+        listed = ", ".join(str(r) for r in rows[:-1]) + f" and {rows[-1]}"
+        console.print(
+            f"[yellow]{escape(dupe['summary'])} is entered {dupe['count']} times, rows {listed}. "
+            "If that is one trade pasted twice, delete the copy.[/yellow]"
         )
 
 
@@ -352,6 +386,7 @@ def _build(
     panels: Path | None = None,
     max_age_hours: float = DEFAULT_MAX_AGE_HOURS,
     benchmark: str | None = None,
+    quiet: bool = False,
 ) -> None:
     from .invest.render import write_page
     from .invest.snapshot import validate_snapshot
@@ -367,7 +402,8 @@ def _build(
         snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
         validate_snapshot(snapshot)
         write_page(snapshot, page_path)
-        console.print(f"Rendered {escape(str(page_path))} from the existing snapshot.")
+        if not quiet:
+            console.print(f"Rendered {escape(str(page_path))} from the existing snapshot.")
         return
 
     from .edgar import EdgarClient, HttpCache
@@ -377,6 +413,7 @@ def _build(
     from .market import MarketData, make_price_source
 
     ledger = Ledger.load(directory / "portfolio.yaml")
+    _warn_duplicates(ledger)
     if benchmark:
         # For this run only; the ledger file keeps its own benchmark.
         ledger.benchmark = benchmark.upper()
@@ -426,6 +463,7 @@ def _build(
     )
     write_snapshot(snapshot, snapshot_path)
     write_page(snapshot, page_path)
-    _print_summary(snapshot)
-    console.print(f"Wrote {escape(str(snapshot_path))}")
-    console.print(f"Wrote {escape(str(page_path))}")
+    _print_summary(snapshot, quiet)
+    if not quiet:
+        console.print(f"Wrote {escape(str(snapshot_path))}")
+        console.print(f"Wrote {escape(str(page_path))}")

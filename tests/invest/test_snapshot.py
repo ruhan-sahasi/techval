@@ -178,3 +178,61 @@ def test_realized_gains_are_bucketed_by_year_and_term(snapshot):
     assert years[0]["short"] == pytest.approx(20 * (115 - 120))
     assert years[0]["long"] == 0
     assert years[0]["total"] == pytest.approx(snapshot["performance"]["realized_total"])
+
+
+class PartlyBroken:
+    """A source that serves the committed CSVs except for one symbol it has never heard of."""
+
+    name = "partly-broken"
+
+    def __init__(self, missing: str):
+        self.missing = missing
+        self.inner = CsvSource(FIXTURES / "prices")
+
+    def fetch(self, symbol, start, end):
+        from techval.errors import DataSourceError
+
+        if symbol == self.missing:
+            raise DataSourceError(f"request for {symbol} failed with HTTP 404 after 5 attempts")
+        return self.inner.fetch(symbol, start, end)
+
+
+def test_an_unquotable_holding_is_priced_from_the_ledger_and_named(tmp_path):
+    path = tmp_path / "portfolio.yaml"
+    path.write_text(
+        """
+benchmark: SPY
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 100000}
+  - {date: 2024-01-08, type: buy, symbol: DDOG, shares: 10, price: 120}
+  - {date: 2024-01-08, type: buy, symbol: GONE, shares: 100, price: 20}
+  - {date: 2024-03-01, type: buy, symbol: GONE, shares: 50, price: 25}
+""",
+        encoding="utf-8",
+    )
+    ledger = Ledger.load(path)
+    quotes = Quotes(PartlyBroken("GONE"), start=ledger.first_date, today=TODAY)
+    snap = build_snapshot(ledger, quotes, fixtures=FIXTURES, assumptions=Assumptions(), today=TODAY)
+    validate_snapshot(snap)
+    gone = next(p for p in snap["positions"] if p["symbol"] == "GONE")
+    assert gone["price"] == 25.0
+    assert gone["price_date"] == "2024-03-01"
+    assert gone["value"] == pytest.approx(150 * 25.0)
+    assert gone["day_pct"] == 0
+    [unpriced] = snap["overview"]["unpriced"]
+    assert unpriced["symbol"] == "GONE"
+    assert "404" in unpriced["reason"]
+    assert unpriced["priced_at"] == 25.0 and unpriced["price_date"] == "2024-03-01"
+    ddog = next(p for p in snap["positions"] if p["symbol"] == "DDOG")
+    assert ddog["price_date"] == "2024-06-03"
+
+
+def test_an_unquotable_benchmark_still_refuses(tmp_path):
+    from techval.errors import TechvalError
+
+    path = tmp_path / "portfolio.yaml"
+    path.write_text(BOOK, encoding="utf-8")
+    ledger = Ledger.load(path)
+    quotes = Quotes(PartlyBroken("SPY"), start=ledger.first_date, today=TODAY)
+    with pytest.raises(TechvalError):
+        build_snapshot(ledger, quotes, fixtures=FIXTURES, assumptions=Assumptions(), today=TODAY)
