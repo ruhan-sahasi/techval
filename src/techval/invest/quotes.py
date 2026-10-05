@@ -12,7 +12,9 @@ from __future__ import annotations
 from bisect import bisect_right
 from datetime import date
 
-from ..errors import MissingDataError
+import numpy as np
+
+from ..errors import MissingDataError, TechvalError
 from ..market import PriceSeries
 
 # The USD pairs the sources quote. BTC in a ledger is the asset; BTCUSD is the
@@ -33,6 +35,38 @@ class Quotes:
         self.start = start
         self.today = today
         self._series: dict[str, PriceSeries] = {}
+        self._ledger = None
+        # Symbols the source could not serve, priced from the ledger instead,
+        # with the source's own refusal kept to show the owner.
+        self.failed: dict[str, str] = {}
+
+    def use_ledger_fallback(self, ledger) -> None:
+        """Price a holding the source cannot serve at its own last trade price.
+
+        One delisted or mistyped ticker should not take the whole page down.
+        The fallback series is the symbol's trades from the ledger, each price
+        divided by the splits still to come so it sits on the post-split scale
+        the sources use. It never applies to a symbol the ledger never traded,
+        and build_snapshot fetches the benchmark before switching it on, so an
+        unquotable benchmark still refuses the run.
+        """
+        self._ledger = ledger
+
+    def _from_ledger(self, symbol: str) -> PriceSeries | None:
+        if self._ledger is None:
+            return None
+        trades = [t for t in self._ledger.transactions if t.symbol == symbol and t.type in ("buy", "sell")]
+        if not trades:
+            return None
+        points: dict[date, float] = {}
+        for t in trades:
+            later = 1.0
+            for s in self._ledger.transactions:
+                if s.type == "split" and s.symbol == symbol and s.date > t.date:
+                    later *= s.ratio
+            points[t.date] = t.price / later
+        days = sorted(points)
+        return PriceSeries(symbol, days, np.array([points[d] for d in days]), "ledger")
 
     def _resolve(self, symbol: str, kind: str) -> str:
         symbol = symbol.upper()
@@ -53,7 +87,14 @@ class Quotes:
     def series(self, symbol: str, kind: str = "stock") -> PriceSeries:
         key = self._resolve(symbol, kind)
         if key not in self._series:
-            self._series[key] = self.source.fetch(key, self.start, self.today)
+            try:
+                self._series[key] = self.source.fetch(key, self.start, self.today)
+            except TechvalError as err:
+                fallback = self._from_ledger(symbol.upper())
+                if fallback is None:
+                    raise
+                self.failed[symbol.upper()] = str(err)
+                self._series[key] = fallback
         return self._series[key]
 
     def close_on(self, symbol: str, day: date, kind: str = "stock") -> float:
