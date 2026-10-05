@@ -174,3 +174,23 @@ targets:
     with pytest.raises(ConfigError) as err:
         Ledger.load(write(tmp_path, body))
     assert "AAA" in str(err.value)
+
+
+def test_identical_rows_are_flagged_as_possible_double_entries(tmp_path):
+    body = """
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 10000}
+  - {date: 2024-01-03, type: buy, symbol: AAA, shares: 5, price: 100}
+  - {date: 2024-01-03, type: buy, symbol: AAA, shares: 5, price: 100}
+  - {date: 2024-01-04, type: buy, symbol: AAA, shares: 5, price: 101}
+"""
+    ledger = Ledger.load(write(tmp_path, body))
+    [dupe] = ledger.possible_duplicates()
+    assert dupe["count"] == 2
+    assert dupe["rows"] == [2, 3]
+    assert "2024-01-03 buy AAA" in dupe["summary"]
+
+
+def test_a_clean_ledger_has_no_possible_duplicates(tmp_path):
+    ledger = Ledger.load(write(tmp_path, GOOD))
+    assert ledger.possible_duplicates() == []

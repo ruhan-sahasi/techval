@@ -53,6 +53,8 @@ class Transaction:
     note: str | None = None
     fee: float = 0.0
     acquired: date | None = None
+    # Position in the file, 1-based, kept through the date sort for messages.
+    row: int = 0
 
 
 class Ledger:
@@ -137,6 +139,34 @@ class Ledger:
     @property
     def first_date(self) -> date:
         return self.transactions[0].date
+
+    def possible_duplicates(self) -> list[dict]:
+        """Rows identical in every field, the signature of a trade pasted twice.
+
+        Two identical buys on one day can be real, so this warns and never
+        refuses; the owner is the one who knows.
+        """
+        groups: dict[tuple, list[Transaction]] = {}
+        for t in self.transactions:
+            key = (t.date, t.type, t.symbol, t.shares, t.price, t.amount, t.ratio, t.fee, t.acquired)
+            groups.setdefault(key, []).append(t)
+        out = []
+        for key, rows in groups.items():
+            if len(rows) < 2:
+                continue
+            t = rows[0]
+            what = " ".join(x for x in (t.date.isoformat(), t.type, t.symbol or "") if x)
+            numbers = ", ".join(
+                f"{name} {value:g}" for name, value in (("shares", t.shares), ("price", t.price), ("amount", t.amount)) if value is not None
+            )
+            out.append(
+                {
+                    "rows": sorted(r.row for r in rows),
+                    "count": len(rows),
+                    "summary": f"{what} ({numbers})" if numbers else what,
+                }
+            )
+        return sorted(out, key=lambda d: d["rows"][0])
 
     def positions(self, as_of: date | None = None) -> dict[str, "Position"]:
         return _walk(self, as_of)[0]
@@ -228,6 +258,7 @@ def _parse_row(row: object, index: int, kinds: dict[str, str]) -> Transaction:
         note=None if row.get("note") is None else str(row.get("note")),
         fee=float(fee or 0.0),
         acquired=acquired,
+        row=index,
     )
 
 
