@@ -16,7 +16,7 @@ import yaml
 
 from ..errors import ConfigError
 
-TYPES = ("buy", "sell", "deposit", "withdraw", "dividend", "split")
+TYPES = ("buy", "sell", "deposit", "withdraw", "dividend", "split", "interest", "fee")
 KINDS = ("stock", "etf", "crypto")
 
 # What each type must carry. Everything else on the row must be absent or null.
@@ -27,6 +27,10 @@ _NEEDS = {
     "withdraw": ("amount",),
     "dividend": ("symbol", "amount"),
     "split": ("symbol", "ratio"),
+    # Cash the account earned or paid, a sweep's interest or an advisory fee:
+    # return, never a flow, so the time-weighted return counts both.
+    "interest": ("amount",),
+    "fee": ("amount",),
 }
 
 # Fields that must be strictly positive when present; price alone may be zero,
@@ -326,6 +330,10 @@ def _walk(ledger: "Ledger", as_of: date | None):
             position.realized -= t.fee
             position.shares -= t.shares
             cash += t.shares * t.price - t.fee
+        elif t.type == "interest":
+            cash += t.amount
+        elif t.type == "fee":
+            cash -= t.amount
         elif t.type == "dividend":
             if not position.lots and position.shares <= 0:
                 raise ConfigError(f"{t.date}: a dividend on {t.symbol}, which the ledger never bought")
@@ -352,6 +360,8 @@ ADD_SHAPES = {
     "withdraw": ("amount",),
     "dividend": ("symbol", "amount"),
     "split": ("symbol", "ratio"),
+    "interest": ("amount",),
+    "fee": ("amount",),
 }
 
 

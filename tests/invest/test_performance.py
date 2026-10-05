@@ -205,3 +205,18 @@ def test_too_few_points_report_no_volatility():
 
     dates = [date(2024, 1, 1) + timedelta(days=i) for i in range(5)]
     assert risk_stats(dates, np.ones(5))["volatility"] is None
+
+
+def test_interest_counts_as_return_not_as_new_money(tmp_path):
+    ledger = load(
+        tmp_path,
+        """
+benchmark: SPY
+transactions:
+  - {date: 2024-01-02, type: deposit, amount: 1000}
+  - {date: 2024-01-10, type: interest, amount: 10}
+""",
+    )
+    quotes = quotes_for(ledger, date(2024, 1, 31))
+    growth = twr(value_series(ledger, quotes), ledger.flows())
+    assert growth[-1] == pytest.approx(1.01)

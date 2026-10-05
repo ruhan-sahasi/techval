@@ -17,6 +17,8 @@
     withdraw: "Withdraw",
     dividend: "Dividend",
     split: "Split",
+    interest: "Interest",
+    fee: "Fee",
   };
 
   function amount(row) {
@@ -27,6 +29,8 @@
     }
     if (row.type === "deposit") return "+" + IV.fmt.money(row.amount, 0);
     if (row.type === "withdraw") return "−" + IV.fmt.money(row.amount, 0);
+    if (row.type === "interest") return "+" + IV.fmt.money(row.amount, 2);
+    if (row.type === "fee") return "−" + IV.fmt.money(row.amount, 2);
     if (row.type === "dividend") return "+" + IV.fmt.money(row.amount, 2);
     if (row.type === "split") return TV.fmt.num(row.ratio, 0) + ":1";
     return "";
@@ -63,7 +67,7 @@
         "tbody",
         null,
         rows.map(function (row) {
-          var flow = row.type === "buy" ? -1 : row.type === "withdraw" ? -1 : row.type === "split" ? 0 : 1;
+          var flow = row.type === "buy" || row.type === "withdraw" || row.type === "fee" ? -1 : row.type === "split" ? 0 : 1;
           return el(
             "tr",
             null,
