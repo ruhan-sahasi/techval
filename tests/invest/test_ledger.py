@@ -57,7 +57,7 @@ def test_the_benchmark_defaults_to_spy(tmp_path):
 
 
 def test_type_and_kind_vocabularies_are_fixed():
-    assert TYPES == ("buy", "sell", "deposit", "withdraw", "dividend", "split", "interest", "fee")
+    assert TYPES == ("buy", "sell", "deposit", "withdraw", "dividend", "split", "interest", "fee", "transfer_in")
     assert KINDS == ("stock", "etf", "crypto")
 
 

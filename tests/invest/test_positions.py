@@ -258,3 +258,42 @@ def test_a_fee_cannot_take_cash_below_zero(tmp_path):
             "  - {date: 2024-01-03, type: fee, amount: 25}\n",
         ).positions()
     assert "2024-01-03" in str(err.value)
+
+
+def test_a_transfer_in_brings_shares_with_their_own_basis_and_no_cash(tmp_path):
+    ledger = load(
+        tmp_path,
+        """
+transactions:
+  - {date: 2024-01-08, type: transfer_in, symbol: XFR, shares: 10, price: 50, acquired: 2022-05-01}
+""",
+    )
+    xfr = ledger.positions()["XFR"]
+    assert xfr.shares == 10 and xfr.cost == pytest.approx(500)
+    assert xfr.lots[0].opened == date(2022, 5, 1)
+    assert ledger.cash() == 0
+    assert ledger.flows() == {}
+
+
+def test_a_transferred_lot_keeps_its_original_holding_period(tmp_path):
+    ledger = load(
+        tmp_path,
+        """
+transactions:
+  - {date: 2024-01-08, type: transfer_in, symbol: XFR, shares: 10, price: 50, acquired: 2022-05-01}
+  - {date: 2024-02-01, type: sell, symbol: XFR, shares: 10, price: 80}
+""",
+    )
+    [sale] = ledger.realized_events()
+    assert sale.term == "long" and sale.gain == pytest.approx(300)
+
+
+def test_acquired_defaults_to_the_transfer_date_and_may_not_follow_it(tmp_path):
+    ledger = load(tmp_path, "transactions:\n  - {date: 2024-01-08, type: transfer_in, symbol: XFR, shares: 1, price: 5}\n")
+    assert ledger.positions()["XFR"].lots[0].opened == date(2024, 1, 8)
+    with pytest.raises(ConfigError) as err:
+        load(
+            tmp_path,
+            "transactions:\n  - {date: 2024-01-08, type: transfer_in, symbol: XFR, shares: 1, price: 5, acquired: 2024-02-01}\n",
+        )
+    assert "acquired" in str(err.value)

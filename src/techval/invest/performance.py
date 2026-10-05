@@ -82,6 +82,24 @@ def twr(series: Series, flows: dict[date, float]) -> np.ndarray:
     return growth
 
 
+def external_flows(ledger: Ledger, quotes: Quotes) -> dict[date, float]:
+    """Money and shares moved into or out of the account, by date, in dollars.
+
+    Deposits and withdrawals are the ledger's own cash flows. Shares
+    transferred in from another broker are money arriving too, valued at
+    that day's close in today's units, or the time-weighted return would read
+    an ACATS transfer as a gain the size of the position.
+    """
+    flows = dict(ledger.flows())
+    for t in ledger.transactions:
+        if t.type != "transfer_in":
+            continue
+        units = t.shares * _later_splits(ledger, t.symbol, t.date)
+        value = units * quotes.close_on(t.symbol, t.date, ledger.kind(t.symbol))
+        flows[t.date] = flows.get(t.date, 0.0) + value
+    return flows
+
+
 def benchmark_growth(quotes: Quotes, benchmark: str, dates: list[date]) -> np.ndarray:
     """The benchmark's growth of one over the same dates."""
     if not dates:

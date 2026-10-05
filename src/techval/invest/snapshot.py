@@ -18,7 +18,7 @@ from .engine_read import attach_dcf, read_holdings
 from .hygiene import coverage, drift, exposure, top_share, weights
 from .ideas import ideas
 from .ledger import Ledger
-from .performance import benchmark_growth, contributions, risk_stats, twr, value_series
+from .performance import benchmark_growth, contributions, external_flows, risk_stats, twr, value_series
 from .quotes import Quotes
 
 # 2: prices carry the session they closed in, and mismatched closes are named.
@@ -99,7 +99,7 @@ def build_snapshot(
     weight_rows = weights(ledger, quotes)
     weight_by = {w.symbol: w for w in weight_rows}
     series = value_series(ledger, quotes)
-    growth = twr(series, ledger.flows())
+    growth = twr(series, external_flows(ledger, quotes))
     bench = benchmark_growth(quotes, ledger.benchmark, series.dates)
 
     # The benchmark's last session dates the page. A holding whose last close
@@ -263,6 +263,7 @@ def build_snapshot(
                 "amount": t.amount,
                 "ratio": t.ratio,
                 "fee": t.fee,
+                "acquired": t.acquired.isoformat() if t.acquired else None,
             }
             for t in reversed(ledger.transactions)
         ],
