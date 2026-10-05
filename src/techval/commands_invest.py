@@ -49,6 +49,12 @@ _PANELS = typer.Option(
     ),
 )
 _OPEN = typer.Option(False, "--open", help="Open the rendered page in the default browser.")
+_QUIET = typer.Option(
+    False,
+    "--quiet",
+    "-q",
+    help="Print only warnings and errors, for a scheduled run: stale prices, unquotable holdings, rows entered twice.",
+)
 _BENCHMARK = typer.Option(
     None,
     "--benchmark",
@@ -117,12 +123,13 @@ def invest(
     open_page: bool = _OPEN,
     max_age: float = _MAX_AGE,
     benchmark: str = _BENCHMARK,
+    quiet: bool = _QUIET,
 ) -> None:
     """Refresh quotes and the engine read, then render portfolio/index.html."""
     if ctx.invoked_subcommand is not None:
         return
     try:
-        _build(directory, config, offline, render_only, refit, panels, max_age, benchmark)
+        _build(directory, config, offline, render_only, refit, panels, max_age, benchmark, quiet)
     except TechvalError as err:
         console.print(f"[red]{escape(str(err))}[/red]")
         raise typer.Exit(1)
@@ -310,7 +317,7 @@ def _signed_pct(v: float | None, dp: int = 2) -> str:
     return "n/a" if v is None else f"{v * 100:+.{dp}f}%"
 
 
-def _print_summary(snapshot: dict) -> None:
+def _print_summary(snapshot: dict, quiet: bool = False) -> None:
     """The headline numbers in the terminal, for a run nobody opens the page after."""
     from rich.table import Table
 
@@ -332,7 +339,8 @@ def _print_summary(snapshot: dict) -> None:
     ]
     for label, value in rows:
         table.add_row(label, escape(value))
-    console.print(table)
+    if not quiet:
+        console.print(table)
     if meta["prices_age_days"] > 4:
         console.print(f"[yellow]Prices are {meta['prices_age_days']} days old.[/yellow]")
     for u in over["unpriced"]:
@@ -378,6 +386,7 @@ def _build(
     panels: Path | None = None,
     max_age_hours: float = DEFAULT_MAX_AGE_HOURS,
     benchmark: str | None = None,
+    quiet: bool = False,
 ) -> None:
     from .invest.render import write_page
     from .invest.snapshot import validate_snapshot
@@ -393,7 +402,8 @@ def _build(
         snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
         validate_snapshot(snapshot)
         write_page(snapshot, page_path)
-        console.print(f"Rendered {escape(str(page_path))} from the existing snapshot.")
+        if not quiet:
+            console.print(f"Rendered {escape(str(page_path))} from the existing snapshot.")
         return
 
     from .edgar import EdgarClient, HttpCache
@@ -453,6 +463,7 @@ def _build(
     )
     write_snapshot(snapshot, snapshot_path)
     write_page(snapshot, page_path)
-    _print_summary(snapshot)
-    console.print(f"Wrote {escape(str(snapshot_path))}")
-    console.print(f"Wrote {escape(str(page_path))}")
+    _print_summary(snapshot, quiet)
+    if not quiet:
+        console.print(f"Wrote {escape(str(snapshot_path))}")
+        console.print(f"Wrote {escape(str(page_path))}")
