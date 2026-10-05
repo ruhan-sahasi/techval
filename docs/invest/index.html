@@ -181,7 +181,10 @@
 }
 
 /*
- * Print goes light whatever the screen showed, like the results page.
+ * Print goes light whatever the screen showed, like the results page. The
+ * page is dark first, so the print block carries the whole light palette and
+ * then the paper overrides: otherwise the dark theme's pastel gains and
+ * losses would print on white.
  */
 @media print {
   :root,
@@ -199,9 +202,45 @@
     --border: rgba(0, 0, 0, 0.32);
     --wash: rgba(0, 0, 0, 0.05);
     --wash-strong: rgba(0, 0, 0, 0.1);
+    --shadow-tip: 0 6px 18px rgba(17, 24, 22, 0.12);
     --shadow-card: none;
-    --missing: #eceeed;
+    --series-1: #099393;
+    --series-2: #b6770b;
+    --series-3: #8a3362;
+    --deemph: #7d8683;
+    --div-pos: #099393;
+    --div-neg: #bc4b37;
     --div-mid: #eceeed;
+    --on-div-3: #14201f;
+    --on-div-2: #14201f;
+    --on-div-1: #14201f;
+    --on-div-0: #14201f;
+    --seq-1: var(--teal-100);
+    --seq-2: var(--teal-200);
+    --seq-3: var(--teal-300);
+    --seq-4: var(--teal-400);
+    --seq-5: var(--teal-500);
+    --seq-6: var(--teal-600);
+    --seq-7: var(--teal-700);
+    --on-seq-1: #14201f;
+    --on-seq-2: #14201f;
+    --on-seq-3: #14201f;
+    --on-seq-4: #14201f;
+    --on-seq-5: #14201f;
+    --on-seq-6: #ffffff;
+    --on-seq-7: #ffffff;
+    --missing: #eceeed;
+    --status-good: #157a4a;
+    --status-warning: #a86b00;
+    --status-critical: #b23a2e;
+    --status-neutral: #6f7875;
+    --on-status-good: #ffffff;
+    --on-status-warning: #ffffff;
+    --on-status-critical: #ffffff;
+    --on-status-neutral: #ffffff;
+    --text-good: #10684a;
+    --text-critical: #a3462e;
+    --focus: #0b6b5c;
   }
 }
 /*
@@ -1870,7 +1909,7 @@ body {
   content: " \2193";
 }
 
-.iv-book .tv-table td {
+.iv-book .tv-table :is(td, th) {
   white-space: nowrap;
 }
 
@@ -2058,6 +2097,38 @@ body {
 
   .iv-tile--feature {
     animation: iv-drift 9s ease-in-out infinite;
+  }
+}
+
+/*
+ * Print: the pane on screen, as a statement. The rail, the controls and the
+ * motion go; cards keep their hairlines but lose their shadows and are not
+ * split across pages. The tokens file turns the ground white and the ink
+ * black whatever theme the screen was in.
+ */
+@media print {
+  .iv-shell {
+    display: block;
+    max-width: none;
+    padding: 0;
+  }
+
+  .iv-rail,
+  .iv-range,
+  .iv-topbar .tv-btn,
+  .tv-figure__foot .tv-btn {
+    display: none !important;
+  }
+
+  .iv-card,
+  .iv-tile,
+  .tv-figure {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .iv-pane.is-entering > * {
+    animation: none;
   }
 }
 </style>
