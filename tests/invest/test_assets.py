@@ -106,3 +106,23 @@ def test_styles_reach_colours_through_tokens_only():
         css = _strip(path.read_text(encoding="utf-8"))
         assert not re.search(r"#[0-9a-fA-F]{3,8}\b", css), path.name
         assert not re.search(r"\b(rgb|rgba|hsl|hsla|oklch)\(", css), path.name
+
+
+def test_print_drops_the_chrome_and_keeps_the_numbers():
+    css = _strip((INVEST / "app.css").read_text(encoding="utf-8"))
+    start = css.index("@media print")
+    block = css[start:]
+    for selector in (".iv-rail", ".iv-range", ".iv-topbar .tv-btn"):
+        assert selector in block, selector
+    assert "break-inside: avoid" in block
+
+
+def test_print_carries_the_light_palette_so_dark_colours_never_reach_paper(invest_tokens):
+    css = _strip((INVEST / "tokens.css").read_text(encoding="utf-8"))
+    block = _block(css, r"@media print \{.*?\{(.*?)\n  \}")
+    printed = _pairs(block)
+    for name, value in invest_tokens["light"].items():
+        if name in ("--page", "--surface", "--raised", "--ink-1", "--ink-2", "--ink-3", "--grid", "--axis", "--rule",
+                    "--border", "--wash", "--wash-strong", "--missing", "--div-mid", "--shadow-card"):
+            continue  # the paper overrides, set for print on purpose
+        assert printed.get(name) == value, name

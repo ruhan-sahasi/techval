@@ -152,10 +152,22 @@ def test_no_mounted_command_shadows_dashboard():
         assert "dashboard" not in names, module.__name__
 
 
+def _plain(text: str) -> str:
+    """Help text without terminal colour.
+
+    Rich colours its output when it detects CI (GITHUB_ACTIONS among the
+    signals) even under the test runner, and an escape code inside a flag
+    splits it: '--ml-data' arrives as '-' and '-ml-data' in different colours.
+    """
+    import re
+
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
+
+
 def test_dashboard_is_listed_under_its_own_heading():
     result = runner.invoke(C.app, ["--help"])
     assert result.exit_code == 0
-    assert "Results" in result.output and "dashboard" in result.output
+    assert "Results" in _plain(result.output) and "dashboard" in _plain(result.output)
     result = runner.invoke(C.app, ["dashboard", "--help"])
     assert result.exit_code == 0
     for flag in (
@@ -167,4 +179,21 @@ def test_dashboard_is_listed_under_its_own_heading():
         "--no-cache",
         "--collected-at",
     ):
-        assert flag in result.output
+        assert flag in _plain(result.output)
+
+
+def test_open_hands_the_written_page_to_the_browser(tmp_path, assets, no_collection, monkeypatch):
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    dump_snapshot(make_snapshot(), tmp_path / "snapshot.json")
+    result = _invoke(tmp_path, "--open")
+    assert result.exit_code == 0, result.output
+    assert opened == [(tmp_path / "site" / "index.html").resolve().as_uri()]
+
+
+def test_a_failed_run_opens_nothing(tmp_path, assets, no_collection, monkeypatch):
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    result = _invoke(tmp_path, "--no-collect", "--open")
+    assert result.exit_code != 0
+    assert opened == []

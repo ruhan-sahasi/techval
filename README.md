@@ -1,5 +1,7 @@
 # techval
 
+[![tests](https://github.com/ruhan-sahasi/techval/actions/workflows/tests.yml/badge.svg)](https://github.com/ruhan-sahasi/techval/actions/workflows/tests.yml)
+
 ![Datadog football field](out/DDOG_football.png)
 
 *Both DCF bands sitting far below the traded price ARE the result, not a broken
@@ -9,7 +11,7 @@ engine's three terminal values; the third prints in the run below.*
 
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Fifteen commands, 1,701
+the US Treasury daily curve for the risk-free rate. Eighteen commands, 2,376
 tests, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
@@ -1402,10 +1404,11 @@ provenance: the entry point that computed it and the SHA-256 of every fixture
 it read. A figure that cannot be reproduced offline is shown as a refusal with
 its reason, in the place the number would have gone.
 
-To rebuild the snapshot and the page from a clone:
+To rebuild the snapshot and the page from a clone, and open it when it is
+written:
 
 ```bash
-techval dashboard --config docs/dashboard/assumptions.yaml --collect
+techval dashboard --config docs/dashboard/assumptions.yaml --collect --open
 ```
 
 One input is not a fixture. The engine reads the risk-free rate from the
@@ -1460,13 +1463,24 @@ from a checkout and click through the rail.
     --max-age     hours a cached price or filing stays fresh, 20 by default
     --refit       refit the fade and warranted models instead of loading them
     --panels      point at a checkout's tests/fixtures from an installed copy
+    --quiet       print only warnings and errors, for a scheduled run
 
-`add` takes `buy`/`sell SYMBOL SHARES PRICE`, `deposit`/`withdraw AMOUNT`,
-`dividend SYMBOL AMOUNT` or `split SYMBOL RATIO`, with `--date`, `--fee`,
-`--kind` and `--note`. It inserts a line rather than rewriting the file, so
-your comments survive, and a row the ledger cannot hold, an overdraft say,
-leaves the file untouched. A trade's fee joins a buy's cost basis and comes
-off a sell's proceeds.
+`add` takes `buy`/`sell`/`transfer_in SYMBOL SHARES PRICE`,
+`deposit`/`withdraw`/`interest`/`fee AMOUNT`, `dividend SYMBOL AMOUNT` or
+`split SYMBOL RATIO`, with `--date`, `--fee`, `--acquired`, `--kind` and
+`--note`. It inserts a line rather than rewriting the file, so your comments
+survive, and a row the ledger cannot hold, an overdraft say, leaves the file
+untouched; `check` and a full run both name a row entered twice. A trade's fee
+joins a buy's cost basis and comes off a sell's proceeds. `interest` and `fee`
+rows are cash the account earned or paid, so they count as return where a
+deposit does not. `transfer_in` brings shares from another broker at their
+original basis and purchase date, moving no cash; the time-weighted return
+counts the arrival as money moved in at that day's close, never as a gain.
+
+A holding the price source cannot quote, a delisting or a typo, is valued at
+your last trade price and named on the page and in the terminal, rather than
+taking the run down. The page prints as a statement: the rail and controls
+drop, and gains and losses print in ink colours on white.
 
 The two model fits take about nine seconds and are cached in `ml.cache_dir`,
 keyed on the panels and the code that fits them, so a second run takes about
@@ -2015,16 +2029,18 @@ filers.
 uv run pytest
 ```
 
-2,213 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
-`techval.ml`, 392 over the dashboard and 100 over the filing reader. No test
-touches the network. The 15MB of fixtures are frozen SEC payloads, pruned XBRL
-instance documents, real proxy statements, verbatim merger filings and recorded
-daily closes, each carrying its retrieval date and the exact pruning rule
-applied, and several carrying a `MANIFEST.json` with row counts and SHA-256
-digests. A test checks the facts in a fixture against the rule its header
-states, so the provenance note cannot quietly stop being true. Filing text is
-verbatim apart from markup stripping, punctuation included: a fixture edited to
-suit a house style is no longer evidence of what the filer wrote.
+2,376 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
+`techval.ml`, 396 over the dashboard, 148 over the investing dashboard and 100
+over the filing reader. GitHub Actions runs the whole suite on Python 3.11 and
+3.12 for every push to `main` and every pull request. No test touches the
+network. The 15MB of fixtures are frozen SEC payloads, pruned XBRL instance
+documents, real proxy statements, verbatim merger filings and recorded daily
+closes, each carrying its retrieval date and the exact pruning rule applied, and
+several carrying a `MANIFEST.json` with row counts and SHA-256 digests. A test
+checks the facts in a fixture against the rule its header states, so the
+provenance note cannot quietly stop being true. Filing text is verbatim apart
+from markup stripping, punctuation included: a fixture edited to suit a house
+style is no longer evidence of what the filer wrote.
 
 Five companies carry the core valuation tests and each is there for what it
 breaks. Datadog for in-the-money convertibles, thin GAAP EBITDA and a dual-class

@@ -267,8 +267,14 @@ body {
   content: " \2193";
 }
 
-.iv-book .tv-table td {
+.iv-book .tv-table :is(td, th) {
   white-space: nowrap;
+}
+
+.iv-book .iv-total > :is(th, td) {
+  border-top: 1px solid var(--axis);
+  border-bottom: 0;
+  font-weight: var(--fw-semibold);
 }
 
 .iv-group {
@@ -449,5 +455,37 @@ body {
 
   .iv-tile--feature {
     animation: iv-drift 9s ease-in-out infinite;
+  }
+}
+
+/*
+ * Print: the pane on screen, as a statement. The rail, the controls and the
+ * motion go; cards keep their hairlines but lose their shadows and are not
+ * split across pages. The tokens file turns the ground white and the ink
+ * black whatever theme the screen was in.
+ */
+@media print {
+  .iv-shell {
+    display: block;
+    max-width: none;
+    padding: 0;
+  }
+
+  .iv-rail,
+  .iv-range,
+  .iv-topbar .tv-btn,
+  .tv-figure__foot .tv-btn {
+    display: none !important;
+  }
+
+  .iv-card,
+  .iv-tile,
+  .tv-figure {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .iv-pane.is-entering > * {
+    animation: none;
   }
 }
