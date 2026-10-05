@@ -24,7 +24,8 @@ from .quotes import Quotes
 # 2: prices carry the session they closed in, and mismatched closes are named.
 # 3: performance carries risk statistics for the book and the benchmark.
 # 4: performance carries realized gains by tax year, short and long term.
-SCHEMA = 4
+# 5: holdings the price source could not serve are named, with the price used.
+SCHEMA = 5
 
 # The contract: every pane and the keys it must carry. Types are spot-checked
 # where a wrong one would draw nonsense rather than crash.
@@ -36,7 +37,7 @@ _REQUIRED = {
     "overview": (
         "value", "cash", "day_abs", "day_pct", "twr_pct", "benchmark_twr_pct",
         "n_positions", "cheap", "rich", "uncovered", "top5_share",
-        "covered_value_share", "movers", "mismatched_closes",
+        "covered_value_share", "movers", "mismatched_closes", "unpriced",
     ),
     "performance": (
         "dates", "growth", "benchmark_growth", "benchmark", "contributions",
@@ -65,6 +66,10 @@ def build_snapshot(
     cache_root: Path | None = None,
     refit: bool = False,
 ) -> dict:
+    # The benchmark defines the calendar and the comparison, so it is fetched
+    # before the ledger fallback is on: unquotable, it refuses the run.
+    quotes.series(ledger.benchmark, ledger.kind(ledger.benchmark))
+    quotes.use_ledger_fallback(ledger)
     positions = ledger.positions()
     held = [p for p in positions.values() if p.shares > 0]
     cash = ledger.cash()
@@ -107,6 +112,9 @@ def build_snapshot(
     for p in sorted(held, key=lambda p: -weight_by[p.symbol].value):
         price, previous = quotes.last_two(p.symbol, p.kind)
         price_date = quotes.last_close_date(p.symbol, p.kind)
+        if p.symbol in quotes.failed:
+            # Two trades are not two sessions: a ledger-priced holding has no day move.
+            previous = price
         if price_date != prices_as_of:
             mismatched.append(p.symbol)
         value = weight_by[p.symbol].value
@@ -183,6 +191,16 @@ def build_snapshot(
             "covered_value_share": round(cov["covered_value_share"], 6),
             "movers": movers[:3],
             "mismatched_closes": sorted(mismatched),
+            "unpriced": [
+                {
+                    "symbol": r["symbol"],
+                    "reason": quotes.failed[r["symbol"]],
+                    "priced_at": r["price"],
+                    "price_date": r["price_date"],
+                }
+                for r in rows
+                if r["symbol"] in quotes.failed
+            ],
         },
         "positions": rows,
         "performance": {

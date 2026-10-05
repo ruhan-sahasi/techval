@@ -325,6 +325,11 @@ def _print_summary(snapshot: dict) -> None:
     console.print(table)
     if meta["prices_age_days"] > 4:
         console.print(f"[yellow]Prices are {meta['prices_age_days']} days old.[/yellow]")
+    for u in over["unpriced"]:
+        console.print(
+            f"[yellow]{escape(u['symbol'])} could not be quoted, so it is valued at the last trade "
+            f"price, {u['priced_at']:,.2f} on {u['price_date']}: {escape(u['reason'])}[/yellow]"
+        )
     if over["mismatched_closes"]:
         console.print(
             f"[yellow]{escape(', '.join(over['mismatched_closes']))} closed in a different session from "
