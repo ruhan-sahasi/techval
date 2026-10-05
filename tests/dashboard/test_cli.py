@@ -168,3 +168,20 @@ def test_dashboard_is_listed_under_its_own_heading():
         "--collected-at",
     ):
         assert flag in result.output
+
+
+def test_open_hands_the_written_page_to_the_browser(tmp_path, assets, no_collection, monkeypatch):
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    dump_snapshot(make_snapshot(), tmp_path / "snapshot.json")
+    result = _invoke(tmp_path, "--open")
+    assert result.exit_code == 0, result.output
+    assert opened == [(tmp_path / "site" / "index.html").resolve().as_uri()]
+
+
+def test_a_failed_run_opens_nothing(tmp_path, assets, no_collection, monkeypatch):
+    opened = []
+    monkeypatch.setattr("webbrowser.open", lambda url: opened.append(url) or True)
+    result = _invoke(tmp_path, "--no-collect", "--open")
+    assert result.exit_code != 0
+    assert opened == []

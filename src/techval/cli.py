@@ -1956,6 +1956,7 @@ def dashboard(
         "--collected-at",
         help="The date the snapshot is stamped with (YYYY-MM-DD). Default: today.",
     ),
+    open_page: bool = typer.Option(False, "--open", help="Open the page in the default browser once it is written."),
 ) -> None:
     """Collect every model's results from the fixtures and render the dashboard page.
 
@@ -2065,6 +2066,10 @@ def dashboard(
 
         write_dashboard(snap, out)
         console.print(Text(f"Wrote {out}.", style="dim"), soft_wrap=True)
+        if open_page:
+            import webbrowser
+
+            webbrowser.open(Path(out).resolve().as_uri())
     except TechvalError as exc:
         console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{escape(str(exc))}")
         raise typer.Exit(1)
