@@ -227,3 +227,55 @@ def implied_terminal_margin(case: Case, price: float) -> Solve:
     return Solve(
         "terminal_margin", price, assumed, None, (lo, hi), root.edge_x, root.edge_value, sentence
     )
+
+
+# The longest projection the DCF accepts; the duration solve works inside it.
+DURATION_HORIZON = 15
+
+
+def duration_path(held_growth: float, years_held: int, case: Case) -> list[float]:
+    """Growth held for ``years_held`` years, then a straight fade to terminal by year 15."""
+    terminal = case.assumptions.dcf.revenue_growth_terminal
+    rest = DURATION_HORIZON - years_held
+    fade = [held_growth + (terminal - held_growth) * (i + 1) / rest for i in range(rest)]
+    return [held_growth] * years_held + fade
+
+
+def implied_duration(case: Case, price: float, *, held_growth: float) -> Solve:
+    """How many years of growth at ``held_growth`` the price needs.
+
+    Mauboussin's competitive advantage period, read off the engine's DCF: on a
+    15-year projection, growth is held for k years and then fades in a straight
+    line to terminal, and the answer is the fewest whole k whose value reaches
+    the price. Margins ramp to the same terminal level over the same 15 years,
+    which is slower than the 5-year base case, so the value with nothing held
+    in this frame is reported beside the answer rather than left implicit.
+    """
+    value = lambda k: case.value(growth_path=duration_path(held_growth, k, case), projection_years=DURATION_HORIZON)
+    values = [value(k) for k in range(DURATION_HORIZON + 1)]
+    extras = {"value_held_zero": values[0], "held_growth": held_growth}
+    reached = next((k for k, v in enumerate(values) if v >= price), None)
+    if reached is not None:
+        extras["path"] = duration_path(held_growth, reached, case)
+        if reached == DURATION_HORIZON:
+            held = f"held for all {DURATION_HORIZON} years of the projection"
+        else:
+            held = (
+                f"held for {reached} year{'s' if reached != 1 else ''} before it fades to "
+                f"{case.assumptions.dcf.revenue_growth_terminal:.1%}"
+            )
+        sentence = (
+            f"At {price:,.2f} the price needs {held_growth:.1%} growth {held}, on a "
+            f"{DURATION_HORIZON}-year projection worth {values[0]:,.2f} with none held."
+        )
+        return Solve(
+            "duration", price, None, float(reached), (0.0, float(DURATION_HORIZON)), sentence=sentence, extras=extras
+        )
+    extras["path"] = duration_path(held_growth, DURATION_HORIZON, case)
+    sentence = (
+        f"Even {held_growth:.1%} growth held for all {DURATION_HORIZON} years is worth {values[-1]:,.2f}, "
+        f"short of {price:,.2f}."
+    )
+    return Solve(
+        "duration", price, None, None, (0.0, float(DURATION_HORIZON)), float(DURATION_HORIZON), values[-1], sentence, extras
+    )
