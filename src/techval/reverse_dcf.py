@@ -41,6 +41,13 @@ class Case:
     wacc: object
     assumptions: Assumptions
 
+    def with_dcf(self, **dcf_changes) -> "Case":
+        """The same company under changed ``assumptions.dcf`` fields; the original is untouched."""
+        a = self.assumptions.model_copy(deep=True)
+        for name, v in dcf_changes.items():
+            setattr(a.dcf, name, v)
+        return Case(fin=self.fin, bridge=self.bridge, wacc=self.wacc, assumptions=a)
+
     def value(self, growth_path=None, **dcf_changes) -> float:
         """Per-share value with some ``assumptions.dcf`` fields changed."""
         a = self.assumptions.model_copy(deep=True)
@@ -333,3 +340,28 @@ def growth_base_rate(
         near = [(o, r) for o, r in rows if o.growth is not None and abs(o.growth - trailing) <= band]
         similar = {**tally(near), "trailing": trailing, "band": band}
     return {"horizon": horizon, "implied_cagr": implied_cagr, "all": tally(rows), "similar": similar}
+
+
+# Terminal margins the frontier is read at: a services business to the best
+# software franchise anyone has priced.
+FRONTIER_MARGINS = (0.10, 0.20, 0.30, 0.40, 0.50, 0.60)
+
+
+def growth_margin_frontier(case: Case, price: float, margins=FRONTIER_MARGINS) -> list[dict]:
+    """The first-year growth the price needs at each terminal margin.
+
+    Two levers that each fail alone can succeed together, and this is the
+    curve along which they trade: a row per margin, with the implied growth or
+    the value the growth bracket's edge reaches when even 300% will not do.
+    """
+    rows = []
+    for m in margins:
+        solve = implied_first_year_growth(case.with_dcf(ebit_margin_terminal=m), price)
+        rows.append(
+            {
+                "margin": m,
+                "implied_growth": solve.implied,
+                "edge_value": None if solve.reached else solve.edge_value,
+            }
+        )
+    return rows

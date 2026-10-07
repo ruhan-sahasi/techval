@@ -226,3 +226,23 @@ def test_datadogs_implied_growth_has_almost_never_happened(case, panel):
     assert rate["all"]["n"] > 1000
     assert rate["all"]["share"] < 0.02
     assert rate["similar"]["n"] > 100
+
+
+def test_the_frontier_trades_margin_for_growth(case):
+    from techval.reverse_dcf import FRONTIER_MARGINS, growth_margin_frontier, implied_first_year_growth
+
+    rows = growth_margin_frontier(case, PRICE)
+    assert [r["margin"] for r in rows] == list(FRONTIER_MARGINS)
+    reached = [r["implied_growth"] for r in rows if r["implied_growth"] is not None]
+    assert len(reached) >= 3
+    # A fatter margin needs less growth.
+    assert all(a > b for a, b in zip(reached, reached[1:]))
+    at_assumed = next(r for r in rows if r["margin"] == case.assumptions.dcf.ebit_margin_terminal)
+    assert at_assumed["implied_growth"] == pytest.approx(implied_first_year_growth(case, PRICE).implied, abs=1e-5)
+
+
+def test_with_dcf_leaves_the_original_case_alone(case):
+    before = case.assumptions.dcf.ebit_margin_terminal
+    other = case.with_dcf(ebit_margin_terminal=0.5)
+    assert other.assumptions.dcf.ebit_margin_terminal == 0.5
+    assert case.assumptions.dcf.ebit_margin_terminal == before
