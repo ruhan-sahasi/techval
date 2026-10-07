@@ -136,3 +136,36 @@ def test_a_reachable_margin_round_trips(case):
     target = case.value(ebit_margin_terminal=0.45)
     solve = implied_terminal_margin(case, target)
     assert solve.reached and solve.implied == pytest.approx(0.45, abs=1e-5)
+
+
+def test_duration_is_the_fewest_whole_years_of_held_growth_that_reach_the_price(case):
+    from techval.reverse_dcf import DURATION_HORIZON, duration_path, implied_duration
+
+    solve = implied_duration(case, PRICE, held_growth=0.277)
+    assert solve.reached
+    k = int(solve.implied)
+    assert 10 <= k <= DURATION_HORIZON
+    value = lambda years: case.value(growth_path=duration_path(0.277, years, case), projection_years=DURATION_HORIZON)
+    assert value(k) >= PRICE > value(k - 1)
+    assert solve.extras["value_held_zero"] == pytest.approx(value(0))
+    assert len(solve.extras["path"]) == DURATION_HORIZON
+    assert solve.extras["path"][:k] == [pytest.approx(0.277)] * k
+    assert "27.7%" in solve.sentence and str(k) in solve.sentence
+
+
+def test_a_duration_the_horizon_cannot_hold_reports_fifteen_years_short(case):
+    from techval.reverse_dcf import DURATION_HORIZON, implied_duration
+
+    solve = implied_duration(case, 1e6, held_growth=0.277)
+    assert not solve.reached
+    assert solve.edge == DURATION_HORIZON
+    assert "15 years" in solve.sentence
+
+
+def test_the_duration_path_holds_then_fades_to_terminal(case):
+    from techval.reverse_dcf import duration_path
+
+    path = duration_path(0.30, 10, case)
+    assert path[:10] == [0.30] * 10
+    assert path[-1] == pytest.approx(case.assumptions.dcf.revenue_growth_terminal)
+    assert all(a >= b for a, b in zip(path[10:], path[11:]))
