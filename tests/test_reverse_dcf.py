@@ -246,3 +246,35 @@ def test_with_dcf_leaves_the_original_case_alone(case):
     other = case.with_dcf(ebit_margin_terminal=0.5)
     assert other.assumptions.dcf.ebit_margin_terminal == 0.5
     assert case.assumptions.dcf.ebit_margin_terminal == before
+
+
+def test_market_expectations_gathers_every_lever_with_base_rates(case, panel):
+    import json as _json
+
+    from techval.reverse_dcf import market_expectations
+
+    exp = market_expectations(case, PRICE, trailing_growth=0.277, observations=panel.observations)
+    assert exp.price == PRICE and exp.base_value == pytest.approx(case.value())
+    assert {s.lever for s in exp.solves} == {"discount_rate", "first_year_growth", "terminal_margin", "duration"}
+    assert exp.base_rates["first_year_growth"]["all"]["share"] < 0.02
+    assert exp.base_rates["duration"]["horizon"] == 5
+    text = " ".join(exp.summary())
+    assert "3.71% a year" in text
+    assert "155.2%" in text
+    assert "of 1,662" in text
+    # The panel stops at five years, and the summary says so for a longer duration.
+    assert "nothing in it tests" in text
+    payload = exp.to_dict()
+    _json.dumps(payload)
+    assert payload["frontier"][0]["margin"] == 0.10
+
+
+def test_without_a_panel_there_are_no_base_rates_and_it_says_why(case):
+    from techval.reverse_dcf import market_expectations
+
+    exp = market_expectations(case, PRICE, trailing_growth=None)
+    assert exp.base_rates == {}
+    assert any("no fade panel" in s for s in exp.summary())
+    # Without a trailing rate, the duration holds the assumed first-year growth.
+    duration = next(s for s in exp.solves if s.lever == "duration")
+    assert duration.extras["held_growth"] == case.assumptions.dcf.revenue_growth_start
