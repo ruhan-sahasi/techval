@@ -279,3 +279,57 @@ def implied_duration(case: Case, price: float, *, held_growth: float) -> Solve:
     return Solve(
         "duration", price, None, None, (0.0, float(DURATION_HORIZON)), float(DURATION_HORIZON), values[-1], sentence, extras
     )
+
+
+# Base rates read an h-year CAGR; five years is the base case's horizon and
+# the deepest horizon the fade panel labels.
+BASE_RATE_HORIZON = 5
+# "Similar starters": trailing growth within this many points of the company's.
+SIMILAR_BAND = 0.10
+
+
+def path_cagr(path: list[float], horizon: int) -> float:
+    """The compound annual growth of the first ``horizon`` years of a path."""
+    years = path[:horizon]
+    growth = 1.0
+    for g in years:
+        growth *= 1.0 + g
+    return growth ** (1.0 / len(years)) - 1.0
+
+
+def growth_base_rate(
+    observations,
+    *,
+    implied_cagr: float,
+    horizon: int = BASE_RATE_HORIZON,
+    trailing: float | None = None,
+    band: float = SIMILAR_BAND,
+) -> dict:
+    """How often a TMT company-year went on to compound revenue this fast.
+
+    Each labelled observation's realised CAGR over ``horizon`` years is built
+    from the growth each later 10-K printed, so it is the record as filed. The
+    share is reported across every observation with a full ``horizon`` of
+    labels, and among those whose own trailing growth was within ``band`` of
+    the company's, because a company growing 28% is not drawn from the same
+    population as one growing 3%. The panel keeps delisted filers, so the
+    companies that stopped growing and were bought are in the denominator.
+    """
+    def realised(obs) -> float | None:
+        if not all(h in obs.labels for h in range(1, horizon + 1)):
+            return None
+        return path_cagr([obs.labels[h] for h in range(1, horizon + 1)], horizon)
+
+    rows = [(obs, realised(obs)) for obs in observations]
+    rows = [(obs, r) for obs, r in rows if r is not None]
+
+    def tally(subset) -> dict:
+        n = len(subset)
+        hits = sum(1 for _, r in subset if r >= implied_cagr)
+        return {"n": n, "hits": hits, "share": hits / n if n else None}
+
+    similar = None
+    if trailing is not None:
+        near = [(o, r) for o, r in rows if o.growth is not None and abs(o.growth - trailing) <= band]
+        similar = {**tally(near), "trailing": trailing, "band": band}
+    return {"horizon": horizon, "implied_cagr": implied_cagr, "all": tally(rows), "similar": similar}
