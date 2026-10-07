@@ -169,3 +169,60 @@ def test_the_duration_path_holds_then_fades_to_terminal(case):
     assert path[:10] == [0.30] * 10
     assert path[-1] == pytest.approx(case.assumptions.dcf.revenue_growth_terminal)
     assert all(a >= b for a, b in zip(path[10:], path[11:]))
+
+
+class Obs:
+    """A stand-in panel row: trailing growth and forward growth by horizon."""
+
+    def __init__(self, growth, labels):
+        self.growth = growth
+        self.labels = labels
+
+
+def test_path_cagr_compounds_the_first_h_years():
+    from techval.reverse_dcf import path_cagr
+
+    assert path_cagr([0.10, 0.10, 0.10], 3) == pytest.approx(0.10)
+    assert path_cagr([1.0, 0.0], 2) == pytest.approx(2 ** 0.5 - 1)
+
+
+def test_base_rates_count_realised_cagrs_at_or_above_the_implied_one():
+    from techval.reverse_dcf import growth_base_rate
+
+    panel = [
+        Obs(0.30, {1: 0.40, 2: 0.40}),
+        Obs(0.35, {1: 0.20, 2: 0.10}),
+        Obs(0.05, {1: 0.50, 2: 0.50}),
+        Obs(0.30, {1: 0.40}),  # no two-year label: not counted at h=2
+    ]
+    rate = growth_base_rate(panel, implied_cagr=0.30, horizon=2, trailing=0.32)
+    assert (rate["all"]["n"], rate["all"]["hits"]) == (3, 2)
+    assert rate["all"]["share"] == pytest.approx(2 / 3)
+    # Similar starters: trailing growth within ten points of 32%.
+    assert (rate["similar"]["n"], rate["similar"]["hits"]) == (2, 1)
+    assert rate["horizon"] == 2 and rate["implied_cagr"] == 0.30
+
+
+def test_without_a_trailing_rate_there_is_no_similar_bucket():
+    from techval.reverse_dcf import growth_base_rate
+
+    rate = growth_base_rate([Obs(0.1, {1: 0.2})], implied_cagr=0.1, horizon=1)
+    assert rate["similar"] is None
+
+
+@pytest.fixture(scope="module")
+def panel():
+    from techval.invest.engine_read import fade_panel
+
+    return fade_panel(FIXTURES)
+
+
+def test_datadogs_implied_growth_has_almost_never_happened(case, panel):
+    from techval.reverse_dcf import growth_base_rate, implied_first_year_growth, path_cagr
+
+    solve = implied_first_year_growth(case, PRICE)
+    implied = path_cagr(solve.extras["path"], 5)
+    rate = growth_base_rate(panel.observations, implied_cagr=implied, horizon=5, trailing=0.277)
+    assert rate["all"]["n"] > 1000
+    assert rate["all"]["share"] < 0.02
+    assert rate["similar"]["n"] > 100

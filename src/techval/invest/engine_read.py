@@ -116,11 +116,16 @@ def warranted_model(fixtures: Path, cache_root: Path | None = None, refit: bool 
     return _warranted_model(*_normal(fixtures, cache_root, refit))
 
 
+def fade_panel(fixtures: Path, cache_root: Path | None = None, refit: bool = False):
+    """The point-in-time fade panel itself, for base rates as well as the fit."""
+    return _fade_panel(*_normal(fixtures, cache_root, refit))
+
+
 @lru_cache(maxsize=4)
-def _fade_model(fixtures: Path, cache_root: Path | None, refit: bool):
+def _fade_panel(fixtures: Path, cache_root: Path | None, refit: bool):
     def build():
         from ..edgar import CompanyFacts
-        from ..ml.forecast import build_fade_panel, fade_universe, fit_fade
+        from ..ml.forecast import build_fade_panel, fade_universe
 
         blob = json.load(gzip.open(fixtures / FADE_PANEL, "rt"))
 
@@ -129,10 +134,19 @@ def _fade_model(fixtures: Path, cache_root: Path | None, refit: bool):
                 return CompanyFacts(blob["payloads"][ticker.upper()], ticker)
 
         universe = {t: v for t, v in fade_universe().items() if t in blob["payloads"]}
-        panel = build_fade_panel(universe, _Client())
+        return build_fade_panel(universe, _Client())
+
+    return cached_fit("fade_panel", [fixtures / FADE_PANEL], _FADE_MODULES, build, cache_root, refit)
+
+
+@lru_cache(maxsize=4)
+def _fade_model(fixtures: Path, cache_root: Path | None, refit: bool):
+    def build():
+        from ..ml.forecast import fit_fade
+
         assumptions = Assumptions()
         assumptions.ml.forecast.enabled = True
-        return fit_fade(panel, assumptions)
+        return fit_fade(_fade_panel(fixtures, cache_root, refit), assumptions)
 
     return cached_fit("fade", [fixtures / FADE_PANEL], _FADE_MODULES, build, cache_root, refit)
 
