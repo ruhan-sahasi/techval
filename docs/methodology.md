@@ -1131,6 +1131,55 @@ rather than leaving them to be noticed.
 
 ---
 
+### 6.6 Market-implied expectations: the DCF run backwards
+
+The forward DCF answers what a company is worth on stated assumptions. When
+that answer is far from the price, the question a reader asks next is the
+reverse one, and `techval.reverse_dcf` answers it with the engine's own
+`run_dcf`, so every implied figure inherits the bridge, dilution, NOLs and
+terminal method of the forward case. Each solve changes one assumption, holds
+the rest, and bisects for the value at which the DCF equals the price:
+
+| Lever | What moves | Bracket |
+|---|---|---|
+| Discount rate | `dcf.wacc_override` | terminal growth + 0.5 points to 40% |
+| First-year growth | `dcf.revenue_growth_start`, straight fade to terminal unchanged | -50% to +300% |
+| Terminal margin | `dcf.ebit_margin_terminal` | -20% to 95% |
+| Duration | trailing growth held k of 15 years, then faded | 0 to 15 years |
+
+A lever that cannot reach the price inside its bracket is reported with the
+value the DCF reaches at the edge, never extrapolated. The duration solve works
+on a 15-year projection whose margins ramp over the same fifteen years, slower
+than the five-year base case, so the value with nothing held in that frame is
+reported beside it.
+
+**Base rates are what make an implied growth rate mean something.** For an
+implied path, the five-year CAGR is set against the fade panel (section 15.3):
+the share of labelled company-years whose realised five-year CAGR, from the
+growth each later 10-K printed, met or beat it, across the panel and among
+company-years whose trailing growth was within ten points of the company's.
+The panel keeps delisted filers, so companies that stalled and were bought are
+in the denominator; its labels end at five years, and a longer implied
+duration says nothing in the panel tests the rest.
+
+On the engine's default assumptions, Datadog's 225.27 close against a 36.65
+base case reads:
+
+| Lever | Assumed | Implied by the price |
+|---|---:|---:|
+| Discount rate | 11.3% | **3.7% a year** |
+| First-year growth | 20.0% | **155.2%**, fading to 5% by year 5 |
+| Terminal margin | 20.0% | none up to 95%; at 95% the DCF reaches 134.08 |
+| Duration of its 27.7% growth | 5-year fade | **all 15 years** |
+
+The first-year path compounds 71.8% a year over five years: 11 of 1,662
+labelled TMT company-years did that, and none of the 307 that started within
+ten points of 27.7%. Its trailing rate held for five years is ordinary, 17.1%
+of company-years managed it; held for fifteen, nothing in the panel can say.
+The growth-margin frontier runs from 219% first-year growth at a 10% terminal
+margin to 75% at a 60% margin. None of this says the price is wrong. It says
+what a buyer at that price is underwriting, and how often that has happened.
+
 ## 7. Trading comparables
 
 Multiples computed: EV/Revenue, EV/Gross Profit, EV/EBITDA, EV/EBIT and P/E, plus
