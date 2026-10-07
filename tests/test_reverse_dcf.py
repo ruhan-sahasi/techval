@@ -76,3 +76,36 @@ def test_a_price_below_any_plausible_value_says_so(case):
     assert not solve.reached and solve.implied is None
     assert solve.edge == 0.40
     assert "40%" in solve.sentence
+
+
+def test_the_base_case_value_implies_the_assumed_first_year_growth(case):
+    from techval.reverse_dcf import implied_first_year_growth
+
+    solve = implied_first_year_growth(case, case.value())
+    assert solve.reached
+    assert solve.implied == pytest.approx(case.assumptions.dcf.revenue_growth_start, abs=1e-5)
+
+
+def test_datadogs_price_needs_triple_digit_growth_next_year(case):
+    from techval.reverse_dcf import implied_first_year_growth
+
+    solve = implied_first_year_growth(case, PRICE)
+    assert solve.reached
+    assert 1.0 < solve.implied < 2.0
+    assert case.value(revenue_growth_start=solve.implied) == pytest.approx(PRICE, rel=1e-5)
+    path = solve.extras["path"]
+    years = case.assumptions.dcf.projection_years
+    assert len(path) == years
+    assert path[0] == pytest.approx(solve.implied)
+    assert path[-1] == pytest.approx(case.assumptions.dcf.revenue_growth_terminal)
+    assert "next year" in solve.sentence
+
+
+def test_a_growth_lever_that_cannot_reach_the_price_reports_its_edge(case):
+    from techval.reverse_dcf import GROWTH_BRACKET, implied_first_year_growth
+
+    solve = implied_first_year_growth(case, 1e6)
+    assert not solve.reached
+    assert solve.edge == GROWTH_BRACKET[1]
+    assert solve.edge_value < 1e6
+    assert "300%" in solve.sentence
