@@ -52,6 +52,24 @@
       stats.appendChild(
         stat("DCF against price", IV.fmt.signedPct(read.dcf.gap_pct, 1), "the engine's base case, not a target", read.dcf.gap_pct)
       );
+      /* The DCF run backwards: what the price assumes, and how often that has happened. */
+      var exp = read.dcf.expectations;
+      if (exp) {
+        stats.appendChild(
+          stat(
+            "Return at this price",
+            exp.implied_return === null ? "n/a" : TV.fmt.pct(exp.implied_return, 1) + " a year",
+            "if the base case holds, against " + TV.fmt.pct(read.dcf.wacc, 1) + " cost of capital"
+          )
+        );
+        var base = exp.base_rate;
+        var said = base && base.all.n
+          ? base.all.hits + " of " + TV.fmt.int(base.all.n) + " TMT company-years compounded the implied path"
+          : "no base rate on this run";
+        stats.appendChild(
+          stat("Growth the price needs", exp.implied_growth === null ? "beyond 300%" : TV.fmt.pct(exp.implied_growth, 0) + " next year", said)
+        );
+      }
     }
     if (read.warranted) {
       stats.appendChild(

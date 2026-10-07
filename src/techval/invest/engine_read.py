@@ -116,11 +116,16 @@ def warranted_model(fixtures: Path, cache_root: Path | None = None, refit: bool 
     return _warranted_model(*_normal(fixtures, cache_root, refit))
 
 
+def fade_panel(fixtures: Path, cache_root: Path | None = None, refit: bool = False):
+    """The point-in-time fade panel itself, for base rates as well as the fit."""
+    return _fade_panel(*_normal(fixtures, cache_root, refit))
+
+
 @lru_cache(maxsize=4)
-def _fade_model(fixtures: Path, cache_root: Path | None, refit: bool):
+def _fade_panel(fixtures: Path, cache_root: Path | None, refit: bool):
     def build():
         from ..edgar import CompanyFacts
-        from ..ml.forecast import build_fade_panel, fade_universe, fit_fade
+        from ..ml.forecast import build_fade_panel, fade_universe
 
         blob = json.load(gzip.open(fixtures / FADE_PANEL, "rt"))
 
@@ -129,10 +134,19 @@ def _fade_model(fixtures: Path, cache_root: Path | None, refit: bool):
                 return CompanyFacts(blob["payloads"][ticker.upper()], ticker)
 
         universe = {t: v for t, v in fade_universe().items() if t in blob["payloads"]}
-        panel = build_fade_panel(universe, _Client())
+        return build_fade_panel(universe, _Client())
+
+    return cached_fit("fade_panel", [fixtures / FADE_PANEL], _FADE_MODULES, build, cache_root, refit)
+
+
+@lru_cache(maxsize=4)
+def _fade_model(fixtures: Path, cache_root: Path | None, refit: bool):
+    def build():
+        from ..ml.forecast import fit_fade
+
         assumptions = Assumptions()
         assumptions.ml.forecast.enabled = True
-        return fit_fade(panel, assumptions)
+        return fit_fade(_fade_panel(fixtures, cache_root, refit), assumptions)
 
     return cached_fit("fade", [fixtures / FADE_PANEL], _FADE_MODULES, build, cache_root, refit)
 
@@ -241,7 +255,9 @@ def _warranted_read(model, symbol: str, refusals: list[dict]) -> dict | None:
     }
 
 
-def attach_dcf(reads: dict[str, EngineRead], *, facts_for, market, assumptions: Assumptions) -> None:
+def attach_dcf(
+    reads: dict[str, EngineRead], *, facts_for, market, assumptions: Assumptions, observations=None
+) -> None:
     """Value each covered holding through the engine's own pipeline, in place.
 
     ``facts_for`` returns a ``CompanyFacts`` or None, and it is the caller who
@@ -283,4 +299,47 @@ def attach_dcf(reads: dict[str, EngineRead], *, facts_for, market, assumptions: 
             "gap_pct": round(result.per_share / spot - 1.0, 6),
             "wacc": round(wacc.wacc, 6),
             "enterprise_value_mm": round(result.enterprise_value, 2),
+            "expectations": _expectations(fin, bridge, wacc, assumptions, spot, read, observations),
         }
+
+
+def _expectations(fin, bridge, wacc, assumptions, price, read, observations) -> dict:
+    """What the holding's price assumes: the return it earns and the growth it needs.
+
+    The two levers a holder reads first, from techval.reverse_dcf: the return
+    a buyer at today's price earns if the base case holds, and the first-year
+    growth the price needs, set against the fade panel's base rate when the
+    panel is on hand.
+    """
+    from ..reverse_dcf import (
+        BASE_RATE_HORIZON,
+        Case,
+        growth_base_rate,
+        implied_discount_rate,
+        implied_first_year_growth,
+        path_cagr,
+    )
+
+    case = Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=assumptions)
+    rate = implied_discount_rate(case, price)
+    growth = implied_first_year_growth(case, price)
+    base = None
+    if observations is not None and growth.reached:
+        trailing = read.fade["trailing"] if read.fade else None
+        base = growth_base_rate(
+            observations,
+            implied_cagr=path_cagr(growth.extras["path"], BASE_RATE_HORIZON),
+            horizon=BASE_RATE_HORIZON,
+            trailing=trailing,
+        )
+    if base is not None:
+        base["implied_cagr"] = round(base["implied_cagr"], 6)
+        for bucket in (base["all"], base["similar"]):
+            if bucket and bucket["share"] is not None:
+                bucket["share"] = round(bucket["share"], 6)
+    return {
+        "implied_return": None if rate.implied is None else round(rate.implied, 6),
+        "implied_growth": None if growth.implied is None else round(growth.implied, 6),
+        "base_rate": base,
+        "sentences": [rate.sentence, growth.sentence],
+    }

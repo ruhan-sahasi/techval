@@ -72,7 +72,10 @@ _INDEX = "SPY"
 
 INPUTS: list[str] = [f"companyfacts_{t}.json" for t in (TICKER, *SUITE_PEERS)] + [
     f"prices/{t}.csv" for t in (TICKER, *SUITE_PEERS, _INDEX)
-]
+] + ["fade_companyfacts.json.gz"]
+
+# The fade panel the market-implied growth is judged against.
+FADE_PANEL = "fade_companyfacts.json.gz"
 
 # The comps rows the CLI's football field draws, in its order.
 _COMPS_ROWS = ("EV/Revenue", "EV/Gross Profit", "EV/EBITDA")
@@ -84,7 +87,7 @@ EXIT_ROW = "DCF, exit multiple"
 _MAX_BINS = 36
 
 # The chart kinds this section draws, all of them in the kit.
-KINDS = ("tiles", "range", "waterfall", "heat", "hist", "dot")
+KINDS = ("tiles", "range", "waterfall", "heat", "hist", "dot", "column")
 
 
 # --------------------------------------------------------------------------- #
@@ -179,6 +182,27 @@ class APV:
 
 
 @dataclass
+class Expectations:
+    """What the close assumes, from techval.reverse_dcf, measured and ready to shape."""
+
+    implied_return: float | None
+    wacc: float
+    implied_growth: float | None
+    assumed_growth: float
+    assumed_margin: float
+    margin_reached: bool
+    margin_edge: float
+    margin_edge_value: float | None
+    frontier: list[tuple[float, float | None]]
+    implied_cagr: float | None
+    base_hits: int | None
+    base_n: int | None
+    similar_hits: int | None
+    similar_n: int | None
+    duration_years: float | None
+
+
+@dataclass
 class Refusal:
     what: str
     why: str
@@ -202,6 +226,7 @@ class Measured:
     sensitivity: Sensitivity | None = None
     simulation: Simulation | None = None
     apv: APV | None = None
+    expectations: Expectations | None = None
     refusals: list[Refusal] = field(default_factory=list)
 
 
@@ -631,6 +656,66 @@ def _apv(m: Measured) -> dict[str, Any]:
     )
 
 
+def _expectations(m: Measured) -> dict[str, Any]:
+    """The DCF run backwards: the growth the close needs at each terminal margin."""
+    e = m.expectations
+    assert e is not None
+    drawn = [(margin, g) for margin, g in e.frontier if g is not None]
+    if e.implied_growth is not None and e.base_n:
+        title = (
+            f"The close needs {e.implied_growth:.0%} growth next year; {e.base_hits} of "
+            f"{e.base_n:,} TMT company-years ever compounded that path"
+        )
+    elif e.implied_growth is not None:
+        title = f"The close needs {e.implied_growth:.0%} revenue growth next year"
+    else:
+        title = "No first-year growth up to 300% reaches the close on its own"
+    subtitle = (
+        f"First-year revenue growth the {m.price:,.2f} close needs at each terminal EBIT margin, "
+        "faded on the engine's straight line, everything else as assumed."
+    )
+    if e.implied_return is not None:
+        subtitle += (
+            f" At this price the base case earns {e.implied_return:.1%} a year against a "
+            f"{e.wacc:.1%} cost of capital."
+        )
+    if not e.margin_reached and e.margin_edge_value is not None:
+        subtitle += (
+            f" No terminal margin up to {e.margin_edge:.0%} reaches it alone: at "
+            f"{e.margin_edge:.0%} the DCF is worth {e.margin_edge_value:,.2f}."
+        )
+    figure = _figure(
+        "column",
+        title,
+        subtitle,
+        {
+            "rows": [
+                {
+                    "label": f"{margin:.0%}",
+                    "value": growth,
+                    "role": "model",
+                    "labelled": abs(margin - e.assumed_margin) < 1e-9,
+                }
+                for margin, growth in drawn
+            ],
+            "format": "pct:0",
+            "labelHeader": "Terminal EBIT margin",
+            "valueLabel": "First-year growth needed",
+            "height": 220,
+        },
+        wide=True,
+    )
+    missing = [margin for margin, g in e.frontier if g is None]
+    if missing:
+        figure["notes"] = [
+            {
+                "what": ", ".join(f"{x:.0%}" for x in missing) + " margin",
+                "why": "no first-year growth up to 300% reaches the close at that margin.",
+            }
+        ]
+    return figure
+
+
 _WORDS = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
 
 
@@ -656,6 +741,17 @@ def _takeaway(m: Measured) -> str:
         text += f", {_share(m.per_share_gordon, m.price)} of the price."
     if any(r.what == EXIT_ROW for r in m.refusals):
         text += " No exit-multiple value is drawn; the note under the football field says why."
+    e = m.expectations
+    if e is not None and e.implied_return is not None and e.implied_growth is not None:
+        text += (
+            f" Run backwards, the close earns {e.implied_return:.1%} a year if the base case holds, "
+            f"or needs {e.implied_growth:.0%} revenue growth next year"
+        )
+        text += (
+            f", a path {e.base_hits} of {e.base_n:,} TMT company-years ever compounded."
+            if e.base_n
+            else "."
+        )
     if m.simulation is not None:
         ratio = m.simulation.sd_correlated / m.simulation.sd_independent
         verb = "widens" if ratio >= 1 else "narrows"
@@ -680,6 +776,8 @@ def shape(m: Measured) -> dict[str, Any]:
         figures["montecarlo"] = _hist(m)
     if m.apv is not None:
         figures["apv"] = _apv(m)
+    if m.expectations is not None:
+        figures["expectations"] = _expectations(m)
 
     # A band built on one value is not a range: it would draw as a hairline and
     # read as a precise answer. _football leaves it out, and it is said here.
@@ -963,6 +1061,48 @@ def collect(ctx) -> dict:
             )
         why = why or "run_dcf formed no exit-multiple terminal value."
         refusals.append(Refusal(EXIT_ROW, why, "football"))
+
+    # -- what the close assumes: the DCF run backwards ------------------------- #
+    try:
+        with ctx.record(
+            "expectations", "techval.reverse_dcf.market_expectations", [*everything, FADE_PANEL]
+        ):
+            from ...invest.engine_read import fade_panel
+            from ...reverse_dcf import Case, market_expectations
+
+            observations = fade_panel(ctx.input(FADE_PANEL).parent).observations
+            own = [o for o in observations if o.ticker == TICKER and o.growth is not None]
+            trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
+            exp = market_expectations(
+                Case(fin=fin, bridge=bridge, wacc=w, assumptions=a),
+                price,
+                trailing_growth=trailing,
+                observations=observations,
+            )
+    except TechvalError as exc:
+        refusals.append(Refusal("What the price assumes", str(exc)))
+    else:
+        rate, growth = exp.solve("discount_rate"), exp.solve("first_year_growth")
+        margin, duration = exp.solve("terminal_margin"), exp.solve("duration")
+        base = exp.base_rates.get("first_year_growth")
+        similar = base["similar"] if base else None
+        measured.expectations = Expectations(
+            implied_return=rate.implied,
+            wacc=dcf.wacc,
+            implied_growth=growth.implied,
+            assumed_growth=a.dcf.revenue_growth_start,
+            assumed_margin=a.dcf.ebit_margin_terminal,
+            margin_reached=margin.reached,
+            margin_edge=margin.bracket[1],
+            margin_edge_value=margin.edge_value,
+            frontier=[(r["margin"], r["implied_growth"]) for r in exp.frontier],
+            implied_cagr=base["implied_cagr"] if base else None,
+            base_hits=base["all"]["hits"] if base else None,
+            base_n=base["all"]["n"] if base else None,
+            similar_hits=similar["hits"] if similar else None,
+            similar_n=similar["n"] if similar else None,
+            duration_years=duration.implied,
+        )
 
     # -- the sensitivity grid, and the DCF bands struck on it ------------------ #
     try:

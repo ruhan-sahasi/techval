@@ -372,8 +372,16 @@ def test_the_collector_runs_offline_on_the_fixtures_and_holds_to_the_schema(tmp_
     section, run = collect_section(E, CollectContext(FIXTURES, ROOT, a), use_cache=False)
     assert run.status == "ok"
     assert set(section["figures"]) == {
-        "cost_of_capital", "football", "bridge", "sensitivity", "montecarlo", "apv"
+        "cost_of_capital", "football", "bridge", "sensitivity", "montecarlo", "apv", "expectations"
     }
+    # The DCF run backwards: the frontier slopes down and the base rate is in the title.
+    exp = section["figures"]["expectations"]
+    growth = [r["value"] for r in exp["data"]["rows"]]
+    assert all(a > b for a, b in zip(growth, growth[1:]))
+    assert [r["labelled"] for r in exp["data"]["rows"]].count(True) == 1
+    assert "of 1,662 TMT company-years" in exp["title"]
+    assert "a year against" in exp["subtitle"]
+    assert "Run backwards" in section["takeaway"]
     assert {r["what"] for r in section["refusals"]} == {
         "Comps, EV/EBITDA", E.EXIT_ROW, "APV, Miles-Ezzell"
     }

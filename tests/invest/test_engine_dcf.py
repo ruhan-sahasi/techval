@@ -59,3 +59,26 @@ def test_an_uncovered_name_is_not_valued(assumptions, market):
     reads = {"JPM": EngineRead(symbol="JPM", covered=False, sub_vertical=None)}
     attach_dcf(reads, facts_for=facts_for, market=market, assumptions=assumptions)
     assert reads["JPM"].dcf is None
+
+
+def test_a_valued_holding_carries_what_its_price_assumes(assumptions, market):
+    from techval.invest.engine_read import fade_panel
+
+    reads = {"DDOG": EngineRead(symbol="DDOG", covered=True, sub_vertical="infrastructure_software")}
+    attach_dcf(
+        reads, facts_for=facts_for, market=market, assumptions=assumptions,
+        observations=fade_panel(FIXTURES).observations,
+    )
+    exp = reads["DDOG"].dcf["expectations"]
+    assert 0.035 < exp["implied_return"] < 0.04
+    assert 1.0 < exp["implied_growth"] < 2.0
+    assert exp["base_rate"]["all"]["n"] > 1000
+    assert exp["base_rate"]["all"]["share"] < 0.02
+    assert "a year" in exp["sentences"][0]
+
+
+def test_without_a_panel_the_expectations_carry_no_base_rate(assumptions, market):
+    reads = {"DDOG": EngineRead(symbol="DDOG", covered=True, sub_vertical="infrastructure_software")}
+    attach_dcf(reads, facts_for=facts_for, market=market, assumptions=assumptions)
+    exp = reads["DDOG"].dcf["expectations"]
+    assert exp["base_rate"] is None and exp["implied_return"] is not None

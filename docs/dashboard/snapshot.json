@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-09-18",
+  "collected_at": "2026-10-06",
   "fixtures": {
     "tests/fixtures/companyfacts_CRWD.json": "9b6ef8e8890e3f8058caf6623556708ff8043a9a944f40c94bdc11f45fc570b3",
     "tests/fixtures/companyfacts_DDOG.json": "91bcfb0dc7160923243c8b816e508c57c5a8b1c4bafe10f46dffb2ccb6799211",
@@ -2866,7 +2866,7 @@
             "tests/fixtures/signals/closes.csv.gz",
             "tests/fixtures/share_basis_facts.json"
           ],
-          "seconds": 0.33
+          "seconds": 0.35
         },
         {
           "entry_point": "techval.edgar.CompanyFacts._split_brackets",
@@ -2875,7 +2875,7 @@
             "tests/fixtures/signals/closes.csv.gz",
             "tests/fixtures/share_basis_facts.json"
           ],
-          "seconds": 0.33
+          "seconds": 0.35
         },
         {
           "entry_point": "techval.tmt.taxonomy.tmt_universe",
@@ -2883,7 +2883,7 @@
           "inputs": [
             "tests/fixtures/submissions_tmt.json"
           ],
-          "seconds": 0.01
+          "seconds": 0.02
         },
         {
           "entry_point": "techval.tmt.taxonomy.classify",
@@ -2917,7 +2917,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.04
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.commands_peers._load_groups",
@@ -2927,7 +2927,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.04
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.commands_peers._load_panel",
@@ -2937,7 +2937,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.04
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.commands_peers._load_corpora",
@@ -2947,7 +2947,7 @@
             "tests/fixtures/peer_panel_tmt.json",
             "tests/fixtures/peer_item1_tmt.json"
           ],
-          "seconds": 0.04
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.ml.encoder.build_dataset",
@@ -4322,6 +4322,56 @@
           "subtitle": "",
           "title": "A 12.97% WACC, with equity at 98.8% of capital"
         },
+        "expectations": {
+          "data": {
+            "format": "pct:0",
+            "height": 220,
+            "labelHeader": "Terminal EBIT margin",
+            "rows": [
+              {
+                "label": "10%",
+                "labelled": false,
+                "role": "model",
+                "value": 2.399531
+              },
+              {
+                "label": "20%",
+                "labelled": true,
+                "role": "model",
+                "value": 1.730501
+              },
+              {
+                "label": "30%",
+                "labelled": false,
+                "role": "model",
+                "value": 1.389551
+              },
+              {
+                "label": "40%",
+                "labelled": false,
+                "role": "model",
+                "value": 1.168524
+              },
+              {
+                "label": "50%",
+                "labelled": false,
+                "role": "model",
+                "value": 1.00834
+              },
+              {
+                "label": "60%",
+                "labelled": false,
+                "role": "model",
+                "value": 0.884426
+              }
+            ],
+            "valueLabel": "First-year growth needed"
+          },
+          "kind": "column",
+          "subtitle": "First-year revenue growth the 225.27 close needs at each terminal EBIT margin, faded on the engine's straight line, everything else as assumed. At this price the base case earns 3.7% a year against a 13.0% cost of capital. No terminal margin up to 95% reaches it alone: at 95% the DCF is worth 111.20.",
+          "title": "The close needs 173% growth next year; 6 of 1,662 TMT company-years ever compounded that path",
+          "wide": true
+        },
         "football": {
           "data": {
             "format": "num:2",
@@ -4597,7 +4647,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.07
+          "seconds": 0.11
         },
         {
           "entry_point": "techval.wacc.compute_wacc",
@@ -4613,7 +4663,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.0
+          "seconds": 0.01
         },
         {
           "entry_point": "techval.market.PriceSeries.fifty_two_week_range",
@@ -4640,6 +4690,23 @@
           "seconds": 0.0
         },
         {
+          "entry_point": "techval.reverse_dcf.market_expectations",
+          "figure": "expectations",
+          "inputs": [
+            "tests/fixtures/companyfacts_DDOG.json",
+            "tests/fixtures/companyfacts_CRWD.json",
+            "tests/fixtures/companyfacts_MDB.json",
+            "tests/fixtures/companyfacts_ZS.json",
+            "tests/fixtures/prices/DDOG.csv",
+            "tests/fixtures/prices/CRWD.csv",
+            "tests/fixtures/prices/MDB.csv",
+            "tests/fixtures/prices/ZS.csv",
+            "tests/fixtures/prices/SPY.csv",
+            "tests/fixtures/fade_companyfacts.json.gz"
+          ],
+          "seconds": 4.8
+        },
+        {
           "entry_point": "techval.dcf.sensitivity_wacc_growth",
           "figure": "sensitivity",
           "inputs": [
@@ -4653,7 +4720,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.0
+          "seconds": 0.01
         },
         {
           "entry_point": "techval.dcf.run_dcf",
@@ -4685,7 +4752,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.03
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.apv.run_apv",
@@ -4719,7 +4786,7 @@
         }
       ],
       "status": "ok",
-      "takeaway": "At the 2026-09-09 close of 225.27, on a 4.83% risk-free rate and a 12.97% WACC, the DCF values DDOG at 31.89 a share on Gordon growth and 28.97 on the value driver, 14% and 13% of the price. No exit-multiple value is drawn; the note under the football field says why. Correlating the simulation's four drivers widens the spread of value by 21%.",
+      "takeaway": "At the 2026-09-09 close of 225.27, on a 4.83% risk-free rate and a 12.97% WACC, the DCF values DDOG at 31.89 a share on Gordon growth and 28.97 on the value driver, 14% and 13% of the price. No exit-multiple value is drawn; the note under the football field says why. Run backwards, the close earns 3.7% a year if the base case holds, or needs 173% revenue growth next year, a path 6 of 1,662 TMT company-years ever compounded. Correlating the simulation's four drivers widens the spread of value by 21%.",
       "title": "Valuation engine"
     },
     "fade": {
@@ -5499,10 +5566,10 @@
                 "verdict_status": "inside_noise"
               },
               {
-                "figures": 6,
+                "figures": 7,
                 "href": "#engine",
                 "id": "engine",
-                "provenance": 9,
+                "provenance": 10,
                 "refusals": 3,
                 "status": "ok",
                 "title": "Valuation engine",
@@ -5551,7 +5618,7 @@
             ],
             "totals": {
               "collected": 10,
-              "figures": 62,
+              "figures": 63,
               "refusals": 19,
               "refusing_sections": 6,
               "sections": 10
@@ -5560,7 +5627,7 @@
           },
           "kind": "hbar",
           "subtitle": "Every other section, in page order. A refusal is a number a section would not print because the fixtures could not reproduce it; each is stated with its reason.",
-          "title": "62 figures drawn and 19 refusals stated, 10 of them in the TMT layer"
+          "title": "63 figures drawn and 19 refusals stated, 10 of them in the TMT layer"
         }
       },
       "headline": null,
@@ -10276,6 +10343,6 @@
       "title": "Warranted multiple"
     }
   },
-  "techval_commit": "d19bab0",
+  "techval_commit": "614044e",
   "title": "Valuation engine and model results"
 }
