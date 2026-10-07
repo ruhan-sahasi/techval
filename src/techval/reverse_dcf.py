@@ -194,3 +194,36 @@ def implied_first_year_growth(case: Case, price: float) -> Solve:
     return Solve(
         "first_year_growth", price, assumed, None, (lo, hi), root.edge_x, root.edge_value, sentence
     )
+
+
+# Terminal EBIT margin from a loss-maker's to one no listed software company
+# has sustained. The top is deliberately beyond plausibility, so a miss at it
+# is unambiguous.
+MARGIN_BRACKET = (-0.20, 0.95)
+
+
+def implied_terminal_margin(case: Case, price: float) -> Solve:
+    """The year-N EBIT margin, reached on the engine's own margin path, the price needs."""
+    cfg = case.assumptions.dcf
+    lo, hi = MARGIN_BRACKET
+    root = solve_monotone(_guarded(lambda m: case.value(ebit_margin_terminal=m)), price, lo, hi)
+    assumed = cfg.ebit_margin_terminal
+    if root.reached:
+        sentence = (
+            f"At {price:,.2f} the price needs a {root.x:.1%} EBIT margin by year "
+            f"{cfg.projection_years}, against {assumed:.1%} assumed, growth unchanged."
+        )
+        return Solve("terminal_margin", price, assumed, root.x, (lo, hi), sentence=sentence)
+    if root.edge_x == hi:
+        sentence = (
+            f"No terminal margin up to {hi:.0%} reaches {price:,.2f}: at {hi:.0%} the DCF is worth "
+            f"{root.edge_value:,.2f}, so the price cannot be a bet on margins alone."
+        )
+    else:
+        sentence = (
+            f"Even at a {lo:.0%} terminal margin the DCF is worth {root.edge_value:,.2f}, above the "
+            f"{price:,.2f} price."
+        )
+    return Solve(
+        "terminal_margin", price, assumed, None, (lo, hi), root.edge_x, root.edge_value, sentence
+    )

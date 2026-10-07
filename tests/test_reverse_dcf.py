@@ -109,3 +109,30 @@ def test_a_growth_lever_that_cannot_reach_the_price_reports_its_edge(case):
     assert solve.edge == GROWTH_BRACKET[1]
     assert solve.edge_value < 1e6
     assert "300%" in solve.sentence
+
+
+def test_the_base_case_value_implies_the_assumed_terminal_margin(case):
+    from techval.reverse_dcf import implied_terminal_margin
+
+    solve = implied_terminal_margin(case, case.value())
+    assert solve.reached
+    assert solve.implied == pytest.approx(case.assumptions.dcf.ebit_margin_terminal, abs=1e-5)
+
+
+def test_no_terminal_margin_alone_reaches_datadogs_price(case):
+    from techval.reverse_dcf import MARGIN_BRACKET, implied_terminal_margin
+
+    solve = implied_terminal_margin(case, PRICE)
+    assert not solve.reached
+    assert solve.edge == MARGIN_BRACKET[1]
+    assert solve.edge_value < PRICE
+    assert case.value(ebit_margin_terminal=MARGIN_BRACKET[1]) == pytest.approx(solve.edge_value)
+    assert "95%" in solve.sentence
+
+
+def test_a_reachable_margin_round_trips(case):
+    from techval.reverse_dcf import implied_terminal_margin
+
+    target = case.value(ebit_margin_terminal=0.45)
+    solve = implied_terminal_margin(case, target)
+    assert solve.reached and solve.implied == pytest.approx(0.45, abs=1e-5)
