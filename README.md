@@ -11,7 +11,7 @@ engine's three terminal values; the third prints in the run below.*
 
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Eighteen commands, 2,376
+the US Treasury daily curve for the risk-free rate. Nineteen commands, 2,405
 tests, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
@@ -1342,6 +1342,31 @@ of equity, and APV comes back at $10,484mm against a WACC enterprise value of
 $10,484mm, a difference of +0.0%. That is the identity case, and it is the one
 worth checking first.
 
+### What the price assumes
+
+`techval expectations TICKER` runs the DCF backwards: it solves the engine's
+own valuation for the market price one lever at a time, the discount rate, the
+first-year growth, the terminal margin and how many years the company's current
+growth must last, says when a lever cannot get there alone, and sets the
+implied growth against base rates from the fade panel's point-in-time
+company-years.
+
+```
+$ techval expectations DDOG
+Discount rate               11.3%   implied 3.7% a year
+First-year growth           20.0%   implied 155.2%
+Terminal margin             20.0%   beyond 95%
+Duration of current growth          15 years
+
+That path compounds 71.8% a year over 5 years: 11 of 1,662 TMT company-years
+did that (0.7%), and 0 of the 307 that started within 10 points of 27.7%.
+```
+
+`--price` asks what any other price assumes and `--json` prints the whole
+result. The same reading sits on every valued holding in `techval invest` and
+on the results dashboard's valuation engine section. Methodology section 6.6
+sets out the brackets and the base rates.
+
 ### Point-in-time valuation
 
 `--as-of` on every command pushes a knowledge date through the EDGAR client and
@@ -2029,18 +2054,18 @@ filers.
 uv run pytest
 ```
 
-2,376 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
-`techval.ml`, 396 over the dashboard, 148 over the investing dashboard and 100
-over the filing reader. GitHub Actions runs the whole suite on Python 3.11 and
-3.12 for every push to `main` and every pull request. No test touches the
-network. The 15MB of fixtures are frozen SEC payloads, pruned XBRL instance
-documents, real proxy statements, verbatim merger filings and recorded daily
-closes, each carrying its retrieval date and the exact pruning rule applied, and
-several carrying a `MANIFEST.json` with row counts and SHA-256 digests. A test
-checks the facts in a fixture against the rule its header states, so the
-provenance note cannot quietly stop being true. Filing text is verbatim apart
-from markup stripping, punctuation included: a fixture edited to suit a house
-style is no longer evidence of what the filer wrote.
+2,405 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
+`techval.ml`, 396 over the dashboard, 150 over the investing dashboard, 100 over
+the filing reader and 27 over the reverse DCF. GitHub Actions runs the whole
+suite on Python 3.11 and 3.12 for every push to `main` and every pull request.
+No test touches the network. The 15MB of fixtures are frozen SEC payloads,
+pruned XBRL instance documents, real proxy statements, verbatim merger filings
+and recorded daily closes, each carrying its retrieval date and the exact
+pruning rule applied, and several carrying a `MANIFEST.json` with row counts and
+SHA-256 digests. A test checks the facts in a fixture against the rule its
+header states, so the provenance note cannot quietly stop being true. Filing
+text is verbatim apart from markup stripping, punctuation included: a fixture
+edited to suit a house style is no longer evidence of what the filer wrote.
 
 Five companies carry the core valuation tests and each is there for what it
 breaks. Datadog for in-the-money convertibles, thin GAAP EBITDA and a dual-class
