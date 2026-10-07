@@ -88,7 +88,10 @@ def build_snapshot(
                 _uncovered(p.symbol, p.kind),
             )
     if facts_for is not None and market is not None:
-        attach_dcf(reads, facts_for=facts_for, market=market, assumptions=assumptions)
+        from .engine_read import fade_panel, missing_panels
+
+        observations = None if "Fade path" in missing_panels(fixtures) else fade_panel(fixtures, cache_root, refit).observations
+        attach_dcf(reads, facts_for=facts_for, market=market, assumptions=assumptions, observations=observations)
     else:
         for read in reads.values():
             if read.covered:
