@@ -150,3 +150,47 @@ def implied_discount_rate(case: Case, price: float) -> Solve:
     return Solve(
         "discount_rate", price, assumed, None, (lo, hi), root.edge_x, root.edge_value, sentence
     )
+
+
+# First-year growth from a halving to a quadrupling of revenue. Above the top
+# the answer is "no growth rate a company has printed", which the edge says.
+GROWTH_BRACKET = (-0.50, 3.00)
+
+
+def implied_first_year_growth(case: Case, price: float) -> Solve:
+    """The first-year growth, faded on the engine's straight line, that the price needs.
+
+    Every other year follows from it exactly as the forward DCF builds them, a
+    straight line to ``dcf.revenue_growth_terminal`` in the final projection
+    year, so the implied path is in ``extras['path']`` for the base rates.
+    """
+    from .dcf import _fade
+
+    cfg = case.assumptions.dcf
+    lo, hi = GROWTH_BRACKET
+    root = solve_monotone(_guarded(lambda g: case.value(revenue_growth_start=g)), price, lo, hi)
+    assumed = cfg.revenue_growth_start
+    years = cfg.projection_years
+    if root.reached:
+        path = [float(x) for x in _fade(root.x, cfg.revenue_growth_terminal, years)]
+        sentence = (
+            f"At {price:,.2f} the price needs {root.x:.1%} revenue growth next year, fading in a "
+            f"straight line to {cfg.revenue_growth_terminal:.1%} by year {years}, against "
+            f"{assumed:.1%} assumed."
+        )
+        return Solve(
+            "first_year_growth", price, assumed, root.x, (lo, hi), sentence=sentence, extras={"path": path}
+        )
+    if root.edge_x == hi:
+        sentence = (
+            f"No first-year growth up to {hi:.0%} reaches {price:,.2f}: at {hi:.0%}, fading to "
+            f"{cfg.revenue_growth_terminal:.1%}, the DCF is worth {root.edge_value:,.2f}."
+        )
+    else:
+        sentence = (
+            f"Even shrinking {abs(lo):.0%} next year the DCF is worth {root.edge_value:,.2f}, above "
+            f"the {price:,.2f} price: the price assumes a contraction this lever cannot express."
+        )
+    return Solve(
+        "first_year_growth", price, assumed, None, (lo, hi), root.edge_x, root.edge_value, sentence
+    )
