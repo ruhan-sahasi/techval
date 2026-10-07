@@ -365,3 +365,125 @@ def growth_margin_frontier(case: Case, price: float, margins=FRONTIER_MARGINS) -
             }
         )
     return rows
+
+
+@dataclass
+class MarketExpectations:
+    """What one price assumes, lever by lever, with the base rates that judge it."""
+
+    ticker: str
+    price: float
+    base_value: float
+    solves: list[Solve]
+    frontier: list[dict]
+    base_rates: dict
+    notes: list[str] = field(default_factory=list)
+
+    def solve(self, lever: str) -> Solve:
+        return next(s for s in self.solves if s.lever == lever)
+
+    def summary(self) -> list[str]:
+        gap = self.price / self.base_value - 1
+        out = [
+            f"{self.ticker} closed at {self.price:,.2f}; the engine's base case is worth "
+            f"{self.base_value:,.2f}, so the price is {abs(gap):.0%} {'above' if gap >= 0 else 'below'} it."
+        ]
+        out += [s.sentence for s in self.solves]
+        for lever in ("first_year_growth", "duration"):
+            rate = self.base_rates.get(lever)
+            if not rate:
+                continue
+            every = rate["all"]
+            line = (
+                f"{'That path' if lever == 'first_year_growth' else 'Its first five years'} "
+                f"compound{'s' if lever == 'first_year_growth' else ''} "
+                f"{rate['implied_cagr']:.1%} a year over {rate['horizon']} years: {every['hits']:,} of "
+                f"{every['n']:,} TMT company-years did that ({every['share']:.1%})"
+            )
+            similar = rate["similar"]
+            if similar and similar["n"]:
+                line += (
+                    f", and {similar['hits']:,} of the {similar['n']:,} that started within "
+                    f"{similar['band'] * 100:.0f} points of {similar['trailing']:.1%}"
+                )
+            out.append(line + ".")
+            if lever == "duration":
+                held = self.solve("duration")
+                years = held.implied if held.reached else held.edge
+                if years and years > rate["horizon"]:
+                    out.append(
+                        f"The panel's labels end at {rate['horizon']} years, so nothing in it tests the "
+                        f"remaining {int(years) - rate['horizon']}."
+                    )
+        out += self.notes
+        return out
+
+    def to_dict(self) -> dict:
+        def solve_dict(s: Solve) -> dict:
+            return {
+                "lever": s.lever,
+                "assumed": s.assumed,
+                "implied": s.implied,
+                "reached": s.reached,
+                "bracket": list(s.bracket),
+                "edge": s.edge,
+                "edge_value": s.edge_value,
+                "sentence": s.sentence,
+                "path": s.extras.get("path"),
+            }
+
+        return {
+            "ticker": self.ticker,
+            "price": self.price,
+            "base_value": self.base_value,
+            "solves": [solve_dict(s) for s in self.solves],
+            "frontier": self.frontier,
+            "base_rates": self.base_rates,
+            "summary": self.summary(),
+        }
+
+
+def market_expectations(
+    case: Case,
+    price: float,
+    *,
+    trailing_growth: float | None,
+    observations=None,
+) -> MarketExpectations:
+    """Every lever, the frontier, and base rates when a panel is supplied.
+
+    ``trailing_growth`` is the growth the duration lever holds and the centre
+    of the similar-starters base rate; without it the duration holds the
+    assumed first-year growth and says so.
+    """
+    notes: list[str] = []
+    held = trailing_growth
+    if held is None:
+        held = case.assumptions.dcf.revenue_growth_start
+        notes.append(
+            f"No trailing growth was supplied, so the duration holds the assumed {held:.1%} first-year growth."
+        )
+    growth = implied_first_year_growth(case, price)
+    duration = implied_duration(case, price, held_growth=held)
+    solves = [implied_discount_rate(case, price), growth, implied_terminal_margin(case, price), duration]
+    base_rates: dict = {}
+    if observations is None:
+        notes.append("There is no fade panel on this run, so no base rate judges the implied growth.")
+    else:
+        for solve in (growth, duration):
+            path = solve.extras.get("path")
+            if not path:
+                continue
+            horizon = min(BASE_RATE_HORIZON, len(path))
+            base_rates[solve.lever] = growth_base_rate(
+                observations, implied_cagr=path_cagr(path, horizon), horizon=horizon, trailing=trailing_growth
+            )
+    return MarketExpectations(
+        ticker=case.fin.ticker,
+        price=price,
+        base_value=case.value(),
+        solves=solves,
+        frontier=growth_margin_frontier(case, price),
+        base_rates=base_rates,
+        notes=notes,
+    )
