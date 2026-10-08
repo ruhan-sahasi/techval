@@ -315,3 +315,29 @@ def test_expectations_carry_the_persistence_curve_for_the_held_rate(case, panel)
     text = " ".join(exp.summary())
     assert "year after year" in text and "for five" in text
     assert exp.to_dict()["persistence"] == exp.persistence
+
+
+class SizedObs(Obs):
+    def __init__(self, growth, labels, revenue):
+        super().__init__(growth, labels)
+        self.revenue = revenue  # raw dollars, as the fade panel stores it
+
+
+def test_a_size_bucket_keeps_company_years_within_a_factor_of_two_in_revenue():
+    from techval.reverse_dcf import growth_base_rate
+
+    panel = [
+        SizedObs(0.3, {1: 0.5}, 1_000e6),
+        SizedObs(0.3, {1: 0.1}, 2_500e6),
+        SizedObs(0.3, {1: 0.9}, 9_000e6),  # more than twice the company's size
+        SizedObs(0.3, {1: 0.9}, 400e6),  # less than half
+    ]
+    rate = growth_base_rate(panel, implied_cagr=0.2, horizon=1, revenue_mm=1_500.0)
+    assert (rate["size"]["n"], rate["size"]["hits"]) == (2, 1)
+    assert rate["size"]["low_mm"] == pytest.approx(750.0) and rate["size"]["high_mm"] == pytest.approx(3_000.0)
+
+
+def test_no_revenue_means_no_size_bucket():
+    from techval.reverse_dcf import growth_base_rate
+
+    assert growth_base_rate([SizedObs(0.1, {1: 0.2}, 1e9)], implied_cagr=0.1, horizon=1)["size"] is None
