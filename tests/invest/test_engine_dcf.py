@@ -74,6 +74,9 @@ def test_a_valued_holding_carries_what_its_price_assumes(assumptions, market):
     assert 1.0 < exp["implied_growth"] < 2.0
     assert exp["base_rate"]["all"]["n"] > 1000
     assert exp["base_rate"]["all"]["share"] < 0.02
+    size = exp["base_rate"]["size"]
+    assert size["high_mm"] == pytest.approx(4 * size["low_mm"], rel=1e-3)
+    assert 0 < size["n"] < exp["base_rate"]["all"]["n"]
     assert "a year" in exp["sentences"][0]
 
 
