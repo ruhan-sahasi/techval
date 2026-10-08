@@ -86,3 +86,20 @@ def test_without_panels_it_runs_and_says_there_are_no_base_rates(tmp_path):
     )
     assert result.exit_code == 0, result.output
     assert "no fade panel" in flat(result.output)
+
+
+def test_history_prints_each_quarter_and_names_the_refused_ones(tmp_path):
+    result = run(tmp_path, "--history")
+    assert result.exit_code == 0, result.output
+    text = flat(result.output)
+    assert "Implied return" in text and "2026-06-30" in text and "2024-03-31" in text
+    assert "refused" in text.lower()
+
+
+def test_history_rides_in_the_json(tmp_path):
+    result = run(tmp_path, "--history", "--json")
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    rows = payload["history"]
+    assert rows[-1]["date"] == "2026-06-30" or rows[-1]["date"] == "2026-09-10"
+    assert any(r["refused"] is None and r["implied_return"] for r in rows)
