@@ -372,8 +372,14 @@ def test_the_collector_runs_offline_on_the_fixtures_and_holds_to_the_schema(tmp_
     section, run = collect_section(E, CollectContext(FIXTURES, ROOT, a), use_cache=False)
     assert run.status == "ok"
     assert set(section["figures"]) == {
-        "cost_of_capital", "football", "bridge", "sensitivity", "montecarlo", "apv", "expectations"
+        "cost_of_capital", "football", "bridge", "sensitivity", "montecarlo", "apv", "expectations",
+        "expectations_history",
     }
+    history = section["figures"]["expectations_history"]
+    implied = history["data"]["series"][0]["values"]
+    assert len(implied) >= 8
+    assert all(0.0 < v["y"] < 0.10 for v in implied)
+    assert "the implied return stayed between" in history["title"]
     # The DCF run backwards: the frontier slopes down and the base rate is in the title.
     exp = section["figures"]["expectations"]
     growth = [r["value"] for r in exp["data"]["rows"]]
