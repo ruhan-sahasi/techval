@@ -183,3 +183,65 @@ def _print_history(symbol: str, rows: list[dict]) -> None:
     console.print(table)
     for r in refused:
         console.print(f"  {r['date']} refused: {escape(r['refused'])}", highlight=False)
+
+
+@app.command("expectations-screen")
+def expectations_screen(
+    tickers: list[str] = typer.Argument(..., help="The names to compare."),
+    config: Path = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file."),
+    no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the HTTP cache."),
+    facts_dir: Path = typer.Option(
+        None, "--facts-dir", help="A directory of recorded companyfacts_<TICKER>.json payloads, instead of live SEC calls."
+    ),
+    panels: Path = typer.Option(None, "--panels", help="Directory holding fade_companyfacts.json.gz for base rates."),
+    as_json: bool = typer.Option(False, "--json", help="Print the rows as JSON."),
+) -> None:
+    """What each price assumes, side by side, the most demanding first."""
+    from .edgar import EdgarClient, HttpCache
+    from .market import make_price_source
+    from .reverse_dcf import screen
+
+    try:
+        assumptions = Assumptions.load(config)
+        when = date.fromisoformat(assumptions.as_of) if assumptions.as_of else date.today()
+        cache = HttpCache(enabled=not no_cache)
+        source = make_price_source(assumptions.price_source, cache, assumptions.price_csv_dir)
+        payloads, missing = {}, []
+        client = None if facts_dir is not None else EdgarClient(cache)
+        for raw in tickers:
+            symbol = raw.upper()
+            if facts_dir is not None:
+                path = Path(facts_dir) / f"companyfacts_{symbol}.json"
+                if not path.is_file():
+                    missing.append({"ticker": symbol, "refused": f"no recorded payload at {path}"})
+                    continue
+                payloads[symbol] = json.loads(path.read_text(encoding="utf-8"))
+            else:
+                payloads[symbol] = client.company_facts(symbol).raw
+        observations, _ = _panel(Path(panels) if panels else CHECKOUT_PANELS, "")
+        rows = screen(payloads, source, assumptions, when, observations) + missing
+    except TechvalError as err:
+        console.print(f"[red]{escape(str(err))}[/red]")
+        raise typer.Exit(1)
+
+    if as_json:
+        typer.echo(json.dumps(rows, indent=2, default=str))
+        return
+    table = Table(title=f"What each price assumes on {when}, the most demanding first", title_justify="left")
+    for name in ("Ticker", "Close", "Base case", "Implied return", "Growth needed", "Company-years that did it", "Simulated above"):
+        table.add_column(name, justify="left" if name == "Ticker" else "right")
+    for r in rows:
+        if r["refused"]:
+            continue
+        did = "n/a" if r["base_n"] is None else f"{r['base_hits']:,} of {r['base_n']:,}"
+        above = "n/a" if r["simulated_above"] is None else f"{r['simulated_above']:.1%}"
+        table.add_row(
+            r["ticker"], f"{r['price']:,.2f}", f"{r['base_value']:,.2f}",
+            _pct(r["implied_return"]),
+            "beyond 300%" if r["implied_growth"] is None else _pct(r["implied_growth"]),
+            did, above,
+        )
+    console.print(table)
+    for r in rows:
+        if r["refused"]:
+            console.print(f"  {r['ticker']} refused: {escape(r['refused'])}", highlight=False)
