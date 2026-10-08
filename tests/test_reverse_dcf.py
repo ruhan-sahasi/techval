@@ -341,3 +341,24 @@ def test_no_revenue_means_no_size_bucket():
     from techval.reverse_dcf import growth_base_rate
 
     assert growth_base_rate([SizedObs(0.1, {1: 0.2}, 1e9)], implied_cagr=0.1, horizon=1)["size"] is None
+
+
+def test_the_price_is_placed_in_the_engines_own_simulated_distribution(case):
+    from techval.reverse_dcf import price_in_simulation
+
+    at_close = price_in_simulation(case, PRICE)
+    assert at_close["kept"] > 9000
+    assert at_close["share_above"] == 0.0
+    assert at_close["p95"] < PRICE
+    # At the simulated median, about half the draws sit above.
+    mid = price_in_simulation(case, at_close["p50"])
+    assert 0.45 < mid["share_above"] < 0.55
+    assert "draws" in at_close["sentence"]
+
+
+def test_the_simulation_keeps_its_draws_for_reuse(case):
+    from techval.simulation import run_simulation
+
+    result = run_simulation(case.fin, case.bridge, case.wacc, case.assumptions)
+    assert len(result.per_share_draws) == result.kept_draws
+    assert result.prob_above_price == pytest.approx(float((result.per_share_draws > result.current_price).mean()))
