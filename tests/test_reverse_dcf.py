@@ -278,3 +278,40 @@ def test_without_a_panel_there_are_no_base_rates_and_it_says_why(case):
     # Without a trailing rate, the duration holds the assumed first-year growth.
     duration = next(s for s in exp.solves if s.lever == "duration")
     assert duration.extras["held_growth"] == case.assumptions.dcf.revenue_growth_start
+
+
+def test_the_persistence_curve_counts_who_held_a_rate_for_each_horizon():
+    from techval.reverse_dcf import persistence_curve
+
+    panel = [
+        Obs(0.30, {1: 0.30, 2: 0.31, 3: 0.40}),  # held 3 years
+        Obs(0.30, {1: 0.35, 2: 0.10, 3: 0.50}),  # broke in year 2
+        Obs(0.30, {1: 0.20}),  # broke in year 1, and no later labels
+        Obs(0.30, {1: 0.40, 2: 0.40}),  # held 2, no year 3 label
+    ]
+    # One cohort for every horizon, the company-years labelled all three years
+    # out, so each year can only lose companies and the curve never rises.
+    curve = persistence_curve(panel, growth=0.30, horizons=3)
+    assert [(c["horizon"], c["n"], c["held"]) for c in curve] == [(1, 2, 2), (2, 2, 1), (3, 2, 1)]
+    assert curve[1]["share"] == pytest.approx(0.5)
+
+
+def test_datadogs_rate_rarely_lasts_five_years(panel):
+    from techval.reverse_dcf import persistence_curve
+
+    curve = persistence_curve(panel.observations, growth=0.277, horizons=5)
+    shares = [c["share"] for c in curve]
+    # Each extra year can only lose companies that held every year before it.
+    assert all(a >= b for a, b in zip(shares, shares[1:]))
+    assert shares[0] > shares[-1]
+    assert shares[-1] < 0.10
+
+
+def test_expectations_carry_the_persistence_curve_for_the_held_rate(case, panel):
+    from techval.reverse_dcf import market_expectations
+
+    exp = market_expectations(case, PRICE, trailing_growth=0.277, observations=panel.observations)
+    assert [c["horizon"] for c in exp.persistence] == [1, 2, 3, 4, 5]
+    text = " ".join(exp.summary())
+    assert "year after year" in text and "for five" in text
+    assert exp.to_dict()["persistence"] == exp.persistence

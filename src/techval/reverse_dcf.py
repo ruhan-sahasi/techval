@@ -378,6 +378,7 @@ class MarketExpectations:
     frontier: list[dict]
     base_rates: dict
     notes: list[str] = field(default_factory=list)
+    persistence: list[dict] = field(default_factory=list)
 
     def solve(self, lever: str) -> Solve:
         return next(s for s in self.solves if s.lever == lever)
@@ -415,6 +416,14 @@ class MarketExpectations:
                         f"The panel's labels end at {rate['horizon']} years, so nothing in it tests the "
                         f"remaining {int(years) - rate['horizon']}."
                     )
+        if self.persistence and self.persistence[0]["n"]:
+            held = self.solve("duration").extras.get("held_growth")
+            by = {c["horizon"]: c["share"] for c in self.persistence}
+            out.append(
+                f"Held year after year, {held:.1%} growth is rarer than its average: "
+                f"{by[1]:.1%} of company-years managed it for one year, {by.get(3, 0):.1%} for three "
+                f"and {by.get(5, 0):.1%} for five, of {self.persistence[0]['n']:,} labelled five years out."
+            )
         out += self.notes
         return out
 
@@ -439,6 +448,7 @@ class MarketExpectations:
             "solves": [solve_dict(s) for s in self.solves],
             "frontier": self.frontier,
             "base_rates": self.base_rates,
+            "persistence": self.persistence,
             "summary": self.summary(),
         }
 
@@ -478,6 +488,7 @@ def market_expectations(
             base_rates[solve.lever] = growth_base_rate(
                 observations, implied_cagr=path_cagr(path, horizon), horizon=horizon, trailing=trailing_growth
             )
+    persistence = [] if observations is None else persistence_curve(observations, growth=held)
     return MarketExpectations(
         ticker=case.fin.ticker,
         price=price,
@@ -486,4 +497,24 @@ def market_expectations(
         frontier=growth_margin_frontier(case, price),
         base_rates=base_rates,
         notes=notes,
+        persistence=persistence,
     )
+
+
+def persistence_curve(observations, *, growth: float, horizons: int = BASE_RATE_HORIZON) -> list[dict]:
+    """The share of company-years that grew at least ``growth`` in every one of h years.
+
+    A survival curve for a growth rate, which is the question the duration
+    lever asks: not whether a five-year average reached the rate, but whether
+    the company grew that fast year after year. One cohort serves every
+    horizon, the company-years labelled all ``horizons`` years out, so each
+    added year can only lose companies and the curve never rises.
+    """
+    cohort = [o for o in observations if all(h in o.labels for h in range(1, horizons + 1))]
+    out = []
+    survivors = cohort
+    for h in range(1, horizons + 1):
+        survivors = [o for o in survivors if o.labels[h] >= growth]
+        n = len(cohort)
+        out.append({"horizon": h, "n": n, "held": len(survivors), "share": len(survivors) / n if n else None})
+    return out
