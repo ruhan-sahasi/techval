@@ -293,6 +293,8 @@ def implied_duration(case: Case, price: float, *, held_growth: float) -> Solve:
 BASE_RATE_HORIZON = 5
 # "Similar starters": trailing growth within this many points of the company's.
 SIMILAR_BAND = 0.10
+# "Similar size": revenue within this factor of the company's, either way.
+SIZE_FACTOR = 2.0
 
 
 def path_cagr(path: list[float], horizon: int) -> float:
@@ -311,6 +313,7 @@ def growth_base_rate(
     horizon: int = BASE_RATE_HORIZON,
     trailing: float | None = None,
     band: float = SIMILAR_BAND,
+    revenue_mm: float | None = None,
 ) -> dict:
     """How often a TMT company-year went on to compound revenue this fast.
 
@@ -339,7 +342,15 @@ def growth_base_rate(
     if trailing is not None:
         near = [(o, r) for o, r in rows if o.growth is not None and abs(o.growth - trailing) <= band]
         similar = {**tally(near), "trailing": trailing, "band": band}
-    return {"horizon": horizon, "implied_cagr": implied_cagr, "all": tally(rows), "similar": similar}
+    # Size: large companies grow more slowly, so a company is also judged
+    # against company-years of its own scale. The panel stores raw dollars;
+    # Financials states millions.
+    size = None
+    if revenue_mm is not None and revenue_mm > 0:
+        low, high = revenue_mm / SIZE_FACTOR, revenue_mm * SIZE_FACTOR
+        sized = [(o, r) for o, r in rows if low <= o.revenue / 1e6 <= high]
+        size = {**tally(sized), "low_mm": low, "high_mm": high}
+    return {"horizon": horizon, "implied_cagr": implied_cagr, "all": tally(rows), "similar": similar, "size": size}
 
 
 # Terminal margins the frontier is read at: a services business to the best
@@ -406,6 +417,13 @@ class MarketExpectations:
                 line += (
                     f", and {similar['hits']:,} of the {similar['n']:,} that started within "
                     f"{similar['band'] * 100:.0f} points of {similar['trailing']:.1%}"
+                )
+            size = rate.get("size")
+            if size and size["n"]:
+                who = "none" if size["hits"] == 0 else f"{size['hits']:,}"
+                line += (
+                    f"; {who} of the {size['n']:,} with revenue between {size['low_mm']:,.0f}mm and "
+                    f"{size['high_mm']:,.0f}mm did"
                 )
             out.append(line + ".")
             if lever == "duration":
@@ -486,7 +504,11 @@ def market_expectations(
                 continue
             horizon = min(BASE_RATE_HORIZON, len(path))
             base_rates[solve.lever] = growth_base_rate(
-                observations, implied_cagr=path_cagr(path, horizon), horizon=horizon, trailing=trailing_growth
+                observations,
+                implied_cagr=path_cagr(path, horizon),
+                horizon=horizon,
+                trailing=trailing_growth,
+                revenue_mm=getattr(case.fin, "revenue", None),
             )
     persistence = [] if observations is None else persistence_curve(observations, growth=held)
     return MarketExpectations(
