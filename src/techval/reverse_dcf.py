@@ -597,15 +597,11 @@ def quarter_ends(first, last) -> list:
     ]
 
 
-def expectations_history(payload: dict, ticker: str, source, assumptions: Assumptions, dates) -> list[dict]:
-    """What the price assumed at each date, from only what was public by then.
+def case_at(payload: dict, ticker: str, source, assumptions: Assumptions, when):
+    """The forward case as it stood on ``when``: the filings known then, the close on or before it.
 
-    Each date rebuilds the whole forward case point in time: the filings known
-    by that date through ``CompanyFacts(knowledge_date=...)``, the close on or
-    before it, a cost of capital from the price history up to it. Then the two
-    levers a holder reads first are solved. A date the record cannot support,
-    too little filed history or too little price history for a beta, is kept
-    as a row with the refusal, never dropped.
+    Returns the case and the price. Raises the pipeline's TechvalError when the
+    record cannot support a valuation that day.
     """
     from .edgar import CompanyFacts, HttpCache
     from .ev_bridge import build_ev_bridge
@@ -613,16 +609,29 @@ def expectations_history(payload: dict, ticker: str, source, assumptions: Assump
     from .market import MarketData
     from .wacc import compute_wacc
 
+    fin = build_financials(ticker, facts=CompanyFacts(payload, ticker, knowledge_date=when))
+    market = MarketData(source, HttpCache(enabled=False), today=when)
+    price = market.spot(ticker)
+    bridge = build_ev_bridge(fin, price, assumptions)
+    wacc = compute_wacc(fin, bridge, market, assumptions)
+    return Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=assumptions), price
+
+
+def expectations_history(payload: dict, ticker: str, source, assumptions: Assumptions, dates) -> list[dict]:
+    """What the price assumed at each date, from only what was public by then.
+
+    Each date rebuilds the whole forward case point in time through
+    ``case_at``: the filings known by that date, the close on or before it, a
+    cost of capital from the price history up to it. Then the two levers a
+    holder reads first are solved. A date the record cannot support, too
+    little filed history or too little price history for a beta, is kept as a
+    row with the refusal, never dropped.
+    """
     rows = []
     for when in dates:
         row = {"date": when.isoformat(), "refused": None}
         try:
-            fin = build_financials(ticker, facts=CompanyFacts(payload, ticker, knowledge_date=when))
-            market = MarketData(source, HttpCache(enabled=False), today=when)
-            price = market.spot(ticker)
-            bridge = build_ev_bridge(fin, price, assumptions)
-            wacc = compute_wacc(fin, bridge, market, assumptions)
-            case = Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=assumptions)
+            case, price = case_at(payload, ticker, source, assumptions, when)
             rate = implied_discount_rate(case, price)
             growth = implied_first_year_growth(case, price)
         except TechvalError as err:
@@ -632,11 +641,65 @@ def expectations_history(payload: dict, ticker: str, source, assumptions: Assump
         row.update(
             price=round(price, 4),
             base_value=round(case.value(), 4),
-            wacc=round(wacc.wacc, 6),
+            wacc=round(case.wacc.wacc, 6),
             implied_return=None if rate.implied is None else round(rate.implied, 6),
             implied_growth=None if growth.implied is None else round(growth.implied, 6),
-            revenue_mm=round(fin.revenue, 2),
-            filings_through=fin.as_of.isoformat(),
+            revenue_mm=round(case.fin.revenue, 2),
+            filings_through=case.fin.as_of.isoformat(),
         )
         rows.append(row)
     return rows
+
+
+def screen(payloads: dict, source, assumptions: Assumptions, when, observations=None) -> list[dict]:
+    """What each price assumes, side by side, the most demanding first.
+
+    One row per ticker: the implied return, the first-year growth the price
+    needs, how often the panel's company-years compounded that path, and the
+    share of the engine's simulated values above the price. Rows sort by the
+    base-rate share, rarest first, then by implied return; a ticker the record
+    cannot value is kept at the foot with its refusal.
+    """
+    rows = []
+    for ticker, payload in payloads.items():
+        row = {"ticker": ticker, "refused": None}
+        try:
+            case, price = case_at(payload, ticker, source, assumptions, when)
+            rate = implied_discount_rate(case, price)
+            growth = implied_first_year_growth(case, price)
+        except TechvalError as err:
+            row["refused"] = str(err).splitlines()[0]
+            rows.append(row)
+            continue
+        base = None
+        if observations is not None and growth.reached:
+            own = [o for o in observations if o.ticker == ticker and o.growth is not None]
+            trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
+            base = growth_base_rate(
+                observations,
+                implied_cagr=path_cagr(growth.extras["path"], BASE_RATE_HORIZON),
+                trailing=trailing,
+                revenue_mm=case.fin.revenue,
+            )
+        sim = price_in_simulation(case, price)
+        row.update(
+            price=round(price, 4),
+            base_value=round(case.value(), 4),
+            wacc=round(case.wacc.wacc, 6),
+            implied_return=None if rate.implied is None else round(rate.implied, 6),
+            implied_growth=None if growth.implied is None else round(growth.implied, 6),
+            base_share=None if base is None else base["all"]["share"],
+            base_hits=None if base is None else base["all"]["hits"],
+            base_n=None if base is None else base["all"]["n"],
+            simulated_above=None if sim is None else sim["share_above"],
+        )
+        rows.append(row)
+
+    def order(r):
+        if r["refused"]:
+            return (2, 0.0, 0.0)
+        share = r["base_share"] if r["base_share"] is not None else 1.0
+        ret = r["implied_return"] if r["implied_return"] is not None else 1.0
+        return (0 if r["implied_growth"] is not None else 1, share, ret)
+
+    return sorted(rows, key=order)

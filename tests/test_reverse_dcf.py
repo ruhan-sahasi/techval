@@ -395,3 +395,23 @@ def test_the_history_reads_each_quarter_from_what_was_public_then():
     # Point in time: the 2024 row's revenue is what had been filed by then.
     assert rows[1]["revenue_mm"] < late["revenue_mm"]
     assert rows[1]["filings_through"] <= "2024-12-31"
+
+
+def test_the_screen_ranks_the_most_demanding_prices_first(panel):
+    from datetime import date as d
+
+    from techval.reverse_dcf import screen
+
+    payloads = {
+        t: json.loads((FIXTURES / f"companyfacts_{t}.json").read_text()) for t in ("DDOG", "CRWD", "MDB", "ZS", "DIS")
+    }
+    a = Assumptions()
+    a.market.risk_free_rate = 0.0483
+    rows = screen(payloads, CsvSource(FIXTURES / "prices"), a, d(2026, 9, 9), panel.observations)
+    assert {r["ticker"] for r in rows} == set(payloads)
+    valued = [r for r in rows if not r["refused"]]
+    assert len(valued) >= 4
+    shares = [r["base_share"] for r in valued if r["base_share"] is not None]
+    assert shares == sorted(shares)
+    ddog = next(r for r in rows if r["ticker"] == "DDOG")
+    assert 0.035 < ddog["implied_return"] < 0.04 and ddog["simulated_above"] == 0.0

@@ -103,3 +103,30 @@ def test_history_rides_in_the_json(tmp_path):
     rows = payload["history"]
     assert rows[-1]["date"] == "2026-06-30" or rows[-1]["date"] == "2026-09-10"
     assert any(r["refused"] is None and r["implied_return"] for r in rows)
+
+
+def test_the_screen_ranks_names_by_how_rarely_their_implied_growth_happened(tmp_path):
+    result = runner.invoke(
+        app,
+        [
+            "expectations-screen", "DDOG", "CRWD", "MDB", "ZS", "DIS",
+            "--config", str(config(tmp_path)),
+            "--facts-dir", str(FIXTURES),
+            "--panels", str(FIXTURES),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    text = flat(result.output)
+    assert text.index("CRWD") < text.index("DIS")
+    assert "Implied return" in text and "Growth needed" in text
+
+
+def test_a_screen_name_without_facts_is_named_not_fatal(tmp_path):
+    result = runner.invoke(
+        app,
+        ["expectations-screen", "DDOG", "NOPE", "--config", str(config(tmp_path)), "--facts-dir", str(FIXTURES), "--json"],
+    )
+    assert result.exit_code == 0, result.output
+    rows = json.loads(result.output)
+    nope = next(r for r in rows if r["ticker"] == "NOPE")
+    assert "companyfacts_NOPE.json" in nope["refused"]
