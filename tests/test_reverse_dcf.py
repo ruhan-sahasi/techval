@@ -362,3 +362,36 @@ def test_the_simulation_keeps_its_draws_for_reuse(case):
     result = run_simulation(case.fin, case.bridge, case.wacc, case.assumptions)
     assert len(result.per_share_draws) == result.kept_draws
     assert result.prob_above_price == pytest.approx(float((result.per_share_draws > result.current_price).mean()))
+
+
+def test_quarter_ends_run_from_the_first_to_the_last_date():
+    from datetime import date as d
+
+    from techval.reverse_dcf import quarter_ends
+
+    assert quarter_ends(d(2024, 2, 10), d(2024, 12, 31)) == [d(2024, 3, 31), d(2024, 6, 30), d(2024, 9, 30), d(2024, 12, 31)]
+    assert quarter_ends(d(2024, 3, 31), d(2024, 4, 1)) == [d(2024, 3, 31)]
+
+
+def test_the_history_reads_each_quarter_from_what_was_public_then():
+    from datetime import date as d
+
+    from techval.reverse_dcf import expectations_history
+
+    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    a = Assumptions()
+    a.market.risk_free_rate = 0.0483
+    rows = expectations_history(
+        payload, "DDOG", CsvSource(FIXTURES / "prices"), a, [d(2023, 12, 31), d(2024, 12, 31), d(2026, 6, 30)]
+    )
+    assert [r["date"] for r in rows] == ["2023-12-31", "2024-12-31", "2026-06-30"]
+    # Before the fixture's revenue history reaches twelve months, the quarter is refused, by name.
+    assert rows[0]["refused"] and "revenue" in rows[0]["refused"]
+    late = rows[2]
+    assert late["refused"] is None
+    assert late["price"] == pytest.approx(260.36, abs=0.01)
+    assert 0.03 < late["implied_return"] < 0.04
+    assert late["implied_growth"] > 1.5
+    # Point in time: the 2024 row's revenue is what had been filed by then.
+    assert rows[1]["revenue_mm"] < late["revenue_mm"]
+    assert rows[1]["filings_through"] <= "2024-12-31"

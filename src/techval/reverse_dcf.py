@@ -583,3 +583,60 @@ def price_in_simulation(case: Case, price: float) -> dict | None:
         "p95": stats.p95,
         "sentence": sentence,
     }
+
+
+def quarter_ends(first, last) -> list:
+    """Calendar quarter ends falling between ``first`` and ``last``, inclusive."""
+    from datetime import date
+
+    return [
+        date(year, month, day)
+        for year in range(first.year, last.year + 1)
+        for month, day in ((3, 31), (6, 30), (9, 30), (12, 31))
+        if first <= date(year, month, day) <= last
+    ]
+
+
+def expectations_history(payload: dict, ticker: str, source, assumptions: Assumptions, dates) -> list[dict]:
+    """What the price assumed at each date, from only what was public by then.
+
+    Each date rebuilds the whole forward case point in time: the filings known
+    by that date through ``CompanyFacts(knowledge_date=...)``, the close on or
+    before it, a cost of capital from the price history up to it. Then the two
+    levers a holder reads first are solved. A date the record cannot support,
+    too little filed history or too little price history for a beta, is kept
+    as a row with the refusal, never dropped.
+    """
+    from .edgar import CompanyFacts, HttpCache
+    from .ev_bridge import build_ev_bridge
+    from .financials import build_financials
+    from .market import MarketData
+    from .wacc import compute_wacc
+
+    rows = []
+    for when in dates:
+        row = {"date": when.isoformat(), "refused": None}
+        try:
+            fin = build_financials(ticker, facts=CompanyFacts(payload, ticker, knowledge_date=when))
+            market = MarketData(source, HttpCache(enabled=False), today=when)
+            price = market.spot(ticker)
+            bridge = build_ev_bridge(fin, price, assumptions)
+            wacc = compute_wacc(fin, bridge, market, assumptions)
+            case = Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=assumptions)
+            rate = implied_discount_rate(case, price)
+            growth = implied_first_year_growth(case, price)
+        except TechvalError as err:
+            row["refused"] = str(err).splitlines()[0]
+            rows.append(row)
+            continue
+        row.update(
+            price=round(price, 4),
+            base_value=round(case.value(), 4),
+            wacc=round(wacc.wacc, 6),
+            implied_return=None if rate.implied is None else round(rate.implied, 6),
+            implied_growth=None if growth.implied is None else round(growth.implied, 6),
+            revenue_mm=round(fin.revenue, 2),
+            filings_through=fin.as_of.isoformat(),
+        )
+        rows.append(row)
+    return rows
