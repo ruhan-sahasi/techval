@@ -390,6 +390,7 @@ class MarketExpectations:
     base_rates: dict
     notes: list[str] = field(default_factory=list)
     persistence: list[dict] = field(default_factory=list)
+    simulation: dict | None = None
 
     def solve(self, lever: str) -> Solve:
         return next(s for s in self.solves if s.lever == lever)
@@ -401,6 +402,8 @@ class MarketExpectations:
             f"{self.base_value:,.2f}, so the price is {abs(gap):.0%} {'above' if gap >= 0 else 'below'} it."
         ]
         out += [s.sentence for s in self.solves]
+        if self.simulation:
+            out.append(self.simulation["sentence"])
         for lever in ("first_year_growth", "duration"):
             rate = self.base_rates.get(lever)
             if not rate:
@@ -467,6 +470,7 @@ class MarketExpectations:
             "frontier": self.frontier,
             "base_rates": self.base_rates,
             "persistence": self.persistence,
+            "simulation": self.simulation,
             "summary": self.summary(),
         }
 
@@ -520,6 +524,7 @@ def market_expectations(
         base_rates=base_rates,
         notes=notes,
         persistence=persistence,
+        simulation=price_in_simulation(case, price),
     )
 
 
@@ -540,3 +545,41 @@ def persistence_curve(observations, *, growth: float, horizons: int = BASE_RATE_
         n = len(cohort)
         out.append({"horizon": h, "n": n, "held": len(survivors), "share": len(survivors) / n if n else None})
     return out
+
+
+def price_in_simulation(case: Case, price: float) -> dict | None:
+    """Where a price sits in the engine's own Monte Carlo of value.
+
+    The simulation draws first-year growth, terminal margin, the discount rate
+    and terminal growth jointly, with the correlations its module states, and
+    revalues on every draw. The share of draws worth more than the price is the
+    assumed distribution's own verdict on it: a probability under the model's
+    assumptions, not about the world. None when the simulation refuses.
+    """
+    from .simulation import run_simulation
+
+    try:
+        result = run_simulation(case.fin, case.bridge, case.wacc, case.assumptions)
+    except TechvalError:
+        return None
+    draws = result.per_share_draws
+    above = float((draws > price).mean()) if len(draws) else None
+    stats = result.per_share
+    if above == 0.0:
+        sentence = (
+            f"None of the {len(draws):,} joint draws of growth, margin, discount rate and terminal "
+            f"growth reaches {price:,.2f}; the 95th percentile is {stats.p95:,.2f}."
+        )
+    else:
+        sentence = (
+            f"{above:.1%} of the {len(draws):,} joint draws of growth, margin, discount rate and "
+            f"terminal growth are worth more than {price:,.2f}; the median is {stats.p50:,.2f}."
+        )
+    return {
+        "kept": len(draws),
+        "share_above": above,
+        "p5": stats.p5,
+        "p50": stats.p50,
+        "p95": stats.p95,
+        "sentence": sentence,
+    }
