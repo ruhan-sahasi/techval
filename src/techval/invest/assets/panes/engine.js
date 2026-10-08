@@ -11,6 +11,11 @@
   var IV = global.IV;
   var el = TV.el;
 
+  /* Revenue in USD millions, as a reader says it: $640mm, $1.6bn. */
+  function revenue(mm) {
+    return mm >= 1000 ? "$" + TV.fmt.num(mm / 1000, 1) + "bn" : "$" + TV.fmt.num(mm, 0) + "mm";
+  }
+
   function stat(label, value, sub, signed) {
     return el(
       "div",
@@ -69,6 +74,16 @@
         stats.appendChild(
           stat("Growth the price needs", exp.implied_growth === null ? "beyond 300%" : TV.fmt.pct(exp.implied_growth, 0) + " next year", said)
         );
+        var size = base && base.size;
+        if (size && size.n) {
+          stats.appendChild(
+            stat(
+              "At this size",
+              size.hits + " of " + TV.fmt.int(size.n),
+              "company-years with revenue " + revenue(size.low_mm) + " to " + revenue(size.high_mm) + " that compounded it"
+            )
+          );
+        }
       }
     }
     if (read.warranted) {

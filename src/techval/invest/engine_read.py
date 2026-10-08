@@ -309,7 +309,8 @@ def _expectations(fin, bridge, wacc, assumptions, price, read, observations) -> 
     The two levers a holder reads first, from techval.reverse_dcf: the return
     a buyer at today's price earns if the base case holds, and the first-year
     growth the price needs, set against the fade panel's base rate when the
-    panel is on hand.
+    panel is on hand: across every company-year, and across company-years of
+    about the holding's revenue.
     """
     from ..reverse_dcf import (
         BASE_RATE_HORIZON,
@@ -331,12 +332,16 @@ def _expectations(fin, bridge, wacc, assumptions, price, read, observations) -> 
             implied_cagr=path_cagr(growth.extras["path"], BASE_RATE_HORIZON),
             horizon=BASE_RATE_HORIZON,
             trailing=trailing,
+            revenue_mm=fin.revenue,
         )
     if base is not None:
         base["implied_cagr"] = round(base["implied_cagr"], 6)
-        for bucket in (base["all"], base["similar"]):
+        for bucket in (base["all"], base["similar"], base["size"]):
             if bucket and bucket["share"] is not None:
                 bucket["share"] = round(bucket["share"], 6)
+        if base["size"]:
+            base["size"]["low_mm"] = round(base["size"]["low_mm"], 1)
+            base["size"]["high_mm"] = round(base["size"]["high_mm"], 1)
     return {
         "implied_return": None if rate.implied is None else round(rate.implied, 6),
         "implied_growth": None if growth.implied is None else round(growth.implied, 6),
