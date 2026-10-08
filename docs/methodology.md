@@ -1180,6 +1180,53 @@ The growth-margin frontier runs from 219% first-year growth at a 10% terminal
 margin to 75% at a 60% margin. None of this says the price is wrong. It says
 what a buyer at that price is underwriting, and how often that has happened.
 
+**Two narrower comparisons, and the engine's own distribution.** The panel is
+cut two more ways. A size bucket keeps the company-years whose revenue was
+within a factor of two of the company's, since compounding from $3bn of revenue
+is a different task from compounding from $50mm. A persistence curve asks the
+duration question directly: of the company-years labelled all five years out,
+the share that grew at least the trailing rate in every one of the first h
+years. One cohort serves every horizon, so the curve can only fall. Last, the
+price is placed in the engine's own Monte Carlo (section 9), which draws
+growth, margin, discount rate and terminal growth jointly; the share of draws
+worth more than the price is a probability under the model's assumptions, not
+about the world.
+
+For Datadog, none of the 499 company-years with revenue between $2.0bn and
+$7.9bn compounded the implied path. Its 27.7% held in every year is rarer than
+its five-year average suggests: 25.6% of company-years managed it for one year,
+10.3% for three and 5.1% for five, so most of the 17.1% that averaged it did so
+unevenly. None of the 10,000 simulated values reaches 225.27, and the 95th
+percentile is 53.26.
+
+**What the price assumed through time.** `expectations_history` repeats the
+discount-rate and growth solves at each quarter-end, rebuilding the company
+from the filings public on that date (section 11) and pricing it at that day's
+close. A quarter the filings cannot yet value, because a trailing year of
+revenue is not public, is refused by name rather than skipped. Datadog's close
+moved between 99 and 260 from March 2024 to June 2026 and its base case nearly
+doubled, from 17.33 to 32.45, yet the implied return stayed between 3.5% and
+4.5% a year against a cost of capital of 10.9% to 12.6%. The gap is not one
+quarter's mood. The market has priced the company on a consistently richer
+view than the engine's base case for two and a half years.
+
+**Across names.** `screen` runs the same reading over a list of tickers on one
+date and ranks them by how rarely the panel's company-years compounded the
+growth each price needs, so the most demanding price comes first:
+
+| Ticker | Close | Base case | Implied return | Growth needed | Company-years that did it | Simulated above |
+|---|---:|---:|---:|---:|---:|---:|
+| CRWD | 207.80 | 14.05 | 3.1% | 239.4% | 0 of 1,662 | 0.0% |
+| DDOG | 225.27 | 36.65 | 3.7% | 155.2% | 11 of 1,662 | 0.0% |
+| MDB | 358.38 | 83.54 | 4.9% | 129.1% | 23 of 1,662 | 0.0% |
+| ZS | 166.10 | 66.08 | 5.6% | 75.2% | 141 of 1,662 | 0.1% |
+| DIS | 105.82 | 185.66 | 12.7% | -1.1% | 1,398 of 1,662 | 92.7% |
+
+A name without filings or prices is listed as refused at the bottom, not
+dropped. The ranking is by base rate rather than by the gap to the base case,
+because the base rate does not depend on the engine's own growth assumption
+being right.
+
 ## 7. Trading comparables
 
 Multiples computed: EV/Revenue, EV/Gross Profit, EV/EBITDA, EV/EBIT and P/E, plus
