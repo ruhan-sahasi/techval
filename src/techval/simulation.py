@@ -424,6 +424,9 @@ class SimulationResult:
     notes: list[str] = field(default_factory=list)
     checks: list[str] = field(default_factory=list)
     central_per_share: float = float("nan")
+    # The kept per-share draws themselves, so a caller can place any price in
+    # the distribution rather than only the one the run was struck at.
+    per_share_draws: np.ndarray = field(default_factory=lambda: np.zeros(0), repr=False)
 
     @property
     def kept_draws(self) -> int:
@@ -841,6 +844,7 @@ def run_simulation(
         notes=notes,
         checks=checks,
         central_per_share=central,
+        per_share_draws=values,
     )
 
 

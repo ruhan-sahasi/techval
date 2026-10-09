@@ -278,3 +278,140 @@ def test_without_a_panel_there_are_no_base_rates_and_it_says_why(case):
     # Without a trailing rate, the duration holds the assumed first-year growth.
     duration = next(s for s in exp.solves if s.lever == "duration")
     assert duration.extras["held_growth"] == case.assumptions.dcf.revenue_growth_start
+
+
+def test_the_persistence_curve_counts_who_held_a_rate_for_each_horizon():
+    from techval.reverse_dcf import persistence_curve
+
+    panel = [
+        Obs(0.30, {1: 0.30, 2: 0.31, 3: 0.40}),  # held 3 years
+        Obs(0.30, {1: 0.35, 2: 0.10, 3: 0.50}),  # broke in year 2
+        Obs(0.30, {1: 0.20}),  # broke in year 1, and no later labels
+        Obs(0.30, {1: 0.40, 2: 0.40}),  # held 2, no year 3 label
+    ]
+    # One cohort for every horizon, the company-years labelled all three years
+    # out, so each year can only lose companies and the curve never rises.
+    curve = persistence_curve(panel, growth=0.30, horizons=3)
+    assert [(c["horizon"], c["n"], c["held"]) for c in curve] == [(1, 2, 2), (2, 2, 1), (3, 2, 1)]
+    assert curve[1]["share"] == pytest.approx(0.5)
+
+
+def test_datadogs_rate_rarely_lasts_five_years(panel):
+    from techval.reverse_dcf import persistence_curve
+
+    curve = persistence_curve(panel.observations, growth=0.277, horizons=5)
+    shares = [c["share"] for c in curve]
+    # Each extra year can only lose companies that held every year before it.
+    assert all(a >= b for a, b in zip(shares, shares[1:]))
+    assert shares[0] > shares[-1]
+    assert shares[-1] < 0.10
+
+
+def test_expectations_carry_the_persistence_curve_for_the_held_rate(case, panel):
+    from techval.reverse_dcf import market_expectations
+
+    exp = market_expectations(case, PRICE, trailing_growth=0.277, observations=panel.observations)
+    assert [c["horizon"] for c in exp.persistence] == [1, 2, 3, 4, 5]
+    text = " ".join(exp.summary())
+    assert "year after year" in text and "for five" in text
+    assert exp.to_dict()["persistence"] == exp.persistence
+
+
+class SizedObs(Obs):
+    def __init__(self, growth, labels, revenue):
+        super().__init__(growth, labels)
+        self.revenue = revenue  # raw dollars, as the fade panel stores it
+
+
+def test_a_size_bucket_keeps_company_years_within_a_factor_of_two_in_revenue():
+    from techval.reverse_dcf import growth_base_rate
+
+    panel = [
+        SizedObs(0.3, {1: 0.5}, 1_000e6),
+        SizedObs(0.3, {1: 0.1}, 2_500e6),
+        SizedObs(0.3, {1: 0.9}, 9_000e6),  # more than twice the company's size
+        SizedObs(0.3, {1: 0.9}, 400e6),  # less than half
+    ]
+    rate = growth_base_rate(panel, implied_cagr=0.2, horizon=1, revenue_mm=1_500.0)
+    assert (rate["size"]["n"], rate["size"]["hits"]) == (2, 1)
+    assert rate["size"]["low_mm"] == pytest.approx(750.0) and rate["size"]["high_mm"] == pytest.approx(3_000.0)
+
+
+def test_no_revenue_means_no_size_bucket():
+    from techval.reverse_dcf import growth_base_rate
+
+    assert growth_base_rate([SizedObs(0.1, {1: 0.2}, 1e9)], implied_cagr=0.1, horizon=1)["size"] is None
+
+
+def test_the_price_is_placed_in_the_engines_own_simulated_distribution(case):
+    from techval.reverse_dcf import price_in_simulation
+
+    at_close = price_in_simulation(case, PRICE)
+    assert at_close["kept"] > 9000
+    assert at_close["share_above"] == 0.0
+    assert at_close["p95"] < PRICE
+    # At the simulated median, about half the draws sit above.
+    mid = price_in_simulation(case, at_close["p50"])
+    assert 0.45 < mid["share_above"] < 0.55
+    assert "draws" in at_close["sentence"]
+
+
+def test_the_simulation_keeps_its_draws_for_reuse(case):
+    from techval.simulation import run_simulation
+
+    result = run_simulation(case.fin, case.bridge, case.wacc, case.assumptions)
+    assert len(result.per_share_draws) == result.kept_draws
+    assert result.prob_above_price == pytest.approx(float((result.per_share_draws > result.current_price).mean()))
+
+
+def test_quarter_ends_run_from_the_first_to_the_last_date():
+    from datetime import date as d
+
+    from techval.reverse_dcf import quarter_ends
+
+    assert quarter_ends(d(2024, 2, 10), d(2024, 12, 31)) == [d(2024, 3, 31), d(2024, 6, 30), d(2024, 9, 30), d(2024, 12, 31)]
+    assert quarter_ends(d(2024, 3, 31), d(2024, 4, 1)) == [d(2024, 3, 31)]
+
+
+def test_the_history_reads_each_quarter_from_what_was_public_then():
+    from datetime import date as d
+
+    from techval.reverse_dcf import expectations_history
+
+    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    a = Assumptions()
+    a.market.risk_free_rate = 0.0483
+    rows = expectations_history(
+        payload, "DDOG", CsvSource(FIXTURES / "prices"), a, [d(2023, 12, 31), d(2024, 12, 31), d(2026, 6, 30)]
+    )
+    assert [r["date"] for r in rows] == ["2023-12-31", "2024-12-31", "2026-06-30"]
+    # Before the fixture's revenue history reaches twelve months, the quarter is refused, by name.
+    assert rows[0]["refused"] and "revenue" in rows[0]["refused"]
+    late = rows[2]
+    assert late["refused"] is None
+    assert late["price"] == pytest.approx(260.36, abs=0.01)
+    assert 0.03 < late["implied_return"] < 0.04
+    assert late["implied_growth"] > 1.5
+    # Point in time: the 2024 row's revenue is what had been filed by then.
+    assert rows[1]["revenue_mm"] < late["revenue_mm"]
+    assert rows[1]["filings_through"] <= "2024-12-31"
+
+
+def test_the_screen_ranks_the_most_demanding_prices_first(panel):
+    from datetime import date as d
+
+    from techval.reverse_dcf import screen
+
+    payloads = {
+        t: json.loads((FIXTURES / f"companyfacts_{t}.json").read_text()) for t in ("DDOG", "CRWD", "MDB", "ZS", "DIS")
+    }
+    a = Assumptions()
+    a.market.risk_free_rate = 0.0483
+    rows = screen(payloads, CsvSource(FIXTURES / "prices"), a, d(2026, 9, 9), panel.observations)
+    assert {r["ticker"] for r in rows} == set(payloads)
+    valued = [r for r in rows if not r["refused"]]
+    assert len(valued) >= 4
+    shares = [r["base_share"] for r in valued if r["base_share"] is not None]
+    assert shares == sorted(shares)
+    ddog = next(r for r in rows if r["ticker"] == "DDOG")
+    assert 0.035 < ddog["implied_return"] < 0.04 and ddog["simulated_above"] == 0.0

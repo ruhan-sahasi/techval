@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-10-06",
+  "collected_at": "2026-10-08",
   "fixtures": {
     "tests/fixtures/companyfacts_CRWD.json": "9b6ef8e8890e3f8058caf6623556708ff8043a9a944f40c94bdc11f45fc570b3",
     "tests/fixtures/companyfacts_DDOG.json": "91bcfb0dc7160923243c8b816e508c57c5a8b1c4bafe10f46dffb2ccb6799211",
@@ -4372,6 +4372,143 @@
           "title": "The close needs 173% growth next year; 6 of 1,662 TMT company-years ever compounded that path",
           "wide": true
         },
+        "expectations_history": {
+          "data": {
+            "format": "pct:1",
+            "series": [
+              {
+                "name": "Implied return",
+                "role": "model",
+                "values": [
+                  {
+                    "label": "close 123.60",
+                    "x": "2024-03-31",
+                    "y": 0.037276
+                  },
+                  {
+                    "label": "close 129.69",
+                    "x": "2024-06-30",
+                    "y": 0.037154
+                  },
+                  {
+                    "label": "close 115.06",
+                    "x": "2024-09-30",
+                    "y": 0.03928
+                  },
+                  {
+                    "label": "close 142.89",
+                    "x": "2024-12-31",
+                    "y": 0.036892
+                  },
+                  {
+                    "label": "close 99.21",
+                    "x": "2025-03-31",
+                    "y": 0.044302
+                  },
+                  {
+                    "label": "close 134.33",
+                    "x": "2025-06-30",
+                    "y": 0.039853
+                  },
+                  {
+                    "label": "close 142.40",
+                    "x": "2025-09-30",
+                    "y": 0.039822
+                  },
+                  {
+                    "label": "close 135.99",
+                    "x": "2025-12-31",
+                    "y": 0.041521
+                  },
+                  {
+                    "label": "close 118.05",
+                    "x": "2026-03-31",
+                    "y": 0.045444
+                  },
+                  {
+                    "label": "close 260.36",
+                    "x": "2026-06-30",
+                    "y": 0.034715
+                  }
+                ]
+              },
+              {
+                "name": "Cost of capital",
+                "role": "baseline",
+                "values": [
+                  {
+                    "label": "close 123.60",
+                    "x": "2024-03-31",
+                    "y": 0.125627
+                  },
+                  {
+                    "label": "close 129.69",
+                    "x": "2024-06-30",
+                    "y": 0.124257
+                  },
+                  {
+                    "label": "close 115.06",
+                    "x": "2024-09-30",
+                    "y": 0.123994
+                  },
+                  {
+                    "label": "close 142.89",
+                    "x": "2024-12-31",
+                    "y": 0.122958
+                  },
+                  {
+                    "label": "close 99.21",
+                    "x": "2025-03-31",
+                    "y": 0.119875
+                  },
+                  {
+                    "label": "close 134.33",
+                    "x": "2025-06-30",
+                    "y": 0.119054
+                  },
+                  {
+                    "label": "close 142.40",
+                    "x": "2025-09-30",
+                    "y": 0.122578
+                  },
+                  {
+                    "label": "close 135.99",
+                    "x": "2025-12-31",
+                    "y": 0.117311
+                  },
+                  {
+                    "label": "close 118.05",
+                    "x": "2026-03-31",
+                    "y": 0.109079
+                  },
+                  {
+                    "label": "close 260.36",
+                    "x": "2026-06-30",
+                    "y": 0.118575
+                  }
+                ]
+              }
+            ],
+            "x": {
+              "label": "Quarter-end",
+              "type": "date"
+            }
+          },
+          "kind": "line",
+          "notes": [
+            {
+              "what": "2023-09-30",
+              "why": "Could not source 'revenue' for DDOG over period twelve months ended 2023-06-30."
+            },
+            {
+              "what": "2023-12-31",
+              "why": "Could not source 'revenue' for DDOG over period twelve months ended 2023-09-30."
+            }
+          ],
+          "subtitle": "The return a buyer at each quarter-end close earns if that quarter's base case holds, against the cost of capital, each quarter built only from filings public by then. DDOG.",
+          "title": "Through closes from 99 to 260, the implied return stayed between 3.5% and 4.5% a year",
+          "wide": true
+        },
         "football": {
           "data": {
             "format": "num:2",
@@ -4647,7 +4784,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.11
+          "seconds": 0.09
         },
         {
           "entry_point": "techval.wacc.compute_wacc",
@@ -4704,7 +4841,16 @@
             "tests/fixtures/prices/SPY.csv",
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 4.8
+          "seconds": 3.61
+        },
+        {
+          "entry_point": "techval.reverse_dcf.expectations_history",
+          "figure": "expectations_history",
+          "inputs": [
+            "tests/fixtures/companyfacts_DDOG.json",
+            "tests/fixtures/prices/DDOG.csv"
+          ],
+          "seconds": 0.2
         },
         {
           "entry_point": "techval.dcf.sensitivity_wacc_growth",
@@ -4720,7 +4866,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.01
+          "seconds": 0.0
         },
         {
           "entry_point": "techval.dcf.run_dcf",
@@ -4752,7 +4898,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.05
+          "seconds": 0.01
         },
         {
           "entry_point": "techval.apv.run_apv",
@@ -5566,10 +5712,10 @@
                 "verdict_status": "inside_noise"
               },
               {
-                "figures": 7,
+                "figures": 8,
                 "href": "#engine",
                 "id": "engine",
-                "provenance": 10,
+                "provenance": 11,
                 "refusals": 3,
                 "status": "ok",
                 "title": "Valuation engine",
@@ -5618,7 +5764,7 @@
             ],
             "totals": {
               "collected": 10,
-              "figures": 63,
+              "figures": 64,
               "refusals": 19,
               "refusing_sections": 6,
               "sections": 10
@@ -5627,7 +5773,7 @@
           },
           "kind": "hbar",
           "subtitle": "Every other section, in page order. A refusal is a number a section would not print because the fixtures could not reproduce it; each is stated with its reason.",
-          "title": "63 figures drawn and 19 refusals stated, 10 of them in the TMT layer"
+          "title": "64 figures drawn and 19 refusals stated, 10 of them in the TMT layer"
         }
       },
       "headline": null,
@@ -10343,6 +10489,6 @@
       "title": "Warranted multiple"
     }
   },
-  "techval_commit": "614044e",
+  "techval_commit": "9a1bc1b",
   "title": "Valuation engine and model results"
 }
