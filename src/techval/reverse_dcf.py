@@ -293,6 +293,8 @@ def implied_duration(case: Case, price: float, *, held_growth: float) -> Solve:
 BASE_RATE_HORIZON = 5
 # "Similar starters": trailing growth within this many points of the company's.
 SIMILAR_BAND = 0.10
+# "Similar size": revenue within this factor of the company's, either way.
+SIZE_FACTOR = 2.0
 
 
 def path_cagr(path: list[float], horizon: int) -> float:
@@ -311,6 +313,7 @@ def growth_base_rate(
     horizon: int = BASE_RATE_HORIZON,
     trailing: float | None = None,
     band: float = SIMILAR_BAND,
+    revenue_mm: float | None = None,
 ) -> dict:
     """How often a TMT company-year went on to compound revenue this fast.
 
@@ -339,7 +342,15 @@ def growth_base_rate(
     if trailing is not None:
         near = [(o, r) for o, r in rows if o.growth is not None and abs(o.growth - trailing) <= band]
         similar = {**tally(near), "trailing": trailing, "band": band}
-    return {"horizon": horizon, "implied_cagr": implied_cagr, "all": tally(rows), "similar": similar}
+    # Size: large companies grow more slowly, so a company is also judged
+    # against company-years of its own scale. The panel stores raw dollars;
+    # Financials states millions.
+    size = None
+    if revenue_mm is not None and revenue_mm > 0:
+        low, high = revenue_mm / SIZE_FACTOR, revenue_mm * SIZE_FACTOR
+        sized = [(o, r) for o, r in rows if low <= o.revenue / 1e6 <= high]
+        size = {**tally(sized), "low_mm": low, "high_mm": high}
+    return {"horizon": horizon, "implied_cagr": implied_cagr, "all": tally(rows), "similar": similar, "size": size}
 
 
 # Terminal margins the frontier is read at: a services business to the best
@@ -378,6 +389,8 @@ class MarketExpectations:
     frontier: list[dict]
     base_rates: dict
     notes: list[str] = field(default_factory=list)
+    persistence: list[dict] = field(default_factory=list)
+    simulation: dict | None = None
 
     def solve(self, lever: str) -> Solve:
         return next(s for s in self.solves if s.lever == lever)
@@ -389,6 +402,8 @@ class MarketExpectations:
             f"{self.base_value:,.2f}, so the price is {abs(gap):.0%} {'above' if gap >= 0 else 'below'} it."
         ]
         out += [s.sentence for s in self.solves]
+        if self.simulation:
+            out.append(self.simulation["sentence"])
         for lever in ("first_year_growth", "duration"):
             rate = self.base_rates.get(lever)
             if not rate:
@@ -406,6 +421,13 @@ class MarketExpectations:
                     f", and {similar['hits']:,} of the {similar['n']:,} that started within "
                     f"{similar['band'] * 100:.0f} points of {similar['trailing']:.1%}"
                 )
+            size = rate.get("size")
+            if size and size["n"]:
+                who = "none" if size["hits"] == 0 else f"{size['hits']:,}"
+                line += (
+                    f"; {who} of the {size['n']:,} with revenue between {size['low_mm']:,.0f}mm and "
+                    f"{size['high_mm']:,.0f}mm did"
+                )
             out.append(line + ".")
             if lever == "duration":
                 held = self.solve("duration")
@@ -415,6 +437,14 @@ class MarketExpectations:
                         f"The panel's labels end at {rate['horizon']} years, so nothing in it tests the "
                         f"remaining {int(years) - rate['horizon']}."
                     )
+        if self.persistence and self.persistence[0]["n"]:
+            held = self.solve("duration").extras.get("held_growth")
+            by = {c["horizon"]: c["share"] for c in self.persistence}
+            out.append(
+                f"Held year after year, {held:.1%} growth is rarer than its average: "
+                f"{by[1]:.1%} of company-years managed it for one year, {by.get(3, 0):.1%} for three "
+                f"and {by.get(5, 0):.1%} for five, of {self.persistence[0]['n']:,} labelled five years out."
+            )
         out += self.notes
         return out
 
@@ -439,6 +469,8 @@ class MarketExpectations:
             "solves": [solve_dict(s) for s in self.solves],
             "frontier": self.frontier,
             "base_rates": self.base_rates,
+            "persistence": self.persistence,
+            "simulation": self.simulation,
             "summary": self.summary(),
         }
 
@@ -476,8 +508,13 @@ def market_expectations(
                 continue
             horizon = min(BASE_RATE_HORIZON, len(path))
             base_rates[solve.lever] = growth_base_rate(
-                observations, implied_cagr=path_cagr(path, horizon), horizon=horizon, trailing=trailing_growth
+                observations,
+                implied_cagr=path_cagr(path, horizon),
+                horizon=horizon,
+                trailing=trailing_growth,
+                revenue_mm=getattr(case.fin, "revenue", None),
             )
+    persistence = [] if observations is None else persistence_curve(observations, growth=held)
     return MarketExpectations(
         ticker=case.fin.ticker,
         price=price,
@@ -486,4 +523,183 @@ def market_expectations(
         frontier=growth_margin_frontier(case, price),
         base_rates=base_rates,
         notes=notes,
+        persistence=persistence,
+        simulation=price_in_simulation(case, price),
     )
+
+
+def persistence_curve(observations, *, growth: float, horizons: int = BASE_RATE_HORIZON) -> list[dict]:
+    """The share of company-years that grew at least ``growth`` in every one of h years.
+
+    A survival curve for a growth rate, which is the question the duration
+    lever asks: not whether a five-year average reached the rate, but whether
+    the company grew that fast year after year. One cohort serves every
+    horizon, the company-years labelled all ``horizons`` years out, so each
+    added year can only lose companies and the curve never rises.
+    """
+    cohort = [o for o in observations if all(h in o.labels for h in range(1, horizons + 1))]
+    out = []
+    survivors = cohort
+    for h in range(1, horizons + 1):
+        survivors = [o for o in survivors if o.labels[h] >= growth]
+        n = len(cohort)
+        out.append({"horizon": h, "n": n, "held": len(survivors), "share": len(survivors) / n if n else None})
+    return out
+
+
+def price_in_simulation(case: Case, price: float) -> dict | None:
+    """Where a price sits in the engine's own Monte Carlo of value.
+
+    The simulation draws first-year growth, terminal margin, the discount rate
+    and terminal growth jointly, with the correlations its module states, and
+    revalues on every draw. The share of draws worth more than the price is the
+    assumed distribution's own verdict on it: a probability under the model's
+    assumptions, not about the world. None when the simulation refuses.
+    """
+    from .simulation import run_simulation
+
+    try:
+        result = run_simulation(case.fin, case.bridge, case.wacc, case.assumptions)
+    except TechvalError:
+        return None
+    draws = result.per_share_draws
+    above = float((draws > price).mean()) if len(draws) else None
+    stats = result.per_share
+    if above == 0.0:
+        sentence = (
+            f"None of the {len(draws):,} joint draws of growth, margin, discount rate and terminal "
+            f"growth reaches {price:,.2f}; the 95th percentile is {stats.p95:,.2f}."
+        )
+    else:
+        sentence = (
+            f"{above:.1%} of the {len(draws):,} joint draws of growth, margin, discount rate and "
+            f"terminal growth are worth more than {price:,.2f}; the median is {stats.p50:,.2f}."
+        )
+    return {
+        "kept": len(draws),
+        "share_above": above,
+        "p5": stats.p5,
+        "p50": stats.p50,
+        "p95": stats.p95,
+        "sentence": sentence,
+    }
+
+
+def quarter_ends(first, last) -> list:
+    """Calendar quarter ends falling between ``first`` and ``last``, inclusive."""
+    from datetime import date
+
+    return [
+        date(year, month, day)
+        for year in range(first.year, last.year + 1)
+        for month, day in ((3, 31), (6, 30), (9, 30), (12, 31))
+        if first <= date(year, month, day) <= last
+    ]
+
+
+def case_at(payload: dict, ticker: str, source, assumptions: Assumptions, when):
+    """The forward case as it stood on ``when``: the filings known then, the close on or before it.
+
+    Returns the case and the price. Raises the pipeline's TechvalError when the
+    record cannot support a valuation that day.
+    """
+    from .edgar import CompanyFacts, HttpCache
+    from .ev_bridge import build_ev_bridge
+    from .financials import build_financials
+    from .market import MarketData
+    from .wacc import compute_wacc
+
+    fin = build_financials(ticker, facts=CompanyFacts(payload, ticker, knowledge_date=when))
+    market = MarketData(source, HttpCache(enabled=False), today=when)
+    price = market.spot(ticker)
+    bridge = build_ev_bridge(fin, price, assumptions)
+    wacc = compute_wacc(fin, bridge, market, assumptions)
+    return Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=assumptions), price
+
+
+def expectations_history(payload: dict, ticker: str, source, assumptions: Assumptions, dates) -> list[dict]:
+    """What the price assumed at each date, from only what was public by then.
+
+    Each date rebuilds the whole forward case point in time through
+    ``case_at``: the filings known by that date, the close on or before it, a
+    cost of capital from the price history up to it. Then the two levers a
+    holder reads first are solved. A date the record cannot support, too
+    little filed history or too little price history for a beta, is kept as a
+    row with the refusal, never dropped.
+    """
+    rows = []
+    for when in dates:
+        row = {"date": when.isoformat(), "refused": None}
+        try:
+            case, price = case_at(payload, ticker, source, assumptions, when)
+            rate = implied_discount_rate(case, price)
+            growth = implied_first_year_growth(case, price)
+        except TechvalError as err:
+            row["refused"] = str(err).splitlines()[0]
+            rows.append(row)
+            continue
+        row.update(
+            price=round(price, 4),
+            base_value=round(case.value(), 4),
+            wacc=round(case.wacc.wacc, 6),
+            implied_return=None if rate.implied is None else round(rate.implied, 6),
+            implied_growth=None if growth.implied is None else round(growth.implied, 6),
+            revenue_mm=round(case.fin.revenue, 2),
+            filings_through=case.fin.as_of.isoformat(),
+        )
+        rows.append(row)
+    return rows
+
+
+def screen(payloads: dict, source, assumptions: Assumptions, when, observations=None) -> list[dict]:
+    """What each price assumes, side by side, the most demanding first.
+
+    One row per ticker: the implied return, the first-year growth the price
+    needs, how often the panel's company-years compounded that path, and the
+    share of the engine's simulated values above the price. Rows sort by the
+    base-rate share, rarest first, then by implied return; a ticker the record
+    cannot value is kept at the foot with its refusal.
+    """
+    rows = []
+    for ticker, payload in payloads.items():
+        row = {"ticker": ticker, "refused": None}
+        try:
+            case, price = case_at(payload, ticker, source, assumptions, when)
+            rate = implied_discount_rate(case, price)
+            growth = implied_first_year_growth(case, price)
+        except TechvalError as err:
+            row["refused"] = str(err).splitlines()[0]
+            rows.append(row)
+            continue
+        base = None
+        if observations is not None and growth.reached:
+            own = [o for o in observations if o.ticker == ticker and o.growth is not None]
+            trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
+            base = growth_base_rate(
+                observations,
+                implied_cagr=path_cagr(growth.extras["path"], BASE_RATE_HORIZON),
+                trailing=trailing,
+                revenue_mm=case.fin.revenue,
+            )
+        sim = price_in_simulation(case, price)
+        row.update(
+            price=round(price, 4),
+            base_value=round(case.value(), 4),
+            wacc=round(case.wacc.wacc, 6),
+            implied_return=None if rate.implied is None else round(rate.implied, 6),
+            implied_growth=None if growth.implied is None else round(growth.implied, 6),
+            base_share=None if base is None else base["all"]["share"],
+            base_hits=None if base is None else base["all"]["hits"],
+            base_n=None if base is None else base["all"]["n"],
+            simulated_above=None if sim is None else sim["share_above"],
+        )
+        rows.append(row)
+
+    def order(r):
+        if r["refused"]:
+            return (2, 0.0, 0.0)
+        share = r["base_share"] if r["base_share"] is not None else 1.0
+        ret = r["implied_return"] if r["implied_return"] is not None else 1.0
+        return (0 if r["implied_growth"] is not None else 1, share, ret)
+
+    return sorted(rows, key=order)

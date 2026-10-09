@@ -87,7 +87,7 @@ EXIT_ROW = "DCF, exit multiple"
 _MAX_BINS = 36
 
 # The chart kinds this section draws, all of them in the kit.
-KINDS = ("tiles", "range", "waterfall", "heat", "hist", "dot", "column")
+KINDS = ("tiles", "range", "waterfall", "heat", "hist", "dot", "column", "line")
 
 
 # --------------------------------------------------------------------------- #
@@ -203,6 +203,13 @@ class Expectations:
 
 
 @dataclass
+class ExpectationsHistory:
+    """What the close assumed each quarter, read point in time."""
+
+    rows: list[dict]
+
+
+@dataclass
 class Refusal:
     what: str
     why: str
@@ -227,6 +234,7 @@ class Measured:
     simulation: Simulation | None = None
     apv: APV | None = None
     expectations: Expectations | None = None
+    history: ExpectationsHistory | None = None
     refusals: list[Refusal] = field(default_factory=list)
 
 
@@ -716,6 +724,47 @@ def _expectations(m: Measured) -> dict[str, Any]:
     return figure
 
 
+def _history(m: Measured) -> dict[str, Any]:
+    """The implied return each quarter against the cost of capital, point in time."""
+    h = m.history
+    assert h is not None
+    rows = [r for r in h.rows if r["refused"] is None and r["implied_return"] is not None]
+    returns = [r["implied_return"] for r in rows]
+    prices = [r["price"] for r in rows]
+    title = (
+        f"Through closes from {min(prices):,.0f} to {max(prices):,.0f}, the implied return "
+        f"stayed between {min(returns):.1%} and {max(returns):.1%} a year"
+    )
+    subtitle = (
+        f"The return a buyer at each quarter-end close earns if that quarter's base case holds, against "
+        f"the cost of capital, each quarter built only from filings public by then. {m.ticker}."
+    )
+
+    def point(r, key):
+        return {"x": r["date"], "y": r[key], "label": f"close {r['price']:,.2f}"}
+
+    figure = _figure(
+        "line",
+        title,
+        subtitle,
+        {
+            "x": {"type": "date", "label": "Quarter-end"},
+            "format": "pct:1",
+            "series": [
+                {"name": "Implied return", "role": "model", "values": [point(r, "implied_return") for r in rows]},
+                {"name": "Cost of capital", "role": "baseline", "values": [point(r, "wacc") for r in rows]},
+            ],
+        },
+        wide=True,
+    )
+    refused = [r for r in h.rows if r["refused"]]
+    if refused:
+        figure["notes"] = [
+            {"what": r["date"], "why": r["refused"][0].upper() + r["refused"][1:] + "."} for r in refused
+        ]
+    return figure
+
+
 _WORDS = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
 
 
@@ -778,6 +827,8 @@ def shape(m: Measured) -> dict[str, Any]:
         figures["apv"] = _apv(m)
     if m.expectations is not None:
         figures["expectations"] = _expectations(m)
+    if m.history is not None and any(r["refused"] is None for r in m.history.rows):
+        figures["expectations_history"] = _history(m)
 
     # A band built on one value is not a range: it would draw as a hairline and
     # read as a precise answer. _football leaves it out, and it is said here.
@@ -1103,6 +1154,23 @@ def collect(ctx) -> dict:
             similar_n=similar["n"] if similar else None,
             duration_years=duration.implied,
         )
+
+    # -- what the close assumed each quarter, point in time ------------------- #
+    try:
+        with ctx.record(
+            "expectations_history", "techval.reverse_dcf.expectations_history", target
+        ):
+            import json as _json
+
+            from ...reverse_dcf import expectations_history, quarter_ends
+
+            payload = _json.loads(ctx.input(f"companyfacts_{TICKER}.json").read_text(encoding="utf-8"))
+            first = source.fetch(TICKER, date.min, date.max).dates[0]
+            measured.history = ExpectationsHistory(
+                rows=expectations_history(payload, TICKER, source, a, quarter_ends(first, today))
+            )
+    except TechvalError as exc:
+        refusals.append(Refusal("What the close assumed each quarter", str(exc)))
 
     # -- the sensitivity grid, and the DCF bands struck on it ------------------ #
     try:

@@ -11,7 +11,7 @@ engine's three terminal values; the third prints in the run below.*
 
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Nineteen commands, 2,405
+the US Treasury daily curve for the risk-free rate. Twenty commands, 2,419
 tests, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
@@ -1362,10 +1362,41 @@ That path compounds 71.8% a year over 5 years: 11 of 1,662 TMT company-years
 did that (0.7%), and 0 of the 307 that started within 10 points of 27.7%.
 ```
 
+The same panel also answers narrower questions: how many company-years of
+about the same revenue did it, and how many held the growth in every year
+rather than on average. The price is placed in the engine's own Monte Carlo
+too; none of Datadog's 10,000 draws reaches it.
+
+`--history` repeats the reading at every quarter-end from the filings public at
+the time. Datadog's close ran from 99 to 260 over those quarters and its base
+case nearly doubled, yet the implied return never left 3.5% to 4.5% a year:
+
+```
+$ techval expectations DDOG --history
+Quarter       Close   Base case   Cost of capital   Implied return   Growth needed
+2024-03-31   123.60       17.33             12.6%             3.7%          168.2%
+2025-03-31    99.21       23.75             12.0%             4.4%          123.3%
+2026-06-30   260.36       32.45             11.9%             3.5%          181.7%
+```
+
+`techval expectations-screen` reads a list of names on one date and ranks them
+by how rarely the growth each price needs has happened:
+
+```
+$ techval expectations-screen DDOG CRWD MDB ZS DIS
+Ticker   Implied return   Growth needed   Company-years that did it
+CRWD               3.1%          239.4%                  0 of 1,662
+DDOG               3.7%          155.2%                 11 of 1,662
+MDB                4.9%          129.1%                 23 of 1,662
+ZS                 5.6%           75.2%                141 of 1,662
+DIS               12.7%           -1.1%              1,398 of 1,662
+```
+
 `--price` asks what any other price assumes and `--json` prints the whole
-result. The same reading sits on every valued holding in `techval invest` and
-on the results dashboard's valuation engine section. Methodology section 6.6
-sets out the brackets and the base rates.
+result. The same reading sits on every valued holding in `techval invest`, with
+the same-size count as its own tile, and on the results dashboard's valuation
+engine section, with the quarterly history as a chart. Methodology section 6.6
+sets out the brackets, the base rates, the history and the screen.
 
 ### Point-in-time valuation
 
@@ -2054,9 +2085,9 @@ filers.
 uv run pytest
 ```
 
-2,405 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
+2,419 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
 `techval.ml`, 396 over the dashboard, 150 over the investing dashboard, 100 over
-the filing reader and 27 over the reverse DCF. GitHub Actions runs the whole
+the filing reader and 41 over the reverse DCF. GitHub Actions runs the whole
 suite on Python 3.11 and 3.12 for every push to `main` and every pull request.
 No test touches the network. The 15MB of fixtures are frozen SEC payloads,
 pruned XBRL instance documents, real proxy statements, verbatim merger filings
