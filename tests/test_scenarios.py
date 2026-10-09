@@ -85,3 +85,80 @@ def test_datadogs_similar_starters_run_from_stalling_to_a_third_a_year():
     assert 0.02 < bear.cagr < 0.06
     assert 0.15 < base.cagr < 0.21
     assert 0.30 < bull.cagr < 0.36
+
+
+def test_a_path_is_cut_to_a_short_projection_and_faded_beyond_the_panel():
+    from techval.scenarios import fit_path
+
+    assert fit_path([0.3, 0.2, 0.1], 2, 0.05) == [0.3, 0.2]
+    assert fit_path([0.3, 0.2, 0.1], 5, 0.05) == pytest.approx([0.3, 0.2, 0.1, 0.075, 0.05])
+
+
+@pytest.fixture(scope="module")
+def case():
+    import json
+    from datetime import date
+    from pathlib import Path
+
+    from techval.config import Assumptions
+    from techval.edgar import CompanyFacts, HttpCache
+    from techval.ev_bridge import build_ev_bridge
+    from techval.financials import build_financials
+    from techval.market import CsvSource, MarketData
+    from techval.reverse_dcf import Case
+    from techval.wacc import compute_wacc
+
+    fixtures = Path(__file__).parent / "fixtures"
+    a = Assumptions()
+    a.market.risk_free_rate = 0.0483
+    facts = CompanyFacts(json.loads((fixtures / "companyfacts_DDOG.json").read_text()), "DDOG")
+    fin = build_financials("DDOG", facts=facts)
+    market = MarketData(CsvSource(fixtures / "prices"), HttpCache(enabled=False), today=date(2026, 9, 10))
+    bridge = build_ev_bridge(fin, market.spot("DDOG"), a)
+    return Case(fin=fin, bridge=bridge, wacc=compute_wacc(fin, bridge, market, a), assumptions=a)
+
+
+@pytest.fixture(scope="module")
+def panel():
+    from pathlib import Path
+
+    from techval.invest.engine_read import fade_panel
+
+    return fade_panel(Path(__file__).parent / "fixtures")
+
+
+PRICE = 225.27
+TRAILING = 0.276754
+
+
+def test_each_scenario_is_the_engines_own_dcf_on_its_path(case, panel):
+    from techval.scenarios import value_scenarios
+
+    result = value_scenarios(case, PRICE, panel.observations, trailing=TRAILING)
+    bear, base, bull = result.scenarios
+    assert bear.value < base.value < bull.value
+    for s in result.scenarios:
+        assert s.value == pytest.approx(case.value(growth_path=s.growth))
+    assert [s.weight for s in result.scenarios] == [0.30, 0.40, 0.30]
+    assert result.weighted == pytest.approx(0.3 * bear.value + 0.4 * base.value + 0.3 * bull.value)
+    assert result.base_value == pytest.approx(36.65, abs=0.01)
+    # Datadog: 28.52, 44.20 and 71.90, and the price is three times the bull case.
+    assert (round(bear.value, 2), round(base.value, 2), round(bull.value, 2)) == (28.52, 44.20, 71.90)
+    assert result.to_dict()["pool"]["n"] == 307
+
+
+def test_weights_that_do_not_sum_to_one_are_refused(case, panel):
+    from techval.errors import ConfigError
+    from techval.scenarios import value_scenarios
+
+    with pytest.raises(ConfigError, match="sum to"):
+        value_scenarios(
+            case, PRICE, panel.observations, trailing=TRAILING,
+            weights={"bear": 0.3, "base": 0.3, "bull": 0.3},
+        )
+
+
+def test_an_empty_panel_values_no_scenarios(case):
+    from techval.scenarios import value_scenarios
+
+    assert value_scenarios(case, PRICE, [], trailing=TRAILING) is None
