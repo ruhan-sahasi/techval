@@ -116,3 +116,123 @@ def quantile_paths(
             )
         )
     return out
+
+
+# Swanson's rule: P10, P50 and P90 weighted 30/40/30 approximate the mean of a
+# skewed distribution far better than an equal three-way split, which overweights
+# both tails, and it is the convention the scenario table states.
+SWANSON_WEIGHTS = {"bear": 0.30, "base": 0.40, "bull": 0.30}
+
+
+def fit_path(growth: list[float], years: int, terminal: float) -> list[float]:
+    """A scenario path sized to the projection: cut short, or faded to terminal after the panel's years."""
+    if years <= len(growth):
+        return list(growth[:years])
+    rest = years - len(growth)
+    last = growth[-1]
+    return list(growth) + [last + (terminal - last) * (i + 1) / rest for i in range(rest)]
+
+
+@dataclass(frozen=True)
+class Scenario:
+    """One scenario valued: its path through the engine's DCF, and its weight."""
+
+    name: str
+    quantile: float
+    weight: float
+    growth: list[float]
+    cagr: float
+    n: int
+    value: float
+
+
+@dataclass
+class Scenarios:
+    """Three scenarios from the panel, valued, weighted, and set against the price."""
+
+    ticker: str
+    price: float
+    base_value: float
+    scenarios: list[Scenario]
+    pool: Pool
+    weighted: float
+    notes: list[str] = field(default_factory=list)
+
+    def scenario(self, name: str) -> Scenario:
+        return next(s for s in self.scenarios if s.name == name)
+
+    def to_dict(self) -> dict:
+        return {
+            "ticker": self.ticker,
+            "price": self.price,
+            "base_value": self.base_value,
+            "weighted": self.weighted,
+            "pool": {
+                "n": self.pool.n,
+                "similar": self.pool.similar,
+                "trailing": self.pool.trailing,
+                "band": self.pool.band,
+                "note": self.pool.note,
+            },
+            "scenarios": [
+                {
+                    "name": s.name,
+                    "quantile": s.quantile,
+                    "weight": s.weight,
+                    "growth": s.growth,
+                    "cagr": s.cagr,
+                    "n": s.n,
+                    "value": s.value,
+                }
+                for s in self.scenarios
+            ],
+            "notes": self.notes,
+        }
+
+
+def value_scenarios(
+    case,
+    price: float,
+    observations,
+    *,
+    trailing: float | None,
+    weights: dict[str, float] = SWANSON_WEIGHTS,
+    quantiles: dict[str, float] = SCENARIO_QUANTILES,
+) -> Scenarios | None:
+    """Value bear, base and bull through the engine's own DCF; None with no labelled panel."""
+    from .errors import ConfigError
+
+    if set(weights) != set(quantiles):
+        raise ConfigError(f"scenario weights name {sorted(weights)} and quantiles name {sorted(quantiles)}")
+    if abs(sum(weights.values()) - 1.0) > 1e-9:
+        raise ConfigError(f"scenario weights sum to {sum(weights.values()):.4f}, not 1")
+    pool = realised_paths(observations, trailing=trailing)
+    paths = quantile_paths(pool.paths, quantiles)
+    if not paths:
+        return None
+    dcf = case.assumptions.dcf
+    scenarios = []
+    for p in paths:
+        growth = fit_path(p.growth, dcf.projection_years, dcf.revenue_growth_terminal)
+        scenarios.append(
+            Scenario(
+                name=p.name,
+                quantile=p.quantile,
+                weight=weights[p.name],
+                growth=growth,
+                cagr=p.cagr,
+                n=p.n,
+                value=case.value(growth_path=growth),
+            )
+        )
+    weighted = sum(s.weight * s.value for s in scenarios)
+    notes = [pool.note] if pool.note else []
+    return Scenarios(
+        ticker=case.fin.ticker,
+        price=price,
+        base_value=case.value(),
+        scenarios=scenarios,
+        pool=pool,
+        weighted=weighted,
+        notes=notes,
+    )
