@@ -85,3 +85,23 @@ def test_without_a_panel_the_expectations_carry_no_base_rate(assumptions, market
     attach_dcf(reads, facts_for=facts_for, market=market, assumptions=assumptions)
     exp = reads["DDOG"].dcf["expectations"]
     assert exp["base_rate"] is None and exp["implied_return"] is not None
+
+
+def test_a_valued_holding_carries_its_panel_scenarios(assumptions, market):
+    from techval.invest.engine_read import fade_panel
+
+    reads = {"DDOG": EngineRead(symbol="DDOG", covered=True, sub_vertical="infrastructure_software")}
+    attach_dcf(
+        reads, facts_for=facts_for, market=market, assumptions=assumptions,
+        observations=fade_panel(FIXTURES).observations,
+    )
+    sc = reads["DDOG"].dcf["scenarios"]
+    assert sc["bear"] < sc["base"] < sc["bull"] < reads["DDOG"].dcf["price"]
+    assert sc["weighted"] == pytest.approx(0.3 * sc["bear"] + 0.4 * sc["base"] + 0.3 * sc["bull"], abs=1e-3)
+    assert sc["side"] == "above" and sc["weight"] is None
+
+
+def test_without_a_panel_a_holding_carries_no_scenarios(assumptions, market):
+    reads = {"DDOG": EngineRead(symbol="DDOG", covered=True, sub_vertical="infrastructure_software")}
+    attach_dcf(reads, facts_for=facts_for, market=market, assumptions=assumptions)
+    assert reads["DDOG"].dcf["scenarios"] is None
