@@ -118,12 +118,6 @@ def quantile_paths(
     return out
 
 
-# Swanson's rule: P10, P50 and P90 weighted 30/40/30 approximate the mean of a
-# skewed distribution far better than an equal three-way split, which overweights
-# both tails, and it is the convention the scenario table states.
-SWANSON_WEIGHTS = {"bear": 0.30, "base": 0.40, "bull": 0.30}
-
-
 def fit_path(growth: list[float], years: int, terminal: float) -> list[float]:
     """A scenario path sized to the projection: cut short, or faded to terminal after the panel's years."""
     if years <= len(growth):
@@ -213,24 +207,16 @@ class Scenarios:
         }
 
 
-def value_scenarios(
-    case,
-    price: float,
-    observations,
-    *,
-    trailing: float | None,
-    weights: dict[str, float] = SWANSON_WEIGHTS,
-    quantiles: dict[str, float] = SCENARIO_QUANTILES,
-) -> Scenarios | None:
-    """Value bear, base and bull through the engine's own DCF; None with no labelled panel."""
-    from .errors import ConfigError
+def value_scenarios(case, price: float, observations, *, trailing: float | None) -> Scenarios | None:
+    """Value bear, base and bull through the engine's own DCF; None with no labelled panel.
 
-    if set(weights) != set(quantiles):
-        raise ConfigError(f"scenario weights name {sorted(weights)} and quantiles name {sorted(quantiles)}")
-    if abs(sum(weights.values()) - 1.0) > 1e-9:
-        raise ConfigError(f"scenario weights sum to {sum(weights.values()):.4f}, not 1")
-    pool = realised_paths(observations, trailing=trailing)
-    paths = quantile_paths(pool.paths, quantiles)
+    Where the scenarios are read, how wide, and how they are weighted come from
+    ``assumptions.scenarios``, which validates them on load.
+    """
+    cfg = case.assumptions.scenarios
+    weights = cfg.weights
+    pool = realised_paths(observations, trailing=trailing, min_similar=cfg.min_similar)
+    paths = quantile_paths(pool.paths, {n: cfg.quantiles[n] for n in ("bear", "base", "bull")}, cfg.neighbourhood)
     if not paths:
         return None
     dcf = case.assumptions.dcf

@@ -181,6 +181,57 @@ class SimulationAssumptions(_Base):
     terminal_growth_sd: float = Field(0.005)
 
 
+class ScenarioAssumptions(_Base):
+    """Bear, base and bull read off the fade panel: where, how wide, and how weighted."""
+
+    quantiles: dict[str, float] = Field(
+        default_factory=lambda: {"bear": 0.10, "base": 0.50, "bull": 0.90},
+        description=(
+            "The percentile of realised five-year revenue growth among similar starters "
+            "that each scenario is read at."
+        ),
+    )
+    weights: dict[str, float] = Field(
+        default_factory=lambda: {"bear": 0.30, "base": 0.40, "bull": 0.30},
+        description=(
+            "Swanson's rule by default: 30/40/30 on P10, P50 and P90 approximates the "
+            "mean of a skewed distribution, where an equal split overweights both tails."
+        ),
+    )
+    neighbourhood: float = Field(
+        0.05,
+        gt=0.0,
+        le=0.25,
+        description="Half-width, in percentile points, of the company-years averaged around each percentile.",
+    )
+    min_similar: int = Field(
+        60,
+        ge=1,
+        description=(
+            "Fewer similar starters than this and the scenarios are read from every "
+            "labelled company-year instead, and the output says so."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _check(self) -> "ScenarioAssumptions":
+        names = ("bear", "base", "bull")
+        if set(self.quantiles) != set(names) or set(self.weights) != set(names):
+            raise ConfigError("scenarios.quantiles and scenarios.weights each name bear, base and bull, and nothing else")
+        bear, base, bull = (self.quantiles[n] for n in names)
+        if not 0.0 < bear < base < bull < 1.0:
+            raise ConfigError(
+                f"scenario quantiles run bear {bear}, base {base}, bull {bull}; they must "
+                "rise strictly from bear to bull, inside 0 to 1"
+            )
+        if any(w < 0 for w in self.weights.values()) or abs(sum(self.weights.values()) - 1.0) > 1e-9:
+            raise ConfigError(
+                f"scenario weights sum to {sum(self.weights.values()):.4f}; they must be "
+                "non-negative and sum to 1"
+            )
+        return self
+
+
 class APVAssumptions(_Base):
     """Adjusted present value, valued as unlevered firm plus financing side effects."""
 
@@ -754,6 +805,7 @@ class Assumptions(_Base):
     ml: MLAssumptions = Field(default_factory=MLAssumptions)
     simulation: SimulationAssumptions = Field(default_factory=SimulationAssumptions)
     apv: APVAssumptions = Field(default_factory=APVAssumptions)
+    scenarios: ScenarioAssumptions = Field(default_factory=ScenarioAssumptions)
 
     as_of: str | None = Field(
         None,
