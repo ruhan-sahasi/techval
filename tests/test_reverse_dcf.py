@@ -415,3 +415,8 @@ def test_the_screen_ranks_the_most_demanding_prices_first(panel):
     assert shares == sorted(shares)
     ddog = next(r for r in rows if r["ticker"] == "DDOG")
     assert 0.035 < ddog["implied_return"] < 0.04 and ddog["simulated_above"] == 0.0
+    # The panel's own scenarios: Datadog's price is past its bull case, Disney's
+    # leans on its bear case.
+    assert ddog["scenario_side"] == "above" and ddog["price"] > ddog["scenario_bull"]
+    dis = next(r for r in rows if r["ticker"] == "DIS")
+    assert dis["scenario_side"] == "bear" and 0.5 < dis["scenario_weight"] < 1.0
