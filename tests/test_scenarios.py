@@ -147,15 +147,35 @@ def test_each_scenario_is_the_engines_own_dcf_on_its_path(case, panel):
     assert result.to_dict()["pool"]["n"] == 307
 
 
-def test_weights_that_do_not_sum_to_one_are_refused(case, panel):
+@pytest.mark.parametrize(
+    "body, message",
+    [
+        ("scenarios:\n  weights: {bear: 0.3, base: 0.3, bull: 0.3}\n", "sum to 0.9000"),
+        ("scenarios:\n  quantiles: {bear: 0.5, base: 0.5, bull: 0.9}\n", "rise strictly"),
+        ("scenarios:\n  weights: {bear: 0.5, bull: 0.5}\n", "bear, base and bull"),
+    ],
+)
+def test_scenario_settings_that_cannot_be_meant_are_refused(tmp_path, body, message):
+    from techval.config import Assumptions
     from techval.errors import ConfigError
+
+    path = tmp_path / "assumptions.yaml"
+    path.write_text(body)
+    with pytest.raises(ConfigError, match=message):
+        Assumptions.load(path)
+
+
+def test_the_scenarios_follow_the_assumptions(case, panel):
     from techval.scenarios import value_scenarios
 
-    with pytest.raises(ConfigError, match="sum to"):
-        value_scenarios(
-            case, PRICE, panel.observations, trailing=TRAILING,
-            weights={"bear": 0.3, "base": 0.3, "bull": 0.3},
-        )
+    wider = case.with_dcf()
+    wider.assumptions.scenarios.quantiles = {"bear": 0.25, "base": 0.5, "bull": 0.75}
+    wider.assumptions.scenarios.weights = {"bear": 0.25, "base": 0.5, "bull": 0.25}
+    result = value_scenarios(wider, PRICE, panel.observations, trailing=TRAILING)
+    usual = value_scenarios(case, PRICE, panel.observations, trailing=TRAILING)
+    assert usual.scenario("bear").value < result.scenario("bear").value
+    assert result.scenario("bull").value < usual.scenario("bull").value
+    assert [s.weight for s in result.scenarios] == [0.25, 0.5, 0.25]
 
 
 def test_an_empty_panel_values_no_scenarios(case):
