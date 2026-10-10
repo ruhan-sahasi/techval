@@ -4,6 +4,10 @@ The forward DCF is built exactly as ``techval value`` builds it, then solved
 for the price one lever at a time by ``techval.reverse_dcf``. With the fade
 panel available the implied growth is set against base rates from its
 point-in-time company-years; without it the command still runs and says so.
+
+``techval scenarios`` reads the same panel the other way round: not how often
+the price's path happened, but what the company-years like this one did, as a
+bear, base and bull case valued through the same DCF.
 """
 
 from __future__ import annotations
@@ -48,6 +52,40 @@ def _cell(solve) -> str:
     return f"beyond {solve.edge:.0%}"
 
 
+def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path | None):
+    """The company as ``techval value`` builds it, with what the commands here also need.
+
+    Returns the assumptions, the price source, the market, the raw companyfacts
+    payload, the reverse-DCF ``Case`` and the last close.
+    """
+    from types import SimpleNamespace
+
+    from .edgar import CompanyFacts, EdgarClient, HttpCache
+    from .ev_bridge import build_ev_bridge
+    from .financials import build_financials
+    from .market import MarketData, make_price_source
+    from .reverse_dcf import Case
+    from .wacc import compute_wacc
+
+    assumptions = Assumptions.load(config)
+    knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
+    cache = HttpCache(enabled=not no_cache)
+    source = make_price_source(assumptions.price_source, cache, assumptions.price_csv_dir)
+    market = MarketData(source, cache, today=knowledge or date.today())
+    if facts_file is not None:
+        payload = json.loads(Path(facts_file).read_text(encoding="utf-8"))
+    else:
+        payload = EdgarClient(cache).company_facts(symbol).raw
+    fin = build_financials(symbol, facts=CompanyFacts(payload, symbol, knowledge_date=knowledge))
+    spot = market.spot(symbol)
+    bridge = build_ev_bridge(fin, spot, assumptions)
+    wacc = compute_wacc(fin, bridge, market, assumptions)
+    return SimpleNamespace(
+        assumptions=assumptions, source=source, market=market, payload=payload,
+        case=Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=assumptions), spot=spot,
+    )
+
+
 @app.command()
 def expectations(
     ticker: str,
@@ -72,33 +110,14 @@ def expectations(
     ),
 ) -> None:
     """What the price assumes: the DCF solved for the market price, lever by lever, with base rates."""
-    from .edgar import CompanyFacts, EdgarClient, HttpCache
-    from .ev_bridge import build_ev_bridge
-    from .financials import build_financials
-    from .market import MarketData, make_price_source
-    from .reverse_dcf import Case, market_expectations
-    from .wacc import compute_wacc
+    from .reverse_dcf import market_expectations
 
     symbol = ticker.upper()
     try:
-        assumptions = Assumptions.load(config)
-        knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
-        cache = HttpCache(enabled=not no_cache)
-        source = make_price_source(assumptions.price_source, cache, assumptions.price_csv_dir)
-        market = MarketData(source, cache, today=knowledge or date.today())
-        if facts_file is not None:
-            payload = json.loads(Path(facts_file).read_text(encoding="utf-8"))
-        else:
-            payload = EdgarClient(cache).company_facts(symbol).raw
-        fin = build_financials(symbol, facts=CompanyFacts(payload, symbol, knowledge_date=knowledge))
-        spot = market.spot(symbol)
-        bridge = build_ev_bridge(fin, spot, assumptions)
-        wacc = compute_wacc(fin, bridge, market, assumptions)
-        case = Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=assumptions)
-
+        co = _company(symbol, config, no_cache, facts_file)
         observations, trailing = _panel(Path(panels) if panels else CHECKOUT_PANELS, symbol)
         result = market_expectations(
-            case, price if price is not None else spot, trailing_growth=trailing, observations=observations
+            co.case, price if price is not None else co.spot, trailing_growth=trailing, observations=observations
         )
         rows = None
         if history:
@@ -106,9 +125,9 @@ def expectations(
 
             from .reverse_dcf import expectations_history, quarter_ends
 
-            today = market.today
+            today = co.market.today
             dates = quarter_ends(today - timedelta(days=3 * 365), today)
-            rows = expectations_history(payload, symbol, source, assumptions, dates)
+            rows = expectations_history(co.payload, symbol, co.source, co.assumptions, dates)
     except TechvalError as err:
         console.print(f"[red]{escape(str(err))}[/red]")
         raise typer.Exit(1)
@@ -245,3 +264,63 @@ def expectations_screen(
     for r in rows:
         if r["refused"]:
             console.print(f"  {r['ticker']} refused: {escape(r['refused'])}", highlight=False)
+
+
+@app.command()
+def scenarios(
+    ticker: str,
+    config: Path = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file."),
+    no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the HTTP cache."),
+    facts_file: Path = typer.Option(
+        None, "--facts", help="Recorded companyfacts payload for TICKER, instead of a live SEC call."
+    ),
+    price: float = typer.Option(None, "--price", help="Weigh the scenarios against this price instead of the last close."),
+    panels: Path = typer.Option(
+        None,
+        "--panels",
+        help="Directory holding fade_companyfacts.json.gz. Defaults to tests/fixtures in this checkout.",
+    ),
+    as_json: bool = typer.Option(False, "--json", help="Print the whole result as JSON."),
+) -> None:
+    """Bear, base and bull from what similar company-years went on to do, valued through the engine's DCF."""
+    from .scenarios import band_coverage, value_scenarios
+
+    symbol = ticker.upper()
+    directory = Path(panels) if panels else CHECKOUT_PANELS
+    try:
+        observations, trailing = _panel(directory, symbol)
+        if observations is None:
+            console.print(
+                f"[red]There is no fade panel in {escape(str(directory))}, and the scenarios are read "
+                "from it; point --panels at a checkout's tests/fixtures.[/red]"
+            )
+            raise typer.Exit(1)
+        co = _company(symbol, config, no_cache, facts_file)
+        result = value_scenarios(co.case, price if price is not None else co.spot, observations, trailing=trailing)
+        calibration = band_coverage(observations)
+    except TechvalError as err:
+        console.print(f"[red]{escape(str(err))}[/red]")
+        raise typer.Exit(1)
+
+    if as_json:
+        typer.echo(json.dumps({**result.to_dict(), "calibration": calibration}, indent=2, default=str))
+        return
+    table = Table(title=f"{escape(symbol)}: bear, base and bull from what similar company-years did", title_justify="left")
+    for name in ("Scenario", "Percentile", "Company-years", "5-year CAGR", "Growth, years 1 to 5", "Value", "Weight"):
+        table.add_column(name, justify="left" if name in ("Scenario", "Growth, years 1 to 5") else "right")
+    for s in result.scenarios:
+        table.add_row(
+            s.name.capitalize(), f"P{s.quantile * 100:.0f}", f"{s.n:,}", _pct(s.cagr),
+            "  ".join(f"{g:.1%}" for g in s.growth[:5]), f"{s.value:,.2f}", f"{s.weight:.0%}",
+        )
+    console.print(table)
+    for sentence in [*result.sentences, *result.notes, _calibration_sentence(calibration)]:
+        console.print(f"  {escape(sentence)}", highlight=False)
+
+
+def _calibration_sentence(c: dict) -> str:
+    return (
+        f"Held out from {c['test_from'][:4]}, the band from the 10th to the 90th percentile held "
+        f"{c['share_inside']:.1%} of {c['n']:,} company-years it had not seen, against a nominal "
+        f"{c['nominal']:.0%}; {c['share_above']:.1%} beat it and {c['share_below']:.1%} fell below."
+    )
