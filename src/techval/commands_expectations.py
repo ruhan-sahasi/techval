@@ -247,7 +247,10 @@ def expectations_screen(
         typer.echo(json.dumps(rows, indent=2, default=str))
         return
     table = Table(title=f"What each price assumes on {when}, the most demanding first", title_justify="left")
-    for name in ("Ticker", "Close", "Base case", "Implied return", "Growth needed", "Company-years that did it", "Simulated above"):
+    for name in (
+        "Ticker", "Close", "Base case", "Implied return", "Growth needed",
+        "Company-years that did it", "Simulated above", "Vs scenarios",
+    ):
         table.add_column(name, justify="left" if name == "Ticker" else "right")
     for r in rows:
         if r["refused"]:
@@ -258,7 +261,7 @@ def expectations_screen(
             r["ticker"], f"{r['price']:,.2f}", f"{r['base_value']:,.2f}",
             _pct(r["implied_return"]),
             "beyond 300%" if r["implied_growth"] is None else _pct(r["implied_growth"]),
-            did, above,
+            did, above, _against(r),
         )
     console.print(table)
     for r in rows:
@@ -324,3 +327,15 @@ def _calibration_sentence(c: dict) -> str:
         f"{c['share_inside']:.1%} of {c['n']:,} company-years it had not seen, against a nominal "
         f"{c['nominal']:.0%}; {c['share_above']:.1%} beat it and {c['share_below']:.1%} fell below."
     )
+
+
+def _against(row: dict) -> str:
+    """Where a price sits against its bear, base and bull, in a table cell."""
+    side = row.get("scenario_side")
+    if side is None:
+        return "n/a"
+    if side == "above":
+        return f"{row['price'] / row['scenario_bull']:.1f}x the bull"
+    if side == "below":
+        return "below the bear"
+    return f"{row['scenario_weight']:.0%} {side}"
