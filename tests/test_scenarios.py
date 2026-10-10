@@ -162,3 +162,56 @@ def test_an_empty_panel_values_no_scenarios(case):
     from techval.scenarios import value_scenarios
 
     assert value_scenarios(case, PRICE, [], trailing=TRAILING) is None
+
+
+def three(bear=10.0, base=20.0, bull=40.0):
+    from techval.scenarios import Scenario
+
+    return [
+        Scenario("bear", 0.1, 0.3, [], 0.0, 1, bear),
+        Scenario("base", 0.5, 0.4, [], 0.0, 1, base),
+        Scenario("bull", 0.9, 0.3, [], 0.0, 1, bull),
+    ]
+
+
+def test_a_price_at_the_weighted_value_implies_swansons_own_weight():
+    from techval.scenarios import implied_weight
+
+    # 0.3 x 10 + 0.4 x 20 + 0.3 x 40 = 23.
+    implied = implied_weight(three(), 23.0)
+    assert implied["side"] == "bull" and implied["weight"] == pytest.approx(0.30)
+
+
+def test_a_richer_price_leans_on_the_bull_case_and_a_cheaper_one_on_the_bear():
+    from techval.scenarios import implied_weight
+
+    rich = implied_weight(three(), 30.0)
+    # Bear and base held 3:4 are worth 11/0.7; the bull weight that lifts that to 30.
+    assert rich["side"] == "bull"
+    assert rich["weight"] == pytest.approx((30 - 11 / 0.7) / (40 - 11 / 0.7))
+    cheap = implied_weight(three(), 15.0)
+    assert cheap["side"] == "bear"
+    assert cheap["weight"] == pytest.approx((15 - 20 / 0.7) / (10 - 20 / 0.7))
+    assert "on the bear case, against 30%" in cheap["sentence"]
+
+
+def test_a_price_outside_the_scenarios_is_named_not_weighted():
+    from techval.scenarios import implied_weight
+
+    above = implied_weight(three(), 50.0)
+    assert above["side"] == "above" and above["weight"] is None
+    assert "1.2 times" in above["sentence"]
+    below = implied_weight(three(), 5.0)
+    assert below["side"] == "below" and "below even the bear case" in below["sentence"]
+
+
+def test_datadogs_price_is_above_even_its_bull_case(case, panel):
+    from techval.scenarios import value_scenarios
+
+    result = value_scenarios(case, PRICE, panel.observations, trailing=TRAILING)
+    assert result.implied["side"] == "above"
+    assert "3.1 times" in result.implied["sentence"]
+    first, weighted, implied = result.sentences
+    assert "307 company-years" in first and "4.1%, 18.0% and 32.9%" in first
+    assert "47.81" in weighted
+    assert result.to_dict()["implied"]["side"] == "above"

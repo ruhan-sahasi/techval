@@ -79,7 +79,7 @@ def realised_paths(
         if len(near) >= min_similar:
             return Pool(paths=near, similar=True, trailing=trailing, band=band)
         note = (
-            f"{len(near)} company-years started within {band:.0%} of {trailing:.1%}, fewer than "
+            f"{len(near)} company-years started within {band * 100:.0f} points of {trailing:.1%}, fewer than "
             f"{min_similar}, so the scenarios are read from every labelled company-year."
         )
     else:
@@ -156,10 +156,31 @@ class Scenarios:
     scenarios: list[Scenario]
     pool: Pool
     weighted: float
+    implied: dict = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
 
     def scenario(self, name: str) -> Scenario:
         return next(s for s in self.scenarios if s.name == name)
+
+    @property
+    def sentences(self) -> list[str]:
+        bear, base, bull = (self.scenario(n) for n in ("bear", "base", "bull"))
+        if self.pool.similar:
+            who = (
+                f"Of the {self.pool.n:,} company-years that started within {self.pool.band * 100:.0f} "
+                f"points of {self.pool.trailing:.1%} growth"
+            )
+        else:
+            who = f"Of all {self.pool.n:,} labelled company-years"
+        return [
+            f"{who}, the neighbourhoods around the 10th, 50th and 90th percentile compounded "
+            f"{bear.cagr:.1%}, {base.cagr:.1%} and {bull.cagr:.1%} a year over five years; on those "
+            f"paths, with everything else at the base case, the engine values {self.ticker} at "
+            f"{bear.value:,.2f}, {base.value:,.2f} and {bull.value:,.2f}.",
+            f"Weighted {bear.weight * 100:.0f}/{base.weight * 100:.0f}/{bull.weight * 100:.0f}, the scenarios are worth "
+            f"{self.weighted:,.2f} against a close of {self.price:,.2f} and a base case of {self.base_value:,.2f}.",
+            self.implied["sentence"],
+        ]
 
     def to_dict(self) -> dict:
         return {
@@ -186,6 +207,8 @@ class Scenarios:
                 }
                 for s in self.scenarios
             ],
+            "implied": self.implied,
+            "sentences": self.sentences,
             "notes": self.notes,
         }
 
@@ -234,5 +257,54 @@ def value_scenarios(
         scenarios=scenarios,
         pool=pool,
         weighted=weighted,
+        implied=implied_weight(scenarios, price),
         notes=notes,
     )
+
+
+def implied_weight(scenarios: list[Scenario], price: float) -> dict:
+    """The weight the price puts on one tail, the other two held in their stated ratio.
+
+    A price above the weighted value is read as a heavier bull case, with bear
+    and base kept in proportion; below it, as a heavier bear case, with base and
+    bull kept in proportion. Outside the three values no weighting reaches the
+    price, and the reading says how far outside rather than inventing a fourth
+    scenario.
+    """
+    by = {s.name: s for s in scenarios}
+    bear, base, bull = by["bear"], by["base"], by["bull"]
+    if price > bull.value:
+        return {
+            "side": "above",
+            "weight": None,
+            "sentence": (
+                f"At {price:,.2f} the price is above even the bull case, {bull.value:,.2f}, "
+                f"{price / bull.value:.1f} times the value of the path the 90th percentile took; "
+                "no weighting of the three reaches it."
+            ),
+        }
+    if price < bear.value:
+        return {
+            "side": "below",
+            "weight": None,
+            "sentence": (
+                f"At {price:,.2f} the price is below even the bear case, {bear.value:,.2f}; "
+                "no weighting of the three reaches it."
+            ),
+        }
+
+    def solve(tail, a, b):
+        rest = (a.weight * a.value + b.weight * b.value) / (a.weight + b.weight)
+        return (price - rest) / (tail.value - rest) if tail.value != rest else tail.weight
+
+    weighted = sum(s.weight * s.value for s in scenarios)
+    tail, (a, b) = (bull, (bear, base)) if price >= weighted else (bear, (base, bull))
+    w = solve(tail, a, b)
+    return {
+        "side": tail.name,
+        "weight": w,
+        "sentence": (
+            f"At {price:,.2f} the price puts {w:.0%} on the {tail.name} case, against "
+            f"{tail.weight:.0%} under Swanson's rule, with the other two held in proportion."
+        ),
+    }
