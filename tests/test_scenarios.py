@@ -215,3 +215,39 @@ def test_datadogs_price_is_above_even_its_bull_case(case, panel):
     assert "307 company-years" in first and "4.1%, 18.0% and 32.9%" in first
     assert "47.81" in weighted
     assert result.to_dict()["implied"]["side"] == "above"
+
+
+class Dated(Obs):
+    def __init__(self, as_of, growth, rate):
+        super().__init__(growth, flat(rate))
+        self.as_of = as_of
+
+
+def test_a_band_is_built_only_from_outcomes_public_by_then():
+    from datetime import date
+
+    from techval.scenarios import band_coverage
+
+    panel = [
+        Dated(date(2000, 3, 1), 0.2, 0.00),
+        Dated(date(2000, 3, 1), 0.2, 0.10),
+        # Filed 2003: nothing it could be scored against was public yet.
+        Dated(date(2003, 3, 1), 0.2, 0.05),
+        # Filed 2010: all three earlier outcomes are public; 20% beats their 90th percentile.
+        Dated(date(2010, 3, 1), 0.2, 0.20),
+    ]
+    cover = band_coverage(panel, test_from=date(2001, 1, 1), min_similar=2)
+    assert (cover["n"], cover["above"], cover["inside"], cover["below"]) == (1, 1, 0, 0)
+
+
+def test_on_held_out_company_years_the_band_runs_narrow_on_the_upside(panel):
+    from datetime import date
+
+    from techval.scenarios import band_coverage
+
+    cover = band_coverage(panel.observations, test_from=date(2016, 1, 1))
+    assert (cover["n"], cover["inside"], cover["below"], cover["above"]) == (674, 466, 78, 130)
+    # Nominal 80% inside, 10% each side; what followed ran faster than the history.
+    assert 0.65 < cover["share_inside"] < 0.75
+    assert cover["share_above"] > cover["share_below"]
+    assert cover["share_above_median"] > 0.55

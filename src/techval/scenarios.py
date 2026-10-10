@@ -308,3 +308,69 @@ def implied_weight(scenarios: list[Scenario], price: float) -> dict:
             f"{tail.weight:.0%} under Swanson's rule, with the other two held in proportion."
         ),
     }
+
+
+# A training company-year's five-year outcome is public only once the 10-K for
+# its fifth year is filed, about five years after its own; ninety days covers a
+# late filer.
+EMBARGO_DAYS = 90
+
+
+def band_coverage(
+    observations,
+    *,
+    horizon: int = BASE_RATE_HORIZON,
+    test_from=None,
+    band: float = SIMILAR_BAND,
+    min_similar: int = MIN_SIMILAR,
+    low: float = 0.10,
+    high: float = 0.90,
+) -> dict:
+    """How often the 10th-to-90th percentile band held a company-year it had not seen.
+
+    Every company-year filed on or after ``test_from`` is scored against a band
+    built only from company-years whose five-year outcome was public by then:
+    the 10th and 90th percentile of realised CAGR among its similar starters. A
+    calibrated band holds about 80%, with about 10% below and 10% above, and a
+    lopsided miss says the panel's history ran faster or slower than what
+    followed.
+    """
+    from datetime import date, timedelta
+
+    import numpy as np
+
+    test_from = test_from or date(2016, 1, 1)
+    labelled = []
+    for obs in observations:
+        if all(h in obs.labels for h in range(1, horizon + 1)):
+            cagr = path_cagr([obs.labels[h] for h in range(1, horizon + 1)], horizon)
+            known = obs.as_of + timedelta(days=round(365.25 * horizon) + EMBARGO_DAYS)
+            labelled.append((obs, cagr, known))
+    below = inside = above = upper_half = 0
+    for obs, cagr, _ in labelled:
+        if obs.as_of < test_from or obs.growth is None:
+            continue
+        seen = [(o, c) for o, c, known in labelled if known <= obs.as_of]
+        near = [c for o, c in seen if o.growth is not None and abs(o.growth - obs.growth) <= band]
+        pool = near if len(near) >= min_similar else [c for _, c in seen]
+        if len(pool) < min_similar:
+            continue
+        lo, mid, hi = (float(q) for q in np.quantile(pool, [low, 0.5, high]))
+        below += int(cagr < lo)
+        above += int(cagr > hi)
+        inside += int(lo <= cagr <= hi)
+        upper_half += int(cagr > mid)
+    n = below + inside + above
+    share = (lambda k: k / n if n else None)
+    return {
+        "n": n,
+        "test_from": test_from.isoformat(),
+        "inside": inside,
+        "below": below,
+        "above": above,
+        "share_inside": share(inside),
+        "share_below": share(below),
+        "share_above": share(above),
+        "share_above_median": share(upper_half),
+        "nominal": high - low,
+    }
