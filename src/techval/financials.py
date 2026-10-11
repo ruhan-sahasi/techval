@@ -200,10 +200,6 @@ class Financials:
         """
         return self.valuation_shares or self.diluted_shares
 
-    @property
-    def eps_diluted(self) -> float:
-        return self.net_income / self.diluted_shares if self.diluted_shares else 0.0
-
     def provenance_rows(self) -> list[dict[str, str]]:
         return [p.as_row() for p in self.provenance.values()]
 

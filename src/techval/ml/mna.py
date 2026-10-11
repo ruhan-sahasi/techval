@@ -481,10 +481,6 @@ class LabelReport:
         return sum(o.label for o in self.observations)
 
     @property
-    def n_negative(self) -> int:
-        return len(self.observations) - self.n_positive
-
-    @property
     def n_distinct_deals(self) -> int:
         return len({o.ticker for o in self.observations if o.label})
 

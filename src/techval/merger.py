@@ -199,10 +199,6 @@ class AccretionResult:
     components: list[tuple[str, float]]
     notes: list[str] = field(default_factory=list)
 
-    @property
-    def is_accretive(self) -> bool:
-        return self.accretion_dollars > 0
-
     def rows(self) -> list[tuple[str, float]]:
         out = list(self.components)
         out.append(("Pro forma net income", self.pro_forma_net_income))

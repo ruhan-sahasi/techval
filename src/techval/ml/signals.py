@@ -582,10 +582,6 @@ class SignalResult:
     # -- the answer -------------------------------------------------------- #
 
     @property
-    def p_naive(self) -> float:
-        return two_sided_p(self.ic.t_naive)
-
-    @property
     def p_newey_west(self) -> float:
         return two_sided_p(self.ic.t_newey_west)
 
