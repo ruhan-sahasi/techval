@@ -329,6 +329,11 @@ def test_the_risk_free_tile_says_where_the_rate_came_from():
     assert "test suite" in rate["sub"]
     rate = next(t for t in configured if t["label"] == "Risk-free rate")
     assert "market.risk_free_rate" in rate["sub"]
+    quoted = tiles(_measured(cost_of_capital=_cost(
+        risk_free_pinned=False, risk_free_source="US Treasury 10Y constant maturity, 2026-10-09"
+    )))
+    rate = next(t for t in quoted if t["label"] == "Risk-free rate")
+    assert rate["sub"] == "US Treasury 10Y constant maturity, 2026-10-09"
     assert pinned[0]["label"] == "Valuation date" and pinned[0]["value"] == "2026-01-02"
 
 
@@ -498,3 +503,54 @@ def test_the_sensitivity_grid_is_plain_with_the_base_case_boxed_and_wacc_to_two_
 
     moved = _sensitivity(values=[[22.0, 24.0, 26.0], [18.0, 20.5, 21.5], [15.0, 16.5, None]])
     assert "base" not in E._heat(_measured(sensitivity=moved))["data"]
+
+
+# --------------------------------------------------------------------------- #
+# measure, for any company
+# --------------------------------------------------------------------------- #
+
+
+def fixture_sources(observations=None):
+    """The committed fixtures read straight off disk, with nothing recorded."""
+    from contextlib import nullcontext
+
+    from techval.edgar import CompanyFacts
+    from techval.market import CsvSource
+
+    class Files:
+        def company_facts(self, ticker):
+            path = FIXTURES / f"companyfacts_{ticker.upper()}.json"
+            return CompanyFacts(json.loads(path.read_text(encoding="utf-8")), ticker)
+
+        def ticker_to_cik(self, ticker):
+            return self.company_facts(ticker).cik
+
+    return E.Sources(
+        client=Files(),
+        prices=CsvSource(FIXTURES / "prices"),
+        record=lambda *args, **kwargs: nullcontext(),
+        facts_name=lambda t: f"companyfacts_{t}.json",
+        prices_name=lambda t: f"prices/{t}.csv",
+        panel_name=E.FADE_PANEL,
+        observations=observations,
+    )
+
+
+def test_a_company_with_no_peers_is_valued_on_its_own_beta_and_says_why_comps_are_missing():
+    from datetime import date
+
+    from techval.config import Assumptions
+
+    a = Assumptions()
+    a.market.risk_free_rate = 0.0483
+    m = E.measure("CRWD", [], a, fixture_sources(), today=date(2026, 9, 9))
+    section = E.shape(m)
+    assert m.ticker == "CRWD" and m.cost_of_capital.peers == []
+    assert m.per_share_gordon is not None and m.simulation is not None
+    refused = {r.what: r.why for r in m.refusals}
+    assert "comps.peers" in refused["Trading comps"]
+    assert "no comps to take a median" in refused[E.EXIT_ROW]
+    # No panel was handed in, so the panel's readings are refused, not invented.
+    assert "What the price assumes" in refused and "Bear, base and bull" in refused
+    assert {"cost_of_capital", "football", "bridge", "sensitivity", "montecarlo"} <= set(section["figures"])
+    assert not any(label.startswith("Comps,") for label in (b.label for b in m.bands))

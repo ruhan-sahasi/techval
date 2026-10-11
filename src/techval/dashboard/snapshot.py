@@ -70,6 +70,9 @@ SECTION_KEYS = (
     "provenance",
 )
 PROVENANCE_KEYS = ("figure", "entry_point", "inputs", "seconds")
+# A page other than the results page says what it is: its own standfirst, and
+# the live sources it read in place of digested fixtures.
+PAGE_KEYS = ("standfirst", "sources")
 
 
 @dataclass
@@ -88,18 +91,21 @@ class Snapshot:
     fixtures: dict[str, str] = field(default_factory=dict)
     sections: dict[str, dict[str, Any]] = field(default_factory=dict)
     schema: int = SCHEMA_VERSION
+    page: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return to_jsonable(
-            {
-                "schema": self.schema,
-                "title": self.title,
-                "techval_commit": self.techval_commit,
-                "collected_at": self.collected_at,
-                "fixtures": self.fixtures,
-                "sections": self.sections,
-            }
-        )
+        out = {
+            "schema": self.schema,
+            "title": self.title,
+            "techval_commit": self.techval_commit,
+            "collected_at": self.collected_at,
+            "fixtures": self.fixtures,
+            "sections": self.sections,
+        }
+        # Written only when set, so the results page's snapshot is unchanged.
+        if self.page is not None:
+            out["page"] = self.page
+        return to_jsonable(out)
 
     @classmethod
     def from_dict(cls, raw: Any, *, source: str = "snapshot") -> "Snapshot":
@@ -133,6 +139,14 @@ class Snapshot:
                     f"{source}: section stored under {key!r} says its id is "
                     f"{section['id']!r}."
                 )
+        page = raw.get("page")
+        if page is not None:
+            if not isinstance(page, dict) or set(page) != set(PAGE_KEYS):
+                raise ConfigError(f"{source}: page must be {{{', '.join(PAGE_KEYS)}}}.")
+            if not isinstance(page["standfirst"], str) or not all(
+                isinstance(x, str) for x in page["sources"]
+            ):
+                raise ConfigError(f"{source}: page.standfirst is text and page.sources a list of text.")
         return cls(
             title=raw["title"],
             techval_commit=raw["techval_commit"],
@@ -140,6 +154,7 @@ class Snapshot:
             fixtures=dict(raw["fixtures"]),
             sections=dict(sections),
             schema=version,
+            page=dict(page) if page is not None else None,
         )
 
 
