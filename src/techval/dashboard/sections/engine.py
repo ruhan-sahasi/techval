@@ -1475,8 +1475,8 @@ def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, 
                 "and does not compute Miles-Ezzell. Miles-Ezzell discounts each year's "
                 "shield at the cost of debt for its last year and at Ku before that, "
                 "which scales the Harris-Pringle value by (1 + Ku) / (1 + Kd). This is "
-                "a convention the engine does not offer, not a figure the fixtures "
-                "cannot reproduce, and the page draws only what the engine computes.",
+                "a convention the engine does not offer, not a figure its inputs "
+                "cannot support, and the page draws only what the engine computes.",
                 "apv",
             )
         )
