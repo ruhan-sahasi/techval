@@ -256,7 +256,7 @@ def test_per_share_walks_the_bridge_backwards(
     from techval.ev_bridge import equity_value_from_ev
 
     d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
-    expected = equity_value_from_ev(d.enterprise_value_gordon, ddog, ddog_bridge)
+    expected = equity_value_from_ev(d.enterprise_value_gordon, ddog_bridge)
     assert d.equity_value_gordon == pytest.approx(expected)
     assert d.per_share_gordon == pytest.approx(expected / ddog.diluted_shares)
 

@@ -665,7 +665,7 @@ def _prepare(
         # The walk from enterprise value to equity is linear in the enterprise
         # value, so the whole bridge collapses to one constant and every draw
         # crosses it by the same route the scalar path does.
-        equity_offset=equity_value_from_dcf_ev(0.0, fin, bridge),
+        equity_offset=equity_value_from_dcf_ev(0.0, bridge),
     )
 
 

@@ -356,7 +356,7 @@ def build_ev_bridge(
 
 
 def equity_value_from_dcf_ev(
-    enterprise_value: float, fin: Financials, bridge: EVBridge
+    enterprise_value: float, bridge: EVBridge
 ) -> float:
     """Walk a DCF enterprise value to equity.
 
@@ -385,7 +385,7 @@ def equity_value_from_dcf_ev(
 
 
 def equity_value_from_ev(
-    enterprise_value: float, fin: Financials, bridge: EVBridge
+    enterprise_value: float, bridge: EVBridge
 ) -> float:
     """Walk back the other way, for a DCF that values the enterprise.
 
