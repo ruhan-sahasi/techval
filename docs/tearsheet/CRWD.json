@@ -1,0 +1,873 @@
+{
+  "collected_at": "2026-09-09",
+  "fixtures": {},
+  "page": {
+    "sources": [
+      "SEC EDGAR companyfacts for CRWD, DDOG, MDB, ZS, CRWD's filings through 2026-07-31",
+      "Committed fixture daily closes for CRWD, DDOG, MDB, ZS, through 2026-09-09",
+      "Risk-free rate: market.risk_free_rate in the assumptions",
+      "Fade panel of point-in-time TMT company-years: tests/fixtures/fade_companyfacts.json.gz"
+    ],
+    "standfirst": "CRWD through the same engine as the techval results page: the cost of capital, a DCF with its bridge and sensitivity, trading comps against DDOG, MDB, ZS, a Monte Carlo of value, APV, and what the price assumes and bear, base and bull from what similar company-years did. Its filings run through 2026-07-31 and its closes through 2026-09-09. Every figure is the engine's own, and where it could not form one a note says so in its place. Nothing here is advice."
+  },
+  "schema": 1,
+  "sections": {
+    "engine": {
+      "figures": {
+        "apv": {
+          "data": {
+            "domain": [
+              12400.0,
+              12900.0
+            ],
+            "format": "num:0",
+            "gapFormat": "signed:0",
+            "gapLabel": "APV minus WACC DCF",
+            "height": 190,
+            "labelHeader": "Shield convention",
+            "rows": [
+              {
+                "label": "No shield (unlevered)",
+                "values": {
+                  "apv": 12513.789692,
+                  "wacc": 12521.531422
+                }
+              },
+              {
+                "label": "Harris-Pringle, Ku 11.26%",
+                "values": {
+                  "apv": 12646.370721,
+                  "wacc": 12521.531422
+                }
+              },
+              {
+                "label": "Modigliani-Miller, Kd 6.66%",
+                "values": {
+                  "apv": 12784.634095,
+                  "wacc": 12521.531422
+                }
+              }
+            ],
+            "series": [
+              {
+                "key": "apv",
+                "name": "APV",
+                "role": "alt"
+              },
+              {
+                "key": "wacc",
+                "name": "WACC DCF",
+                "role": "model"
+              }
+            ]
+          },
+          "kind": "dot",
+          "refused": [
+            "APV, Miles-Ezzell"
+          ],
+          "subtitle": "Enterprise value, USD mm, on the Gordon terminal value: 12,522 from the WACC DCF at 11.25%. The unlevered cost of equity is 11.26%, level with the WACC. Modelled interest of 49.7mm is 1.9x the 26.6mm filed.",
+          "title": "APV sits above the WACC DCF only once the shield is added",
+          "wide": true
+        },
+        "bridge": {
+          "data": {
+            "downLabel": "Subtracts",
+            "format": "num:0",
+            "start": {
+              "label": "Equity value",
+              "value": 212534.88127
+            },
+            "steps": [
+              {
+                "label": "Straight debt",
+                "value": 746.216
+              },
+              {
+                "label": "Minority interest",
+                "value": 37.801
+              },
+              {
+                "label": "Cash",
+                "value": -5013.847
+              }
+            ],
+            "total": {
+              "label": "Enterprise value",
+              "value": 208305.05127
+            },
+            "totalLegend": "Equity or enterprise value",
+            "upLabel": "Adds to enterprise value",
+            "valueLabel": "USD mm"
+          },
+          "kind": "waterfall",
+          "subtitle": "USD mm. 207.80 a share on 1,022.8mm diluted shares. Lease convention: operating leases excluded, EBITDA basis (ASC 842), so the 74mm operating lease liability stays out of debt.",
+          "title": "Cash outweighs debt, so enterprise value sits 4,230mm below equity value"
+        },
+        "cost_of_capital": {
+          "data": {
+            "tiles": [
+              {
+                "label": "Valuation date",
+                "sub": "CRWD close of 207.80; filings through 2026-07-31",
+                "value": "2026-09-09"
+              },
+              {
+                "format": "pct:2",
+                "label": "Risk-free rate",
+                "sub": "From market.risk_free_rate in the assumptions",
+                "value": 0.0483
+              },
+              {
+                "format": "num:2",
+                "label": "Beta, peer median",
+                "sub": "DDOG, MDB, ZS asset betas, relevered at 0.4% debt to equity",
+                "value": 1.28889
+              },
+              {
+                "format": "num:2",
+                "label": "Beta, peer Vasicek",
+                "sub": "Would give a 11.72% WACC; not used",
+                "value": 1.382199
+              },
+              {
+                "format": "pct:2",
+                "label": "Equity risk premium",
+                "sub": "From market.equity_risk_premium",
+                "value": 0.05
+              },
+              {
+                "format": "pct:2",
+                "label": "Cost of equity",
+                "sub": "CAPM on the 1.29 beta",
+                "value": 0.112744
+              },
+              {
+                "format": "pct:2",
+                "label": "WACC",
+                "sub": "99.7% equity at 11.27%, 0.3% debt at 5.06% after tax",
+                "value": 0.112527
+              }
+            ]
+          },
+          "kind": "tiles",
+          "subtitle": "",
+          "title": "A 11.25% WACC, with equity at 99.7% of capital"
+        },
+        "expectations": {
+          "data": {
+            "format": "pct:0",
+            "height": 220,
+            "labelHeader": "Terminal EBIT margin",
+            "rows": [
+              {
+                "label": "10%",
+                "labelled": false,
+                "role": "model",
+                "value": 2.948067
+              },
+              {
+                "label": "20%",
+                "labelled": true,
+                "role": "model",
+                "value": 2.176883
+              },
+              {
+                "label": "30%",
+                "labelled": false,
+                "role": "model",
+                "value": 1.786784
+              },
+              {
+                "label": "40%",
+                "labelled": false,
+                "role": "model",
+                "value": 1.534524
+              },
+              {
+                "label": "50%",
+                "labelled": false,
+                "role": "model",
+                "value": 1.351897
+              },
+              {
+                "label": "60%",
+                "labelled": false,
+                "role": "model",
+                "value": 1.210687
+              }
+            ],
+            "valueLabel": "First-year growth needed"
+          },
+          "kind": "column",
+          "subtitle": "First-year revenue growth the 207.80 close needs at each terminal EBIT margin, faded on the engine's straight line, everything else as assumed. At this price the base case earns 3.1% a year against a 11.3% cost of capital. No terminal margin up to 95% reaches it alone: at 95% the DCF is worth 64.12.",
+          "title": "The close needs 218% growth next year; 1 of 1,662 TMT company-years ever compounded that path",
+          "wide": true
+        },
+        "expectations_history": {
+          "data": {
+            "format": "pct:1",
+            "series": [
+              {
+                "name": "Implied return",
+                "role": "model",
+                "values": [
+                  {
+                    "label": "close 80.15",
+                    "x": "2024-03-31",
+                    "y": 0.034758
+                  },
+                  {
+                    "label": "close 95.80",
+                    "x": "2024-06-30",
+                    "y": 0.033684
+                  },
+                  {
+                    "label": "close 70.12",
+                    "x": "2024-09-30",
+                    "y": 0.037709
+                  },
+                  {
+                    "label": "close 85.54",
+                    "x": "2024-12-31",
+                    "y": 0.035948
+                  },
+                  {
+                    "label": "close 88.14",
+                    "x": "2025-03-31",
+                    "y": 0.036422
+                  },
+                  {
+                    "label": "close 127.33",
+                    "x": "2025-06-30",
+                    "y": 0.033236
+                  },
+                  {
+                    "label": "close 122.59",
+                    "x": "2025-09-30",
+                    "y": 0.033986
+                  },
+                  {
+                    "label": "close 117.19",
+                    "x": "2025-12-31",
+                    "y": 0.034856
+                  },
+                  {
+                    "label": "close 97.60",
+                    "x": "2026-03-31",
+                    "y": 0.037243
+                  },
+                  {
+                    "label": "close 190.78",
+                    "x": "2026-06-30",
+                    "y": 0.031506
+                  }
+                ]
+              },
+              {
+                "name": "Cost of capital",
+                "role": "baseline",
+                "values": [
+                  {
+                    "label": "close 80.15",
+                    "x": "2024-03-31",
+                    "y": 0.125488
+                  },
+                  {
+                    "label": "close 95.80",
+                    "x": "2024-06-30",
+                    "y": 0.149996
+                  },
+                  {
+                    "label": "close 70.12",
+                    "x": "2024-09-30",
+                    "y": 0.171736
+                  },
+                  {
+                    "label": "close 85.54",
+                    "x": "2024-12-31",
+                    "y": 0.161796
+                  },
+                  {
+                    "label": "close 88.14",
+                    "x": "2025-03-31",
+                    "y": 0.158771
+                  },
+                  {
+                    "label": "close 127.33",
+                    "x": "2025-06-30",
+                    "y": 0.144192
+                  },
+                  {
+                    "label": "close 122.59",
+                    "x": "2025-09-30",
+                    "y": 0.145379
+                  },
+                  {
+                    "label": "close 117.19",
+                    "x": "2025-12-31",
+                    "y": 0.144447
+                  },
+                  {
+                    "label": "close 97.60",
+                    "x": "2026-03-31",
+                    "y": 0.138638
+                  },
+                  {
+                    "label": "close 190.78",
+                    "x": "2026-06-30",
+                    "y": 0.136484
+                  }
+                ]
+              }
+            ],
+            "x": {
+              "label": "Quarter-end",
+              "type": "date"
+            }
+          },
+          "kind": "line",
+          "notes": [
+            {
+              "what": "2023-09-30",
+              "why": "Could not source 'revenue' for CRWD over period twelve months ended 2023-07-31."
+            },
+            {
+              "what": "2023-12-31",
+              "why": "Could not source 'revenue' for CRWD over period twelve months ended 2023-10-31."
+            }
+          ],
+          "subtitle": "The return a buyer at each quarter-end close earns if that quarter's base case holds, against the cost of capital, each quarter built only from filings public by then. CRWD.",
+          "title": "Through closes from 70 to 191, the implied return stayed between 3.2% and 3.8% a year",
+          "wide": true
+        },
+        "football": {
+          "data": {
+            "format": "num:2",
+            "labelHeader": "Method",
+            "reference": [
+              {
+                "label": "Price 207.80",
+                "value": 207.8
+              }
+            ],
+            "roleLabels": {
+              "alt": "Trading comps",
+              "baseline": "Trading range, for reference only",
+              "model": "DCF"
+            },
+            "rows": [
+              {
+                "hi": 231.0,
+                "label": "52-week trading range",
+                "lo": 87.5625,
+                "mid": null,
+                "role": "baseline"
+              },
+              {
+                "hi": 81.879175,
+                "label": "Comps, EV/Revenue",
+                "lo": 49.110168,
+                "mid": null,
+                "role": "alt"
+              },
+              {
+                "hi": 79.911169,
+                "label": "Comps, EV/Gross Profit",
+                "lo": 49.574911,
+                "mid": null,
+                "role": "alt"
+              },
+              {
+                "hi": 21.626789,
+                "label": "DCF, Gordon growth",
+                "lo": 13.467004,
+                "mid": 16.378172,
+                "role": "model"
+              },
+              {
+                "hi": 16.280347,
+                "label": "DCF, value driver",
+                "lo": 12.708738,
+                "mid": 14.243683,
+                "role": "model"
+              }
+            ]
+          },
+          "kind": "range",
+          "refused": [
+            "Comps, EV/EBITDA",
+            "DCF, exit multiple"
+          ],
+          "subtitle": "CRWD, USD per share at the 2026-09-09 close. DCF bands span WACC 9.75% to 12.75% and terminal growth 1.5% to 3.5%, ticked at the base case. Comps bands apply the 25th to 75th percentile peer multiple (DDOG, MDB, ZS).",
+          "title": "Every DCF band tops out below 11% of the price; 1 of 3 market-based ranges contain it",
+          "wide": true
+        },
+        "montecarlo": {
+          "data": {
+            "binLabel": "Value per share",
+            "edges": [
+              5.0,
+              6.0,
+              7.0,
+              8.0,
+              9.0,
+              10.0,
+              11.0,
+              12.0,
+              13.0,
+              14.0,
+              15.0,
+              16.0,
+              17.0,
+              18.0,
+              19.0,
+              20.0,
+              21.0,
+              22.0,
+              23.0,
+              24.0,
+              25.0,
+              26.0,
+              27.0,
+              28.0,
+              29.0,
+              30.0,
+              31.0,
+              32.0,
+              33.0,
+              34.0,
+              35.0,
+              36.0,
+              37.0,
+              38.0,
+              39.0,
+              40.0,
+              41.0
+            ],
+            "format": "num:0",
+            "reference": [
+              {
+                "label": "Base case 16.38",
+                "value": 16.378172
+              }
+            ],
+            "sd": {
+              "correlated": 4.194931,
+              "independent": 3.449595,
+              "ratio": 1.216065
+            },
+            "series": [
+              {
+                "counts": [
+                  1,
+                  4,
+                  24,
+                  62,
+                  160,
+                  275,
+                  497,
+                  693,
+                  848,
+                  1013,
+                  1058,
+                  1054,
+                  873,
+                  828,
+                  643,
+                  495,
+                  368,
+                  305,
+                  205,
+                  179,
+                  113,
+                  78,
+                  66,
+                  48,
+                  37,
+                  21,
+                  15,
+                  12,
+                  10,
+                  6,
+                  1,
+                  1,
+                  1,
+                  1,
+                  1,
+                  4
+                ],
+                "name": "Correlated drivers",
+                "role": "model"
+              },
+              {
+                "counts": [
+                  0,
+                  0,
+                  7,
+                  35,
+                  76,
+                  172,
+                  358,
+                  703,
+                  886,
+                  1091,
+                  1266,
+                  1173,
+                  1092,
+                  928,
+                  679,
+                  471,
+                  348,
+                  251,
+                  161,
+                  121,
+                  61,
+                  49,
+                  25,
+                  18,
+                  14,
+                  5,
+                  4,
+                  0,
+                  0,
+                  3,
+                  2,
+                  0,
+                  1,
+                  0,
+                  0,
+                  0
+                ],
+                "name": "Independent drivers",
+                "role": "baseline"
+              }
+            ]
+          },
+          "kind": "hist",
+          "subtitle": "Value per share, USD, 10,000 seeded draws each on the Gordon terminal value. Standard deviation 4.19 correlated against 3.45 independent, a ratio of 1.22. The 207.80 price lies above every draw.",
+          "title": "Correlating the drivers widens the spread by 22%",
+          "wide": true
+        },
+        "scenarios": {
+          "data": {
+            "format": "num:2",
+            "labelHeader": "Scenario",
+            "reference": [
+              {
+                "label": "Price 207.80",
+                "value": 207.8
+              }
+            ],
+            "roleLabels": {
+              "baseline": "Base case",
+              "model": "Scenario from the panel",
+              "total": "Weighted"
+            },
+            "rows": [
+              {
+                "label": "Bear: 3.8% a year",
+                "note": "P10, the mean path of 41 company-years",
+                "role": "model",
+                "value": 12.287997
+              },
+              {
+                "label": "Base: 15.3% a year",
+                "note": "P50, the mean path of 41 company-years",
+                "role": "model",
+                "value": 18.25423
+              },
+              {
+                "label": "Bull: 29.5% a year",
+                "note": "P90, the mean path of 41 company-years",
+                "role": "model",
+                "value": 29.92245
+              },
+              {
+                "label": "Weighted 30/40/30",
+                "role": "total",
+                "value": 19.964826
+              },
+              {
+                "label": "Engine base case",
+                "role": "baseline",
+                "value": 16.378172
+              }
+            ]
+          },
+          "kind": "hbar",
+          "notes": [
+            {
+              "what": "Calibration",
+              "why": "Held out from 2016, the 10th-to-90th percentile band held 69.1% of 674 company-years it had not seen, against a nominal 80%; 19.3% beat it and 11.6% fell below, so these bull cases have run low against what followed."
+            }
+          ],
+          "subtitle": "Per share. Each scenario is the mean growth path of the company-years around the 10th, 50th or 90th percentile of realised five-year growth among the 415 that started within 10 points of 21.7%, valued through the engine's DCF with everything else at the base case. CRWD.",
+          "title": "Even the bull case, the path the 90th percentile of similar company-years took, is worth 29.92; the close is 6.9 times it",
+          "wide": true
+        },
+        "sensitivity": {
+          "data": {
+            "base": [
+              2,
+              2
+            ],
+            "colTitle": "Terminal growth",
+            "cols": [
+              "1.5%",
+              "2.0%",
+              "2.5%",
+              "3.0%",
+              "3.5%"
+            ],
+            "format": "num:2",
+            "rowHeader": "WACC",
+            "rows": [
+              "9.75%",
+              "10.50%",
+              "11.25%",
+              "12.00%",
+              "12.75%"
+            ],
+            "scale": "plain",
+            "valueLabel": "Value per share",
+            "values": [
+              [
+                17.674479,
+                18.471383,
+                19.378163,
+                20.419227,
+                21.626789
+              ],
+              [
+                16.353015,
+                17.003404,
+                17.735064,
+                18.564244,
+                19.511833
+              ],
+              [
+                15.239013,
+                15.777814,
+                16.378172,
+                17.051278,
+                17.811205
+              ],
+              [
+                14.287904,
+                14.739958,
+                15.239584,
+                15.794706,
+                16.415116
+              ],
+              [
+                13.467004,
+                13.850438,
+                14.271269,
+                14.735251,
+                15.249378
+              ]
+            ]
+          },
+          "kind": "heat",
+          "subtitle": "Gordon DCF, implied value per share in USD, WACC down the side and terminal growth across the top. The base case, a 11.25% WACC and 2.5% terminal growth, gives 16.38 against a price of 207.80.",
+          "title": "The richest cell, 21.63 a share, is 10% of the price"
+        }
+      },
+      "headline": null,
+      "id": "engine",
+      "provenance": [
+        {
+          "entry_point": "techval.ev_bridge.build_ev_bridge",
+          "figure": "bridge",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "SEC EDGAR companyfacts, CRWD"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.comps.run_comps",
+          "figure": "football",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "Committed fixture daily closes, DDOG",
+            "Committed fixture daily closes, MDB",
+            "Committed fixture daily closes, SPY",
+            "Committed fixture daily closes, ZS",
+            "SEC EDGAR companyfacts, CRWD",
+            "SEC EDGAR companyfacts, DDOG",
+            "SEC EDGAR companyfacts, MDB",
+            "SEC EDGAR companyfacts, ZS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.wacc.compute_wacc",
+          "figure": "cost_of_capital",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "Committed fixture daily closes, DDOG",
+            "Committed fixture daily closes, MDB",
+            "Committed fixture daily closes, SPY",
+            "Committed fixture daily closes, ZS",
+            "SEC EDGAR companyfacts, CRWD",
+            "SEC EDGAR companyfacts, DDOG",
+            "SEC EDGAR companyfacts, MDB",
+            "SEC EDGAR companyfacts, ZS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.market.PriceSeries.fifty_two_week_range",
+          "figure": "football",
+          "inputs": [
+            "Committed fixture daily closes, CRWD"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.dcf.run_dcf",
+          "figure": "football",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "Committed fixture daily closes, DDOG",
+            "Committed fixture daily closes, MDB",
+            "Committed fixture daily closes, SPY",
+            "Committed fixture daily closes, ZS",
+            "SEC EDGAR companyfacts, CRWD",
+            "SEC EDGAR companyfacts, DDOG",
+            "SEC EDGAR companyfacts, MDB",
+            "SEC EDGAR companyfacts, ZS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.reverse_dcf.market_expectations",
+          "figure": "expectations",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "Committed fixture daily closes, DDOG",
+            "Committed fixture daily closes, MDB",
+            "Committed fixture daily closes, SPY",
+            "Committed fixture daily closes, ZS",
+            "SEC EDGAR companyfacts, CRWD",
+            "SEC EDGAR companyfacts, DDOG",
+            "SEC EDGAR companyfacts, MDB",
+            "SEC EDGAR companyfacts, ZS",
+            "fade panel, tests/fixtures/fade_companyfacts.json.gz"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.scenarios.value_scenarios",
+          "figure": "scenarios",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "Committed fixture daily closes, DDOG",
+            "Committed fixture daily closes, MDB",
+            "Committed fixture daily closes, SPY",
+            "Committed fixture daily closes, ZS",
+            "SEC EDGAR companyfacts, CRWD",
+            "SEC EDGAR companyfacts, DDOG",
+            "SEC EDGAR companyfacts, MDB",
+            "SEC EDGAR companyfacts, ZS",
+            "fade panel, tests/fixtures/fade_companyfacts.json.gz"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.reverse_dcf.expectations_history",
+          "figure": "expectations_history",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "SEC EDGAR companyfacts, CRWD"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.dcf.sensitivity_wacc_growth",
+          "figure": "sensitivity",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "Committed fixture daily closes, DDOG",
+            "Committed fixture daily closes, MDB",
+            "Committed fixture daily closes, SPY",
+            "Committed fixture daily closes, ZS",
+            "SEC EDGAR companyfacts, CRWD",
+            "SEC EDGAR companyfacts, DDOG",
+            "SEC EDGAR companyfacts, MDB",
+            "SEC EDGAR companyfacts, ZS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.dcf.run_dcf",
+          "figure": "football",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "Committed fixture daily closes, DDOG",
+            "Committed fixture daily closes, MDB",
+            "Committed fixture daily closes, SPY",
+            "Committed fixture daily closes, ZS",
+            "SEC EDGAR companyfacts, CRWD",
+            "SEC EDGAR companyfacts, DDOG",
+            "SEC EDGAR companyfacts, MDB",
+            "SEC EDGAR companyfacts, ZS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.simulation.run_simulation",
+          "figure": "montecarlo",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "Committed fixture daily closes, DDOG",
+            "Committed fixture daily closes, MDB",
+            "Committed fixture daily closes, SPY",
+            "Committed fixture daily closes, ZS",
+            "SEC EDGAR companyfacts, CRWD",
+            "SEC EDGAR companyfacts, DDOG",
+            "SEC EDGAR companyfacts, MDB",
+            "SEC EDGAR companyfacts, ZS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.apv.run_apv",
+          "figure": "apv",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "Committed fixture daily closes, DDOG",
+            "Committed fixture daily closes, MDB",
+            "Committed fixture daily closes, SPY",
+            "Committed fixture daily closes, ZS",
+            "SEC EDGAR companyfacts, CRWD",
+            "SEC EDGAR companyfacts, DDOG",
+            "SEC EDGAR companyfacts, MDB",
+            "SEC EDGAR companyfacts, ZS"
+          ],
+          "seconds": 0.0
+        }
+      ],
+      "refusals": [
+        {
+          "what": "Comps, EV/EBITDA",
+          "why": "EV/EBITDA is not applied: CRWD's own EBITDA is not reported. A positive multiple on a negative denominator returns a negative value, which is not a valuation."
+        },
+        {
+          "what": "DCF, exit multiple",
+          "why": "dcf.exit_multiple is unset and no peer in DDOG, MDB, ZS has a meaningful EV/EBITDA to take a median of (DDOG: 1,004x exceeds the 100x cut-off on an EBITDA margin of 2.0%; MDB: 3,202x exceeds the 100x cut-off on an EBITDA margin of 0.3%; ZS: 1,626x exceeds the 100x cut-off on an EBITDA margin of 0.5%). The engine does not invent a multiple, so there is no exit-multiple terminal value to draw."
+        },
+        {
+          "what": "APV, Miles-Ezzell",
+          "why": "The engine computes two shield conventions, the cost of debt (Modigliani-Miller) and the unlevered cost of equity (Harris-Pringle), and does not compute Miles-Ezzell. Miles-Ezzell discounts each year's shield at the cost of debt for its last year and at Ku before that, which scales the Harris-Pringle value by (1 + Ku) / (1 + Kd). This is a convention the engine does not offer, not a figure its inputs cannot support, and the page draws only what the engine computes."
+        }
+      ],
+      "status": "ok",
+      "takeaway": "At the 2026-09-09 close of 207.80, on a 4.83% risk-free rate and a 11.25% WACC, the DCF values CRWD at 16.38 a share on Gordon growth and 14.24 on the value driver, 8% and 7% of the price. No exit-multiple value is drawn; the note under the football field says why. Run backwards, the close earns 3.1% a year if the base case holds, or needs 218% revenue growth next year, a path 1 of 1,662 TMT company-years ever compounded. Correlating the simulation's four drivers widens the spread of value by 22%.",
+      "title": "Valuation engine"
+    }
+  },
+  "techval_commit": "d7974c5",
+  "title": "CRWD, valued by the engine"
+}
