@@ -806,7 +806,6 @@ def _contribution(
 def accretion_sensitivity(
     acq_fin: Financials,
     tgt_fin: Financials,
-    tgt_bridge: EVBridge,
     acq_price: float,
     tgt_price: float,
     assumptions: Assumptions,
@@ -826,8 +825,10 @@ def accretion_sensitivity(
     are centred on the deal as configured and are not floored at zero: a cell
     below the unaffected price is a discount, and it is labelled as one.
 
-    The target's net debt is held at the supplied bridge across every cell. Only
-    the equity being purchased moves with the premium; the debt assumed does not.
+    The target is re-bridged at each cell's own offer price, so a convertible is
+    carried as equity in a cell whose offer clears its conversion price and as
+    debt in a cell whose offer does not; straight debt assumed does not move
+    with the premium.
 
     Values are percent accretion where standalone EPS is a base worth dividing
     by, and cents per share otherwise, on the same test ``_accretion_percent``
@@ -1604,7 +1605,7 @@ def run_merger(
         "target": cons.new_shares_issued / accretion.pro_forma_shares,
     }
     sensitivity = accretion_sensitivity(
-        acq_fin, tgt_fin, tgt_bridge, acq_price, tgt_price, assumptions, tax_rate
+        acq_fin, tgt_fin, acq_price, tgt_price, assumptions, tax_rate
     )
     checks = _rule_of_thumb_checks(
         acq_fin,
