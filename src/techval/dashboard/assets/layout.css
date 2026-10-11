@@ -1091,10 +1091,6 @@ details > summary:hover {
   background: var(--chip-hue);
 }
 
-.tv-chip__icon {
-  display: none;
-}
-
 .tv-chip--good {
   --chip-hue: var(--status-good);
   --chip-on: var(--on-status-good);
@@ -1243,10 +1239,6 @@ a.tv-tile:hover .tv-tile__label {
   color: var(--ink-3);
   font-weight: var(--fw-semibold);
   font-variant-numeric: tabular-nums;
-}
-
-.tv-note .tv-chip__icon {
-  display: none;
 }
 
 .tv-note > p {

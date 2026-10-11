@@ -706,48 +706,19 @@
   /* Status chips ---------------------------------------------------------- */
 
   var STATUS = {
-    beats: { label: "Beats baseline", short: "Beats", tone: "good", glyph: "check" },
-    inside_noise: { label: "Inside noise", short: "In noise", tone: "warning", glyph: "tilde" },
-    ties: { label: "Ties baseline", short: "Ties", tone: "neutral", glyph: "equals" },
-    loses: { label: "Loses to baseline", short: "Loses", tone: "critical", glyph: "cross" },
-    not_significant: { label: "Not significant", short: "Not sig.", tone: "warning", glyph: "ring" },
-    refused: { label: "Refused", short: "Refused", tone: "neutral", glyph: "slash" },
+    beats: { label: "Beats baseline", short: "Beats", tone: "good" },
+    inside_noise: { label: "Inside noise", short: "In noise", tone: "warning" },
+    ties: { label: "Ties baseline", short: "Ties", tone: "neutral" },
+    loses: { label: "Loses to baseline", short: "Loses", tone: "critical" },
+    not_significant: { label: "Not significant", short: "Not sig.", tone: "warning" },
+    refused: { label: "Refused", short: "Refused", tone: "neutral" },
     /* The portfolio page's calls against the warranted line. */
-    rich: { label: "Rich to warranted", short: "Rich", tone: "warning", glyph: "up" },
-    cheap: { label: "Cheap to warranted", short: "Cheap", tone: "good", glyph: "down" },
-  };
-
-  var GLYPHS = {
-    check: [["path", { d: "M4.6 8.3 L7 10.6 L11.4 5.6" }]],
-    tilde: [["path", { d: "M4.2 9 C5.6 6.4 6.9 6.4 8 8 C9.1 9.6 10.4 9.6 11.8 7" }]],
-    equals: [["path", { d: "M5 6.3 H11 M5 9.7 H11" }]],
-    cross: [["path", { d: "M5.6 5.6 L10.4 10.4 M10.4 5.6 L5.6 10.4" }]],
-    ring: [["circle", { cx: 8, cy: 8, r: 2.6 }]],
-    slash: [["path", { d: "M5.2 10.8 L10.8 5.2" }]],
-    up: [["path", { d: "M8 11.2 V5.4 M5.5 7.9 L8 5.4 L10.5 7.9" }]],
-    down: [["path", { d: "M8 4.8 V10.6 M5.5 8.1 L8 10.6 L10.5 8.1" }]],
+    rich: { label: "Rich to warranted", short: "Rich", tone: "warning" },
+    cheap: { label: "Cheap to warranted", short: "Cheap", tone: "good" },
   };
 
   function statusInfo(status) {
-    return STATUS[status] || { label: String(status || "Unknown"), tone: "neutral", glyph: "ring" };
-  }
-
-  function chipIcon(status) {
-    var info = statusInfo(status);
-    var icon = svg(
-      "svg",
-      {
-        class: "tv-chip__icon tv-chip--" + info.tone,
-        viewBox: "0 0 16 16",
-        "aria-hidden": "true",
-        focusable: "false",
-      },
-      svg("circle", { class: "tv-chip__disc", cx: 8, cy: 8, r: 8 })
-    );
-    GLYPHS[info.glyph].forEach(function (part) {
-      icon.appendChild(svg(part[0], Object.assign({ class: "tv-chip__glyph" }, part[1])));
-    });
-    return icon;
+    return STATUS[status] || { label: String(status || "Unknown"), tone: "neutral" };
   }
 
   TV.chip = function (status, text, opts) {
@@ -759,12 +730,10 @@
         class: "tv-chip tv-chip--" + info.tone + (opts.compact ? " tv-chip--compact" : ""),
         "data-status": status,
       },
-      chipIcon(status),
       el("span", { class: "tv-chip__label" }, isNil(text) ? (opts.compact ? info.short || info.label : info.label) : text)
     );
   };
 
-  TV.chip.icon = chipIcon;
   TV.chip.label = function (status) {
     return statusInfo(status).label;
   };
@@ -781,7 +750,6 @@
     return el(
       "div",
       { class: "tv-note", role: "note" },
-      chipIcon("refused"),
       el(
         "p",
         null,
@@ -793,7 +761,7 @@
 
   /*
    * A caution: the figure above it stands, but a limit of its input makes it
-   * fragile. It carries the warning glyph, never the refusal chip. A string, or
+   * fragile. It is styled as a caution, never as a refusal. A string, or
    * {what, why} for a caution with a name.
    */
   function cautionNote(note) {
@@ -802,7 +770,6 @@
     return el(
       "div",
       { class: "tv-note tv-note--caution", role: "note" },
-      chipIcon("inside_noise"),
       el("p", null, what ? el("strong", null, what) : null, what && why ? ". " : "", why || "")
     );
   }
