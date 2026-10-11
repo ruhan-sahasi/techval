@@ -374,34 +374,6 @@ class MergerResult:
     notes: list[str] = field(default_factory=list)
     purchase_accounting: PurchaseAccounting | None = None
 
-    def contribution_frame(self) -> pd.DataFrame:
-        """Earnings contribution against pro forma ownership, side by side.
-
-        The comparison is the point: if the target's owners walk away with more
-        of the combined company than the earnings they bring to it, the deal
-        transfers value to them, and that shows up as dilution.
-        """
-        data = [
-            {
-                "Metric": r.metric,
-                self.acquirer.ticker: r.acquirer,
-                self.target.ticker: r.target,
-                f"{self.acquirer.ticker} %": r.acquirer_pct,
-                f"{self.target.ticker} %": r.target_pct,
-            }
-            for r in self.contribution
-        ]
-        data.append(
-            {
-                "Metric": "Pro forma ownership",
-                self.acquirer.ticker: None,
-                self.target.ticker: None,
-                f"{self.acquirer.ticker} %": self.pro_forma_ownership["acquirer"],
-                f"{self.target.ticker} %": self.pro_forma_ownership["target"],
-            }
-        )
-        return pd.DataFrame(data)
-
 
 # --------------------------------------------------------------------------- #
 # inputs
