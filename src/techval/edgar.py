@@ -320,37 +320,6 @@ def _neg_date(iso: str) -> tuple[int, ...]:
         return (0, 0, 0)
 
 
-def _collapse_to_actions(
-    detections: list[tuple[date, float, date]],
-) -> list[tuple[date, float]]:
-    """Reduce split detections to one threshold per corporate action.
-
-    ``detections`` is ``(filed, factor, latest_period_end_restated)``, sorted.
-    A company reflects one split across several filings, because each report
-    restates only the comparative periods it happens to show, so the same
-    four-for-one is detected three or four times over the following year. Every
-    one of those detections is the same event and a pre-split fact must be
-    multiplied by four once, not once per filing.
-
-    The test that separates a repeat from a second split is the period end. A
-    filing reflecting split S can only restate periods that closed before S,
-    since anything that closed afterwards was first reported on the new basis.
-    So a detection whose latest restated period ends after the open action's own
-    filing date cannot belong to that action, and opens a new one.
-
-    Returns ``(filed_on_or_after, factor)``, which is what ``_split_adjust``
-    multiplies through.
-    """
-    thresholds: list[tuple[date, float]] = []
-    open_action: dict[float, date] = {}
-    for filed, factor, latest_end in detections:
-        opened = open_action.get(factor)
-        if opened is None or latest_end > opened:
-            open_action[factor] = filed
-            thresholds.append((filed, factor))
-    return sorted(thresholds)
-
-
 @dataclass
 class Provenance:
     """Where a single reported figure came from.

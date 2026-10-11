@@ -348,9 +348,7 @@ def _revenue_growth(
     return fin.revenue / prior - 1.0
 
 
-def _for_company(
-    fin: Financials, assumptions: Assumptions, is_target: bool
-) -> Assumptions:
+def _for_company(assumptions: Assumptions, is_target: bool) -> Assumptions:
     """Assumptions as they apply to one company in the set.
 
     ``convertibles.conversion_price`` is read from the target's own notes
@@ -390,7 +388,7 @@ def compute_peer_metrics(
     statements, the fact set behind them and the quote, so the same peer can be
     repriced at a different price without another fetch.
     """
-    bridge = build_ev_bridge(fin, price, _for_company(fin, assumptions, is_target))
+    bridge = build_ev_bridge(fin, price, _for_company(assumptions, is_target))
     ev = bridge.enterprise_value
     flags: list[str] = list(bridge.notes) if not is_target else []
 
@@ -622,8 +620,8 @@ def _implied_frame(
             )
         else:
             ev_low, ev_high = low_m * metric, high_m * metric
-            equity_low = equity_value_from_ev(ev_low, target_fin, bridge)
-            equity_high = equity_value_from_ev(ev_high, target_fin, bridge)
+            equity_low = equity_value_from_ev(ev_low, bridge)
+            equity_high = equity_value_from_ev(ev_high, bridge)
 
         rows.append(
             {
@@ -668,7 +666,7 @@ def _walk_to_equity(
     convention and either convertible treatment.
     """
     if target_fin is not None and bridge is not None:
-        return equity_value_from_ev(enterprise_value, target_fin, bridge)
+        return equity_value_from_ev(enterprise_value, bridge)
     return enterprise_value - (target.enterprise_value - target.market_cap)
 
 

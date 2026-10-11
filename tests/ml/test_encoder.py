@@ -88,12 +88,6 @@ def _synthetic_ticker(sector: int, i: int) -> str:
     return f"S{sector}C{i}"
 
 
-def _synthetic_universe() -> list[str]:
-    return [
-        _synthetic_ticker(s, i) for s in range(_SECTORS) for i in range(_PER_SECTOR)
-    ]
-
-
 def _synthetic_panel(rng: np.random.Generator) -> FeaturePanel:
     """A feature row per company per date, with a sector centre plus noise.
 

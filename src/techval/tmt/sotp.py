@@ -725,7 +725,7 @@ def run_sotp(
         )
 
     # -- down to equity ------------------------------------------------------ #
-    equity = equity_value_from_ev(net_ev, fin, bridge)
+    equity = equity_value_from_ev(net_ev, bridge)
     shares = bridge.diluted_shares
     if shares <= 0:
         raise NotMeaningfulError(

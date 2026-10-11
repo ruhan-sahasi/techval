@@ -755,14 +755,11 @@ def test_a_price_series_that_is_not_this_company_is_caught(payloads):
     assert floats, "the fixture should carry a public float"
     reported = max(floats, key=lambda f: (f.end, f.filed)).val / 1e6
 
-    class Fin:
-        pass
-
-    assert W.price_disagrees_with_the_public_float(facts, Fin(), reported) is None
-    assert W.price_disagrees_with_the_public_float(facts, Fin(), reported * 6.0) is None
-    too_big = W.price_disagrees_with_the_public_float(facts, Fin(), reported * 16.0)
+    assert W.price_disagrees_with_the_public_float(facts, reported) is None
+    assert W.price_disagrees_with_the_public_float(facts, reported * 6.0) is None
+    too_big = W.price_disagrees_with_the_public_float(facts, reported * 16.0)
     assert too_big is not None and "does not belong to this filer" in too_big
-    too_small = W.price_disagrees_with_the_public_float(facts, Fin(), reported / 16.0)
+    too_small = W.price_disagrees_with_the_public_float(facts, reported / 16.0)
     assert too_small is not None
 
 

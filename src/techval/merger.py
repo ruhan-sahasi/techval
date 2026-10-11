@@ -199,10 +199,6 @@ class AccretionResult:
     components: list[tuple[str, float]]
     notes: list[str] = field(default_factory=list)
 
-    @property
-    def is_accretive(self) -> bool:
-        return self.accretion_dollars > 0
-
     def rows(self) -> list[tuple[str, float]]:
         out = list(self.components)
         out.append(("Pro forma net income", self.pro_forma_net_income))
@@ -377,34 +373,6 @@ class MergerResult:
     checks: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
     purchase_accounting: PurchaseAccounting | None = None
-
-    def contribution_frame(self) -> pd.DataFrame:
-        """Earnings contribution against pro forma ownership, side by side.
-
-        The comparison is the point: if the target's owners walk away with more
-        of the combined company than the earnings they bring to it, the deal
-        transfers value to them, and that shows up as dilution.
-        """
-        data = [
-            {
-                "Metric": r.metric,
-                self.acquirer.ticker: r.acquirer,
-                self.target.ticker: r.target,
-                f"{self.acquirer.ticker} %": r.acquirer_pct,
-                f"{self.target.ticker} %": r.target_pct,
-            }
-            for r in self.contribution
-        ]
-        data.append(
-            {
-                "Metric": "Pro forma ownership",
-                self.acquirer.ticker: None,
-                self.target.ticker: None,
-                f"{self.acquirer.ticker} %": self.pro_forma_ownership["acquirer"],
-                f"{self.target.ticker} %": self.pro_forma_ownership["target"],
-            }
-        )
-        return pd.DataFrame(data)
 
 
 # --------------------------------------------------------------------------- #
@@ -838,7 +806,6 @@ def _contribution(
 def accretion_sensitivity(
     acq_fin: Financials,
     tgt_fin: Financials,
-    tgt_bridge: EVBridge,
     acq_price: float,
     tgt_price: float,
     assumptions: Assumptions,
@@ -858,8 +825,10 @@ def accretion_sensitivity(
     are centred on the deal as configured and are not floored at zero: a cell
     below the unaffected price is a discount, and it is labelled as one.
 
-    The target's net debt is held at the supplied bridge across every cell. Only
-    the equity being purchased moves with the premium; the debt assumed does not.
+    The target is re-bridged at each cell's own offer price, so a convertible is
+    carried as equity in a cell whose offer clears its conversion price and as
+    debt in a cell whose offer does not; straight debt assumed does not move
+    with the premium.
 
     Values are percent accretion where standalone EPS is a base worth dividing
     by, and cents per share otherwise, on the same test ``_accretion_percent``
@@ -1636,7 +1605,7 @@ def run_merger(
         "target": cons.new_shares_issued / accretion.pro_forma_shares,
     }
     sensitivity = accretion_sensitivity(
-        acq_fin, tgt_fin, tgt_bridge, acq_price, tgt_price, assumptions, tax_rate
+        acq_fin, tgt_fin, acq_price, tgt_price, assumptions, tax_rate
     )
     checks = _rule_of_thumb_checks(
         acq_fin,
