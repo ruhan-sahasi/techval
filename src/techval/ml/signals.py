@@ -263,37 +263,13 @@ def deal_terms_from_events(
     ``deal_events`` answers who was bid for and when, which is what an M&A
     propensity label needs. It does not answer what the holder received, so every
     term built here has ``offer_price`` None and every terminating return falls
-    back to the last traded close. Pass ``Transaction`` objects instead where the
-    price matters, which is whenever the deal is in cash.
+    back to the last traded close. Where the price matters, which is whenever
+    the deal is in cash, build each ``DealTerm`` with its ``offer_price``.
     """
     return [
         DealTerm(ticker=str(t).upper(), announced=d, completed=bool(c), source="deal_events")
         for t, d, c in events
     ]
-
-
-def deal_terms_from_transactions(transactions: Iterable[Any]) -> list[DealTerm]:
-    """Adapt ``tmt.precedents.Transaction`` objects, which do carry a price.
-
-    Anything without an announcement date is skipped: a transaction the parser
-    identified but could not date cannot terminate a holding period, because
-    there is no date at which to terminate it.
-    """
-    out: list[DealTerm] = []
-    for txn in transactions:
-        announced = getattr(txn, "announced", None)
-        if announced is None:
-            continue
-        out.append(
-            DealTerm(
-                ticker=str(getattr(txn, "target_ticker", "")).upper(),
-                announced=announced,
-                offer_price=getattr(txn, "offer_price", None),
-                completed=bool(getattr(txn, "completed", False)),
-                source=str(getattr(txn, "source_form", "") or "precedents"),
-            )
-        )
-    return out
 
 
 # --------------------------------------------------------------------------- #
@@ -1316,9 +1292,9 @@ def test_signal(
     must run past the last score date by the horizon or the last dates come back
     censored.
 
-    ``deals`` terminates holding periods at acquisitions, from
-    ``deal_terms_from_transactions`` where the offer price is known and
-    ``deal_terms_from_events`` where only the date is. ``delisting_return``
+    ``deals`` terminates holding periods at acquisitions: ``DealTerm`` objects
+    carrying the offer price where it is known, or ``deal_terms_from_events``
+    where only the date is. ``delisting_return``
     states what a name that stopped trading with no deal on record earned: a
     float, a key of ``DELISTING_CONVENTIONS``, or None to exclude them and be
     told how many were excluded and which way that biases the answer.
