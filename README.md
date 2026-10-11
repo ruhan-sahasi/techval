@@ -11,7 +11,7 @@ engine's three terminal values; the third prints in the run below.*
 
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Twenty-one commands, 2,444
+the US Treasury daily curve for the risk-free rate. Twenty-two commands, 2,456
 tests, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
@@ -1502,6 +1502,26 @@ the last committed close on the pinned rate, and the run above used the quote
 and the Treasury yield of the day it was taken. The same goes for any other
 figure this document quotes from a live run.
 
+### One company, one page
+
+`techval tearsheet TICKER` writes the page's valuation engine section for any
+company: the cost of capital, the football field, the bridge, the sensitivity
+grid, the Monte Carlo, APV, what the price assumes, and bear, base and bull.
+It is the same code, measured from EDGAR and the configured price feed instead
+of the fixtures, so every figure and every refusal is the one the results page
+would draw for that company. The basis of preparation lists the sources it
+read and the dates they ran to in place of fixture digests. With no peers set,
+the company is valued on its own beta and the page says comps were not drawn.
+
+```bash
+techval tearsheet CRWD --open
+```
+
+[`docs/tearsheet/CRWD.html`](docs/tearsheet/CRWD.html) is CrowdStrike against
+Datadog, MongoDB and Zscaler, built offline from the committed fixtures by
+`tests/fixtures/tearsheet/record_example.py`. `--facts-dir` builds a page the
+same way from any directory of recorded payloads.
+
 ---
 
 ### Reading filings
@@ -2111,9 +2131,10 @@ filers.
 uv run pytest
 ```
 
-2,444 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
-`techval.ml`, 396 over the dashboard, 152 over the investing dashboard, 100 over
-the filing reader and 64 over the reverse DCF and its scenarios. GitHub Actions runs the whole
+2,456 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
+`techval.ml`, 402 over the dashboard, 152 over the investing dashboard, 100 over
+the filing reader, 64 over the reverse DCF and its scenarios and 6 over the
+tearsheet. GitHub Actions runs the whole
 suite on Python 3.11 and 3.12 for every push to `main` and every pull request.
 No test touches the network. The 15MB of fixtures are frozen SEC payloads,
 pruned XBRL instance documents, real proxy statements, verbatim merger filings
