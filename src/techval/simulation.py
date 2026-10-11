@@ -677,7 +677,6 @@ def tornado(
     bridge: EVBridge,
     wacc_result: "WACCResult",
     assumptions: Assumptions,
-    peer_median_ev_ebitda: float | None = None,
 ) -> list[DriverSensitivity]:
     """One-at-a-time sensitivity, each driver at its 5th and 95th percentile.
 
@@ -695,11 +694,8 @@ def tornado(
     valued raises rather than returning a gap in the chart, because the reason
     it cannot be valued, terminal growth reaching the discount rate inside a
     one-standard-deviation band, is itself a statement that the assumed spreads
-    do not hang together.
-
-    ``peer_median_ev_ebitda`` is accepted so this can be called wherever
-    ``run_dcf`` is, and is unused: the exit multiple is not one of the drawn
-    drivers, so it has no bar.
+    do not hang together. The exit multiple is not one of the drawn drivers,
+    so it has no bar.
     """
     engine = _prepare(fin, bridge, wacc_result, assumptions)
     sds = _standard_deviations(assumptions)
@@ -813,7 +809,7 @@ def run_simulation(
     prob_above = float(np.mean(values > price))
     prob_upside = float(np.mean(values > 1.2 * price))
 
-    bars = tornado(fin, bridge, wacc_result, assumptions, peer_median_ev_ebitda)
+    bars = tornado(fin, bridge, wacc_result, assumptions)
 
     notes.extend(_notes(assumptions, engine, independent, correlations))
     checks.extend(
