@@ -154,13 +154,6 @@ body {
   box-shadow: var(--shadow-card);
 }
 
-.iv-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-  gap: var(--space-5);
-  align-items: start;
-}
-
 /* The hero ------------------------------------------------------------------ */
 
 .iv-hero {
@@ -276,15 +269,6 @@ body {
   border-top: 1px solid var(--axis);
   border-bottom: 0;
   font-weight: var(--fw-semibold);
-}
-
-.iv-group {
-  color: var(--ink-3);
-  font-size: var(--fs-micro);
-  font-weight: var(--fw-medium);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-caps);
-  padding-top: var(--space-3);
 }
 
 /* The chart range: a segmented control in the figure head. */
