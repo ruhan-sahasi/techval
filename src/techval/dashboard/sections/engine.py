@@ -54,7 +54,7 @@ import json
 import math
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Any, Sequence
+from typing import Any, Callable, ContextManager, Sequence
 
 ID = "engine"
 TITLE = "Valuation engine"
@@ -115,6 +115,8 @@ class CostOfCapital:
     weight_debt: float
     after_tax_cost_of_debt: float
     debt_to_equity: float
+    # Where the rate came from, as compute_wacc states it.
+    risk_free_source: str = "assumptions file override"
 
 
 @dataclass
@@ -323,6 +325,14 @@ def _ordinal(q: float) -> str:
     return f"{n}{suffix}"
 
 
+def _risk_free_sub(c: CostOfCapital) -> str:
+    if c.risk_free_pinned:
+        return "Pinned as the test suite pins it; no Treasury quote is read offline"
+    if c.risk_free_source == "assumptions file override":
+        return "From market.risk_free_rate in the assumptions"
+    return c.risk_free_source
+
+
 def _tiles(m: Measured) -> dict[str, Any]:
     c = m.cost_of_capital
     peers = ", ".join(c.peers)
@@ -336,11 +346,7 @@ def _tiles(m: Measured) -> dict[str, Any]:
             "label": "Risk-free rate",
             "value": c.risk_free_rate,
             "format": "pct:2",
-            "sub": (
-                "Pinned as the test suite pins it; no Treasury quote is read offline"
-                if c.risk_free_pinned
-                else "From market.risk_free_rate in the assumptions"
-            ),
+            "sub": _risk_free_sub(c),
         },
     ]
     if c.peers:
@@ -969,6 +975,28 @@ class _FixtureClient:
         return self.company_facts(ticker).cik
 
 
+@dataclass
+class Sources:
+    """What a measurement reads, and how each figure names what it read.
+
+    The results page passes the committed fixtures and records each figure's
+    provenance against them; a tearsheet passes the live EDGAR client and price
+    feed and names those. Everything ``measure`` does between is the same code,
+    so a tearsheet's figures are the results page's figures for another company.
+    """
+
+    client: Any
+    prices: Any
+    record: Callable[..., ContextManager]
+    facts_name: Callable[[str], str]
+    prices_name: Callable[[str], str]
+    panel_name: str
+    observations: Sequence | None
+
+    def payload(self, ticker: str) -> dict:
+        return self.client.company_facts(ticker).raw
+
+
 def _check_fixtures(peers: list[str], index: str) -> None:
     from ...errors import ConfigError
 
@@ -1050,20 +1078,9 @@ def _reproduce_draws(fin, bridge, wacc_result, assumptions, result, independent:
 
 
 def collect(ctx) -> dict:
-    import numpy as np
-    import pandas as pd
-
-    from ... import cli
-    from ...apv import run_apv
-    from ...comps import run_comps
-    from ...dcf import run_dcf, sensitivity_wacc_growth
-    from ...edgar import HttpCache
-    from ...errors import ConfigError, TechvalError
-    from ...ev_bridge import build_ev_bridge
-    from ...financials import build_financials
-    from ...market import CsvSource, MarketData
-    from ...simulation import DRIVERS, run_simulation
-    from ...wacc import compute_wacc
+    from ...errors import ConfigError
+    from ...invest.engine_read import fade_panel
+    from ...market import CsvSource
 
     a = ctx.assumptions.model_copy(deep=True)
     if a.dilution.method != "waso":
@@ -1081,30 +1098,81 @@ def collect(ctx) -> dict:
 
     knowledge = date.fromisoformat(a.as_of) if a.as_of else None
     source = CsvSource(ctx.input(f"prices/{TICKER}.csv").parent)
+    sources = Sources(
+        client=_FixtureClient(ctx, knowledge),
+        prices=source,
+        record=ctx.record,
+        facts_name=lambda t: f"companyfacts_{t}.json",
+        prices_name=lambda t: f"prices/{t}.csv",
+        panel_name=FADE_PANEL,
+        observations=fade_panel(ctx.input(FADE_PANEL).parent).observations,
+    )
     today = knowledge or source.fetch(TICKER, date.min, date.max).last_date
-    client = _FixtureClient(ctx, knowledge)
+    return shape(measure(TICKER, peers, a, sources, today=today, pinned=pinned))
 
-    target = [f"companyfacts_{TICKER}.json", f"prices/{TICKER}.csv"]
+
+def _observations(sources: Sources):
+    """The fade panel's company-years, or a refusal naming what is missing."""
+    from ...errors import MissingDataError
+
+    if sources.observations is None:
+        raise MissingDataError("fade panel", hint=f"no {sources.panel_name} to read base rates from")
+    return sources.observations
+
+
+def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, pinned: bool = False) -> Measured:
+    """Value one company through every engine the section draws, and say what was refused.
+
+    ``a`` is used as given: the caller has already settled the peers, the
+    risk-free rate and anything else its own setting fixes.
+    """
+    import numpy as np
+    import pandas as pd
+
+    from ... import cli
+    from ...apv import run_apv
+    from ...comps import run_comps
+    from ...dcf import run_dcf, sensitivity_wacc_growth
+    from ...edgar import HttpCache
+    from ...errors import TechvalError
+    from ...ev_bridge import build_ev_bridge
+    from ...financials import build_financials
+    from ...market import MarketData
+    from ...simulation import DRIVERS, run_simulation
+    from ...wacc import compute_wacc
+
+    client = sources.client
+    source = sources.prices
+    target = [sources.facts_name(ticker), sources.prices_name(ticker)]
     everything = [
-        *(f"companyfacts_{t}.json" for t in (TICKER, *peers)),
-        *(f"prices/{t}.csv" for t in (TICKER, *peers, a.market.market_index.upper())),
+        *(sources.facts_name(t) for t in (ticker, *peers)),
+        *(sources.prices_name(t) for t in (ticker, *peers, a.market.market_index.upper())),
     ]
     refusals: list[Refusal] = []
 
     # -- the bridge ---------------------------------------------------------- #
-    with ctx.record("bridge", "techval.ev_bridge.build_ev_bridge", target):
-        fin = build_financials(TICKER, facts=client.company_facts(TICKER))
+    with sources.record("bridge", "techval.ev_bridge.build_ev_bridge", target):
+        fin = build_financials(ticker, facts=client.company_facts(ticker))
         market = MarketData(source, HttpCache(enabled=False), today=today)
-        price = market.spot(TICKER)
+        price = market.spot(ticker)
         bridge = build_ev_bridge(fin, price, a)
-    series = market.prices(TICKER)
+    series = market.prices(ticker)
 
     # -- comps and the cost of capital --------------------------------------- #
-    with ctx.record("football", "techval.comps.run_comps", everything):
-        comps = run_comps(TICKER, a, client, market)
+    # Without peers, or with peers the comps cannot price, the page still
+    # values the company: the comps rows are refused by name and the beta is
+    # the company's own regression, which is what techval value does.
+    comps = None
+    comps_refused = "no peers are set; comps.peers in the assumptions names them"
+    if peers:
+        try:
+            with sources.record("football", "techval.comps.run_comps", everything):
+                comps = run_comps(ticker, a, client, market)
+        except TechvalError as exc:
+            comps_refused = str(exc).splitlines()[0]
 
-    with ctx.record("cost_of_capital", "techval.wacc.compute_wacc", everything):
-        peer_betas = cli._peer_betas(comps, market, a)
+    with sources.record("cost_of_capital", "techval.wacc.compute_wacc", everything):
+        peer_betas = cli._peer_betas(comps, market, a) if comps is not None else None
         method = a.market.peer_beta_method
         alternative = None
         alt_wacc = None
@@ -1130,16 +1198,17 @@ def collect(ctx) -> dict:
         weight_debt=w.weight_debt,
         after_tax_cost_of_debt=w.after_tax_cost_of_debt,
         debt_to_equity=bridge.total_debt / bridge.equity_value,
+        risk_free_source=next((src for label, _, src in w.inputs if label == "Risk-free rate"), ""),
     )
 
     # -- market-based ranges -------------------------------------------------- #
     bands: list[Band] = []
-    with ctx.record(
-        "football", "techval.market.PriceSeries.fifty_two_week_range", [f"prices/{TICKER}.csv"]
+    with sources.record(
+        "football", "techval.market.PriceSeries.fifty_two_week_range", [sources.prices_name(ticker)]
     ):
         lo, hi = series.fifty_two_week_range()
     bands.append(Band("52-week trading range", "market", lo, hi))
-    for label in _COMPS_ROWS:
+    for label in _COMPS_ROWS if comps is not None else ():
         row = comps.implied.loc[label] if label in comps.implied.index else None
         low = row.get("Implied price low") if row is not None else None
         high = row.get("Implied price high") if row is not None else None
@@ -1151,9 +1220,11 @@ def collect(ctx) -> dict:
                 f"the comps produced no positive implied price range on {label}."
             )
             refusals.append(Refusal(f"Comps, {label}", why, "football"))
+    if comps is None:
+        refusals.append(Refusal("Trading comps", comps_refused[0].upper() + comps_refused[1:].rstrip(".") + ".", "football"))
 
     measured = Measured(
-        ticker=TICKER,
+        ticker=ticker,
         price=price,
         price_date=series.last_date.isoformat(),
         filings_through=str(fin.as_of),
@@ -1166,14 +1237,14 @@ def collect(ctx) -> dict:
     )
 
     # -- the DCF -------------------------------------------------------------- #
-    median = comps.stats.loc["Median"].get("EV/EBITDA")
+    median = comps.stats.loc["Median"].get("EV/EBITDA") if comps is not None else None
     median = float(median) if median is not None and pd.notna(median) else None
     try:
-        with ctx.record("football", "techval.dcf.run_dcf", everything):
+        with sources.record("football", "techval.dcf.run_dcf", everything):
             dcf = run_dcf(fin, bridge, w, a, peer_median_ev_ebitda=median)
     except TechvalError as exc:
         refusals.append(Refusal("Discounted cash flow", str(exc)))
-        return shape(measured)
+        return measured
     measured.per_share_gordon = dcf.per_share_gordon
     measured.per_share_value_driver = dcf.per_share_value_driver
 
@@ -1181,7 +1252,12 @@ def collect(ctx) -> dict:
         why = _note_starting(dcf.notes, "No exit multiple") or _note_starting(
             dcf.notes, "Terminal EBITDA of"
         )
-        if median is None:
+        if comps is None and a.dcf.exit_multiple is None:
+            why = (
+                "dcf.exit_multiple is unset and there are no comps to take a median "
+                "EV/EBITDA from, so there is no exit-multiple terminal value to draw."
+            )
+        elif comps is not None and median is None:
             flags = [
                 f"{p.ticker}: {flag.removeprefix('EV/EBITDA NM: ')}"
                 for p in comps.peers
@@ -1200,14 +1276,13 @@ def collect(ctx) -> dict:
 
     # -- what the close assumes: the DCF run backwards ------------------------- #
     try:
-        with ctx.record(
-            "expectations", "techval.reverse_dcf.market_expectations", [*everything, FADE_PANEL]
+        with sources.record(
+            "expectations", "techval.reverse_dcf.market_expectations", [*everything, sources.panel_name]
         ):
-            from ...invest.engine_read import fade_panel
             from ...reverse_dcf import Case, market_expectations
 
-            observations = fade_panel(ctx.input(FADE_PANEL).parent).observations
-            own = [o for o in observations if o.ticker == TICKER and o.growth is not None]
+            observations = _observations(sources)
+            own = [o for o in observations if o.ticker == ticker and o.growth is not None]
             trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
             exp = market_expectations(
                 Case(fin=fin, bridge=bridge, wacc=w, assumptions=a),
@@ -1242,13 +1317,12 @@ def collect(ctx) -> dict:
 
     # -- bear, base and bull from what similar company-years did -------------- #
     try:
-        with ctx.record("scenarios", "techval.scenarios.value_scenarios", [*everything, FADE_PANEL]):
-            from ...invest.engine_read import fade_panel
+        with sources.record("scenarios", "techval.scenarios.value_scenarios", [*everything, sources.panel_name]):
             from ...reverse_dcf import Case
             from ...scenarios import band_coverage, value_scenarios
 
-            observations = fade_panel(ctx.input(FADE_PANEL).parent).observations
-            own = [o for o in observations if o.ticker == TICKER and o.growth is not None]
+            observations = _observations(sources)
+            own = [o for o in observations if o.ticker == ticker and o.growth is not None]
             trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
             scenarios = value_scenarios(
                 Case(fin=fin, bridge=bridge, wacc=w, assumptions=a), price, observations, trailing=trailing
@@ -1260,24 +1334,22 @@ def collect(ctx) -> dict:
 
     # -- what the close assumed each quarter, point in time ------------------- #
     try:
-        with ctx.record(
+        with sources.record(
             "expectations_history", "techval.reverse_dcf.expectations_history", target
         ):
-            import json as _json
-
             from ...reverse_dcf import expectations_history, quarter_ends
 
-            payload = _json.loads(ctx.input(f"companyfacts_{TICKER}.json").read_text(encoding="utf-8"))
-            first = source.fetch(TICKER, date.min, date.max).dates[0]
+            payload = sources.payload(ticker)
+            first = source.fetch(ticker, date.min, date.max).dates[0]
             measured.history = ExpectationsHistory(
-                rows=expectations_history(payload, TICKER, source, a, quarter_ends(first, today))
+                rows=expectations_history(payload, ticker, source, a, quarter_ends(first, today))
             )
     except TechvalError as exc:
         refusals.append(Refusal("What the close assumed each quarter", str(exc)))
 
     # -- the sensitivity grid, and the DCF bands struck on it ------------------ #
     try:
-        with ctx.record("sensitivity", "techval.dcf.sensitivity_wacc_growth", everything):
+        with sources.record("sensitivity", "techval.dcf.sensitivity_wacc_growth", everything):
             grid = sensitivity_wacc_growth(fin, bridge, a, dcf.wacc)
     except TechvalError as exc:
         refusals.append(Refusal("DCF sensitivity grid", str(exc)))
@@ -1319,7 +1391,7 @@ def collect(ctx) -> dict:
         # at every cell of the Gordon grid. Each run must reproduce that cell's
         # Gordon value, which proves the axes rebuilt here are the grid's.
         driver: list[float] = []
-        with ctx.record("football", "techval.dcf.run_dcf", everything):
+        with sources.record("football", "techval.dcf.run_dcf", everything):
             for i, wi in enumerate(waccs):
                 for j, gj in enumerate(growths):
                     if math.isnan(cells[i, j]):
@@ -1354,7 +1426,7 @@ def collect(ctx) -> dict:
 
     # -- Monte Carlo ------------------------------------------------------------ #
     try:
-        with ctx.record("montecarlo", "techval.simulation.run_simulation", everything):
+        with sources.record("montecarlo", "techval.simulation.run_simulation", everything):
             correlated = run_simulation(fin, bridge, w, a, peer_median_ev_ebitda=median)
             independent = run_simulation(
                 fin, bridge, w, a, peer_median_ev_ebitda=median, independent=True
@@ -1376,7 +1448,7 @@ def collect(ctx) -> dict:
 
     # -- APV ------------------------------------------------------------------- #
     try:
-        with ctx.record("apv", "techval.apv.run_apv", everything):
+        with sources.record("apv", "techval.apv.run_apv", everything):
             results = {}
             for rate in ("cost_of_debt", "unlevered_cost_of_equity"):
                 point = a.model_copy(deep=True)
@@ -1403,12 +1475,12 @@ def collect(ctx) -> dict:
                 "and does not compute Miles-Ezzell. Miles-Ezzell discounts each year's "
                 "shield at the cost of debt for its last year and at Ku before that, "
                 "which scales the Harris-Pringle value by (1 + Ku) / (1 + Kd). This is "
-                "a convention the engine does not offer, not a figure the fixtures "
-                "cannot reproduce, and the page draws only what the engine computes.",
+                "a convention the engine does not offer, not a figure its inputs "
+                "cannot support, and the page draws only what the engine computes.",
                 "apv",
             )
         )
     except TechvalError as exc:
         refusals.append(Refusal("APV", str(exc)))
 
-    return shape(measured)
+    return measured

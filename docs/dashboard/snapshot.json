@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-10-09",
+  "collected_at": "2026-10-11",
   "fixtures": {
     "tests/fixtures/companyfacts_CRWD.json": "9b6ef8e8890e3f8058caf6623556708ff8043a9a944f40c94bdc11f45fc570b3",
     "tests/fixtures/companyfacts_DDOG.json": "91bcfb0dc7160923243c8b816e508c57c5a8b1c4bafe10f46dffb2ccb6799211",
@@ -4898,7 +4898,7 @@
             "tests/fixtures/prices/SPY.csv",
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 3.24
+          "seconds": 0.07
         },
         {
           "entry_point": "techval.scenarios.value_scenarios",
@@ -4915,7 +4915,7 @@
             "tests/fixtures/prices/SPY.csv",
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 0.18
+          "seconds": 0.17
         },
         {
           "entry_point": "techval.reverse_dcf.expectations_history",
@@ -4924,7 +4924,7 @@
             "tests/fixtures/companyfacts_DDOG.json",
             "tests/fixtures/prices/DDOG.csv"
           ],
-          "seconds": 0.21
+          "seconds": 0.2
         },
         {
           "entry_point": "techval.dcf.sensitivity_wacc_growth",
@@ -4972,7 +4972,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.02
+          "seconds": 0.01
         },
         {
           "entry_point": "techval.apv.run_apv",
@@ -5002,7 +5002,7 @@
         },
         {
           "what": "APV, Miles-Ezzell",
-          "why": "The engine computes two shield conventions, the cost of debt (Modigliani-Miller) and the unlevered cost of equity (Harris-Pringle), and does not compute Miles-Ezzell. Miles-Ezzell discounts each year's shield at the cost of debt for its last year and at Ku before that, which scales the Harris-Pringle value by (1 + Ku) / (1 + Kd). This is a convention the engine does not offer, not a figure the fixtures cannot reproduce, and the page draws only what the engine computes."
+          "why": "The engine computes two shield conventions, the cost of debt (Modigliani-Miller) and the unlevered cost of equity (Harris-Pringle), and does not compute Miles-Ezzell. Miles-Ezzell discounts each year's shield at the cost of debt for its last year and at Ku before that, which scales the Harris-Pringle value by (1 + Ku) / (1 + Kd). This is a convention the engine does not offer, not a figure its inputs cannot support, and the page draws only what the engine computes."
         }
       ],
       "status": "ok",
@@ -10563,6 +10563,6 @@
       "title": "Warranted multiple"
     }
   },
-  "techval_commit": "5bd2b82",
+  "techval_commit": "aa634ea",
   "title": "Valuation engine and model results"
 }
