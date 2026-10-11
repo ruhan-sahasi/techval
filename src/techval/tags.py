@@ -56,12 +56,6 @@ INTEREST_EXPENSE = [
     "InterestIncomeExpenseNet",
 ]
 
-INTEREST_INCOME = [
-    "InvestmentIncomeInterest",
-    "InterestIncomeOther",
-    "InvestmentIncomeInterestAndDividend",
-]
-
 # --- cash flow --------------------------------------------------------------
 
 # The combined tag first; then the components summed, for filers that publish
@@ -122,12 +116,6 @@ RECEIVABLES = [
     "AccountsReceivableNetCurrent",
     "ReceivablesNetCurrent",
     "AccountsReceivableGrossCurrent",
-]
-
-LONG_TERM_INVESTMENTS = [
-    "AvailableForSaleSecuritiesDebtSecuritiesNoncurrent",
-    "MarketableSecuritiesNoncurrent",
-    "LongTermInvestments",
 ]
 
 # --- debt -------------------------------------------------------------------
