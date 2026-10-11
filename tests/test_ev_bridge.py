@@ -31,7 +31,7 @@ def test_net_debt_is_ev_less_equity(ddog_bridge):
 
 def test_walking_back_from_ev_returns_equity_value(ddog, ddog_bridge):
     """The two directions must reconcile, or a DCF and a comp cannot be compared."""
-    recovered = equity_value_from_ev(ddog_bridge.enterprise_value, ddog, ddog_bridge)
+    recovered = equity_value_from_ev(ddog_bridge.enterprise_value, ddog_bridge)
     assert recovered == pytest.approx(ddog_bridge.equity_value)
 
 

@@ -528,7 +528,7 @@ def test_equity_uses_the_engines_debt_definition(ddog, ddog_bridge, assumptions)
     )
 
     assert r.equity_value == pytest.approx(
-        equity_value_from_ev(r.net_enterprise_value, ddog, ddog_bridge)
+        equity_value_from_ev(r.net_enterprise_value, ddog_bridge)
     )
     assert r.per_share == pytest.approx(r.equity_value / ddog_bridge.diluted_shares)
     assert r.implied_vs_consolidated.gap == pytest.approx(
