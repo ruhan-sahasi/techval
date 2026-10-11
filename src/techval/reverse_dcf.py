@@ -655,8 +655,9 @@ def screen(payloads: dict, source, assumptions: Assumptions, when, observations=
     """What each price assumes, side by side, the most demanding first.
 
     One row per ticker: the implied return, the first-year growth the price
-    needs, how often the panel's company-years compounded that path, and the
-    share of the engine's simulated values above the price. Rows sort by the
+    needs, how often the panel's company-years compounded that path, the
+    share of the engine's simulated values above the price, and the panel's
+    bear, base and bull weighted, with where the price sits against them. Rows sort by the
     base-rate share, rarest first, then by implied return; a ticker the record
     cannot value is kept at the foot with its refusal.
     """
@@ -671,10 +672,14 @@ def screen(payloads: dict, source, assumptions: Assumptions, when, observations=
             row["refused"] = str(err).splitlines()[0]
             rows.append(row)
             continue
-        base = None
-        if observations is not None and growth.reached:
+        base = scenarios = None
+        if observations is not None:
+            from .scenarios import value_scenarios
+
             own = [o for o in observations if o.ticker == ticker and o.growth is not None]
             trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
+            scenarios = value_scenarios(case, price, observations, trailing=trailing)
+        if observations is not None and growth.reached:
             base = growth_base_rate(
                 observations,
                 implied_cagr=path_cagr(growth.extras["path"], BASE_RATE_HORIZON),
@@ -692,6 +697,10 @@ def screen(payloads: dict, source, assumptions: Assumptions, when, observations=
             base_hits=None if base is None else base["all"]["hits"],
             base_n=None if base is None else base["all"]["n"],
             simulated_above=None if sim is None else sim["share_above"],
+            scenario_weighted=None if scenarios is None else round(scenarios.weighted, 4),
+            scenario_bull=None if scenarios is None else round(scenarios.scenario("bull").value, 4),
+            scenario_side=None if scenarios is None else scenarios.implied["side"],
+            scenario_weight=None if scenarios is None else scenarios.implied["weight"],
         )
         rows.append(row)
 
