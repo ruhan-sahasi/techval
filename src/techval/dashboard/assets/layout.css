@@ -1093,22 +1093,18 @@ details > summary:hover {
 
 .tv-chip--good {
   --chip-hue: var(--status-good);
-  --chip-on: var(--on-status-good);
 }
 
 .tv-chip--warning {
   --chip-hue: var(--status-warning);
-  --chip-on: var(--on-status-warning);
 }
 
 .tv-chip--critical {
   --chip-hue: var(--status-critical);
-  --chip-on: var(--on-status-critical);
 }
 
 .tv-chip--neutral {
   --chip-hue: var(--status-neutral);
-  --chip-on: var(--on-status-neutral);
 }
 
 .tv-chip--compact {

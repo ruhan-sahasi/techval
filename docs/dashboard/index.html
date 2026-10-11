@@ -76,7 +76,6 @@
   /* Radii: cards, chips, and the small controls. */
   --radius-control: 6px;
   --radius-card: 14px;
-  --radius-chip: 999px;
 
   --rail-width: 220px;
   --main-max: 1120px;
@@ -163,10 +162,6 @@
   --status-warning: #a86b00;
   --status-critical: #b23a2e;
   --status-neutral: #6f7875;
-  --on-status-good: #ffffff;
-  --on-status-warning: #ffffff;
-  --on-status-critical: #ffffff;
-  --on-status-neutral: #ffffff;
   --text-good: #10684a;
   --text-critical: #a3462e;
 
@@ -220,10 +215,6 @@
     --status-warning: #d39a3a;
     --status-critical: #d9705a;
     --status-neutral: #87999f;
-    --on-status-good: #0a1216;
-    --on-status-warning: #0a1216;
-    --on-status-critical: #0a1216;
-    --on-status-neutral: #0a1216;
     --text-good: #5cd6a8;
     --text-critical: #e8927c;
     --focus: #7fe8d2;
@@ -276,10 +267,6 @@
   --status-warning: #d39a3a;
   --status-critical: #d9705a;
   --status-neutral: #87999f;
-  --on-status-good: #0a1216;
-  --on-status-warning: #0a1216;
-  --on-status-critical: #0a1216;
-  --on-status-neutral: #0a1216;
   --text-good: #5cd6a8;
   --text-critical: #e8927c;
   --focus: #7fe8d2;
@@ -1410,22 +1397,18 @@ details > summary:hover {
 
 .tv-chip--good {
   --chip-hue: var(--status-good);
-  --chip-on: var(--on-status-good);
 }
 
 .tv-chip--warning {
   --chip-hue: var(--status-warning);
-  --chip-on: var(--on-status-warning);
 }
 
 .tv-chip--critical {
   --chip-hue: var(--status-critical);
-  --chip-on: var(--on-status-critical);
 }
 
 .tv-chip--neutral {
   --chip-hue: var(--status-neutral);
-  --chip-on: var(--on-status-neutral);
 }
 
 .tv-chip--compact {
