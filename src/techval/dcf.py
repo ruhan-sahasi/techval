@@ -1005,11 +1005,11 @@ def run_dcf(
     # The walk back to equity never subtracts operating leases: the projected
     # flows pay rent every year, so the obligation is serviced inside the DCF
     # and taking the liability out as debt would charge it twice.
-    equity_gordon = equity_value_from_dcf_ev(ev_gordon, fin, bridge)
+    equity_gordon = equity_value_from_dcf_ev(ev_gordon, bridge)
     equity_exit = (
-        None if ev_exit is None else equity_value_from_dcf_ev(ev_exit, fin, bridge)
+        None if ev_exit is None else equity_value_from_dcf_ev(ev_exit, bridge)
     )
-    equity_vd = None if ev_vd is None else equity_value_from_dcf_ev(ev_vd, fin, bridge)
+    equity_vd = None if ev_vd is None else equity_value_from_dcf_ev(ev_vd, bridge)
 
     headline = cfg.terminal.method
     if headline == "value_driver" and ev_vd is None:
@@ -1163,7 +1163,7 @@ def _cross_checks(
                 f"{label} terminal value is {tv.pct_of_ev:.0%} of enterprise value."
             )
 
-    out.extend(_reinvestment_check(terminal, steady, g, wacc, assumptions))
+    out.extend(_reinvestment_check(terminal, steady, g, wacc))
     out.extend(
         _value_driver_check(
             steady=steady,
@@ -1218,7 +1218,6 @@ def _reinvestment_check(
     steady: _SteadyState,
     g: float,
     wacc: float,
-    assumptions: Assumptions,
 ) -> list[str]:
     """g = ROIC * reinvestment rate, read out of a g-consistent steady state.
 
@@ -1524,10 +1523,10 @@ def _grid_axis(centre: float, step: float) -> np.ndarray:
     return centre + np.linspace(-step, step, _SENSITIVITY_POINTS)
 
 
-def _per_share(ev: float, fin: Financials, bridge: EVBridge, shares: float) -> float:
+def _per_share(ev: float, bridge: EVBridge, shares: float) -> float:
     # The same denominator run_dcf uses, so a grid cell and the headline are the
     # same number when the axes cross at the base case.
-    return equity_value_from_dcf_ev(ev, fin, bridge) / shares
+    return equity_value_from_dcf_ev(ev, bridge) / shares
 
 
 def sensitivity_wacc_growth(
@@ -1563,7 +1562,7 @@ def sensitivity_wacc_growth(
             ev = pv_explicit + _pv_terminal_gordon(
                 tv, float(w), n, cfg.mid_year_convention
             )
-            grid[i, j] = _per_share(ev, fin, bridge, shares)
+            grid[i, j] = _per_share(ev, bridge, shares)
 
     frame = pd.DataFrame(
         grid,
@@ -1620,7 +1619,7 @@ def sensitivity_wacc_exit(
         for j, m in enumerate(multiples):
             tv = exit_multiple_terminal_value(terminal_ebitda, float(m))
             ev = pv_explicit + _pv_terminal_exit(tv, float(w), n)
-            grid[i, j] = _per_share(ev, fin, bridge, shares)
+            grid[i, j] = _per_share(ev, bridge, shares)
 
     frame = pd.DataFrame(
         grid,

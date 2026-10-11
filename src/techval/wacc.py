@@ -607,60 +607,6 @@ def pool_unlevered_betas(
     return pooled, "vasicek", notes
 
 
-def peer_unlevered_beta(
-    peers: Sequence[tuple[PriceSeries, float, float]],
-    market: PriceSeries,
-    *,
-    adjustment: str = "raw",
-    method: str = "median",
-    lookback_years: float | None = None,
-    min_observations: int = MIN_OBSERVATIONS,
-) -> tuple[float, list[BetaEstimate], list[str]]:
-    """Pooled unlevered beta of a peer set, the estimates, and the pooling notes.
-
-    Each peer is ``(prices, debt_to_equity, tax_rate)``, with the ratio and the
-    rate belonging to that peer, not to the target. Unlevering happens before
-    pooling, which is the entire point: it removes the capital structure
-    differences that make raw betas incomparable, and leaves an asset beta that
-    describes the business the peers have in common. The caller relevers the
-    pooled figure at the target's own D/E.
-
-    ``method`` is 'median' or 'vasicek'; see ``pool_unlevered_betas``. The notes
-    come back rather than being discarded because a Vasicek request can end in a
-    median, and a pooled beta that does not say how it was pooled is not
-    auditable.
-
-    A peer that cannot be regressed, typically a recent listing with too few
-    weeks, is dropped rather than allowed to fail the set. The returned list is
-    the peers that survived, so a caller can compare it against what it passed.
-    """
-    estimates: list[BetaEstimate] = []
-    skipped: list[str] = []
-    for prices, de, tax in peers:
-        try:
-            estimates.append(
-                estimate_beta(
-                    prices,
-                    market,
-                    adjustment=adjustment,
-                    debt_to_equity=de,
-                    tax_rate=tax,
-                    lookback_years=lookback_years,
-                    min_observations=min_observations,
-                )
-            )
-        except MissingDataError as exc:
-            skipped.append(f"{prices.symbol} ({exc.hint or 'no usable regression'})")
-
-    if not estimates:
-        raise MissingDataError(
-            "peer unlevered beta",
-            hint="no peer produced a usable regression: " + "; ".join(skipped),
-        )
-    pooled, _, notes = pool_unlevered_betas(estimates, method)
-    return pooled, estimates, notes
-
-
 # -- cost of debt ---------------------------------------------------------- #
 
 
@@ -751,8 +697,8 @@ def compute_wacc(
 ) -> WACCResult:
     """Assemble a discount rate from filings, market data and the assumptions.
 
-    ``peer_betas`` are estimates already produced by ``peer_unlevered_beta``.
-    When supplied, their pooled unlevered beta is relevered at the target's own
+    ``peer_betas`` are ``estimate_beta`` results for each peer, unlevered at that
+    peer's own capital structure, as ``cli._peer_betas`` builds them. When supplied, their pooled unlevered beta is relevered at the target's own
     capital structure and the target's own regression is not run at all, which is
     the right call whenever the target's R-squared is poor or its listing history
     is short. The pooling is the median by default, or the Vasicek shrunk mean

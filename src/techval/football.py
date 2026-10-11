@@ -37,10 +37,6 @@ class FootballRow:
     high: float
     note: str = ""
 
-    @property
-    def midpoint(self) -> float:
-        return (self.low + self.high) / 2.0
-
 
 def football_field(
     rows: list[FootballRow],

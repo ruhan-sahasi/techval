@@ -612,7 +612,7 @@ def test_implied_value_uses_the_same_bridge_walk_as_the_percentile_range(assumpt
 
     assert fit is not None
     assert fit.implied_ev == pytest.approx(fit.warranted_multiple * fin.revenue)
-    expected_equity = equity_value_from_ev(fit.implied_ev, fin, bridge)
+    expected_equity = equity_value_from_ev(fit.implied_ev, bridge)
     assert fit.implied_price == pytest.approx(expected_equity / fin.diluted_shares)
     # Same debt definition as the percentile walk, so the two prices sit on the
     # same scale and their difference is a view, not a convention mismatch.

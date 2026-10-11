@@ -1368,7 +1368,6 @@ def fit_peer_encoder(
         dataset, cut, assumptions, text_dim=text_dim, min_df=min_df, max_df=max_df
     )
     encoder, X, history, train_pairs = _train_encoder(
-        dataset,
         space,
         [e for e in usable if space.has(e.a, e.as_of) and space.has(e.b, e.as_of)],
         text_weight=weight,
@@ -1484,7 +1483,6 @@ def fit_peer_encoder(
 
 
 def _train_encoder(
-    dataset: PeerDataset,
     space: _Space,
     examples: Sequence[PeerExample],
     *,
@@ -1889,7 +1887,6 @@ def evaluate_peer_encoder(
         )
         rng = np.random.default_rng(seed + fold.index)
         encoder, X, _history, _pairs = _train_encoder(
-            dataset,
             space,
             [e for e in train_examples if space.has(e.a, e.as_of) and space.has(e.b, e.as_of)],
             text_weight=weight,
@@ -2460,7 +2457,6 @@ def ablate_towers(
             if y > 0 and space.has(a, d) and space.has(b, d)
         ]
         encoder, X, _history, _pairs = _train_encoder(
-            dataset,
             space,
             positives,
             text_weight=this_weight,
