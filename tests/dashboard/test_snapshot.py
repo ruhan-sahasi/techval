@@ -242,3 +242,30 @@ def test_committed_fixture_is_keyed_repository_relative():
     repo = Path(__file__).resolve().parents[2]
     out = fixture_digests([repo / "tests/fixtures/peer_groups_tmt.json"], repo_root=repo)
     assert list(out) == ["tests/fixtures/peer_groups_tmt.json"]
+
+
+def test_a_page_block_round_trips_and_is_absent_unless_set(tmp_path):
+    from dataclasses import replace
+
+    plain = dump_snapshot(_snapshot(), tmp_path / "plain.json").read_text()
+    assert '"page"' not in plain
+    page = {"standfirst": "One company, valued live.", "sources": ["SEC EDGAR companyfacts, DDOG"]}
+    snap = replace(_snapshot(), page=page)
+    back = load_snapshot(dump_snapshot(snap, tmp_path / "page.json"))
+    assert back.page == page and back == snap
+
+
+@pytest.mark.parametrize(
+    "page",
+    [
+        {"standfirst": "x"},
+        {"standfirst": 1, "sources": []},
+        {"standfirst": "x", "sources": [2]},
+        "a page",
+    ],
+)
+def test_a_malformed_page_block_is_refused(page):
+    raw = _snapshot().to_dict()
+    raw["page"] = page
+    with pytest.raises(ConfigError, match="page"):
+        Snapshot.from_dict(raw)
