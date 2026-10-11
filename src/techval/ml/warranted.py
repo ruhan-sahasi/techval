@@ -909,7 +909,7 @@ def debt_is_outside_the_ladder(facts, fin) -> str | None:
     return None
 
 
-def price_disagrees_with_the_public_float(facts, fin, equity_value: float) -> str | None:
+def price_disagrees_with_the_public_float(facts, equity_value: float) -> str | None:
     """Whether the price series belongs to this filer at all.
 
     Nothing inside a valuation can validate a price feed against itself, and the
@@ -1139,7 +1139,7 @@ def build_observations(
                             "debt_outside_the_ladder",
                         ),
                         (
-                            price_disagrees_with_the_public_float(facts, fin, equity),
+                            price_disagrees_with_the_public_float(facts, equity),
                             "price_disagrees_with_float",
                         ),
                     )

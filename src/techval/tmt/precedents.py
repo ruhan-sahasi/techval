@@ -1813,7 +1813,7 @@ def build_precedents(
         txn.sub_vertical = sub_vertical
         flags.extend(class_flags)
 
-        _price_the_deal(txn, client, assumptions, prices, as_of)
+        _price_the_deal(txn, prices, as_of)
         _size_the_deal(txn, client, assumptions)
 
         if mna.min_deal_size:
@@ -1851,8 +1851,6 @@ def build_precedents(
 
 def _price_the_deal(
     txn: Transaction,
-    client,
-    assumptions: Assumptions,
     prices: PriceLookup | None,
     as_of: date,
 ) -> None:

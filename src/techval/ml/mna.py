@@ -1508,7 +1508,7 @@ def fit_propensity(
         trained_through=max(matrix.dates),
     )
     final.card.evaluation = evaluation
-    final.card.limitations = _limitations(report, matrix, folds, gap_days, horizon_months)
+    final.card.limitations = _limitations(matrix, folds, gap_days, horizon_months)
     final.card.notes = list(matrix.notes) + list(report.notes)
     final.card.hyperparameters.update(
         {
@@ -1715,7 +1715,6 @@ def _calibration(
 
 
 def _limitations(
-    report: LabelReport,
     matrix: FeatureMatrix,
     folds: Sequence[Fold],
     gap_days: int,
