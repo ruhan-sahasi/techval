@@ -3,6 +3,10 @@
  * the contents list, every section in page order, and the basis of preparation
  * that closes the note.
  *
+ * A snapshot with a page block is a page of its own, a tearsheet: it draws only
+ * the sections it holds, its own standfirst, and the live sources it read in
+ * place of fixture digests, with no contents list for a single section.
+ *
  * This file owns the parts of the page the snapshot schema defines for every
  * section alike: the numbered section title and takeaway, the headline strip on
  * model sections, the not_built and refused states, refusal notes and the
@@ -119,7 +123,13 @@
       "p",
       { class: "tv-dateline" },
       el("span", null, "techval"),
-      el("span", null, snapshot.collected_at ? "Collected " + snapshot.collected_at : "Collection date not recorded"),
+      el(
+        "span",
+        null,
+        snapshot.collected_at
+          ? (snapshot.page ? "Valued " : "Collected ") + snapshot.collected_at
+          : "Collection date not recorded"
+      ),
       el("span", null, el("a", { href: "#tv-basis" }, "Basis of preparation"))
     );
     var node = el(
@@ -127,7 +137,7 @@
       { class: "tv-header" },
       dateline,
       el("h1", { class: "tv-title" }, snapshot.title || "techval Results"),
-      el("p", { class: "tv-standfirst" }, STANDFIRST)
+      el("p", { class: "tv-standfirst" }, (snapshot.page && snapshot.page.standfirst) || STANDFIRST)
     );
     /* A page may carry its own notice (the gallery says its data is synthetic). */
     var notice = document.getElementById("tv-notice");
@@ -138,7 +148,36 @@
     return node;
   }
 
+  /* A page that read live sources lists them where the results page lists its fixtures. */
+  function sourcesBasis(snapshot) {
+    var sources = snapshot.page.sources || [];
+    return el(
+      "footer",
+      { class: "tv-basis", id: "tv-basis" },
+      el("h2", { class: "tv-basis__title" }, "Basis of preparation"),
+      el(
+        "p",
+        null,
+        "Every figure was computed from the live sources listed below, at the commit shown, on the date the page was made. Each exhibit's source line names the function that produced it; the provenance lists what each read and how long it took. Where a function refused to produce a figure, the refusal is printed as a note and no number stands in for it."
+      ),
+      el(
+        "p",
+        { class: "tv-meta" },
+        el("span", null, el("span", { class: "tv-meta__label" }, "Commit"), el("code", null, snapshot.techval_commit || "n/a")),
+        el("span", null, el("span", { class: "tv-meta__label" }, "Valued"), snapshot.collected_at || "n/a")
+      ),
+      el(
+        "ul",
+        { class: "tv-sources" },
+        sources.map(function (source) {
+          return el("li", null, source);
+        })
+      )
+    );
+  }
+
   function basis(snapshot) {
+    if (snapshot.page) return sourcesBasis(snapshot);
     var fixtures = snapshot.fixtures || {};
     var paths = Object.keys(fixtures).sort();
     var meta = el(
@@ -463,8 +502,11 @@
 
   /* Boot ------------------------------------------------------------------ */
 
-  function pageOrder(sections) {
-    var order = TV.sections.order();
+  function pageOrder(sections, page) {
+    /* A page of its own draws the sections it holds and no placeholders for the rest. */
+    var order = TV.sections.order().filter(function (id) {
+      return !page || Object.prototype.hasOwnProperty.call(sections, id);
+    });
     Object.keys(sections)
       .sort()
       .forEach(function (id) {
@@ -492,16 +534,17 @@
     }
     var snapshot = read.snapshot;
     var sections = snapshot.sections || {};
-    var order = pageOrder(sections);
-    var nav = rail(order, sections);
+    var order = pageOrder(sections, snapshot.page);
+    var single = !!snapshot.page && order.length === 1;
+    var nav = single ? null : rail(order, sections);
     main.appendChild(header(snapshot));
-    var shell = el("div", { class: "tv-shell" }, nav, main);
+    var shell = el("div", { class: "tv-shell" + (single ? " tv-shell--single" : "") }, nav, main);
     document.body.appendChild(shell);
     order.forEach(function (id) {
       main.appendChild(sectionNode(id, sections[id], snapshot));
     });
     main.appendChild(basis(snapshot));
-    var updateRail = spy(nav);
+    var updateRail = nav ? spy(nav) : function () {};
     if (global.location && global.location.hash) {
       var target = document.getElementById(decodeURIComponent(global.location.hash.slice(1)));
       if (target) {
