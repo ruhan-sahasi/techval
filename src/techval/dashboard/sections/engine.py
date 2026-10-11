@@ -1153,11 +1153,20 @@ def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, 
     series = market.prices(ticker)
 
     # -- comps and the cost of capital --------------------------------------- #
-    with sources.record("football", "techval.comps.run_comps", everything):
-        comps = run_comps(ticker, a, client, market)
+    # Without peers, or with peers the comps cannot price, the page still
+    # values the company: the comps rows are refused by name and the beta is
+    # the company's own regression, which is what techval value does.
+    comps = None
+    comps_refused = "no peers are set; comps.peers in the assumptions names them"
+    if peers:
+        try:
+            with sources.record("football", "techval.comps.run_comps", everything):
+                comps = run_comps(ticker, a, client, market)
+        except TechvalError as exc:
+            comps_refused = str(exc).splitlines()[0]
 
     with sources.record("cost_of_capital", "techval.wacc.compute_wacc", everything):
-        peer_betas = cli._peer_betas(comps, market, a)
+        peer_betas = cli._peer_betas(comps, market, a) if comps is not None else None
         method = a.market.peer_beta_method
         alternative = None
         alt_wacc = None
@@ -1192,7 +1201,7 @@ def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, 
     ):
         lo, hi = series.fifty_two_week_range()
     bands.append(Band("52-week trading range", "market", lo, hi))
-    for label in _COMPS_ROWS:
+    for label in _COMPS_ROWS if comps is not None else ():
         row = comps.implied.loc[label] if label in comps.implied.index else None
         low = row.get("Implied price low") if row is not None else None
         high = row.get("Implied price high") if row is not None else None
@@ -1204,6 +1213,8 @@ def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, 
                 f"the comps produced no positive implied price range on {label}."
             )
             refusals.append(Refusal(f"Comps, {label}", why, "football"))
+    if comps is None:
+        refusals.append(Refusal("Trading comps", comps_refused[0].upper() + comps_refused[1:].rstrip(".") + ".", "football"))
 
     measured = Measured(
         ticker=ticker,
@@ -1219,7 +1230,7 @@ def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, 
     )
 
     # -- the DCF -------------------------------------------------------------- #
-    median = comps.stats.loc["Median"].get("EV/EBITDA")
+    median = comps.stats.loc["Median"].get("EV/EBITDA") if comps is not None else None
     median = float(median) if median is not None and pd.notna(median) else None
     try:
         with sources.record("football", "techval.dcf.run_dcf", everything):
@@ -1234,7 +1245,12 @@ def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, 
         why = _note_starting(dcf.notes, "No exit multiple") or _note_starting(
             dcf.notes, "Terminal EBITDA of"
         )
-        if median is None:
+        if comps is None and a.dcf.exit_multiple is None:
+            why = (
+                "dcf.exit_multiple is unset and there are no comps to take a median "
+                "EV/EBITDA from, so there is no exit-multiple terminal value to draw."
+            )
+        elif comps is not None and median is None:
             flags = [
                 f"{p.ticker}: {flag.removeprefix('EV/EBITDA NM: ')}"
                 for p in comps.peers
