@@ -300,7 +300,33 @@ def attach_dcf(
             "wacc": round(wacc.wacc, 6),
             "enterprise_value_mm": round(result.enterprise_value, 2),
             "expectations": _expectations(fin, bridge, wacc, assumptions, spot, read, observations),
+            "scenarios": _scenarios(fin, bridge, wacc, assumptions, spot, read, observations),
         }
+
+
+def _scenarios(fin, bridge, wacc, assumptions, price, read, observations) -> dict | None:
+    """Bear, base and bull from what similar company-years did, when the panel is on hand."""
+    if observations is None:
+        return None
+    from ..reverse_dcf import Case
+    from ..scenarios import value_scenarios
+
+    result = value_scenarios(
+        Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=assumptions),
+        price,
+        observations,
+        trailing=read.fade["trailing"] if read.fade else None,
+    )
+    if result is None:
+        return None
+    weight = result.implied["weight"]
+    return {
+        **{s.name: round(s.value, 4) for s in result.scenarios},
+        "weighted": round(result.weighted, 4),
+        "side": result.implied["side"],
+        "weight": None if weight is None else round(weight, 6),
+        "sentence": result.implied["sentence"],
+    }
 
 
 def _expectations(fin, bridge, wacc, assumptions, price, read, observations) -> dict:

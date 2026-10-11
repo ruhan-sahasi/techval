@@ -238,3 +238,13 @@ ml:
     precedents_enabled: false
     lookback_years: 10
     min_deal_size: 250.0
+
+scenarios:
+  # Bear, base and bull read off the fade panel: the mean growth path of the
+  # company-years around each percentile of realised five-year growth, among
+  # those that started near this company's growth. Only the growth path moves;
+  # everything else stays at the base case. 30/40/30 is Swanson's rule.
+  quantiles: {bear: 0.10, base: 0.50, bull: 0.90}
+  weights: {bear: 0.30, base: 0.40, bull: 0.30}
+  neighbourhood: 0.05
+  min_similar: 60

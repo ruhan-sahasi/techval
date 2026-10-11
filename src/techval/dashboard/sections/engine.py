@@ -87,7 +87,7 @@ EXIT_ROW = "DCF, exit multiple"
 _MAX_BINS = 36
 
 # The chart kinds this section draws, all of them in the kit.
-KINDS = ("tiles", "range", "waterfall", "heat", "hist", "dot", "column", "line")
+KINDS = ("tiles", "range", "waterfall", "heat", "hist", "dot", "column", "line", "hbar")
 
 
 # --------------------------------------------------------------------------- #
@@ -210,6 +210,14 @@ class ExpectationsHistory:
 
 
 @dataclass
+class ScenarioRead:
+    """Bear, base and bull from techval.scenarios, with the band's held-out calibration."""
+
+    result: dict
+    calibration: dict
+
+
+@dataclass
 class Refusal:
     what: str
     why: str
@@ -235,6 +243,7 @@ class Measured:
     apv: APV | None = None
     expectations: Expectations | None = None
     history: ExpectationsHistory | None = None
+    scenarios: ScenarioRead | None = None
     refusals: list[Refusal] = field(default_factory=list)
 
 
@@ -724,6 +733,80 @@ def _expectations(m: Measured) -> dict[str, Any]:
     return figure
 
 
+def _scenarios(m: Measured) -> dict[str, Any]:
+    """Bear, base and bull from the panel, weighted, against the close and the base case."""
+    sc = m.scenarios
+    assert sc is not None
+    r, c = sc.result, sc.calibration
+    by = {s["name"]: s for s in r["scenarios"]}
+    bear, base, bull = by["bear"], by["base"], by["bull"]
+    implied, price = r["implied"], r["price"]
+    if implied["side"] == "above":
+        title = (
+            f"Even the bull case, the path the 90th percentile of similar company-years took, is "
+            f"worth {bull['value']:,.2f}; the close is {price / bull['value']:.1f} times it"
+        )
+    elif implied["side"] == "below":
+        title = f"The close sits below even the bear case, worth {bear['value']:,.2f}"
+    else:
+        tail = by[implied["side"]]
+        title = (
+            f"The close puts {implied['weight']:.0%} on the {implied['side']} case, against "
+            f"{tail['weight']:.0%} under Swanson's rule"
+        )
+    pool = r["pool"]
+    who = (
+        f"the {pool['n']:,} that started within {pool['band'] * 100:.0f} points of {pool['trailing']:.1%}"
+        if pool["similar"]
+        else f"all {pool['n']:,} labelled company-years"
+    )
+    subtitle = (
+        f"Per share. Each scenario is the mean growth path of the company-years around the 10th, "
+        f"50th or 90th percentile of realised five-year growth among {who}, valued through the "
+        f"engine's DCF with everything else at the base case. {m.ticker}."
+    )
+
+    def row(s):
+        return {
+            "label": f"{s['name'].capitalize()}: {s['cagr']:.1%} a year",
+            "value": s["value"],
+            "role": "model",
+            "note": f"P{s['quantile'] * 100:.0f}, the mean path of {s['n']} company-years",
+        }
+
+    figure = _figure(
+        "hbar",
+        title,
+        subtitle,
+        {
+            "rows": [
+                row(bear),
+                row(base),
+                row(bull),
+                {"label": "Weighted 30/40/30", "value": r["weighted"], "role": "total"},
+                {"label": "Engine base case", "value": r["base_value"], "role": "baseline"},
+            ],
+            "format": "num:2",
+            "reference": [{"value": price, "label": f"Price {price:,.2f}"}],
+            "roleLabels": {"model": "Scenario from the panel", "total": "Weighted", "baseline": "Base case"},
+            "labelHeader": "Scenario",
+        },
+        wide=True,
+    )
+    figure["notes"] = [
+        {
+            "what": "Calibration",
+            "why": (
+                f"Held out from {c['test_from'][:4]}, the 10th-to-90th percentile band held "
+                f"{c['share_inside']:.1%} of {c['n']:,} company-years it had not seen, against a nominal "
+                f"{c['nominal']:.0%}; {c['share_above']:.1%} beat it and {c['share_below']:.1%} fell "
+                "below, so these bull cases have run low against what followed."
+            ),
+        }
+    ]
+    return figure
+
+
 def _history(m: Measured) -> dict[str, Any]:
     """The implied return each quarter against the cost of capital, point in time."""
     h = m.history
@@ -827,6 +910,8 @@ def shape(m: Measured) -> dict[str, Any]:
         figures["apv"] = _apv(m)
     if m.expectations is not None:
         figures["expectations"] = _expectations(m)
+    if m.scenarios is not None:
+        figures["scenarios"] = _scenarios(m)
     if m.history is not None and any(r["refused"] is None for r in m.history.rows):
         figures["expectations_history"] = _history(m)
 
@@ -1154,6 +1239,24 @@ def collect(ctx) -> dict:
             similar_n=similar["n"] if similar else None,
             duration_years=duration.implied,
         )
+
+    # -- bear, base and bull from what similar company-years did -------------- #
+    try:
+        with ctx.record("scenarios", "techval.scenarios.value_scenarios", [*everything, FADE_PANEL]):
+            from ...invest.engine_read import fade_panel
+            from ...reverse_dcf import Case
+            from ...scenarios import band_coverage, value_scenarios
+
+            observations = fade_panel(ctx.input(FADE_PANEL).parent).observations
+            own = [o for o in observations if o.ticker == TICKER and o.growth is not None]
+            trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
+            scenarios = value_scenarios(
+                Case(fin=fin, bridge=bridge, wacc=w, assumptions=a), price, observations, trailing=trailing
+            )
+            if scenarios is not None:
+                measured.scenarios = ScenarioRead(scenarios.to_dict(), band_coverage(observations))
+    except TechvalError as exc:
+        refusals.append(Refusal("Bear, base and bull", str(exc)))
 
     # -- what the close assumed each quarter, point in time ------------------- #
     try:

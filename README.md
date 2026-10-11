@@ -11,7 +11,7 @@ engine's three terminal values; the third prints in the run below.*
 
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Twenty commands, 2,419
+the US Treasury daily curve for the risk-free rate. Twenty-one commands, 2,444
 tests, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
@@ -1398,6 +1398,32 @@ the same-size count as its own tile, and on the results dashboard's valuation
 engine section, with the quarterly history as a chart. Methodology section 6.6
 sets out the brackets, the base rates, the history and the screen.
 
+### Bear, base and bull
+
+`techval scenarios TICKER` reads its three scenarios off the fade panel instead
+of typing them in. Each one is the mean growth path of the company-years around
+the 10th, 50th or 90th percentile of what similar starters went on to do. Each
+is valued through the same DCF with everything else held at the base case, and
+the three are weighted 30/40/30:
+
+```
+$ techval scenarios DDOG
+Scenario   Company-years   5-year CAGR   Growth, years 1 to 5                Value   Weight
+Bear                  31          4.1%   11.9%  3.9%  -0.2%  -0.8%  6.3%     28.52      30%
+Base                  31         18.0%   19.3%  18.0%  17.2%  18.1%  17.4%   44.20      40%
+Bull                  31         32.9%   34.7%  38.3%  35.8%  30.2%  25.9%   71.90      30%
+
+Weighted 30/40/30, the scenarios are worth 47.81 against a close of 225.27.
+At 225.27 the price is above even the bull case, 3.1 times it.
+```
+
+Scored on company-years it had not seen, the 10th-to-90th percentile band held
+69.1% against a nominal 80%, with most misses above it, and the command prints
+that beside the scenarios. The screen shows where each price sits against its
+own three, `techval invest` gives every valued holding a scenario tile, and the results
+dashboard charts them against the close. Methodology section 6.7 has the
+construction and the calibration.
+
 ### Point-in-time valuation
 
 `--as-of` on every command pushes a knowledge date through the EDGAR client and
@@ -2085,9 +2111,9 @@ filers.
 uv run pytest
 ```
 
-2,419 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
-`techval.ml`, 396 over the dashboard, 150 over the investing dashboard, 100 over
-the filing reader and 41 over the reverse DCF. GitHub Actions runs the whole
+2,444 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
+`techval.ml`, 396 over the dashboard, 152 over the investing dashboard, 100 over
+the filing reader and 64 over the reverse DCF and its scenarios. GitHub Actions runs the whole
 suite on Python 3.11 and 3.12 for every push to `main` and every pull request.
 No test touches the network. The 15MB of fixtures are frozen SEC payloads,
 pruned XBRL instance documents, real proxy statements, verbatim merger filings

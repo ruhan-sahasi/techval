@@ -373,8 +373,13 @@ def test_the_collector_runs_offline_on_the_fixtures_and_holds_to_the_schema(tmp_
     assert run.status == "ok"
     assert set(section["figures"]) == {
         "cost_of_capital", "football", "bridge", "sensitivity", "montecarlo", "apv", "expectations",
-        "expectations_history",
+        "expectations_history", "scenarios",
     }
+    scen = section["figures"]["scenarios"]
+    values = [r["value"] for r in scen["data"]["rows"][:3]]
+    assert values == sorted(values) and values[2] < scen["data"]["reference"][0]["value"]
+    assert "the close is 3.7 times it" in scen["title"]
+    assert "69.1% of 674" in scen["notes"][0]["why"]
     history = section["figures"]["expectations_history"]
     implied = history["data"]["series"][0]["values"]
     assert len(implied) >= 8

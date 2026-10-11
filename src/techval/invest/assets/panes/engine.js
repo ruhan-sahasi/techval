@@ -16,6 +16,13 @@
     return mm >= 1000 ? "$" + TV.fmt.num(mm / 1000, 1) + "bn" : "$" + TV.fmt.num(mm, 0) + "mm";
   }
 
+  /* Where the price sits against the panel's bear, base and bull. */
+  function against(sc, price) {
+    if (sc.side === "above") return "the price is " + TV.fmt.num(price / sc.bull, 1) + "x the bull";
+    if (sc.side === "below") return "the price is below the bear";
+    return "the price puts " + TV.fmt.pct(sc.weight, 0) + " on the " + sc.side;
+  }
+
   function stat(label, value, sub, signed) {
     return el(
       "div",
@@ -74,6 +81,17 @@
         stats.appendChild(
           stat("Growth the price needs", exp.implied_growth === null ? "beyond 300%" : TV.fmt.pct(exp.implied_growth, 0) + " next year", said)
         );
+        var sc = read.dcf.scenarios;
+        if (sc) {
+          stats.appendChild(
+            stat(
+              "Scenarios, weighted",
+              IV.fmt.money(sc.weighted, 2),
+              "bear " + IV.fmt.money(sc.bear, 2) + ", base " + IV.fmt.money(sc.base, 2) +
+                ", bull " + IV.fmt.money(sc.bull, 2) + "; " + against(sc, read.dcf.price)
+            )
+          );
+        }
         var size = base && base.size;
         if (size && size.n) {
           stats.appendChild(

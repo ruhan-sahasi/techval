@@ -1227,6 +1227,62 @@ dropped. The ranking is by base rate rather than by the gap to the base case,
 because the base rate does not depend on the engine's own growth assumption
 being right.
 
+### 6.7 Bear, base and bull from the panel
+
+A scenario table is usually three columns an analyst typed in. `techval.scenarios`
+reads them off the fade panel (section 15.3) instead. Of the company-years that
+started within ten points of the company's trailing growth, it ranks the
+realised five-year revenue CAGRs and takes the mean year-by-year path of the
+company-years around the 10th, 50th and 90th percentile, five percentile points
+either side. A path keeps its shape: a neighbourhood that decelerated hard
+gives a bear case that decelerates hard, not a constant rate with the same
+CAGR. With fewer than 60 similar starters the pool widens to every labelled
+company-year, and the output says so.
+
+Each path runs through `run_dcf` with every other assumption at the base case.
+Only growth moves, because the panel tests revenue growth for five years and
+nothing else; a scenario that also moved the margin would be mixing evidence
+with an opinion and labelling both as evidence. The perpetuity is the same in
+all three, so a bull case whose fifth year still grows 26% is valued as if
+growth then drops to the terminal rate.
+
+The three are weighted 30/40/30. That is Swanson's rule, which approximates the
+mean of a skewed distribution from its P10, P50 and P90, where an equal split
+overweights both tails. A price above the weighted value is read as the weight
+it puts on the bull case, with bear and base held in proportion; a price below
+it, as the weight on the bear case. Outside all three, no weighting reaches the
+price, and the reading says how far outside it is rather than inventing a
+fourth scenario. The percentiles, weights, neighbourhood and minimum pool sit
+in the `scenarios` block of the assumptions file, which refuses weights that do
+not sum to one and percentiles that do not rise from bear to bull.
+
+For Datadog the pool is the 307 company-years that started within ten points of
+27.7%:
+
+| Scenario | Company-years | Five-year CAGR | Growth, years 1 to 5 | Value |
+|---|---:|---:|---|---:|
+| Bear, P10 | 31 | 4.1% | 11.9%, 3.9%, -0.2%, -0.8%, 6.3% | 28.52 |
+| Base, P50 | 31 | 18.0% | 19.3%, 18.0%, 17.2%, 18.1%, 17.4% | 44.20 |
+| Bull, P90 | 31 | 32.9% | 34.7%, 38.3%, 35.8%, 30.2%, 25.9% | 71.90 |
+| Weighted 30/40/30 | | | | **47.81** |
+
+The engine's own base case, 36.65, sits between the bear and base scenarios:
+its straight line from 20% to 5% compounds more slowly than the median similar
+company-year did. The 225.27 close is 3.1 times the bull case, so no weighting
+of the three reaches it. Across the screen in section 6.6, CrowdStrike trades
+at 8.3 times its bull case, MongoDB at 2.5 and Zscaler at 1.2, and Disney's
+price puts 86% on its bear case.
+
+**The band, scored on company-years it had not seen.** Every company-year filed
+from 2016 is set against the 10th-to-90th percentile band of its similar
+starters, built only from company-years whose fifth-year 10-K was public by
+then, with ninety days allowed for a late filer. A calibrated band holds 80%.
+This one held 69.1% of 674, and the misses lean up: 19.3% beat the 90th
+percentile, 11.6% fell below the 10th, and 59.1% beat their pool's median. On
+this record the scenarios run slow, because the years after 2016 grew faster
+than the years the bands were built from. Read the bull case as what the best
+tenth used to do, not as a ceiling.
+
 ## 7. Trading comparables
 
 Multiples computed: EV/Revenue, EV/Gross Profit, EV/EBITDA, EV/EBIT and P/E, plus
