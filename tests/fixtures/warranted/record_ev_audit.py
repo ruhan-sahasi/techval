@@ -177,7 +177,7 @@ def main(cache_dir: Path | None) -> None:
                 (revenue_is_a_component(facts, fin), "revenue_is_a_component"),
                 (debt_is_outside_the_ladder(facts, fin), "debt_outside_the_ladder"),
                 (
-                    price_disagrees_with_the_public_float(facts, fin, o["equity_value"]),
+                    price_disagrees_with_the_public_float(facts, o["equity_value"]),
                     "price_disagrees_with_float",
                 ),
             ):
