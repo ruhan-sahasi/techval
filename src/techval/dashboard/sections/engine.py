@@ -115,6 +115,8 @@ class CostOfCapital:
     weight_debt: float
     after_tax_cost_of_debt: float
     debt_to_equity: float
+    # Where the rate came from, as compute_wacc states it.
+    risk_free_source: str = "assumptions file override"
 
 
 @dataclass
@@ -323,6 +325,14 @@ def _ordinal(q: float) -> str:
     return f"{n}{suffix}"
 
 
+def _risk_free_sub(c: CostOfCapital) -> str:
+    if c.risk_free_pinned:
+        return "Pinned as the test suite pins it; no Treasury quote is read offline"
+    if c.risk_free_source == "assumptions file override":
+        return "From market.risk_free_rate in the assumptions"
+    return c.risk_free_source
+
+
 def _tiles(m: Measured) -> dict[str, Any]:
     c = m.cost_of_capital
     peers = ", ".join(c.peers)
@@ -336,11 +346,7 @@ def _tiles(m: Measured) -> dict[str, Any]:
             "label": "Risk-free rate",
             "value": c.risk_free_rate,
             "format": "pct:2",
-            "sub": (
-                "Pinned as the test suite pins it; no Treasury quote is read offline"
-                if c.risk_free_pinned
-                else "From market.risk_free_rate in the assumptions"
-            ),
+            "sub": _risk_free_sub(c),
         },
     ]
     if c.peers:
@@ -1192,6 +1198,7 @@ def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, 
         weight_debt=w.weight_debt,
         after_tax_cost_of_debt=w.after_tax_cost_of_debt,
         debt_to_equity=bridge.total_debt / bridge.equity_value,
+        risk_free_source=next((src for label, _, src in w.inputs if label == "Risk-free rate"), ""),
     )
 
     # -- market-based ranges -------------------------------------------------- #

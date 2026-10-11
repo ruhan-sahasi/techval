@@ -329,6 +329,11 @@ def test_the_risk_free_tile_says_where_the_rate_came_from():
     assert "test suite" in rate["sub"]
     rate = next(t for t in configured if t["label"] == "Risk-free rate")
     assert "market.risk_free_rate" in rate["sub"]
+    quoted = tiles(_measured(cost_of_capital=_cost(
+        risk_free_pinned=False, risk_free_source="US Treasury 10Y constant maturity, 2026-10-09"
+    )))
+    rate = next(t for t in quoted if t["label"] == "Risk-free rate")
+    assert rate["sub"] == "US Treasury 10Y constant maturity, 2026-10-09"
     assert pinned[0]["label"] == "Valuation date" and pinned[0]["value"] == "2026-01-02"
 
 
