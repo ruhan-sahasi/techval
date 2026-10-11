@@ -1163,7 +1163,7 @@ def _cross_checks(
                 f"{label} terminal value is {tv.pct_of_ev:.0%} of enterprise value."
             )
 
-    out.extend(_reinvestment_check(terminal, steady, g, wacc, assumptions))
+    out.extend(_reinvestment_check(terminal, steady, g, wacc))
     out.extend(
         _value_driver_check(
             steady=steady,
@@ -1218,7 +1218,6 @@ def _reinvestment_check(
     steady: _SteadyState,
     g: float,
     wacc: float,
-    assumptions: Assumptions,
 ) -> list[str]:
     """g = ROIC * reinvestment rate, read out of a g-consistent steady state.
 

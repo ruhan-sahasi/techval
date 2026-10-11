@@ -348,9 +348,7 @@ def _revenue_growth(
     return fin.revenue / prior - 1.0
 
 
-def _for_company(
-    fin: Financials, assumptions: Assumptions, is_target: bool
-) -> Assumptions:
+def _for_company(assumptions: Assumptions, is_target: bool) -> Assumptions:
     """Assumptions as they apply to one company in the set.
 
     ``convertibles.conversion_price`` is read from the target's own notes
@@ -390,7 +388,7 @@ def compute_peer_metrics(
     statements, the fact set behind them and the quote, so the same peer can be
     repriced at a different price without another fetch.
     """
-    bridge = build_ev_bridge(fin, price, _for_company(fin, assumptions, is_target))
+    bridge = build_ev_bridge(fin, price, _for_company(assumptions, is_target))
     ev = bridge.enterprise_value
     flags: list[str] = list(bridge.notes) if not is_target else []
 
