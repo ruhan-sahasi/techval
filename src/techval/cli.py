@@ -229,10 +229,6 @@ def _kv_table(rows: list[tuple[str, float]], *, title: str, dp: int = 1) -> Tabl
     return t
 
 
-def _opt(v, fmt):
-    return "n/a" if v is None else fmt(v)
-
-
 def _frame_table(df: pd.DataFrame, *, title: str, index_label: str = "") -> Table:
     t = Table(title=title, title_justify="left", box=None, pad_edge=False)
     t.add_column(index_label, no_wrap=True)
@@ -368,7 +364,7 @@ def _render_regression(fit) -> None:
     _notes(list(fit.notes))
 
 
-def _render_purchase_accounting(pa, acq_ticker: str) -> None:
+def _render_purchase_accounting(pa) -> None:
     """Opening balance sheet and the pro forma years it feeds."""
     _rule("Purchase accounting: opening balance sheet")
     console.print(_kv_table(pa.opening.rows(), title="", dp=0))
@@ -530,7 +526,7 @@ def _render_wacc(w) -> None:
     _notes(w.notes)
 
 
-def _render_dcf(d, fin) -> None:
+def _render_dcf(d) -> None:
     _rule("Discounted cash flow")
     # Transposed: line items down the side, years across the top. That is how a
     # projection is read, and it also keeps thirteen metrics inside a terminal
@@ -1392,7 +1388,7 @@ def value(
                 assumptions,
                 peer_median_ev_ebitda=peer_median_ev_ebitda,
             )
-            _render_dcf(d, fin)
+            _render_dcf(d)
 
             _rule("Sensitivities")
             # Centred on the discount rate the DCF actually used, which is the
@@ -1751,7 +1747,7 @@ def merger(
         _notes(r.accretion.notes + r.notes)
 
         if getattr(r, "purchase_accounting", None) is not None:
-            _render_purchase_accounting(r.purchase_accounting, acq_fin.ticker)
+            _render_purchase_accounting(r.purchase_accounting)
     except TechvalError as exc:
         console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
         raise typer.Exit(1)
