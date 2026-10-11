@@ -71,3 +71,13 @@ def test_a_company_with_no_peers_or_panel_still_gets_a_page_that_says_what_is_mi
     assert {"Trading comps", "What the price assumes", "Bear, base and bull"} <= refused
     assert "no trading comps" in snap.page["standfirst"] and "no fade panel" in snap.page["standfirst"]
     assert not any("Fade panel" in s for s in snap.page["sources"])
+
+
+def test_the_example_page_is_exactly_what_its_committed_snapshot_renders():
+    from techval.dashboard.render import render_dashboard
+    from techval.dashboard.snapshot import load_snapshot
+
+    docs = Path(__file__).parents[1] / "docs" / "tearsheet"
+    snap = load_snapshot(docs / "CRWD.json")
+    assert snap.title == "CRWD, valued by the engine" and snap.page is not None
+    assert render_dashboard(snap) == (docs / "CRWD.html").read_text(encoding="utf-8")
