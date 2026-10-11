@@ -10,23 +10,11 @@ import pytest
 
 from techval.config import Assumptions
 from techval.dashboard.snapshot import Snapshot
-from techval.edgar import CompanyFacts
 from techval.market import CsvSource
-from techval.tearsheet import build_tearsheet
+from techval.tearsheet import RecordedFacts, build_tearsheet
 
 FIXTURES = Path(__file__).parent / "fixtures"
 AS_OF = date(2026, 9, 9)
-
-
-class Files:
-    """The committed companyfacts payloads, as EdgarClient would hand them over."""
-
-    def company_facts(self, ticker):
-        path = FIXTURES / f"companyfacts_{ticker.upper()}.json"
-        return CompanyFacts(json.loads(path.read_text(encoding="utf-8")), ticker)
-
-    def ticker_to_cik(self, ticker):
-        return self.company_facts(ticker).cik
 
 
 @pytest.fixture(scope="module")
@@ -41,7 +29,7 @@ def sheet(ticker, peers=(), observations=None):
     a.market.risk_free_rate = 0.0483
     a.comps.peers = list(peers)
     return build_tearsheet(
-        ticker, a, client=Files(), prices=CsvSource(FIXTURES / "prices"), price_feed="csv",
+        ticker, a, client=RecordedFacts(FIXTURES), prices=CsvSource(FIXTURES / "prices"), price_feed="csv",
         observations=observations, panel="tests/fixtures/fade_companyfacts.json.gz",
         today=AS_OF, collected_at="2026-10-11", commit="abc1234",
     )

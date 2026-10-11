@@ -49,6 +49,7 @@ from .apv import run_apv
 from .commands_forecast import app as _forecast_app
 from .commands_cache import app as _cache_app
 from .commands_expectations import app as _expectations_app
+from .commands_tearsheet import app as _tearsheet_app
 from .commands_invest import app as _invest_app
 from .commands_mna import app as _mna_app
 from .commands_peers import app as _peers_app
@@ -158,6 +159,7 @@ def _mount(sub_app: typer.Typer, panel: str) -> None:
 
 
 _mount(_expectations_app, "Valuation")
+_mount(_tearsheet_app, "Valuation")
 _mount(_tmt_app, "TMT fundamentals")
 _mount(_peers_app, "Learned comparables")
 _mount(_forecast_app, "Forecasts and signal testing")
