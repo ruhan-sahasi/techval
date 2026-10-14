@@ -42,17 +42,26 @@ class Case:
     assumptions: Assumptions
 
     def with_dcf(self, **dcf_changes) -> "Case":
-        """The same company under changed ``assumptions.dcf`` fields; the original is untouched."""
+        """The same company under changed ``assumptions.dcf`` fields, as an independent copy.
+
+        A whole copy, since the caller holds the new case and may change any of it.
+        """
         a = self.assumptions.model_copy(deep=True)
         for name, v in dcf_changes.items():
             setattr(a.dcf, name, v)
         return Case(fin=self.fin, bridge=self.bridge, wacc=self.wacc, assumptions=a)
 
     def value(self, growth_path=None, **dcf_changes) -> float:
-        """Per-share value with some ``assumptions.dcf`` fields changed."""
-        a = self.assumptions.model_copy(deep=True)
-        for name, v in dcf_changes.items():
-            setattr(a.dcf, name, v)
+        """Per-share value with some ``assumptions.dcf`` fields changed; the case is untouched.
+
+        Only the ``dcf`` block is copied, and the copy never leaves this call. A
+        solve values the company hundreds of times, and deep-copying every block
+        of the assumptions on each of them was half the cost of a page; nothing
+        downstream of ``run_dcf`` writes to them.
+        """
+        a = self.assumptions
+        if dcf_changes:
+            a = a.model_copy(update={"dcf": a.dcf.model_copy(update=dcf_changes)})
         return float(run_dcf(self.fin, self.bridge, self.wacc, a, growth_path=growth_path).per_share)
 
 
