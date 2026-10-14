@@ -30,7 +30,7 @@ from typing import Protocol
 import numpy as np
 
 from .edgar import HttpCache, http_get
-from .errors import DataSourceError, MissingDataError
+from .errors import DataSourceError, MissingDataError, TechvalError
 
 # Nasdaq's quote API and the Treasury CSV endpoint both reject clients whose
 # User-Agent they do not recognise, and neither publishes a fair-access policy
@@ -259,6 +259,49 @@ class CsvSource:
         )
 
 
+# The years of closes a MarketData reads back from its date: two years of weekly
+# returns for a beta, and a year to spare.
+HISTORY_YEARS = 3.0
+
+
+def history_start(today: date, years: float = HISTORY_YEARS) -> date:
+    """The first date a MarketData pinned to ``today`` reads closes from."""
+    return today - timedelta(days=int(365.25 * years))
+
+
+class SpanSource:
+    """A price source that fetches each symbol once over a fixed span and slices it.
+
+    A history valued at a dozen dates asks for a dozen three-year windows of the
+    same closes, and over a live feed each window is its own download. This asks
+    the wrapped source once per symbol for the whole span and serves every window
+    inside it from that, the same closes the narrower request returns. A window
+    reaching outside the span goes to the wrapped source as asked.
+    """
+
+    def __init__(self, source, start: date, end: date) -> None:
+        self.source = source
+        self.start = start
+        self.end = end
+        self.name = getattr(source, "name", "prices")
+        self._whole: dict[str, PriceSeries | TechvalError] = {}
+
+    def fetch(self, symbol: str, start: date, end: date) -> PriceSeries:
+        if start < self.start or end > self.end:
+            return self.source.fetch(symbol, start, end)
+        key = symbol.upper()
+        if key not in self._whole:
+            try:
+                self._whole[key] = self.source.fetch(key, self.start, self.end)
+            except TechvalError as err:
+                self._whole[key] = err
+        whole = self._whole[key]
+        if isinstance(whole, TechvalError):
+            raise whole
+        idx = [i for i, d in enumerate(whole.dates) if start <= d <= end]
+        return PriceSeries(whole.symbol, [whole.dates[i] for i in idx], whole.closes[idx], whole.source)
+
+
 def make_price_source(kind: str, cache: HttpCache, csv_dir: str | None = None):
     if kind == "nasdaq":
         return NasdaqSource(cache)
@@ -280,12 +323,12 @@ class MarketData:
         cache: HttpCache,
         *,
         today: date,
-        history_years: float = 3.0,
+        history_years: float = HISTORY_YEARS,
     ) -> None:
         self.source = source
         self.cache = cache
         self.today = today
-        self.start = today - timedelta(days=int(365.25 * history_years))
+        self.start = history_start(today, history_years)
         self._series: dict[str, PriceSeries] = {}
 
     def prices(self, symbol: str) -> PriceSeries:

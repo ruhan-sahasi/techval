@@ -47,3 +47,53 @@ def test_a_valuation_after_the_last_published_yield_takes_that_yield_and_dates_i
     # 2025's file holds only a yield published after the valuation date.
     cache.put(TREASURY_URL.format(year=2025), curve({"02/03/2025": 4.50}))
     assert rate_on(cache, date(2025, 2, 1))[1] == "US Treasury 10Y constant maturity, 2024-12-31"
+
+
+class Counting:
+    """The committed closes, counting what is asked of them."""
+
+    name = "csv"
+
+    def __init__(self, directory):
+        self.inner = CsvSource(directory)
+        self.asked = []
+
+    def fetch(self, symbol, start, end):
+        self.asked.append((symbol, start, end))
+        return self.inner.fetch(symbol, start, end)
+
+
+PRICES = __import__("pathlib").Path(__file__).parent / "fixtures" / "prices"
+
+
+def test_a_span_fetches_each_symbol_once_and_serves_every_window_inside_it():
+    from techval.market import SpanSource
+
+    counting = Counting(PRICES)
+    span = SpanSource(counting, date(2023, 6, 1), date(2026, 9, 1))
+    windows = [(date(2023, 6, 1), date(2025, 3, 31)), (date(2024, 1, 2), date(2026, 9, 1))]
+    for start, end in windows:
+        sliced = span.fetch("DDOG", start, end)
+        direct = CsvSource(PRICES).fetch("DDOG", start, end)
+        assert sliced.dates == direct.dates and list(sliced.closes) == list(direct.closes)
+    assert counting.asked == [("DDOG", date(2023, 6, 1), date(2026, 9, 1))]
+
+
+def test_a_window_outside_the_span_goes_to_the_source_as_asked():
+    from techval.market import SpanSource
+
+    counting = Counting(PRICES)
+    SpanSource(counting, date(2024, 1, 1), date(2025, 1, 1)).fetch("DDOG", date(2023, 6, 1), date(2024, 6, 1))
+    assert counting.asked == [("DDOG", date(2023, 6, 1), date(2024, 6, 1))]
+
+
+def test_a_symbol_the_source_cannot_price_is_refused_every_time_without_asking_again():
+    from techval.errors import MissingDataError
+    from techval.market import SpanSource
+
+    counting = Counting(PRICES)
+    span = SpanSource(counting, date(2024, 1, 1), date(2025, 1, 1))
+    for _ in range(2):
+        with pytest.raises(MissingDataError):
+            span.fetch("NOPE", date(2024, 1, 1), date(2024, 6, 1))
+    assert len(counting.asked) == 1
