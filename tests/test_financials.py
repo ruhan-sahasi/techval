@@ -971,3 +971,22 @@ def test_a_profitable_filer_with_no_diluted_count_is_refused():
 
     with pytest.raises(MissingDataError, match="diluted shares"):
         build_financials("DDOG", facts=CompanyFacts(_without_diluted(loss=False), "DDOG"))
+
+
+def test_a_diluted_count_filed_too_thinly_to_tile_is_refused_not_replaced():
+    """MongoDB files a diluted count it cannot tile at some dates; the basic count is no substitute."""
+    import copy
+    import json
+    from pathlib import Path
+
+    from techval.edgar import CompanyFacts
+    from techval.errors import MissingDataError
+    from techval.financials import build_financials
+
+    payload = _without_diluted(loss=True)
+    original = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    rows = copy.deepcopy(original["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"])
+    rows["units"]["shares"] = [r for r in rows["units"]["shares"] if r["end"] < "2026-01-01"]
+    payload["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"] = rows
+    with pytest.raises(MissingDataError, match="diluted shares"):
+        build_financials("DDOG", facts=CompanyFacts(payload, "DDOG"))
