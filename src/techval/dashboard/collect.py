@@ -50,7 +50,7 @@ from pathlib import Path, PurePosixPath
 from types import ModuleType
 from typing import Any, Callable, Iterator, Mapping
 
-from ..config import Assumptions
+from ..config import Assumptions, ml_cache_root
 from ..errors import ConfigError, TechvalError
 from .sections import (
     COLLECT_ORDER,
@@ -240,12 +240,6 @@ def _repo_root_for(root: Path) -> Path:
     start = root if root.is_dir() else Path.cwd()
     top = _git(["rev-parse", "--show-toplevel"], start)
     return Path(top) if top else Path.cwd()
-
-
-def ml_cache_dir(assumptions: Assumptions) -> Path:
-    """The ml cache root, resolved the way ``techval peers`` resolves it."""
-    configured = assumptions.ml.cache_dir
-    return Path(configured).expanduser() if configured else Path.home() / ".techval" / "ml"
 
 
 def _sha(data: bytes) -> str:
@@ -501,7 +495,7 @@ def collect_section(
         key = cache_key(
             module, _declared_digests(module, ctx), ctx.assumptions, ctx.results
         )
-        path = ml_cache_dir(ctx.assumptions) / "dashboard" / f"{module.ID}-{key}.json"
+        path = ml_cache_root(ctx.assumptions) / "dashboard" / f"{module.ID}-{key}.json"
         cached = _read_cache(path)
         if cached is not None:
             return run(cached, "hit")
@@ -589,6 +583,5 @@ __all__ = [
     "collect_section",
     "collect_snapshot",
     "entry_module",
-    "ml_cache_dir",
     "techval_commit",
 ]

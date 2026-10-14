@@ -72,7 +72,6 @@ from .commands_forecast import (
 from .commands_mna import load_dataset as _load_mna_dataset
 from .commands_peers import (
     _bundle as _peer_bundle,
-    _cache_root as _ml_cache_root,
     _load_observations,
 )
 from .commands_tmt import _render_sotp, load_plan as _load_sotp_plan
@@ -99,7 +98,7 @@ from .backtest import (
     run_backtest,
 )
 from .dilution import build_share_count
-from .config import Assumptions
+from .config import Assumptions, ml_cache_root
 from .dcf import run_dcf, sensitivity_wacc_exit, sensitivity_wacc_growth
 from .edgar import EdgarClient, HttpCache
 from .errors import ConfigError, TechvalError
@@ -679,7 +678,7 @@ def _ml_root(assumptions, ml_data: Path | None) -> Path:
     not a property of the company being valued, and the assumptions file is the
     company's.
     """
-    return Path(ml_data) if ml_data else _ml_cache_root(assumptions)
+    return Path(ml_data) if ml_data else ml_cache_root(assumptions)
 
 
 # Where each recorded artifact is known to live, under a single ``--ml-data``
