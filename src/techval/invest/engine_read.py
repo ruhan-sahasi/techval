@@ -39,8 +39,18 @@ FADE_PANEL = "fade_companyfacts.json.gz"
 WARRANTED_PANEL = "warranted/observations.json.gz"
 
 # The modules whose source moves each fit. A change to any of them is a cache
-# miss, the same rule the dashboard collector keys its sections on.
-_FADE_MODULES = ("techval.ml.forecast", "techval.tmt.taxonomy", "techval.invest.engine_read")
+# miss, the same rule the dashboard collector keys its sections on. The fade
+# panel is built through CompanyFacts and the tag ladders as much as through the
+# forecast module, so those count; a test profiles the build to keep it so.
+_FADE_MODULES = (
+    "techval.ml.forecast",
+    "techval.ml.features",
+    "techval.edgar",
+    "techval.tags",
+    "techval.config",
+    "techval.tmt.taxonomy",
+    "techval.invest.engine_read",
+)
 _WARRANTED_MODULES = (
     "techval.ml.warranted",
     "techval.ml.nn",
