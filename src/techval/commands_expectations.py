@@ -22,8 +22,7 @@ from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
-from .config import Assumptions
-from .dashboard.collect import ml_cache_dir
+from .config import Assumptions, ml_cache_root
 from .errors import TechvalError
 
 app = typer.Typer()
@@ -117,7 +116,7 @@ def expectations(
     try:
         co = _company(symbol, config, no_cache, facts_file)
         observations, trailing = _panel(
-            Path(panels) if panels else CHECKOUT_PANELS, symbol, ml_cache_dir(co.assumptions)
+            Path(panels) if panels else CHECKOUT_PANELS, symbol, ml_cache_root(co.assumptions)
         )
         result = market_expectations(
             co.case, price if price is not None else co.spot, trailing_growth=trailing, observations=observations
@@ -245,7 +244,7 @@ def expectations_screen(
                 payloads[symbol] = json.loads(path.read_text(encoding="utf-8"))
             else:
                 payloads[symbol] = client.company_facts(symbol).raw
-        observations, _ = _panel(Path(panels) if panels else CHECKOUT_PANELS, "", ml_cache_dir(assumptions))
+        observations, _ = _panel(Path(panels) if panels else CHECKOUT_PANELS, "", ml_cache_root(assumptions))
         rows = screen(payloads, source, assumptions, when, observations) + missing
     except TechvalError as err:
         console.print(f"[red]{escape(str(err))}[/red]")
@@ -299,7 +298,7 @@ def scenarios(
     symbol = ticker.upper()
     directory = Path(panels) if panels else CHECKOUT_PANELS
     try:
-        observations, trailing = _panel(directory, symbol, ml_cache_dir(Assumptions.load(config)))
+        observations, trailing = _panel(directory, symbol, ml_cache_root(Assumptions.load(config)))
         if observations is None:
             console.print(
                 f"[red]There is no fade panel in {escape(str(directory))}, and the scenarios are read "
