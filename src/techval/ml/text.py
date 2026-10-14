@@ -74,8 +74,6 @@ from typing import Any, Protocol
 
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import TruncatedSVD
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS, TfidfVectorizer
 
 from ..config import Assumptions
 from ..errors import ConfigError, MissingDataError
@@ -205,6 +203,8 @@ def _stop_words(token_pattern: str) -> list[str]:
     and "i" and this module's token pattern requires two characters. Filtering
     first makes the warning impossible rather than suppressing it.
     """
+    from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+
     matcher = re.compile(f"^(?:{token_pattern})$")
     words = set(ENGLISH_STOP_WORDS) | set(FILING_STOP_WORDS)
     return sorted(w for w in words if matcher.match(w))
@@ -790,6 +790,11 @@ def fit_text_features(
     no trace in the output. Later documents belong in ``transform``, which is
     what the refusal message says.
     """
+    # Imported here: scikit-learn takes a second and a half to import, and only
+    # fitting needs it, so every techval command would otherwise pay for it.
+    from sklearn.decomposition import TruncatedSVD
+    from sklearn.feature_extraction.text import TfidfVectorizer
+
     if not corpus.tickers:
         raise ConfigError(
             "cannot fit text features on an empty corpus; "
