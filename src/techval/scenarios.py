@@ -321,24 +321,25 @@ def band_coverage(
     lopsided miss says the panel's history ran faster or slower than what
     followed.
     """
-    from datetime import date, timedelta
+    from datetime import date
 
     import numpy as np
 
     test_from = test_from or date(2016, 1, 1)
-    labelled = []
-    for obs in observations:
-        if all(h in obs.labels for h in range(1, horizon + 1)):
-            cagr = path_cagr([obs.labels[h] for h in range(1, horizon + 1)], horizon)
-            known = obs.as_of + timedelta(days=round(365.25 * horizon) + EMBARGO_DAYS)
-            labelled.append((obs, cagr, known))
+    labelled = [o for o in observations if all(h in o.labels for h in range(1, horizon + 1))]
+    # One array per field, so each company-year's pool is two comparisons
+    # rather than a pass over every other company-year in Python.
+    cagrs = np.array([path_cagr([o.labels[h] for h in range(1, horizon + 1)], horizon) for o in labelled])
+    lag = round(365.25 * horizon) + EMBARGO_DAYS
+    known = np.array([o.as_of.toordinal() + lag for o in labelled])
+    growth = np.array([np.nan if o.growth is None else o.growth for o in labelled])
     below = inside = above = upper_half = 0
-    for obs, cagr, _ in labelled:
+    for obs, cagr in zip(labelled, cagrs):
         if obs.as_of < test_from or obs.growth is None:
             continue
-        seen = [(o, c) for o, c, known in labelled if known <= obs.as_of]
-        near = [c for o, c in seen if o.growth is not None and abs(o.growth - obs.growth) <= band]
-        pool = near if len(near) >= min_similar else [c for _, c in seen]
+        seen = known <= obs.as_of.toordinal()
+        near = seen & (np.abs(growth - obs.growth) <= band)
+        pool = cagrs[near] if near.sum() >= min_similar else cagrs[seen]
         if len(pool) < min_similar:
             continue
         lo, mid, hi = (float(q) for q in np.quantile(pool, [low, 0.5, high]))
