@@ -636,6 +636,12 @@ def expectations_history(payload: dict, ticker: str, source, assumptions: Assump
     little filed history or too little price history for a beta, is kept as a
     row with the refusal, never dropped.
     """
+    from .market import SpanSource, history_start
+
+    dates = list(dates)
+    if dates:
+        # Every date's window of closes falls inside one span, fetched once.
+        source = SpanSource(source, history_start(min(dates)), max(dates))
     rows = []
     for when in dates:
         row = {"date": when.isoformat(), "refused": None}
