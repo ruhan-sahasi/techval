@@ -31,7 +31,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.stats import binomtest
 
 from ..errors import TechvalError
 from ..ml.protocol import EvalResult, PairedDelta
@@ -87,6 +86,9 @@ def mcnemar_p(claude_only: int, regex_only: int) -> float:
     discordant = claude_only + regex_only
     if discordant == 0:
         return 1.0
+    # Imported here: scipy.stats costs every techval command a second at startup.
+    from scipy.stats import binomtest
+
     return float(binomtest(claude_only, discordant, 0.5).pvalue)
 
 
