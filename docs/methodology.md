@@ -370,11 +370,15 @@ with a JavaScript proof-of-work challenge rather than CSV. Defeating a bot check
 the operator deliberately erected is not something this package will do, so the
 Stooq source raises an explanatory error pointing at the alternatives.
 
-**Risk-free rate.** The latest 10-year constant-maturity Treasury yield from the
-Treasury's daily yield curve feed. The ten-year point is the conventional anchor
-for a US equity discount rate: long enough to match the duration of the cash
-flows being discounted, liquid enough that the quote means something. Overridable
-in the assumptions file to pin a run to a fixed date.
+**Risk-free rate.** The 10-year constant-maturity Treasury yield from the
+Treasury's daily yield curve feed, the last one published on or before the
+valuation date. The ten-year point is the conventional anchor for a US equity
+discount rate: long enough to match the duration of the cash flows being
+discounted, liquid enough that the quote means something. The feed is a file
+per year, and an earlier version took the file's last row whatever the date, so
+a valuation dated in March discounted at December's yield; a dated run, the
+expectations history and the backtest now each read their own day's rate.
+Overridable in the assumptions file to pin a run to one rate.
 
 **Market proxy.** SPY rather than the S&P 500 index itself, because the index is
 not available from a keyless source. The substitution is close to free for beta
