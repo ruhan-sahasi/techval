@@ -937,3 +937,37 @@ def test_a_filer_that_stopped_tagging_operating_income_gets_it_derived_too():
     lapsed["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"] = [r for r in rows if r["end"] < "2024-01-01"]
     fin = build_financials("DDOG", facts=CompanyFacts(lapsed, "DDOG"))
     assert fin.provenance["EBIT"].method == "derived: pre-tax income plus interest expense"
+
+
+def _without_diluted(loss: bool):
+    import copy
+    import json
+    from pathlib import Path
+
+    payload = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    out = copy.deepcopy(payload)
+    del out["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"]
+    if loss:
+        for row in out["facts"]["us-gaap"]["NetIncomeLoss"]["units"]["USD"]:
+            row["val"] = -abs(row["val"])
+    return out
+
+
+def test_a_loss_maker_with_no_diluted_count_is_valued_on_its_basic_one():
+    """Take-Two files a basic weighted count and no diluted one."""
+    from techval.edgar import CompanyFacts
+    from techval.financials import build_financials
+
+    fin = build_financials("DDOG", facts=CompanyFacts(_without_diluted(loss=True), "DDOG"))
+    assert fin.net_income < 0
+    assert fin.diluted_shares == pytest.approx(fin.basic_shares)
+    assert any("every potential share is anti-dilutive" in w for w in fin.warnings)
+
+
+def test_a_profitable_filer_with_no_diluted_count_is_refused():
+    from techval.edgar import CompanyFacts
+    from techval.errors import MissingDataError
+    from techval.financials import build_financials
+
+    with pytest.raises(MissingDataError, match="diluted shares"):
+        build_financials("DDOG", facts=CompanyFacts(_without_diluted(loss=False), "DDOG"))
