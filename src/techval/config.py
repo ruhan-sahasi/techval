@@ -868,3 +868,14 @@ class Assumptions(_Base):
                 for error in exc.errors()
             )
             raise ConfigError(f"{p} was not accepted. {problems}") from exc
+
+
+def ml_cache_root(assumptions: Assumptions | None) -> Path:
+    """Where fitted models, built panels and parsed filings are kept.
+
+    ``ml.cache_dir`` when it is set, and ``~/.techval/ml`` otherwise, resolved
+    when asked rather than at import, so a run, or a test, that moves the home
+    directory moves the cache with it.
+    """
+    configured = assumptions.ml.cache_dir if assumptions is not None else None
+    return Path(configured).expanduser() if configured else Path.home() / ".techval" / "ml"

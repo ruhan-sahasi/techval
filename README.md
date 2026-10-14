@@ -11,7 +11,7 @@ engine's three terminal values; the third prints in the run below.*
 
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Twenty-two commands, 2,456
+the US Treasury daily curve for the risk-free rate. Twenty-two commands, 2,466
 tests, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
@@ -1633,7 +1633,7 @@ engine refuses to start without `TECHVAL_SEC_EMAIL`.
 
 ## Usage
 
-Fifteen commands in six groups.
+Twenty-two commands in seven groups.
 
 ```bash
 # Core valuation
@@ -1643,6 +1643,10 @@ uv run techval merger CRWD MDB --config assumptions.yaml
 uv run techval fetch DDOG                               # warm cache, show provenance
 uv run techval backtest DDOG,MDB,ZS,CRWD --config backtest.yaml \
     --from 2025-03-31 --to 2025-09-30 --horizon 252
+uv run techval expectations DDOG --config assumptions.yaml        # what the price assumes, lever by lever
+uv run techval expectations-screen DDOG CRWD MDB ZS --config assumptions.yaml
+uv run techval scenarios DDOG --config assumptions.yaml           # bear, base and bull from similar company-years
+uv run techval tearsheet DDOG --config assumptions.yaml --open    # one company on one page
 
 # TMT fundamentals
 uv run techval kpis DDOG --config assumptions.yaml      # operating metrics, with the provenance of each
@@ -1663,9 +1667,21 @@ uv run techval signal --config assumptions.yaml         # test a score against f
 uv run techval precedents RAMP,PAYO,IRDM,SLAB --config assumptions.yaml
 uv run techval targets --dataset tests/fixtures/mna --config assumptions.yaml
 
-# Results
+# Reading filings
+uv run techval rag score                                # the Claude reader against the regex one
+
+# Pages and housekeeping
 uv run techval dashboard --config docs/dashboard/assumptions.yaml --collect   # the results page, from the fixtures
+uv run techval invest                                   # your portfolio, on a private page
+uv run techval cache info                               # what the HTTP cache holds
 ```
+
+Every command starts in under a second; the libraries only some commands need
+are imported by those commands. The fade panel and the fade fit the valuation
+commands read are built once and kept in `ml.cache_dir`, keyed on the panel's
+bytes, the code that builds them and the assumptions, so a second run of
+`expectations`, `scenarios`, `tearsheet` or `fade` reads them back. A repeat
+`techval expectations DDOG` takes about 1.7 seconds.
 
 `--as-of` is accepted by every command that reads a company. It discards every
 fact filed after that date and stops the price series there, so the run uses
@@ -2131,12 +2147,14 @@ filers.
 uv run pytest
 ```
 
-2,456 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
+2,466 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
 `techval.ml`, 402 over the dashboard, 152 over the investing dashboard, 100 over
 the filing reader, 64 over the reverse DCF and its scenarios and 6 over the
 tearsheet. GitHub Actions runs the whole
 suite on Python 3.11 and 3.12 for every push to `main` and every pull request.
-No test touches the network. The 15MB of fixtures are frozen SEC payloads,
+No test touches the network, and none touches your home directory: the suite
+runs with a throwaway one, so no fit or response a real run cached under
+`~/.techval` is read or overwritten. The 15MB of fixtures are frozen SEC payloads,
 pruned XBRL instance documents, real proxy statements, verbatim merger filings
 and recorded daily closes, each carrying its retrieval date and the exact
 pruning rule applied, and several carrying a `MANIFEST.json` with row counts and

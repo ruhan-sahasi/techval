@@ -138,7 +138,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from ..config import Assumptions
+from ..config import Assumptions, ml_cache_root
 from ..errors import ConfigError, MissingDataError, NotMeaningfulError
 from .evaluation import (
     Fold,
@@ -1232,8 +1232,7 @@ class PeerEncoder:
 
 def cache_path(assumptions: Assumptions | None, name: str = "peer_encoder") -> Path:
     """Where a fitted encoder is kept, from ``assumptions.ml.cache_dir``."""
-    configured = assumptions.ml.cache_dir if assumptions is not None else None
-    root = Path(configured).expanduser() if configured else Path.home() / ".techval" / "ml"
+    root = ml_cache_root(assumptions)
     return root / f"{name}.joblib"
 
 

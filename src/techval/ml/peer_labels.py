@@ -69,7 +69,7 @@ from typing import Any, Iterable, Sequence
 
 import pandas as pd
 
-from techval.config import Assumptions
+from techval.config import Assumptions, ml_cache_root
 from techval.errors import ConfigError, DataSourceError, MissingDataError
 
 # Bumped when the parser changes in a way that would alter a cached result, so a
@@ -1406,8 +1406,7 @@ def cache_dir(assumptions: Assumptions | None = None) -> Path:
     megabyte of HTML, so the parse is done once and kept. The HTTP layer already
     caches the filing bytes; this caches the far smaller result of reading them.
     """
-    configured = assumptions.ml.cache_dir if assumptions is not None else None
-    root = Path(configured).expanduser() if configured else Path.home() / ".techval" / "ml"
+    root = ml_cache_root(assumptions)
     return root / "peer_groups"
 
 

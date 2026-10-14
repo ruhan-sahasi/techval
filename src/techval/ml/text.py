@@ -74,10 +74,8 @@ from typing import Any, Protocol
 
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import TruncatedSVD
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS, TfidfVectorizer
 
-from ..config import Assumptions
+from ..config import Assumptions, ml_cache_root
 from ..errors import ConfigError, MissingDataError
 
 # Bumped whenever a change here would make a cached matrix mean something
@@ -85,7 +83,6 @@ from ..errors import ConfigError, MissingDataError
 # cache is ignored rather than silently returned against new code.
 SCHEMA_VERSION = 1
 
-DEFAULT_CACHE_DIR = Path.home() / ".techval" / "ml"
 
 # What a redacted company name is replaced by. It has to be a token rather than
 # a space: dropping "Datadog" out of "the Datadog platform" would leave "the"
@@ -205,6 +202,8 @@ def _stop_words(token_pattern: str) -> list[str]:
     and "i" and this module's token pattern requires two characters. Filtering
     first makes the warning impossible rather than suppressing it.
     """
+    from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+
     matcher = re.compile(f"^(?:{token_pattern})$")
     words = set(ENGLISH_STOP_WORDS) | set(FILING_STOP_WORDS)
     return sorted(w for w in words if matcher.match(w))
@@ -725,9 +724,8 @@ def _fit_date(assumptions: Assumptions, override: date | None) -> date:
         raise ConfigError(f"as_of {raw!r} is not a YYYY-MM-DD date: {exc}") from exc
 
 
-def _cache_dir(assumptions: Assumptions) -> Path:
-    configured = getattr(getattr(assumptions, "ml", None), "cache_dir", None)
-    return Path(configured).expanduser() if configured else DEFAULT_CACHE_DIR
+def _cache_dir(assumptions: Assumptions | None) -> Path:
+    return ml_cache_root(assumptions)
 
 
 def _cache_key(corpus: TextCorpus, fitted_through: date, params: dict[str, Any]) -> str:
@@ -790,6 +788,11 @@ def fit_text_features(
     no trace in the output. Later documents belong in ``transform``, which is
     what the refusal message says.
     """
+    # Imported here: scikit-learn takes a second and a half to import, and only
+    # fitting needs it, so every techval command would otherwise pay for it.
+    from sklearn.decomposition import TruncatedSVD
+    from sklearn.feature_extraction.text import TfidfVectorizer
+
     if not corpus.tickers:
         raise ConfigError(
             "cannot fit text features on an empty corpus; "
