@@ -385,11 +385,16 @@ def _lease(
     return (total, 0.0) if total > nc + cur else (nc, cur)
 
 
+# A filer whose last operating income fact is older than this has stopped
+# tagging it: KLA's last OperatingIncomeLoss is from 2015.
+_EBIT_LAPSED_DAYS = 730
+
+
 def _ebit_from_pretax(flow, prov, warnings, missing: MissingDataError) -> float:
     """EBIT as pre-tax income plus interest expense, for a filer that tags no operating income.
 
     IBM is the case: it files income before tax and interest expense, and no
-    OperatingIncomeLoss in any period. Adding interest back to pre-tax income is
+    OperatingIncomeLoss in any period. KLA filed it until 2015 and not since. Adding interest back to pre-tax income is
     the textbook EBIT, and it carries whatever the filer books between the
     operating line and tax, interest earned on cash included, so the warning
     says so. A net interest tag is not added back, since its sign says nothing
@@ -408,11 +413,11 @@ def _ebit_from_pretax(flow, prov, warnings, missing: MissingDataError) -> float:
         periods=source.periods,
         forms=source.forms,
         filed=source.filed,
-        note="no OperatingIncomeLoss is filed in any period",
+        note="no OperatingIncomeLoss is filed in the last two years",
         tags_tried=list(tags.EBIT),
     )
     warnings.append(
-        "EBIT: the filer tags no operating income, so it is pre-tax income plus "
+        "EBIT: the filer tags no recent operating income, so it is pre-tax income plus "
         "interest expense, which also carries any other income or expense booked "
         "below the operating line, interest earned on cash among it"
     )
@@ -508,7 +513,10 @@ def build_financials(
     try:
         ebit = flow("EBIT", tags.EBIT)
     except MissingDataError as missing:
-        if any(facts.facts(tag) for tag in tags.EBIT):
+        # Only a filer that has stopped tagging operating income, or never did,
+        # gets it derived; one that tags it but too thinly to tile is refused.
+        recent = as_of - timedelta(days=_EBIT_LAPSED_DAYS)
+        if any(f.end >= recent for tag in tags.EBIT for f in facts.facts(tag) if not f.is_instant):
             raise
         ebit = _ebit_from_pretax(flow, prov, warnings, missing)
     assert revenue is not None and ebit is not None
