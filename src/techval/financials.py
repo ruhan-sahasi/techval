@@ -424,6 +424,30 @@ def _ebit_from_pretax(flow, prov, warnings, missing: MissingDataError) -> float:
     return pretax + interest
 
 
+def _diluted_shares(flow, warnings) -> float:
+    """The diluted weighted average count, or the basic count for a loss-maker that files no diluted one.
+
+    Take-Two files a basic count and no diluted one. With a net loss every
+    potential share is anti-dilutive, so the diluted count the filer would
+    report is the basic count, and that is what is used, with a warning. A
+    profitable filer with no diluted count is refused: its basic count would
+    leave out the dilution the per-share value has to carry.
+    """
+    try:
+        return flow("diluted shares", tags.DILUTED_SHARES, kind="average")
+    except MissingDataError:
+        net_income = flow("net income", tags.NET_INCOME)
+        if net_income is None or net_income >= 0:
+            raise
+        basic = flow("diluted shares", tags.BASIC_SHARES, kind="average")
+        warnings.append(
+            f"diluted shares: the filer reports no diluted count, and with a net loss "
+            f"of {-net_income:,.1f}mm every potential share is anti-dilutive, so the "
+            "basic weighted average is the diluted one"
+        )
+        return basic
+
+
 def build_financials(
     ticker: str,
     *,
@@ -579,7 +603,7 @@ def build_financials(
         ),
         capex=flow("capital expenditure", tags.CAPEX, required=False, annual_ok=True),
         cfo=flow("cash from operations", tags.CFO, required=False, annual_ok=True),
-        diluted_shares=flow("diluted shares", tags.DILUTED_SHARES, kind="average"),
+        diluted_shares=_diluted_shares(flow, warnings),
         basic_shares=flow(
             "basic shares", tags.BASIC_SHARES, kind="average", required=False
         ),
