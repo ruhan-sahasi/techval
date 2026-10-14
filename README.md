@@ -11,7 +11,7 @@ engine's three terminal values; the third prints in the run below.*
 
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Twenty-two commands, 2,481
+the US Treasury daily curve for the risk-free rate. Twenty-two commands, 2,482
 tests, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
@@ -2149,7 +2149,7 @@ filers.
 uv run pytest
 ```
 
-2,481 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
+2,482 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
 `techval.ml`, 402 over the dashboard, 152 over the investing dashboard, 100 over
 the filing reader, 64 over the reverse DCF and its scenarios and 6 over the
 tearsheet. GitHub Actions runs the whole
