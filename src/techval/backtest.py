@@ -407,17 +407,6 @@ def value_at(
     forty-nine. A ``LookaheadError`` is not caught, for the reason given on that
     class.
     """
-    if assumptions.market.risk_free_rate is None:
-        raise ConfigError(
-            "market.risk_free_rate must be set for a point-in-time valuation. "
-            "Left unset, the cost of capital is anchored on the Treasury daily "
-            "curve reader, which takes the latest quote in the calendar year "
-            f"rather than the latest quote on or before {as_of}. That is a "
-            "lookahead in the discount rate, and it would be invisible in the "
-            "output. Pin the rate that prevailed at each valuation date, or pass "
-            "risk_free_by_date to run_backtest."
-        )
-
     client = client_factory(as_of)
     market = market_factory(as_of)
 
@@ -725,8 +714,9 @@ def run_backtest(
     for one symbol and is used only for scoring, never for valuing.
 
     ``risk_free_by_date`` supplies the ten-year Treasury yield that prevailed at
-    each valuation date. Without it one rate from the assumptions file is applied
-    across the whole sample, which is not lookahead but is wrong in its own way:
+    each valuation date. With ``market.risk_free_rate`` unset as well, each date
+    reads the Treasury curve as of itself. A rate pinned in the assumptions file
+    is applied across the whole sample, which is not lookahead but is wrong in its own way:
     the risk-free rate moved several hundred basis points across 2023 to 2026, so
     holding it flat suppresses the part of the discount rate that was genuinely
     different at each date and pushes the variation in measured upside onto the
@@ -738,13 +728,6 @@ def run_backtest(
     observations come back in the order the dates and tickers were given, and the
     statistics are functions of those observations alone.
     """
-    if assumptions.market.risk_free_rate is None and risk_free_by_date is None:
-        raise ConfigError(
-            "a backtest needs a risk-free rate it can date. Set "
-            "market.risk_free_rate, or pass risk_free_by_date with the ten-year "
-            "yield that prevailed at each valuation date."
-        )
-
     observations: list[Observation] = []
     returns: list[ForwardReturn] = []
     notes: list[str] = []
@@ -818,6 +801,12 @@ def run_backtest(
         notes.append(
             "The risk-free rate was set from the supplied per-date mapping, so "
             "each valuation discounts at the rate that prevailed when it was made."
+        )
+    elif assumptions.market.risk_free_rate is None:
+        notes.append(
+            "The risk-free rate was read from the Treasury daily curve at each "
+            "valuation date, the ten-year yield published on or before it, so each "
+            "valuation discounts at the rate that prevailed when it was made."
         )
     else:
         notes.append(

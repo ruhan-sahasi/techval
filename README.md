@@ -11,7 +11,7 @@ engine's three terminal values; the third prints in the run below.*
 
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Twenty-two commands, 2,466
+the US Treasury daily curve for the risk-free rate. Twenty-two commands, 2,482
 tests, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
@@ -1432,6 +1432,8 @@ changes the company. Datadog valued as of 2026-03-01 shows the twelve months to
 2025-12-31 and a $44.4mm operating loss; with full knowledge the same company
 shows the twelve months to 2026-06-30 and a $16.3mm operating profit. Those are
 different businesses to a model, and the second one did not exist on 2026-03-01.
+The discount rate is dated too: left unpinned, the risk-free rate is the
+ten-year Treasury yield published on or before the date, not a later one.
 
 ### Backtesting
 
@@ -1693,9 +1695,9 @@ anywhere in the engine.
 
 `backtest` takes valuation dates at quarter ends between `--from` and `--to`, or
 an explicit list through `--dates`, and scores each against the close
-`--horizon` calendar days later. It needs a risk-free rate it can date, so pin
-`market.risk_free_rate` in the config or the run refuses to start rather than
-applying today's yield to a 2025 valuation.
+`--horizon` calendar days later. With `market.risk_free_rate` unset, each date
+discounts at the ten-year Treasury yield published on or before it; a rate
+pinned in the config is held flat across the sample instead.
 
 ```
 $ techval backtest DDOG,MDB,ZS,CRWD --config backtest.yaml \
@@ -2147,7 +2149,7 @@ filers.
 uv run pytest
 ```
 
-2,466 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
+2,482 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
 `techval.ml`, 402 over the dashboard, 152 over the investing dashboard, 100 over
 the filing reader, 64 over the reverse DCF and its scenarios and 6 over the
 tearsheet. GitHub Actions runs the whole

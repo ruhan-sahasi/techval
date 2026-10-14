@@ -884,3 +884,109 @@ def test_a_genuinely_debt_free_filer_still_resolves_zero(ddog):
     assert ddog.straight_debt == 0.0
     assert ddog.convertible_debt > 0
     assert not [w for w in ddog.warnings if "refused" in w]
+
+
+def test_a_filer_with_no_operating_income_tag_gets_ebit_from_pre_tax_income():
+    """IBM files income before tax and interest expense, and no OperatingIncomeLoss at all."""
+    import copy
+    import json
+    from pathlib import Path
+
+    from techval.edgar import CompanyFacts
+    from techval.financials import build_financials
+
+    payload = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    whole = build_financials("DDOG", facts=CompanyFacts(payload, "DDOG"))
+    stripped = copy.deepcopy(payload)
+    del stripped["facts"]["us-gaap"]["OperatingIncomeLoss"]
+    fin = build_financials("DDOG", facts=CompanyFacts(stripped, "DDOG"))
+    assert fin.ebit == pytest.approx(whole.pretax_income + whole.interest_expense)
+    assert fin.provenance["EBIT"].method == "derived: pre-tax income plus interest expense"
+    assert any("tags no recent operating income" in w for w in fin.warnings)
+
+
+def test_operating_income_that_is_filed_but_cannot_be_tiled_is_still_refused():
+    import copy
+    import json
+    from pathlib import Path
+
+    from techval.edgar import CompanyFacts
+    from techval.errors import MissingDataError
+    from techval.financials import build_financials
+
+    payload = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    thin = copy.deepcopy(payload)
+    rows = thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"]
+    thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"] = [r for r in rows if r["end"] < "2026-01-01"]
+    with pytest.raises(MissingDataError, match="EBIT"):
+        build_financials("DDOG", facts=CompanyFacts(thin, "DDOG"))
+
+
+def test_a_filer_that_stopped_tagging_operating_income_gets_it_derived_too():
+    """KLA's last OperatingIncomeLoss fact is from 2015."""
+    import copy
+    import json
+    from pathlib import Path
+
+    from techval.edgar import CompanyFacts
+    from techval.financials import build_financials
+
+    payload = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    lapsed = copy.deepcopy(payload)
+    rows = lapsed["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"]
+    lapsed["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"] = [r for r in rows if r["end"] < "2024-01-01"]
+    fin = build_financials("DDOG", facts=CompanyFacts(lapsed, "DDOG"))
+    assert fin.provenance["EBIT"].method == "derived: pre-tax income plus interest expense"
+
+
+def _without_diluted(loss: bool):
+    import copy
+    import json
+    from pathlib import Path
+
+    payload = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    out = copy.deepcopy(payload)
+    del out["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"]
+    if loss:
+        for row in out["facts"]["us-gaap"]["NetIncomeLoss"]["units"]["USD"]:
+            row["val"] = -abs(row["val"])
+    return out
+
+
+def test_a_loss_maker_with_no_diluted_count_is_valued_on_its_basic_one():
+    """Take-Two files a basic weighted count and no diluted one."""
+    from techval.edgar import CompanyFacts
+    from techval.financials import build_financials
+
+    fin = build_financials("DDOG", facts=CompanyFacts(_without_diluted(loss=True), "DDOG"))
+    assert fin.net_income < 0
+    assert fin.diluted_shares == pytest.approx(fin.basic_shares)
+    assert any("every potential share is anti-dilutive" in w for w in fin.warnings)
+
+
+def test_a_profitable_filer_with_no_diluted_count_is_refused():
+    from techval.edgar import CompanyFacts
+    from techval.errors import MissingDataError
+    from techval.financials import build_financials
+
+    with pytest.raises(MissingDataError, match="diluted shares"):
+        build_financials("DDOG", facts=CompanyFacts(_without_diluted(loss=False), "DDOG"))
+
+
+def test_a_diluted_count_filed_too_thinly_to_tile_is_refused_not_replaced():
+    """MongoDB files a diluted count it cannot tile at some dates; the basic count is no substitute."""
+    import copy
+    import json
+    from pathlib import Path
+
+    from techval.edgar import CompanyFacts
+    from techval.errors import MissingDataError
+    from techval.financials import build_financials
+
+    payload = _without_diluted(loss=True)
+    original = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    rows = copy.deepcopy(original["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"])
+    rows["units"]["shares"] = [r for r in rows["units"]["shares"] if r["end"] < "2026-01-01"]
+    payload["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"] = rows
+    with pytest.raises(MissingDataError, match="diluted shares"):
+        build_financials("DDOG", facts=CompanyFacts(payload, "DDOG"))

@@ -385,6 +385,75 @@ def _lease(
     return (total, 0.0) if total > nc + cur else (nc, cur)
 
 
+# A filer whose last fact for a concept is older than this has stopped tagging
+# it: KLA's last OperatingIncomeLoss is from 2015, Take-Two's last diluted share
+# count from 2024.
+_LAPSED_DAYS = 730
+
+
+def _ebit_from_pretax(flow, prov, warnings, missing: MissingDataError) -> float:
+    """EBIT as pre-tax income plus interest expense, for a filer that tags no operating income.
+
+    IBM is the case: it files income before tax and interest expense, and no
+    OperatingIncomeLoss in any period. KLA filed it until 2015 and not since. Adding interest back to pre-tax income is
+    the textbook EBIT, and it carries whatever the filer books between the
+    operating line and tax, interest earned on cash included, so the warning
+    says so. A net interest tag is not added back, since its sign says nothing
+    about which way the net ran, and without both figures the refusal stands.
+    """
+    pretax = flow("pre-tax income", tags.PRETAX_INCOME, required=False)
+    interest = flow("interest expense", tags.INTEREST_EXPENSE, required=False)
+    interest_tag = prov["interest expense"].tag
+    if pretax is None or interest is None or interest_tag == "InterestIncomeExpenseNet":
+        raise missing
+    source = prov["pre-tax income"]
+    prov["EBIT"] = Provenance(
+        concept="EBIT",
+        tag=f"{source.tag} + {interest_tag}",
+        method="derived: pre-tax income plus interest expense",
+        periods=source.periods,
+        forms=source.forms,
+        filed=source.filed,
+        note="no OperatingIncomeLoss is filed in the last two years",
+        tags_tried=list(tags.EBIT),
+    )
+    warnings.append(
+        "EBIT: the filer tags no recent operating income, so it is pre-tax income plus "
+        "interest expense, which also carries any other income or expense booked "
+        "below the operating line, interest earned on cash among it"
+    )
+    return pretax + interest
+
+
+def _diluted_shares(flow, warnings, facts: CompanyFacts, as_of: date) -> float:
+    """The diluted weighted average count, or the basic count for a loss-maker that files no diluted one.
+
+    Take-Two has filed a basic count and no diluted one for two years. With a
+    net loss every potential share is anti-dilutive, so the diluted count the
+    filer would report is the basic count, and that is what is used, with a
+    warning. A profitable filer with no diluted count is refused: its basic
+    count would leave out the dilution the per-share value has to carry. So is
+    a filer that does file a diluted count but too thinly to tile a trailing
+    year, MongoDB at some dates, since its own figure exists and is not this.
+    """
+    try:
+        return flow("diluted shares", tags.DILUTED_SHARES, kind="average")
+    except MissingDataError:
+        recent = as_of - timedelta(days=_LAPSED_DAYS)
+        if any(f.end >= recent for tag in tags.DILUTED_SHARES for f in facts.facts(tag) if not f.is_instant):
+            raise
+        net_income = flow("net income", tags.NET_INCOME)
+        if net_income is None or net_income >= 0:
+            raise
+        basic = flow("diluted shares", tags.BASIC_SHARES, kind="average")
+        warnings.append(
+            f"diluted shares: the filer reports no diluted count, and with a net loss "
+            f"of {-net_income:,.1f}mm every potential share is anti-dilutive, so the "
+            "basic weighted average is the diluted one"
+        )
+        return basic
+
+
 def build_financials(
     ticker: str,
     *,
@@ -471,7 +540,15 @@ def build_financials(
     # through zero, and a ratio test on a concept that passes through zero fires
     # at random.
     revenue = flow("revenue", tags.REVENUE, component_guard=_REVENUE_COMPONENT_GUARD)
-    ebit = flow("EBIT", tags.EBIT)
+    try:
+        ebit = flow("EBIT", tags.EBIT)
+    except MissingDataError as missing:
+        # Only a filer that has stopped tagging operating income, or never did,
+        # gets it derived; one that tags it but too thinly to tile is refused.
+        recent = as_of - timedelta(days=_LAPSED_DAYS)
+        if any(f.end >= recent for tag in tags.EBIT for f in facts.facts(tag) if not f.is_instant):
+            raise
+        ebit = _ebit_from_pretax(flow, prov, warnings, missing)
     assert revenue is not None and ebit is not None
 
     # Debt and leases are resolved together because the answer to one changes the
@@ -532,7 +609,7 @@ def build_financials(
         ),
         capex=flow("capital expenditure", tags.CAPEX, required=False, annual_ok=True),
         cfo=flow("cash from operations", tags.CFO, required=False, annual_ok=True),
-        diluted_shares=flow("diluted shares", tags.DILUTED_SHARES, kind="average"),
+        diluted_shares=_diluted_shares(flow, warnings, facts, as_of),
         basic_shares=flow(
             "basic shares", tags.BASIC_SHARES, kind="average", required=False
         ),
