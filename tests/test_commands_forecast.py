@@ -979,3 +979,19 @@ def test_a_thirty_first_falls_back_inside_short_months():
     dates = _rebalance_dates(date(2021, 1, 31), date(2021, 7, 1), 1)
     assert date(2021, 2, 28) in dates
     assert all(d.day in (31, 28) for d in dates)
+
+
+def test_a_second_fade_run_reads_the_fit_it_kept(small_panel_file, tmp_path):
+    config = write_config(tmp_path, ml=f"{{cache_dir: '{tmp_path / 'ml'}'}}")
+    args = ["fade", "DDOG", "--config", str(config), "--panel", str(small_panel_file), "--facts", str(DDOG_FACTS)]
+    first = runner.invoke(app, args)
+    assert first.exit_code == 0, first.output
+    kept = list((tmp_path / "ml").glob("invest_fade_fit_*.joblib"))
+    assert len(kept) == 1
+    second = runner.invoke(app, args)
+    assert second.exit_code == 0 and second.output == first.output
+    assert list((tmp_path / "ml").glob("invest_fade_fit_*.joblib")) == kept
+    # A different knowledge date is a different fit, kept beside the first.
+    dated = write_config(tmp_path, ml=f"{{cache_dir: '{tmp_path / 'ml'}'}}", as_of="'2024-06-30'")
+    assert runner.invoke(app, [*args[:3], str(dated), *args[4:]]).exit_code == 0
+    assert len(list((tmp_path / "ml").glob("invest_fade_fit_*.joblib"))) == 2

@@ -60,9 +60,9 @@ _WARRANTED_MODULES = (
 )
 
 
-def fit_key(kind: str, inputs: list[Path], modules: tuple[str, ...]) -> str:
-    """A key over the panel bytes, the fitting code and the cache schema."""
-    h = hashlib.sha256(f"{kind}:{FIT_SCHEMA}".encode())
+def fit_key(kind: str, inputs: list[Path], modules: tuple[str, ...], extra: str = "") -> str:
+    """A key over the panel bytes, the fitting code, the cache schema and anything else named."""
+    h = hashlib.sha256(f"{kind}:{FIT_SCHEMA}:{extra}".encode())
     for path in inputs:
         h.update(Path(path).read_bytes())
     for name in modules:
@@ -70,19 +70,28 @@ def fit_key(kind: str, inputs: list[Path], modules: tuple[str, ...]) -> str:
     return h.hexdigest()[:16]
 
 
-def cached_fit(kind: str, inputs: list[Path], modules: tuple[str, ...], build, cache_root: Path | None, refit: bool = False):
+def cached_fit(
+    kind: str,
+    inputs: list[Path],
+    modules: tuple[str, ...],
+    build,
+    cache_root: Path | None,
+    refit: bool = False,
+    extra: str = "",
+):
     """Load a fit from the disk cache, or build it and store it.
 
     The fits take nine seconds together and are pure functions of committed
     panels, so a second run of techval invest should not pay for them again.
     An unreadable or unwritable entry is a miss, never a failed run; with no
-    cache root there is no disk cache at all, which is how the tests run.
+    cache root there is no disk cache at all. ``extra`` carries anything else
+    the build reads, such as the assumptions, into the key.
     """
     if cache_root is None:
         return build()
     import joblib
 
-    path = Path(cache_root).expanduser() / f"invest_{kind}_{fit_key(kind, inputs, modules)}.joblib"
+    path = Path(cache_root).expanduser() / f"invest_{kind}_{fit_key(kind, inputs, modules, extra)}.joblib"
     if path.is_file() and not refit:
         try:
             return joblib.load(path)

@@ -326,6 +326,33 @@ def _recorded_panel(path: Path, assumptions: Assumptions, only: set[str] | None)
     return build_fade_panel(universe, client, assumptions)
 
 
+def recorded_fit(path: Path, assumptions: Assumptions, only: set[str] | None):
+    """The recorded panel, cut at the knowledge date, and the fade fit on it, kept in ml.cache_dir.
+
+    Both are pure functions of the panel's bytes, the code that builds and fits
+    them, the assumptions and the filers asked for, and every one of those is in
+    the key, so a second run reads them back instead of paying the three seconds
+    the build and the fit take between them.
+    """
+    from .config import ml_cache_root
+    from .invest.engine_read import _FADE_MODULES, cached_fit
+
+    def build():
+        panel = _recorded_panel(path, assumptions, only)
+        if assumptions.as_of:
+            panel = _truncate_panel(panel, date.fromisoformat(assumptions.as_of))
+        return panel, fit_fade(panel, assumptions)
+
+    return cached_fit(
+        "fade_fit",
+        [Path(path)],
+        (*_FADE_MODULES, "techval.commands_forecast"),
+        build,
+        ml_cache_root(assumptions),
+        extra=assumptions.model_dump_json() + "|" + ",".join(sorted(only or ())),
+    )
+
+
 def _truncate_panel(panel: FadePanel, knowledge: date) -> FadePanel:
     """Cut the panel back to what had been filed by ``knowledge``, labels included.
 
@@ -904,18 +931,16 @@ def fade(
 
         if panel_file is not None:
             console.print(f"[dim]Fitting on the recorded panel at {panel_file}.[/dim]")
-            panel = _recorded_panel(panel_file, assumptions, only)
+            panel, model = recorded_fit(panel_file, assumptions, only)
         else:
             console.print(
                 "[dim]Fitting on live SEC filings. This is one companyfacts call "
                 "per filer at the fair-access throttle.[/dim]"
             )
             panel = _live_panel(cache, assumptions, only)
-
-        if assumptions.as_of:
-            panel = _truncate_panel(panel, date.fromisoformat(assumptions.as_of))
-
-        model = fit_fade(panel, assumptions)
+            if assumptions.as_of:
+                panel = _truncate_panel(panel, date.fromisoformat(assumptions.as_of))
+            model = fit_fade(panel, assumptions)
         _render_curve(model, panel)
         _notes(panel.notes, heading="Panel")
         _horizon_table(model)
