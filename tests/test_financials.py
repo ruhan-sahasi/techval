@@ -902,7 +902,7 @@ def test_a_filer_with_no_operating_income_tag_gets_ebit_from_pre_tax_income():
     fin = build_financials("DDOG", facts=CompanyFacts(stripped, "DDOG"))
     assert fin.ebit == pytest.approx(whole.pretax_income + whole.interest_expense)
     assert fin.provenance["EBIT"].method == "derived: pre-tax income plus interest expense"
-    assert any("tags no operating income" in w for w in fin.warnings)
+    assert any("tags no recent operating income" in w for w in fin.warnings)
 
 
 def test_operating_income_that_is_filed_but_cannot_be_tiled_is_still_refused():
@@ -917,6 +917,23 @@ def test_operating_income_that_is_filed_but_cannot_be_tiled_is_still_refused():
     payload = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
     thin = copy.deepcopy(payload)
     rows = thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"]
-    thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"] = [r for r in rows if r["end"] < "2024-01-01"]
+    thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"] = [r for r in rows if r["end"] < "2026-01-01"]
     with pytest.raises(MissingDataError, match="EBIT"):
         build_financials("DDOG", facts=CompanyFacts(thin, "DDOG"))
+
+
+def test_a_filer_that_stopped_tagging_operating_income_gets_it_derived_too():
+    """KLA's last OperatingIncomeLoss fact is from 2015."""
+    import copy
+    import json
+    from pathlib import Path
+
+    from techval.edgar import CompanyFacts
+    from techval.financials import build_financials
+
+    payload = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    lapsed = copy.deepcopy(payload)
+    rows = lapsed["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"]
+    lapsed["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"] = [r for r in rows if r["end"] < "2024-01-01"]
+    fin = build_financials("DDOG", facts=CompanyFacts(lapsed, "DDOG"))
+    assert fin.provenance["EBIT"].method == "derived: pre-tax income plus interest expense"
