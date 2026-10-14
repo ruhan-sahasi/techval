@@ -420,3 +420,14 @@ def test_the_screen_ranks_the_most_demanding_prices_first(panel):
     assert ddog["scenario_side"] == "above" and ddog["price"] > ddog["scenario_bull"]
     dis = next(r for r in rows if r["ticker"] == "DIS")
     assert dis["scenario_side"] == "bear" and 0.5 < dis["scenario_weight"] < 1.0
+
+
+def test_a_changed_valuation_leaves_the_case_it_came_from_alone(case):
+    before = case.assumptions.model_dump()
+    moved = case.with_dcf(wacc_override=0.2, ebit_margin_terminal=0.4)
+    case.value(revenue_growth_start=1.5)
+    assert case.assumptions.model_dump() == before
+    assert moved.assumptions.dcf.wacc_override == 0.2 and case.assumptions.dcf.wacc_override is None
+    # with_dcf hands back a case its caller may change, so it shares nothing.
+    moved.assumptions.scenarios.weights = {"bear": 0.2, "base": 0.6, "bull": 0.2}
+    assert case.assumptions.model_dump() == before
