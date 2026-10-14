@@ -312,14 +312,6 @@ def _snap_index(ratio: float, products: Sequence[float], tolerance: float) -> in
     return None
 
 
-def _neg_date(iso: str) -> tuple[int, ...]:
-    """Sort key that orders ISO dates newest-first inside an ascending compare."""
-    try:
-        return tuple(-int(part) for part in iso.split("-"))
-    except ValueError:
-        return (0, 0, 0)
-
-
 @dataclass
 class Provenance:
     """Where a single reported figure came from.
@@ -375,7 +367,22 @@ class CompanyFacts:
         self._splits: list[tuple[date, float]] | None = None
         self._brackets: list[tuple[str, str, float]] | None = None
         self._basis: dict[str, float] | None = None
+        self._facts: dict[tuple[str, date | None], list[Fact]] = {}
+        # Each tag's rows with their dates parsed, shared by every view as_of
+        # hands out, since parsing is the same whatever the knowledge date.
+        self._parsed: dict[str, tuple[str, list[tuple]] | None] = {}
         self.knowledge_date = knowledge_date
+
+    def as_of(self, knowledge_date: date | None) -> "CompanyFacts":
+        """The same filer as knowable on another date, sharing the parsed rows.
+
+        Equivalent to ``CompanyFacts(self.raw, ticker, knowledge_date=...)`` and
+        cheaper: a panel that pins one payload to every filing date parses each
+        fact's dates once instead of once per date.
+        """
+        view = CompanyFacts(self.raw, self.ticker, knowledge_date=knowledge_date)
+        view._parsed = self._parsed
+        return view
 
     # -- raw tag access ---------------------------------------------------- #
 
@@ -762,56 +769,78 @@ class CompanyFacts:
 
         Share and per-share facts are restated into current units first, so that
         deduplication compares like with like across a split.
+
+        The answer depends only on the payload and the knowledge date, so it is
+        worked out once per tag and handed back as a fresh list each time: the
+        fade panel asks for the same tags tens of thousands of times.
         """
-        found = self._units(tag)
+        key = (tag, self.knowledge_date)
+        if key not in self._facts:
+            self._facts[key] = self._read_facts(tag)
+        return list(self._facts[key])
+
+    def _rows(self, tag: str) -> tuple[str, list[tuple]] | None:
+        """A tag's usable rows, dates parsed: (start, end, filed, form, choice key, value).
+
+        The choice key orders an audited periodic report first and, within a
+        rank, the latest filing first; a row with no filing date sorts after
+        every dated one.
+        """
+        if tag not in self._parsed:
+            found = self._units(tag)
+            if not found:
+                self._parsed[tag] = None
+            else:
+                unit, raw = found
+                rows = []
+                for r in raw:
+                    end = r.get("end")
+                    if not end or r.get("val") is None:
+                        continue
+                    filed = _d(r["filed"]) if r.get("filed") else None
+                    start = r.get("start")
+                    rows.append(
+                        (
+                            (start, end),
+                            _d(start) if start else None,
+                            _d(end),
+                            filed,
+                            r.get("form", "?"),
+                            (self._rank(r.get("form", "")), -filed.toordinal() if filed else 0),
+                            float(r["val"]),
+                        )
+                    )
+                self._parsed[tag] = (unit, rows)
+        return self._parsed[tag]
+
+    def _read_facts(self, tag: str) -> list[Fact]:
+        found = self._rows(tag)
         if not found:
             return []
         unit, rows = found
         adjust = unit in ("shares", "USD/shares")
+        known = self.knowledge_date
 
-        best: dict[tuple[str | None, str], dict] = {}
-        for r in rows:
-            end = r.get("end")
-            if not end or r.get("val") is None:
-                continue
+        best: dict[tuple[str | None, str], tuple] = {}
+        for row in rows:
+            period, _, _, filed, _, choice, _ = row
             # Filtered here as well as below: if a later filing won selection and
             # were only dropped afterwards, the period would vanish rather than
             # falling back to the version that was actually on file at the time.
-            if self.knowledge_date is not None and r.get("filed"):
-                if _d(r["filed"]) > self.knowledge_date:
-                    continue
-            key = (r.get("start"), end)
-            prev = best.get(key)
-            if prev is None or (
-                self._rank(r.get("form", "")),
-                # Negated so that a lower tuple wins on rank first, then on the
-                # latest filing date within that rank.
-                _neg_date(r.get("filed") or ""),
-            ) < (
-                self._rank(prev.get("form", "")),
-                _neg_date(prev.get("filed") or ""),
-            ):
-                best[key] = r
+            if known is not None and filed is not None and filed > known:
+                continue
+            prev = best.get(period)
+            if prev is None or choice < prev[5]:
+                best[period] = row
 
         out = []
-        for r in best.values():
-            filed = _d(r["filed"]) if r.get("filed") else _d(r["end"])
-            if self.knowledge_date is not None and filed > self.knowledge_date:
+        for _, start, end, filed, form, _, val in best.values():
+            filed = filed or end
+            if known is not None and filed > known:
                 continue
-            val = float(r["val"])
             if adjust:
                 val = self._split_adjust(val, filed, unit)
-            out.append(
-                Fact(
-                    tag=tag,
-                    val=val,
-                    end=_d(r["end"]),
-                    start=_d(r["start"]) if r.get("start") else None,
-                    form=r.get("form", "?"),
-                    filed=filed,
-                    unit=unit,
-                )
-            )
+            out.append(Fact(tag=tag, val=val, end=end, start=start, form=form, filed=filed, unit=unit))
         out.sort(key=lambda f: (f.end, f.days))
         return out
 
