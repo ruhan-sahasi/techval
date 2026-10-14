@@ -884,3 +884,39 @@ def test_a_genuinely_debt_free_filer_still_resolves_zero(ddog):
     assert ddog.straight_debt == 0.0
     assert ddog.convertible_debt > 0
     assert not [w for w in ddog.warnings if "refused" in w]
+
+
+def test_a_filer_with_no_operating_income_tag_gets_ebit_from_pre_tax_income():
+    """IBM files income before tax and interest expense, and no OperatingIncomeLoss at all."""
+    import copy
+    import json
+    from pathlib import Path
+
+    from techval.edgar import CompanyFacts
+    from techval.financials import build_financials
+
+    payload = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    whole = build_financials("DDOG", facts=CompanyFacts(payload, "DDOG"))
+    stripped = copy.deepcopy(payload)
+    del stripped["facts"]["us-gaap"]["OperatingIncomeLoss"]
+    fin = build_financials("DDOG", facts=CompanyFacts(stripped, "DDOG"))
+    assert fin.ebit == pytest.approx(whole.pretax_income + whole.interest_expense)
+    assert fin.provenance["EBIT"].method == "derived: pre-tax income plus interest expense"
+    assert any("tags no operating income" in w for w in fin.warnings)
+
+
+def test_operating_income_that_is_filed_but_cannot_be_tiled_is_still_refused():
+    import copy
+    import json
+    from pathlib import Path
+
+    from techval.edgar import CompanyFacts
+    from techval.errors import MissingDataError
+    from techval.financials import build_financials
+
+    payload = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    thin = copy.deepcopy(payload)
+    rows = thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"]
+    thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"] = [r for r in rows if r["end"] < "2024-01-01"]
+    with pytest.raises(MissingDataError, match="EBIT"):
+        build_financials("DDOG", facts=CompanyFacts(thin, "DDOG"))
