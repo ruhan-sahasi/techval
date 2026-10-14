@@ -141,6 +141,27 @@ class HttpCache:
         tmp.replace(self._path(url))
 
 
+class MemoryCache(HttpCache):
+    """Responses kept for the life of the object, and never written to disk.
+
+    For one run that asks the same URL many times, such as an expectations
+    history that reads the Treasury's year file at every quarter, without
+    joining the forever cache the valuation commands keep.
+    """
+
+    def __init__(self) -> None:
+        self.root = Path(".")
+        self.enabled = True
+        self.max_age = None
+        self._bodies: dict[str, bytes] = {}
+
+    def get(self, url: str) -> bytes | None:
+        return self._bodies.get(url)
+
+    def put(self, url: str, body: bytes) -> None:
+        self._bodies[url] = body
+
+
 def http_get(
     url: str,
     *,

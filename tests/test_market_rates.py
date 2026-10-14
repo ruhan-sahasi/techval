@@ -97,3 +97,35 @@ def test_a_symbol_the_source_cannot_price_is_refused_every_time_without_asking_a
         with pytest.raises(MissingDataError):
             span.fetch("NOPE", date(2024, 1, 1), date(2024, 6, 1))
     assert len(counting.asked) == 1
+
+
+def test_a_history_reads_each_treasury_year_once(monkeypatch):
+    """Twelve quarters across three years are three yield files, not twelve."""
+    import json
+    from pathlib import Path
+
+    import techval.market as M
+    from techval.config import Assumptions
+    from techval.reverse_dcf import expectations_history, quarter_ends
+
+    asked = []
+
+    def fake_get(url, *, cache, headers=None, **_):
+        hit = cache.get(url)
+        if hit is not None:
+            return hit
+        asked.append(url)
+        year = int(url.split("daily-treasury-rates.csv/")[1].split("/")[0])
+        body = curve({f"{m:02d}/15/{year}": 4.0 for m in range(1, 13)})
+        cache.put(url, body)
+        return body
+
+    monkeypatch.setattr(M, "http_get", fake_get)
+    fixtures = Path(__file__).parent / "fixtures"
+    payload = json.loads((fixtures / "companyfacts_DDOG.json").read_text())
+    rows = expectations_history(
+        payload, "DDOG", CsvSource(fixtures / "prices"), Assumptions(), quarter_ends(date(2024, 1, 1), date(2026, 9, 9))
+    )
+    assert sum(1 for r in rows if not r["refused"]) >= 8
+    years = sorted(int(u.split("daily-treasury-rates.csv/")[1].split("/")[0]) for u in asked)
+    assert years == sorted(set(years)) and len(years) <= 4
