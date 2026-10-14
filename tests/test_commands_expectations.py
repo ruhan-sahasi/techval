@@ -25,7 +25,8 @@ def config(tmp_path: Path) -> Path:
         "market:\n  risk_free_rate: 0.0483\n"
         "price_source: csv\n"
         f"price_csv_dir: {FIXTURES / 'prices'}\n"
-        "as_of: '2026-09-10'\n",
+        "as_of: '2026-09-10'\n"
+        f"ml:\n  cache_dir: {tmp_path / 'ml'}\n",
         encoding="utf-8",
     )
     return path

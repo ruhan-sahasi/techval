@@ -24,7 +24,8 @@ def run(tmp_path, *extra, panels=FIXTURES):
     config.write_text(
         "market:\n  risk_free_rate: 0.0483\n"
         f"price_source: csv\nprice_csv_dir: {FIXTURES / 'prices'}\n"
-        "as_of: '2026-09-10'\n",
+        "as_of: '2026-09-10'\n"
+        f"ml:\n  cache_dir: {tmp_path / 'ml'}\n",
         encoding="utf-8",
     )
     return runner.invoke(
@@ -65,3 +66,12 @@ def test_without_a_panel_there_is_nothing_to_read_scenarios_from(tmp_path):
     result = run(tmp_path, panels=empty)
     assert result.exit_code == 1
     assert "no fade panel" in flat(result.output)
+
+
+def test_the_built_panel_is_kept_for_the_next_command(tmp_path):
+    assert run(tmp_path).exit_code == 0
+    cached = list((tmp_path / "ml").glob("invest_fade_panel_*.joblib"))
+    assert len(cached) == 1
+    # A second command reads it rather than building another.
+    assert run(tmp_path).exit_code == 0
+    assert list((tmp_path / "ml").glob("invest_fade_panel_*.joblib")) == cached

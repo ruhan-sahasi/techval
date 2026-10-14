@@ -23,6 +23,7 @@ from rich.markup import escape
 from rich.table import Table
 
 from .config import Assumptions
+from .dashboard.collect import ml_cache_dir
 from .errors import TechvalError
 
 app = typer.Typer()
@@ -115,7 +116,9 @@ def expectations(
     symbol = ticker.upper()
     try:
         co = _company(symbol, config, no_cache, facts_file)
-        observations, trailing = _panel(Path(panels) if panels else CHECKOUT_PANELS, symbol)
+        observations, trailing = _panel(
+            Path(panels) if panels else CHECKOUT_PANELS, symbol, ml_cache_dir(co.assumptions)
+        )
         result = market_expectations(
             co.case, price if price is not None else co.spot, trailing_growth=trailing, observations=observations
         )
@@ -143,13 +146,18 @@ def expectations(
         _print_history(symbol, rows)
 
 
-def _panel(directory: Path, symbol: str):
-    """The fade panel's observations and the company's own trailing growth, if both exist."""
+def _panel(directory: Path, symbol: str, cache_root: Path | None = None):
+    """The fade panel's observations and the company's own trailing growth, if both exist.
+
+    With a ``cache_root`` the built panel is kept on disk, keyed on the panel's
+    bytes and the code it is built through, so a second command does not pay
+    the two seconds the build takes.
+    """
     from .invest.engine_read import FADE_PANEL, fade_panel
 
     if not (directory / FADE_PANEL).is_file():
         return None, None
-    observations = fade_panel(directory).observations
+    observations = fade_panel(directory, cache_root).observations
     own = [o for o in observations if o.ticker == symbol and o.growth is not None]
     trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
     return observations, trailing
@@ -237,7 +245,7 @@ def expectations_screen(
                 payloads[symbol] = json.loads(path.read_text(encoding="utf-8"))
             else:
                 payloads[symbol] = client.company_facts(symbol).raw
-        observations, _ = _panel(Path(panels) if panels else CHECKOUT_PANELS, "")
+        observations, _ = _panel(Path(panels) if panels else CHECKOUT_PANELS, "", ml_cache_dir(assumptions))
         rows = screen(payloads, source, assumptions, when, observations) + missing
     except TechvalError as err:
         console.print(f"[red]{escape(str(err))}[/red]")
@@ -291,7 +299,7 @@ def scenarios(
     symbol = ticker.upper()
     directory = Path(panels) if panels else CHECKOUT_PANELS
     try:
-        observations, trailing = _panel(directory, symbol)
+        observations, trailing = _panel(directory, symbol, ml_cache_dir(Assumptions.load(config)))
         if observations is None:
             console.print(
                 f"[red]There is no fade panel in {escape(str(directory))}, and the scenarios are read "
