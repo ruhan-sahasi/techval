@@ -1062,8 +1062,7 @@ def _build_company(
     """Every fiscal year one filer supports, each built through its own filing.
 
     The whole point-in-time guarantee of this module is the single line that
-    re-pins the fact set: ``CompanyFacts(facts.raw, ticker, knowledge_date=...)``
-    per fiscal year. Handing one unpinned fact set to every year would build
+    re-pins the fact set, ``facts.as_of(filed)``, per fiscal year. Handing one unpinned fact set to every year would build
     2007 out of figures restated in 2024.
     """
     reported = _report_dates(facts, tags.REVENUE)
@@ -1084,7 +1083,7 @@ def _build_company(
     by_year: dict[date, FadeObservation] = {}
 
     for fiscal_year_end, filed in sorted(reported.items()):
-        pinned = CompanyFacts(facts.raw, ticker, knowledge_date=filed)
+        pinned = facts.as_of(filed)
         revenue, revenue_tag, revenue_filed = _annual_series(pinned, tags.REVENUE)
         current = revenue.get(fiscal_year_end)
         if current is None or current <= 0:
