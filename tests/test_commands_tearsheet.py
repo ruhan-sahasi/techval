@@ -20,7 +20,8 @@ def config(tmp_path: Path, peers: str = "[CRWD, MDB, ZS]") -> Path:
         "market:\n  risk_free_rate: 0.0483\n"
         f"comps:\n  peers: {peers}\n"
         f"price_source: csv\nprice_csv_dir: {FIXTURES / 'prices'}\n"
-        "as_of: '2026-09-10'\n",
+        "as_of: '2026-09-10'\n"
+        f"ml:\n  cache_dir: {tmp_path / 'ml'}\n",
         encoding="utf-8",
     )
     return path

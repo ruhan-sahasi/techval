@@ -42,7 +42,7 @@ def tearsheet(
     """One company's valuation as a single page: the results page's engine section, measured for TICKER."""
     from .cli import _setup
     from .commands_expectations import CHECKOUT_PANELS, _panel
-    from .dashboard.collect import techval_commit
+    from .dashboard.collect import ml_cache_dir, techval_commit
     from .dashboard.render import write_dashboard
     from .invest.engine_read import FADE_PANEL
     from .tearsheet import RecordedFacts, build_tearsheet
@@ -55,7 +55,7 @@ def tearsheet(
         if facts_dir is not None:
             knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
             client = RecordedFacts(facts_dir, knowledge)
-        observations, _ = _panel(directory, symbol)
+        observations, _ = _panel(directory, symbol, ml_cache_dir(assumptions))
         snap = build_tearsheet(
             symbol,
             assumptions,
