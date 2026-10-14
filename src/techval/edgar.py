@@ -1219,8 +1219,18 @@ def derive_periods(facts: list[Fact], passes: int = 3) -> list[Fact]:
     for _ in range(passes):
         added = False
         current = list(known.values())
+        # A pair can only subtract if it shares a start or an end, so each period
+        # is checked against those alone, in the order a full pass would meet them,
+        # rather than against every other period.
+        order = {id(f): i for i, f in enumerate(current)}
+        by_start: dict[date, list[Fact]] = {}
+        by_end: dict[date, list[Fact]] = {}
+        for f in current:
+            by_start.setdefault(f.start, []).append(f)
+            by_end.setdefault(f.end, []).append(f)
         for big in current:
-            for small in current:
+            partners = {id(f): f for f in (*by_start[big.start], *by_end[big.end])}
+            for small in sorted(partners.values(), key=lambda f: order[id(f)]):
                 if big is small or small.start is None or big.start is None:
                     continue
                 if small.days >= big.days:
