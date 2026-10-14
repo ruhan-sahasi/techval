@@ -606,11 +606,13 @@ def quarter_ends(first, last) -> list:
     ]
 
 
-def case_at(payload: dict, ticker: str, source, assumptions: Assumptions, when):
+def case_at(payload: dict, ticker: str, source, assumptions: Assumptions, when, cache=None):
     """The forward case as it stood on ``when``: the filings known then, the close on or before it.
 
     Returns the case and the price. Raises the pipeline's TechvalError when the
-    record cannot support a valuation that day.
+    record cannot support a valuation that day. ``cache`` holds the responses
+    the market reads, the Treasury's yield files among them, for callers that
+    value the same company at many dates.
     """
     from .edgar import CompanyFacts, HttpCache
     from .ev_bridge import build_ev_bridge
@@ -619,7 +621,7 @@ def case_at(payload: dict, ticker: str, source, assumptions: Assumptions, when):
     from .wacc import compute_wacc
 
     fin = build_financials(ticker, facts=CompanyFacts(payload, ticker, knowledge_date=when))
-    market = MarketData(source, HttpCache(enabled=False), today=when)
+    market = MarketData(source, cache or HttpCache(enabled=False), today=when)
     price = market.spot(ticker)
     bridge = build_ev_bridge(fin, price, assumptions)
     wacc = compute_wacc(fin, bridge, market, assumptions)
@@ -636,20 +638,32 @@ def expectations_history(payload: dict, ticker: str, source, assumptions: Assump
     little filed history or too little price history for a beta, is kept as a
     row with the refusal, never dropped.
     """
+    from .edgar import MemoryCache
+    from .market import SpanSource, history_start
+
+    dates = list(dates)
+    if dates:
+        # Every date's window of closes falls inside one span, fetched once,
+        # and each year's Treasury file is read once however many quarters it holds.
+        source = SpanSource(source, history_start(min(dates)), max(dates))
+    responses = MemoryCache()
     rows = []
     for when in dates:
         row = {"date": when.isoformat(), "refused": None}
         try:
-            case, price = case_at(payload, ticker, source, assumptions, when)
+            case, price = case_at(payload, ticker, source, assumptions, when, responses)
             rate = implied_discount_rate(case, price)
             growth = implied_first_year_growth(case, price)
+            base_value = case.value()
         except TechvalError as err:
+            # One quarter the record cannot value, a cost of capital below the
+            # terminal growth rate among them, is that quarter's refusal alone.
             row["refused"] = str(err).splitlines()[0]
             rows.append(row)
             continue
         row.update(
             price=round(price, 4),
-            base_value=round(case.value(), 4),
+            base_value=round(base_value, 4),
             wacc=round(case.wacc.wacc, 6),
             implied_return=None if rate.implied is None else round(rate.implied, 6),
             implied_growth=None if growth.implied is None else round(growth.implied, 6),

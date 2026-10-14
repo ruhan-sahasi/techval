@@ -370,11 +370,15 @@ with a JavaScript proof-of-work challenge rather than CSV. Defeating a bot check
 the operator deliberately erected is not something this package will do, so the
 Stooq source raises an explanatory error pointing at the alternatives.
 
-**Risk-free rate.** The latest 10-year constant-maturity Treasury yield from the
-Treasury's daily yield curve feed. The ten-year point is the conventional anchor
-for a US equity discount rate: long enough to match the duration of the cash
-flows being discounted, liquid enough that the quote means something. Overridable
-in the assumptions file to pin a run to a fixed date.
+**Risk-free rate.** The 10-year constant-maturity Treasury yield from the
+Treasury's daily yield curve feed, the last one published on or before the
+valuation date. The ten-year point is the conventional anchor for a US equity
+discount rate: long enough to match the duration of the cash flows being
+discounted, liquid enough that the quote means something. The feed is a file
+per year, and an earlier version took the file's last row whatever the date, so
+a valuation dated in March discounted at December's yield; a dated run, the
+expectations history and the backtest now each read their own day's rate.
+Overridable in the assumptions file to pin a run to one rate.
 
 **Market proxy.** SPY rather than the S&P 500 index itself, because the index is
 not available from a keyless source. The substitution is close to free for beta
@@ -2019,8 +2023,10 @@ entry price disagree by more than half a percent the run flags it: the two feeds
 disagree about what the stock closed at, and the return is being measured from a
 different point than the call was made.
 
-**The risk-free rate.** Without a per-date mapping of the ten-year yield, one
-rate from the assumptions file is applied across the whole sample. That is not
+**The risk-free rate.** With `market.risk_free_rate` unset, each valuation
+date reads the Treasury daily curve as of itself: the ten-year yield published
+on or before that date, never one from later in the same year. A rate pinned in
+the assumptions file is applied across the whole sample instead. That is not
 lookahead, but it is wrong in its own way: the risk-free rate moved several
 hundred basis points across 2023 to 2026, so holding it flat suppresses the part
 of the discount rate that was genuinely different at each date and pushes all the

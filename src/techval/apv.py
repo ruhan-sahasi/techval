@@ -841,7 +841,15 @@ def _reconciliation(
             f"modelled interest cannot be checked against a filed figure. The shield "
             "rests entirely on the synthetic yield."
         )
-    elif filed <= 0 or abs(interest / filed - 1.0) > _INTEREST_GAP_FLAG:
+    elif filed <= 0:
+        out.append(
+            f"FLAG: modelled interest of {interest:,.0f}mm on {debt:,.0f}mm of debt "
+            f"stands against {filed:,.0f}mm of interest expense filed, so no "
+            "deduction the tax return will show stands behind the shield. A filer "
+            "that capitalises its interest or nets interest income against it can "
+            "report this; read the shield as an upper bound."
+        )
+    elif abs(interest / filed - 1.0) > _INTEREST_GAP_FLAG:
         out.append(
             f"FLAG: modelled interest of {interest:,.0f}mm is "
             f"{interest / filed:,.1f}x the {filed:,.0f}mm this filer actually reports "

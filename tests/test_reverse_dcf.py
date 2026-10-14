@@ -431,3 +431,39 @@ def test_a_changed_valuation_leaves_the_case_it_came_from_alone(case):
     # with_dcf hands back a case its caller may change, so it shares nothing.
     moved.assumptions.scenarios.weights = {"bear": 0.2, "base": 0.6, "bull": 0.2}
     assert case.assumptions.model_dump() == before
+
+
+def test_one_quarter_the_engine_cannot_value_is_refused_alone(monkeypatch):
+    """Zoom's history failed whole when one quarter's cost of capital fell below terminal growth."""
+    from datetime import date as d
+
+    from techval.errors import ConfigError
+    from techval.reverse_dcf import Case, expectations_history, quarter_ends
+
+    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    a = Assumptions()
+    a.market.risk_free_rate = 0.0483
+    real = Case.value
+    bad = d(2025, 3, 31)
+
+    _quarter = [None]
+
+    def value(self, growth_path=None, **changes):
+        # The base case of one quarter, the call made after both solves.
+        if _quarter[0] == bad and not changes and growth_path is None:
+            raise ConfigError("terminal growth of 2.50% is not below the WACC of 1.24%")
+        return real(self, growth_path, **changes)
+    import techval.reverse_dcf as R
+
+    real_case_at = R.case_at
+
+    def case_at(payload, ticker, source, assumptions, when, cache=None):
+        _quarter[0] = when
+        return real_case_at(payload, ticker, source, assumptions, when, cache)
+
+    monkeypatch.setattr(R, "case_at", case_at)
+    monkeypatch.setattr(Case, "value", value)
+    rows = expectations_history(payload, "DDOG", CsvSource(FIXTURES / "prices"), a, quarter_ends(d(2024, 1, 1), d(2025, 12, 31)))
+    by = {r["date"]: r for r in rows}
+    assert "WACC of 1.24%" in by["2025-03-31"]["refused"]
+    assert sum(1 for r in rows if not r["refused"]) >= 5
