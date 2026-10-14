@@ -303,6 +303,10 @@ class MarketData:
         The ten-year point is the conventional anchor for a US equity discount
         rate: long enough to match the duration of the cash flows being
         discounted, liquid enough that the quote means something.
+
+        It is the yield published on or before ``today``. The feed is a file per
+        year, and taking the file's last row would hand a valuation dated in
+        March the yield of December, nine months it could not have known.
         """
         if override is not None:
             return override, "assumptions file override"
@@ -327,6 +331,7 @@ class MarketData:
                     parsed.append((date(int(y), int(m), int(d)), float(raw) / 100.0))
                 except (KeyError, ValueError):
                     continue
+            parsed = [(when, rate) for when, rate in parsed if when <= self.today]
             if parsed:
                 parsed.sort()
                 when, rate = parsed[-1]
