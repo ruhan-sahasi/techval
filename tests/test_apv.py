@@ -728,3 +728,11 @@ def test_the_synthetic_yield_gap_against_filed_interest_is_flagged(
     assert any(
         line.startswith("FLAG:") and "interest paid" in line for line in result.checks
     )
+
+
+@pytest.mark.parametrize("filed", [0.0, -12.0])
+def test_debt_with_no_interest_filed_is_flagged_not_divided_by(zs, assumptions, market, filed):
+    """Palo Alto Networks files zero interest expense on its debt, and the check divided by it."""
+    _, _, _, result = _stack(replace(zs, interest_expense=filed), assumptions, market)
+    lines = " ".join([*result.checks, *result.notes])
+    assert f"{filed:,.0f}mm of interest expense filed" in lines
