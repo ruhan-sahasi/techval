@@ -2019,8 +2019,10 @@ entry price disagree by more than half a percent the run flags it: the two feeds
 disagree about what the stock closed at, and the return is being measured from a
 different point than the call was made.
 
-**The risk-free rate.** Without a per-date mapping of the ten-year yield, one
-rate from the assumptions file is applied across the whole sample. That is not
+**The risk-free rate.** With `market.risk_free_rate` unset, each valuation
+date reads the Treasury daily curve as of itself: the ten-year yield published
+on or before that date, never one from later in the same year. A rate pinned in
+the assumptions file is applied across the whole sample instead. That is not
 lookahead, but it is wrong in its own way: the risk-free rate moved several
 hundred basis points across 2023 to 2026, so holding it flat suppresses the part
 of the discount rate that was genuinely different at each date and pushes all the
