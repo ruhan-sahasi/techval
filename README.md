@@ -1693,9 +1693,9 @@ anywhere in the engine.
 
 `backtest` takes valuation dates at quarter ends between `--from` and `--to`, or
 an explicit list through `--dates`, and scores each against the close
-`--horizon` calendar days later. It needs a risk-free rate it can date, so pin
-`market.risk_free_rate` in the config or the run refuses to start rather than
-applying today's yield to a 2025 valuation.
+`--horizon` calendar days later. With `market.risk_free_rate` unset, each date
+discounts at the ten-year Treasury yield published on or before it; a rate
+pinned in the config is held flat across the sample instead.
 
 ```
 $ techval backtest DDOG,MDB,ZS,CRWD --config backtest.yaml \

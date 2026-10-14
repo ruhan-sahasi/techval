@@ -632,24 +632,31 @@ def test_dates_spaced_beyond_the_horizon_are_all_independent(
 # --------------------------------------------------------------------------- #
 
 
-def test_an_undated_risk_free_rate_is_refused(market_factory, prices):
-    """Left unset, the discount rate would come from the wrong end of the year.
+def test_an_unpinned_rate_is_the_treasury_yield_of_each_valuation_date(market_factory, prices, monkeypatch):
+    """Left unset, each date discounts at the ten-year yield published on or before it.
 
-    The Treasury reader takes the latest quote in the calendar year rather than
-    the latest quote at or before the valuation date, so an unpinned rate is a
-    lookahead nobody would see in the output.
+    The Treasury feed is a file per year, served here from memory: 3.80% through
+    2024 and 7.00% from 2025, so a 2025 valuation that read the wrong year would
+    show it in its discount rate.
     """
+    import techval.market as M
+
+    def curve(url, **_):
+        year = int(url.split("daily-treasury-rates.csv/")[1].split("/")[0])
+        rate = 3.80 if year <= 2024 else 7.00
+        rows = "\n".join(f"{m:02d}/02/{year},,,,,,,,,,{rate:.2f},," for m in range(12, 0, -1))
+        return ("Date,1 Mo,2 Mo,3 Mo,6 Mo,1 Yr,2 Yr,3 Yr,5 Yr,7 Yr,10 Yr,20 Yr,30 Yr\n" + rows + "\n").encode()
+
+    monkeypatch.setattr(M, "http_get", curve)
     a = Assumptions()
     a.market.risk_free_rate = None
-
-    with pytest.raises(ConfigError) as exc:
-        run_backtest(
-            ["DDOG"], [D_2025_H1], a, dated_client_factory, market_factory, prices
-        )
-    assert "risk_free_by_date" in str(exc.value)
-
-    with pytest.raises(ConfigError):
-        value_at("DDOG", D_2025_H1, a, dated_client_factory, market_factory)
+    result = run_backtest(
+        ["DDOG"], [D_2024, D_2025_H1], a, dated_client_factory, market_factory, prices
+    )
+    by_date = {o.as_of: o for o in result.observations}
+    assert all(o.valued for o in result.observations)
+    assert by_date[D_2025_H1].wacc > by_date[D_2024].wacc
+    assert any("published on or before it" in n for n in result.notes)
 
 
 def test_a_per_date_risk_free_rate_reaches_the_discount_rate(
