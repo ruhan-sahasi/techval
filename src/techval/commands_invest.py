@@ -17,7 +17,7 @@ import typer
 from rich.console import Console
 from rich.markup import escape
 
-from .config import Assumptions
+from .config import Assumptions, ml_cache_root
 from .errors import TechvalError
 
 app = typer.Typer(
@@ -366,11 +366,6 @@ def _warn_duplicates(ledger) -> None:
         )
 
 
-def _cache_root(assumptions: Assumptions) -> Path:
-    configured = assumptions.ml.cache_dir
-    return Path(configured).expanduser() if configured else Path.home() / ".techval" / "ml"
-
-
 # The panels ship with a checkout, not with the package: resolved from here
 # they are found in a source tree and missing from an installed wheel, where
 # --panels names them instead.
@@ -458,7 +453,7 @@ def _build(
         today=today,
         facts_for=facts_for,
         market=market,
-        cache_root=_cache_root(assumptions),
+        cache_root=ml_cache_root(assumptions),
         refit=refit,
     )
     write_snapshot(snapshot, snapshot_path)

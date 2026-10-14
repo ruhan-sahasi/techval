@@ -132,7 +132,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from .config import Assumptions
+from .config import Assumptions, ml_cache_root
 from .errors import ConfigError, MissingDataError, TechvalError
 from .ml.encoder import (
     EMBARGO_DAYS,
@@ -450,11 +450,6 @@ class _Bundle:
     cached_ablation: bool
 
 
-def _cache_root(assumptions: Assumptions) -> Path:
-    configured = assumptions.ml.cache_dir
-    return Path(configured).expanduser() if configured else Path.home() / ".techval" / "ml"
-
-
 def _digest(paths: list[Path], settings: dict[str, Any]) -> str:
     """A key over the inputs and over every setting that moves the fit.
 
@@ -525,7 +520,7 @@ def _bundle(
         _load_groups(groups_path), _load_panel(panel_path), _load_corpora(text_path)
     )
 
-    root = _cache_root(assumptions)
+    root = ml_cache_root(assumptions)
     key = _digest(
         [groups_path, panel_path, text_path],
         {
@@ -1121,7 +1116,7 @@ def peers(
     """
     try:
         assumptions = Assumptions.load(config)
-        root = _cache_root(assumptions)
+        root = ml_cache_root(assumptions)
         groups_path = Path(groups) if groups else root / "peer_groups.json"
         panel_path = Path(panel) if panel else root / "peer_panel.json"
         text_path = Path(text) if text else root / "peer_item1.json"
@@ -1492,7 +1487,7 @@ def screen(
     try:
         assumptions = Assumptions.load(config)
         panel_path = (
-            Path(panel) if panel else _cache_root(assumptions) / "observations.json.gz"
+            Path(panel) if panel else ml_cache_root(assumptions) / "observations.json.gz"
         )
         observations = _load_observations(panel_path)
 

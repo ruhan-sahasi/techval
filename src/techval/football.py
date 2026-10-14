@@ -15,12 +15,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-from matplotlib.ticker import FuncFormatter  # noqa: E402
-
 _INK = "#1a1a1a"
 _MUTED = "#8a8a8a"
 _BAR = "#4a6fa5"
@@ -53,6 +47,13 @@ def football_field(
     methods, then the intrinsic ones, so the eye travels from observed to
     derived.
     """
+    # Imported here so that every command does not pay for matplotlib.
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import FuncFormatter
+
     rows = [r for r in rows if r.low is not None and r.high is not None]
     # A range built from a single observation is not a range. It draws as a
     # hairline and reads as a precise answer, which is the opposite of what it

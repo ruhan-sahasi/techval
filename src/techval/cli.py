@@ -63,16 +63,14 @@ from .commands_tmt import app as _tmt_app
 from .commands_forecast import (
     _horizon_table as _render_fade_baselines,
     _prices_from_csv,
-    _recorded_panel as _load_fade_panel,
+    recorded_fit as _recorded_fade_fit,
     _render_curve as _render_fade_curve,
     _render_paths as _render_fade_paths,
     _render_valuation as _render_fade_valuation,
-    _truncate_panel as _truncate_fade_panel,
 )
 from .commands_mna import load_dataset as _load_mna_dataset
 from .commands_peers import (
     _bundle as _peer_bundle,
-    _cache_root as _ml_cache_root,
     _load_observations,
 )
 from .commands_tmt import _render_sotp, load_plan as _load_sotp_plan
@@ -85,7 +83,7 @@ from .dashboard import (
 from .dashboard.collect import SectionRun
 from .dashboard.sections import SECTION_IDS, section_module
 from .errors import MissingDataError
-from .ml.forecast import compare_fade, fit_fade
+from .ml.forecast import compare_fade
 from .ml.mna import fit_propensity
 from .ml.signals import Score, test_signal
 from .ml.warranted import fit_warranted
@@ -99,7 +97,7 @@ from .backtest import (
     run_backtest,
 )
 from .dilution import build_share_count
-from .config import Assumptions
+from .config import Assumptions, ml_cache_root
 from .dcf import run_dcf, sensitivity_wacc_exit, sensitivity_wacc_growth
 from .edgar import EdgarClient, HttpCache
 from .errors import ConfigError, TechvalError
@@ -679,7 +677,7 @@ def _ml_root(assumptions, ml_data: Path | None) -> Path:
     not a property of the company being valued, and the assumptions file is the
     company's.
     """
-    return Path(ml_data) if ml_data else _ml_cache_root(assumptions)
+    return Path(ml_data) if ml_data else ml_cache_root(assumptions)
 
 
 # Where each recorded artifact is known to live, under a single ``--ml-data``
@@ -1199,15 +1197,12 @@ def _render_optional_fade(ticker, fin, bridge, wacc_result, assumptions, root) -
         "whole universe is fitted, not this company alone, because a curve "
         "estimated on one filer's history is that filer's history.[/dim]"
     )
-    panel = _load_fade_panel(panel_path, assumptions, None)
-    if assumptions.as_of:
-        # Without this the option would be a lie. The panel builder pins every
-        # FEATURE to the filing date of the report that carried it and stops
-        # there, so a curve fitted on filings through 2026 and handed to a
-        # valuation struck in 2020 knows how the intervening six years went. The
-        # valuation would look excellent and the failure would be silent.
-        panel = _truncate_fade_panel(panel, date.fromisoformat(assumptions.as_of))
-    model = fit_fade(panel, assumptions)
+    # recorded_fit cuts the panel at assumptions.as_of before fitting. Without
+    # that the option would be a lie: the panel builder pins every FEATURE to the
+    # filing date of the report that carried it and stops there, so a curve
+    # fitted on filings through 2026 and handed to a valuation struck in 2020
+    # knows how the intervening six years went.
+    panel, model = _recorded_fade_fit(panel_path, assumptions, None)
 
     _render_fade_curve(model, panel)
     # Includes the point-in-time cut where one was made, which says how many

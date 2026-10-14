@@ -125,3 +125,42 @@ def test_no_cache_root_means_no_disk_cache(tmp_path):
     for _ in range(2):
         cached_fit("probe", [], (), lambda: calls.append(1), None)
     assert len(calls) == 2
+
+
+def test_the_fade_panel_cache_key_covers_every_module_the_build_runs():
+    """A cached panel is stale the moment code it was built through changes.
+
+    The key hashes the source of _FADE_MODULES, so every techval module whose
+    code runs while the panel is built has to be among them; the build is
+    profiled on a few companies and the modules it actually entered are read
+    off the profile.
+    """
+    import cProfile
+    import gzip
+    import json as _json
+
+    import techval
+    from techval.edgar import CompanyFacts
+    from techval.invest import engine_read
+    from techval.ml.forecast import build_fade_panel, fade_universe
+
+    blob = _json.load(gzip.open(FIXTURES / engine_read.FADE_PANEL, "rt"))
+
+    class Client:
+        def company_facts(self, ticker):
+            return CompanyFacts(blob["payloads"][ticker.upper()], ticker)
+
+    universe = {t: v for t, v in list(fade_universe().items()) if t in blob["payloads"]}
+    universe = dict(list(universe.items())[:5])
+    profile = cProfile.Profile()
+    profile.runcall(build_fade_panel, universe, Client())
+    root = Path(techval.__file__).parent
+    entered = set()
+    for stat in profile.getstats():
+        code = stat.code
+        if isinstance(code, str):
+            continue
+        path = Path(code.co_filename)
+        if root in path.parents:
+            entered.add(".".join(("techval", *path.relative_to(root).with_suffix("").parts)))
+    assert entered and entered <= set(engine_read._FADE_MODULES), entered - set(engine_read._FADE_MODULES)

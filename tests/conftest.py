@@ -21,13 +21,28 @@ The companies are chosen for what they break:
 
 from __future__ import annotations
 
+import atexit
 import json
+import os
+import shutil
+import tempfile
 from datetime import date
 from pathlib import Path
 
-import pytest
+# No test reads or writes the real ~/.techval. The session gets a home of its
+# own before anything from techval is imported, since the HTTP cache root is
+# fixed at import, and the directory goes when the session ends. matplotlib's
+# font list is not techval's and takes twenty seconds to rebuild, so it stays
+# where it was.
+os.environ.setdefault("MPLCONFIGDIR", str(Path.home() / ".matplotlib"))
+_HOME = tempfile.mkdtemp(prefix="techval-tests-home-")
+os.environ["HOME"] = _HOME
+os.environ["TECHVAL_CACHE"] = str(Path(_HOME) / ".techval" / "cache")
+atexit.register(shutil.rmtree, _HOME, True)
 
-from techval.config import Assumptions
+import pytest  # noqa: E402
+
+from techval.config import Assumptions  # noqa: E402
 from techval.edgar import CompanyFacts, HttpCache
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
