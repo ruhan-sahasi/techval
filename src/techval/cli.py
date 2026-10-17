@@ -170,6 +170,9 @@ app.add_typer(_invest_app, rich_help_panel="Portfolio")
 app.add_typer(_cache_app, rich_help_panel="Housekeeping")
 
 _CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
+FROM_RECORD = typer.Option(
+    False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
+)
 _NOCACHE = typer.Option(False, "--no-cache", help="Bypass the HTTP cache.")
 _OUT = typer.Option("out", "--out", "-o", help="Directory for chart output.")
 _ASOF = typer.Option(
@@ -1341,10 +1344,13 @@ def value(
             "segment. Only consulted when tmt.sotp is on."
         ),
     ),
+    from_record: bool = FROM_RECORD,
 ) -> None:
     """Full valuation: statements, EV bridge, WACC, DCF, comps and football field."""
     try:
         assumptions, client, market = _setup(config, no_cache, as_of)
+        if from_record:
+            assumptions.dcf.from_record = True
         if assumptions.as_of:
             console.print(
                 f"[yellow]Point in time: valuing {ticker.upper()} as it was knowable "
