@@ -137,7 +137,13 @@ def _standfirst(m: E.Measured, peers: list[str], panel: bool) -> str:
     return (
         f"{m.ticker} through the same engine as the techval results page: the cost of capital, "
         f"a DCF with its bridge and sensitivity, {comps}, a Monte Carlo of value, APV, and {reads}. "
-        f"Its filings run through {m.filings_through} and its closes through {m.price_date}. Every "
+        + (
+            "The DCF is the record case, its growth, margin and reinvestment set from the "
+            "company's own filings rather than the assumptions file. "
+            if m.anchors
+            else ""
+        )
+        + f"Its filings run through {m.filings_through} and its closes through {m.price_date}. Every "
         "figure is the engine's own, and where it could not form one a note says so in its place. "
         "Nothing here is advice."
     )
