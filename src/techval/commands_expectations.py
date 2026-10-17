@@ -22,6 +22,7 @@ from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
+from .anchors import summary as record_summary
 from .config import Assumptions, ml_cache_root
 from .errors import TechvalError
 
@@ -60,6 +61,7 @@ def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path 
     """
     from types import SimpleNamespace
 
+    from .anchors import record_case
     from .edgar import CompanyFacts, EdgarClient, HttpCache
     from .ev_bridge import build_ev_bridge
     from .financials import build_financials
@@ -76,13 +78,17 @@ def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path 
         payload = json.loads(Path(facts_file).read_text(encoding="utf-8"))
     else:
         payload = EdgarClient(cache).company_facts(symbol).raw
-    fin = build_financials(symbol, facts=CompanyFacts(payload, symbol, knowledge_date=knowledge))
+    facts = CompanyFacts(payload, symbol, knowledge_date=knowledge)
+    fin = build_financials(symbol, facts=facts)
     spot = market.spot(symbol)
     bridge = build_ev_bridge(fin, spot, assumptions)
     wacc = compute_wacc(fin, bridge, market, assumptions)
+    # ``assumptions`` keeps the switch rather than today's anchors, so a history
+    # built from it reads each quarter's record from that quarter's filings.
+    anchored, anchors = record_case(assumptions, fin, facts)
     return SimpleNamespace(
-        assumptions=assumptions, source=source, market=market, payload=payload,
-        case=Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=assumptions), spot=spot,
+        assumptions=assumptions, source=source, market=market, payload=payload, anchors=anchors,
+        case=Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=anchored), spot=spot,
     )
 
 
@@ -140,6 +146,8 @@ def expectations(
             out["history"] = rows
         typer.echo(json.dumps(out, indent=2, default=str))
         return
+    if co.anchors:
+        console.print(f"  {escape(record_summary(co.anchors))}", highlight=False)
     _print(result)
     if rows is not None:
         _print_history(symbol, rows)
@@ -315,6 +323,8 @@ def scenarios(
     if as_json:
         typer.echo(json.dumps({**result.to_dict(), "calibration": calibration}, indent=2, default=str))
         return
+    if co.anchors:
+        console.print(f"  {escape(record_summary(co.anchors))}", highlight=False)
     table = Table(title=f"{escape(symbol)}: bear, base and bull from what similar company-years did", title_justify="left")
     for name in ("Scenario", "Percentile", "Company-years", "5-year CAGR", "Growth, years 1 to 5", "Value", "Weight"):
         table.add_column(name, justify="left" if name in ("Scenario", "Growth, years 1 to 5") else "right")
