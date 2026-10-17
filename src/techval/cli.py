@@ -97,6 +97,7 @@ from .backtest import (
     run_backtest,
 )
 from .dilution import build_share_count
+from .anchors import record_case, unanchored
 from .config import Assumptions, ml_cache_root
 from .dcf import run_dcf, sensitivity_wacc_exit, sensitivity_wacc_growth
 from .edgar import EdgarClient, HttpCache
@@ -524,6 +525,28 @@ def _render_wacc(w) -> None:
         )
     console.print(t)
     _notes(w.notes)
+
+
+RECORD_LABELS = {
+    "revenue_growth_start": "Year 1 revenue growth",
+    "revenue_growth_terminal": "Year N revenue growth",
+    "ebit_margin_terminal": "Terminal EBIT margin",
+    "capex_pct_revenue": "Capex, share of revenue",
+    "da_pct_revenue": "D&A, share of revenue",
+}
+
+
+def _render_record_case(anchors) -> None:
+    """The DCF assumptions the filings set, beside what the assumptions file had."""
+    _rule("The record case: the DCF from the filings")
+    t = Table(box=None, pad_edge=False)
+    for name, justify in (("Assumption", "left"), ("Assumptions file", "right"), ("From the record", "right"), ("Source", "left")):
+        t.add_column(name, justify=justify)
+    for a in anchors:
+        t.add_row(RECORD_LABELS[a.field], _pct(a.assumed) if a.assumed is not None else "-", _pct(a.value), a.source)
+    console.print(t)
+    for field in unanchored(anchors):
+        console.print(f"  [yellow]{RECORD_LABELS[field]} is not in the filings, so it stays at the assumption.[/yellow]")
 
 
 def _render_dcf(d) -> None:
@@ -1369,6 +1392,11 @@ def value(
 
         w = compute_wacc(fin, bridge, market, assumptions, peer_betas=peer_betas)
         _render_wacc(w)
+
+        # dcf.from_record sets the DCF from the filings; with it off nothing changes.
+        assumptions, anchors = record_case(assumptions, fin, client.company_facts(ticker))
+        if assumptions.dcf.from_record:
+            _render_record_case(anchors)
 
         # A DCF that cannot be formed, because the terminal year is a loss or an
         # assumption is inconsistent, is reported and stepped past. The comps
