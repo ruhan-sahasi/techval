@@ -1287,6 +1287,41 @@ this record the scenarios run slow, because the years after 2016 grew faster
 than the years the bands were built from. Read the bull case as what the best
 tenth used to do, not as a ceiling.
 
+### 6.8 The record case: the DCF a company's own filings support
+
+The DCF's defaults describe a subscription software company: growth fading
+from 20% to 5%, a 20% terminal margin, capex at 3% and D&A at 2.5% of revenue.
+Asked about a cable operator they value it at twenty times its price, because
+Charter spends close to a fifth of its revenue on capex and has not grown in
+years. `dcf.from_record`, or `--from-record` on any command that values a
+company, replaces them with what the filings show (`techval.anchors`):
+
+| Assumption | From the record |
+|---|---|
+| Year 1 revenue growth | Trailing twelve months against the twelve months a year earlier; the last two fiscal years where the quarters cannot be tiled. Held to -30% to +60%, and said to be. |
+| Year N revenue growth | The lower of that rate and the assumed year-N rate, and no lower than the perpetuity rate. |
+| Terminal EBIT margin | Today's margin, held. |
+| Capex, D&A | Today's share of revenue. |
+
+Working capital, the discount rate and the perpetuity stay where the
+assumptions put them. A figure the filings cannot support is left at the
+assumption and named. Every page that values a company prints each anchor
+beside the figure it replaced and where it came from, and the quarterly
+history reads each quarter's anchors from the filings known that quarter, so
+the record case adds no lookahead to it.
+
+It is the company as it stands, with nothing improving and nothing getting
+worse: a baseline to set the assumptions against, not a better forecast.
+Across 60 TMT names valued at their 2026-10-14 closes it is no closer to the
+price in aggregate, a median absolute log distance of 1.32 against 1.25 for the
+defaults, and it values the 11 loss-makers below zero because it holds their
+margins where they are. It is closer for the mature names the defaults were
+not written for: Disney at 76 against 180 on a 109 close, HP at 50 against 204
+on 31, Charter at 745 against 2,605 on 107. Charter and the telecoms stay far
+above their prices for a different reason, a beta regression with an
+R-squared near zero over the last two years that holds their cost of capital
+near 5%; peers fix that, the record does not.
+
 ## 7. Trading comparables
 
 Multiples computed: EV/Revenue, EV/Gross Profit, EV/EBITDA, EV/EBIT and P/E, plus
