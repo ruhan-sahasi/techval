@@ -146,3 +146,13 @@ def test_the_record_case_is_named_when_it_is_on(tmp_path):
     text = flat(result.output)
     assert "On the record case: year 1 revenue growth 31.5%" in text
     assert "terminal ebit margin 0.4%" in text
+
+
+def test_the_from_record_flag_reaches_expectations_and_the_screen(tmp_path):
+    result = run(tmp_path, "--from-record")
+    assert result.exit_code == 0, result.output
+    assert "On the record case" in flat(result.output)
+    args = ["expectations-screen", "DDOG", "ZS", "--config", str(config(tmp_path)), "--facts-dir", str(FIXTURES), "--json"]
+    plain = {r["ticker"]: r for r in json.loads(runner.invoke(app, args).output)}
+    record = {r["ticker"]: r for r in json.loads(runner.invoke(app, [*args, "--from-record"]).output)}
+    assert record["DDOG"]["base_value"] != plain["DDOG"]["base_value"]

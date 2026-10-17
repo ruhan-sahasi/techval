@@ -53,7 +53,7 @@ def _cell(solve) -> str:
     return f"beyond {solve.edge:.0%}"
 
 
-def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path | None):
+def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path | None, from_record: bool = False):
     """The company as ``techval value`` builds it, with what the commands here also need.
 
     Returns the assumptions, the price source, the market, the raw companyfacts
@@ -70,6 +70,8 @@ def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path 
     from .wacc import compute_wacc
 
     assumptions = Assumptions.load(config)
+    if from_record:
+        assumptions.dcf.from_record = True
     knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
     cache = HttpCache(enabled=not no_cache)
     source = make_price_source(assumptions.price_source, cache, assumptions.price_csv_dir)
@@ -114,13 +116,16 @@ def expectations(
         "--history",
         help="Also read what the price assumed at each quarter-end of the last three years, point in time.",
     ),
+    from_record: bool = typer.Option(
+        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
+    ),
 ) -> None:
     """What the price assumes: the DCF solved for the market price, lever by lever, with base rates."""
     from .reverse_dcf import market_expectations
 
     symbol = ticker.upper()
     try:
-        co = _company(symbol, config, no_cache, facts_file)
+        co = _company(symbol, config, no_cache, facts_file, from_record)
         observations, trailing = _panel(
             Path(panels) if panels else CHECKOUT_PANELS, symbol, ml_cache_root(co.assumptions)
         )
@@ -229,6 +234,9 @@ def expectations_screen(
     ),
     panels: Path = typer.Option(None, "--panels", help="Directory holding fade_companyfacts.json.gz for base rates."),
     as_json: bool = typer.Option(False, "--json", help="Print the rows as JSON."),
+    from_record: bool = typer.Option(
+        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
+    ),
 ) -> None:
     """What each price assumes, side by side, the most demanding first."""
     from .edgar import EdgarClient, HttpCache
@@ -237,6 +245,8 @@ def expectations_screen(
 
     try:
         assumptions = Assumptions.load(config)
+        if from_record:
+            assumptions.dcf.from_record = True
         when = date.fromisoformat(assumptions.as_of) if assumptions.as_of else date.today()
         cache = HttpCache(enabled=not no_cache)
         source = make_price_source(assumptions.price_source, cache, assumptions.price_csv_dir)
@@ -299,6 +309,9 @@ def scenarios(
         help="Directory holding fade_companyfacts.json.gz. Defaults to tests/fixtures in this checkout.",
     ),
     as_json: bool = typer.Option(False, "--json", help="Print the whole result as JSON."),
+    from_record: bool = typer.Option(
+        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
+    ),
 ) -> None:
     """Bear, base and bull from what similar company-years went on to do, valued through the engine's DCF."""
     from .scenarios import band_coverage, value_scenarios
@@ -313,7 +326,7 @@ def scenarios(
                 "from it; point --panels at a checkout's tests/fixtures.[/red]"
             )
             raise typer.Exit(1)
-        co = _company(symbol, config, no_cache, facts_file)
+        co = _company(symbol, config, no_cache, facts_file, from_record)
         result = value_scenarios(co.case, price if price is not None else co.spot, observations, trailing=trailing)
         calibration = band_coverage(observations)
     except TechvalError as err:
