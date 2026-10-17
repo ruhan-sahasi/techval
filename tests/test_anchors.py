@@ -56,7 +56,7 @@ def test_a_figure_the_filings_cannot_support_is_left_at_the_assumption_and_named
     fin, facts = company("CRWD")
     anchors = record_anchors(fin, facts, Assumptions())
     assert "da_pct_revenue" not in by_field(anchors)
-    assert unanchored(anchors) == ["da_pct_revenue"]
+    assert unanchored(a.field for a in anchors) == ["da_pct_revenue"]
 
 
 def test_growth_outside_the_band_is_held_to_it_and_says_so(monkeypatch):

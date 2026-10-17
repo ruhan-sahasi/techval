@@ -536,7 +536,7 @@ def _render_record_case(anchors) -> None:
     for a in anchors:
         t.add_row(RECORD_LABELS[a.field], _pct(a.assumed) if a.assumed is not None else "-", _pct(a.value), a.source)
     console.print(t)
-    for field in unanchored(anchors):
+    for field in unanchored(a.field for a in anchors):
         console.print(f"  [yellow]{RECORD_LABELS[field]} is not in the filings, so it stays at the assumption.[/yellow]")
 
 

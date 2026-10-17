@@ -48,7 +48,7 @@ LABELS = {
 def summary(anchors: list[Anchor]) -> str:
     """One sentence naming what the record set, for a terminal line."""
     parts = [f"{LABELS[a.field].lower()} {a.value:.1%}" for a in anchors]
-    missing = [LABELS[f].lower() for f in unanchored(anchors)]
+    missing = [LABELS[f].lower() for f in unanchored(a.field for a in anchors)]
     line = "On the record case: " + ", ".join(parts) + "."
     if missing:
         line += " Not in the filings, so at the assumption: " + ", ".join(missing) + "."
@@ -157,10 +157,10 @@ def record_anchors(fin, facts, assumptions) -> list[Anchor]:
     return out
 
 
-def unanchored(anchors: list[Anchor]) -> list[str]:
-    """The record-case fields the filings could not set, left at the assumption."""
+def unanchored(fields) -> list[str]:
+    """Of the record-case fields, those not among ``fields``: left at the assumption."""
     wanted = ("revenue_growth_start", "ebit_margin_terminal", "capex_pct_revenue", "da_pct_revenue")
-    have = {a.field for a in anchors}
+    have = set(fields)
     return [f for f in wanted if f not in have]
 
 
