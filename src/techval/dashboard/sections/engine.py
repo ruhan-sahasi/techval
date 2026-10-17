@@ -842,7 +842,6 @@ def _record(m: Measured) -> dict[str, Any]:
             ],
         },
         wide=True,
-        order=0,
     )
     from ...anchors import LABELS, unanchored
 

@@ -415,7 +415,9 @@ def test_the_collector_runs_offline_on_the_fixtures_and_holds_to_the_schema(tmp_
 def test_the_renderer_orders_every_figure_the_collector_returns():
     source = (ASSETS / "sections" / "engine.js").read_text(encoding="utf-8")
     order = re.findall(r'"(\w+)"', source[source.index("var ORDER") : source.index("];")])
-    assert order == list(E.shape(_measured())["figures"])
+    figures = list(E.shape(_measured())["figures"])
+    # The record case's table is drawn only when dcf.from_record is on.
+    assert [f for f in order if f != "record"] == figures
 
 
 # --------------------------------------------------------------------------- #
@@ -568,7 +570,7 @@ def test_the_record_case_leads_the_section_and_moves_the_dcf_but_not_the_history
     record = E.measure("DDOG", [], a, fixture_sources(), today=date(2026, 9, 9))
     assert plain.anchors == [] and "record" not in E.shape(plain)["figures"]
     figure = E.shape(record)["figures"]["record"]
-    assert figure["order"] == 0 and figure["kind"] == "table"
+    assert figure["kind"] == "table"
     labels = [r["label"] for r in figure["data"]["rows"]]
     assert labels[0] == "Year 1 revenue growth" and "Terminal EBIT margin" in labels
     assert "31.5% and its 0.4% margin held" in figure["title"]
