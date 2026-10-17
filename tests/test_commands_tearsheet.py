@@ -58,3 +58,16 @@ def test_a_name_with_no_recorded_facts_is_refused_with_the_path_it_looked_at(tmp
     assert result.exit_code == 1
     assert "companyfacts_NOPE.json" in " ".join(result.output.split())
     assert not (tmp_path / "nope.html").exists()
+
+
+def test_a_tearsheet_on_the_record_case_says_so_and_shows_its_figures(tmp_path):
+    out = tmp_path / "record.html"
+    result = runner.invoke(
+        app,
+        ["tearsheet", "DDOG", "--config", str(config(tmp_path)), "--facts-dir", str(FIXTURES),
+         "--panels", str(FIXTURES), "--out", str(out), "--from-record"],
+    )
+    assert result.exit_code == 0, result.output
+    snap = snapshot_in(out.read_text(encoding="utf-8"))
+    assert "record" in snap["sections"]["engine"]["figures"]
+    assert "The DCF is the record case" in snap["page"]["standfirst"]

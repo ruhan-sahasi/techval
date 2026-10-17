@@ -467,3 +467,28 @@ def test_one_quarter_the_engine_cannot_value_is_refused_alone(monkeypatch):
     by = {r["date"]: r for r in rows}
     assert "WACC of 1.24%" in by["2025-03-31"]["refused"]
     assert sum(1 for r in rows if not r["refused"]) >= 5
+
+
+def test_a_record_case_history_reads_each_quarter_from_its_own_filings(monkeypatch):
+    """Today's anchors in a 2024 quarter would be the lookahead the history exists to avoid."""
+    from datetime import date as d
+
+    import techval.anchors as A
+    from techval.reverse_dcf import expectations_history, quarter_ends
+
+    seen = []
+    real = A.record_case
+
+    def spy(assumptions, fin, facts):
+        seen.append((facts.knowledge_date, fin.as_of))
+        return real(assumptions, fin, facts)
+
+    monkeypatch.setattr(A, "record_case", spy)
+    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    a = Assumptions()
+    a.market.risk_free_rate = 0.0483
+    a.dcf.from_record = True
+    rows = expectations_history(payload, "DDOG", CsvSource(FIXTURES / "prices"), a, quarter_ends(d(2024, 1, 1), d(2026, 6, 30)))
+    assert sum(1 for r in rows if not r["refused"]) >= 8
+    assert seen and all(fin_as_of <= known for known, fin_as_of in seen)
+    assert len({fin_as_of for _, fin_as_of in seen}) >= 6
