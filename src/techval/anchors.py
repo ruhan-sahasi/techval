@@ -142,3 +142,16 @@ def unanchored(anchors: list[Anchor]) -> list[str]:
     wanted = ("revenue_growth_start", "ebit_margin_terminal", "capex_pct_revenue", "da_pct_revenue")
     have = {a.field for a in anchors}
     return [f for f in wanted if f not in have]
+
+
+def record_case(assumptions, fin, facts):
+    """The assumptions with the record anchors applied, and the anchors; unchanged when the switch is off.
+
+    ``dcf.from_record`` is the switch. With it off this returns the assumptions
+    as given and no anchors, so every caller can route through it.
+    """
+    if not assumptions.dcf.from_record:
+        return assumptions, []
+    anchors = record_anchors(fin, facts, assumptions)
+    dcf = assumptions.dcf.model_copy(update={a.field: a.value for a in anchors})
+    return assumptions.model_copy(update={"dcf": dcf}), anchors

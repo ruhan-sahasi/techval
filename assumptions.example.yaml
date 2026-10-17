@@ -89,6 +89,11 @@ dcf:
 
   capex_pct_revenue: 0.030
   da_pct_revenue: 0.020
+  # true sets growth, the terminal margin, capex and D&A from the company's own
+  # filings instead of the figures above: the company as it stands, as a
+  # baseline for one these figures were not written for. Every command that
+  # values a company names each figure it took from the record.
+  from_record: false
 
   # Negative for subscription software: customers are billed ahead of delivery,
   # so deferred revenue grows with the business and growth releases cash.
