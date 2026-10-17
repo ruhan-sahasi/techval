@@ -67,3 +67,28 @@ def test_growth_outside_the_band_is_held_to_it_and_says_so(monkeypatch):
     start = by_field(record_anchors(fin, facts, Assumptions()))["revenue_growth_start"]
     assert start.value == A.GROWTH_CEILING
     assert "140.0% held to 60%" in start.source
+
+
+def test_with_the_switch_off_the_assumptions_come_back_as_given():
+    from techval.anchors import record_case
+
+    fin, facts = company("DDOG")
+    a = Assumptions()
+    same, anchors = record_case(a, fin, facts)
+    assert same is a and anchors == []
+
+
+def test_with_the_switch_on_the_dcf_takes_the_record_and_the_original_is_untouched():
+    from techval.anchors import record_case
+    from techval.dcf import run_dcf
+    from techval.ev_bridge import build_ev_bridge
+
+    fin, facts = company("DDOG")
+    a = Assumptions()
+    a.dcf.from_record = True
+    a.market.risk_free_rate = 0.0483
+    record, anchors = record_case(a, fin, facts)
+    assert record.dcf.revenue_growth_start == pytest.approx(0.315, abs=0.001)
+    assert record.dcf.ebit_margin_terminal == pytest.approx(fin.ebit_margin)
+    assert a.dcf.revenue_growth_start == 0.20 and a.dcf.ebit_margin_terminal == 0.20
+    assert {x.field for x in anchors} >= {"revenue_growth_start", "ebit_margin_terminal"}
