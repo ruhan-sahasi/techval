@@ -285,6 +285,7 @@ def attach_dcf(
     an error, and so is every ``TechvalError`` the pipeline raises: a holding
     the engine cannot value honestly stays on the page with the reason.
     """
+    from ..anchors import LABELS, record_case
     from ..dcf import run_dcf
     from ..ev_bridge import build_ev_bridge
     from ..financials import build_financials
@@ -308,18 +309,24 @@ def attach_dcf(
             spot = market.spot(symbol)
             bridge = build_ev_bridge(fin, spot, assumptions)
             wacc = compute_wacc(fin, bridge, market, assumptions)
-            result = run_dcf(fin, bridge, wacc, assumptions)
+            # Each holding's own record, where dcf.from_record is on.
+            held, anchors = record_case(assumptions, fin, facts)
+            result = run_dcf(fin, bridge, wacc, held)
         except TechvalError as err:
             read.refusals.append({"what": "DCF", "why": f"{symbol}: {err}"})
             continue
         read.dcf = {
+            "record": [
+                {"label": LABELS[a.field], "value": round(a.value, 6), "assumed": a.assumed, "source": a.source}
+                for a in anchors
+            ],
             "per_share": round(result.per_share, 4),
             "price": round(spot, 4),
             "gap_pct": round(result.per_share / spot - 1.0, 6),
             "wacc": round(wacc.wacc, 6),
             "enterprise_value_mm": round(result.enterprise_value, 2),
-            "expectations": _expectations(fin, bridge, wacc, assumptions, spot, read, observations),
-            "scenarios": _scenarios(fin, bridge, wacc, assumptions, spot, read, observations),
+            "expectations": _expectations(fin, bridge, wacc, held, spot, read, observations),
+            "scenarios": _scenarios(fin, bridge, wacc, held, spot, read, observations),
         }
 
 

@@ -16,6 +16,15 @@
     return mm >= 1000 ? "$" + TV.fmt.num(mm / 1000, 1) + "bn" : "$" + TV.fmt.num(mm, 0) + "mm";
   }
 
+  /* The record case in a line: each figure the filings set. */
+  function recordLine(record) {
+    return record
+      .map(function (a) {
+        return a.label.toLowerCase() + " " + TV.fmt.pct(a.value, 1);
+      })
+      .join(", ");
+  }
+
   /* Where the price sits against the panel's bear, base and bull. */
   function against(sc, price) {
     if (sc.side === "above") return "the price is " + TV.fmt.num(price / sc.bull, 1) + "x the bull";
@@ -58,7 +67,12 @@
     var stats = el("div", { class: "iv-tiles" });
     if (read.dcf) {
       stats.appendChild(
-        stat("Engine DCF", IV.fmt.money(read.dcf.per_share, 2), "per share, WACC " + TV.fmt.pct(read.dcf.wacc, 1))
+        stat(
+          "Engine DCF",
+          IV.fmt.money(read.dcf.per_share, 2),
+          "per share, WACC " + TV.fmt.pct(read.dcf.wacc, 1) +
+            ((read.dcf.record || []).length ? "; on its own record: " + recordLine(read.dcf.record) : "")
+        )
       );
       stats.appendChild(stat("Market price", IV.fmt.money(read.dcf.price, 2), "at the snapshot's close"));
       stats.appendChild(
