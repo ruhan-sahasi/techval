@@ -97,7 +97,7 @@ from .backtest import (
     run_backtest,
 )
 from .dilution import build_share_count
-from .anchors import record_case, unanchored
+from .anchors import LABELS as RECORD_LABELS, record_case, unanchored
 from .config import Assumptions, ml_cache_root
 from .dcf import run_dcf, sensitivity_wacc_exit, sensitivity_wacc_growth
 from .edgar import EdgarClient, HttpCache
@@ -525,15 +525,6 @@ def _render_wacc(w) -> None:
         )
     console.print(t)
     _notes(w.notes)
-
-
-RECORD_LABELS = {
-    "revenue_growth_start": "Year 1 revenue growth",
-    "revenue_growth_terminal": "Year N revenue growth",
-    "ebit_margin_terminal": "Terminal EBIT margin",
-    "capex_pct_revenue": "Capex, share of revenue",
-    "da_pct_revenue": "D&A, share of revenue",
-}
 
 
 def _render_record_case(anchors) -> None:

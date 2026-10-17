@@ -133,3 +133,16 @@ def test_a_screen_name_without_facts_is_named_not_fatal(tmp_path):
     rows = json.loads(result.output)
     nope = next(r for r in rows if r["ticker"] == "NOPE")
     assert "companyfacts_NOPE.json" in nope["refused"]
+
+
+def test_the_record_case_is_named_when_it_is_on(tmp_path):
+    path = config(tmp_path)
+    path.write_text(path.read_text() + "dcf:\n  from_record: true\n", encoding="utf-8")
+    result = runner.invoke(
+        app,
+        ["expectations", "DDOG", "--config", str(path), "--facts", str(FIXTURES / "companyfacts_DDOG.json"), "--panels", str(FIXTURES)],
+    )
+    assert result.exit_code == 0, result.output
+    text = flat(result.output)
+    assert "On the record case: year 1 revenue growth 31.5%" in text
+    assert "terminal ebit margin 0.4%" in text

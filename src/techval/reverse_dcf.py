@@ -614,17 +614,21 @@ def case_at(payload: dict, ticker: str, source, assumptions: Assumptions, when, 
     the market reads, the Treasury's yield files among them, for callers that
     value the same company at many dates.
     """
+    from .anchors import record_case
     from .edgar import CompanyFacts, HttpCache
     from .ev_bridge import build_ev_bridge
     from .financials import build_financials
     from .market import MarketData
     from .wacc import compute_wacc
 
-    fin = build_financials(ticker, facts=CompanyFacts(payload, ticker, knowledge_date=when))
+    facts = CompanyFacts(payload, ticker, knowledge_date=when)
+    fin = build_financials(ticker, facts=facts)
     market = MarketData(source, cache or HttpCache(enabled=False), today=when)
     price = market.spot(ticker)
     bridge = build_ev_bridge(fin, price, assumptions)
     wacc = compute_wacc(fin, bridge, market, assumptions)
+    # The record case, where it is on, is read from the filings known on ``when``.
+    assumptions, _ = record_case(assumptions, fin, facts)
     return Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=assumptions), price
 
 

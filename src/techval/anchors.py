@@ -35,6 +35,26 @@ GROWTH_CEILING = 0.60
 _ANNUAL_DAYS = (330, 400)
 
 
+# How each anchored field reads on a page.
+LABELS = {
+    "revenue_growth_start": "Year 1 revenue growth",
+    "revenue_growth_terminal": "Year N revenue growth",
+    "ebit_margin_terminal": "Terminal EBIT margin",
+    "capex_pct_revenue": "Capex, share of revenue",
+    "da_pct_revenue": "D&A, share of revenue",
+}
+
+
+def summary(anchors: list[Anchor]) -> str:
+    """One sentence naming what the record set, for a terminal line."""
+    parts = [f"{LABELS[a.field].lower()} {a.value:.1%}" for a in anchors]
+    missing = [LABELS[f].lower() for f in unanchored(anchors)]
+    line = "On the record case: " + ", ".join(parts) + "."
+    if missing:
+        line += " Not in the filings, so at the assumption: " + ", ".join(missing) + "."
+    return line
+
+
 @dataclass(frozen=True)
 class Anchor:
     """One DCF assumption set from the record, beside what the assumptions file had."""
