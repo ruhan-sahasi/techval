@@ -1164,8 +1164,13 @@ def _observations(sources: Sources):
     return sources.observations
 
 
-def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, pinned: bool = False) -> Measured:
+def measure(
+    ticker: str, peers: list[str], a, sources: Sources, *, today: date, pinned: bool = False, history: bool = True
+) -> Measured:
     """Value one company through every engine the section draws, and say what was refused.
+
+    ``history`` off skips the quarterly expectations history, the one part that
+    revalues the company at a dozen past dates, for a caller that does not draw it.
 
     ``a`` is used as given: the caller has already settled the peers, the
     risk-free rate and anything else its own setting fixes.
@@ -1392,27 +1397,28 @@ def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, 
         refusals.append(Refusal("Bear, base and bull", str(exc)))
 
     # -- what the close assumed each quarter, point in time ------------------- #
-    try:
-        with sources.record(
-            "expectations_history", "techval.reverse_dcf.expectations_history", target
-        ):
-            from ...reverse_dcf import expectations_history, quarter_ends
+    if history:
+        try:
+            with sources.record(
+                "expectations_history", "techval.reverse_dcf.expectations_history", target
+            ):
+                from ...reverse_dcf import expectations_history, quarter_ends
 
-            payload = sources.payload(ticker)
-            first = source.fetch(ticker, date.min, date.max).dates[0]
-            rows = expectations_history(payload, ticker, source, switched, quarter_ends(first, today))
-            valued = [r for r in rows if r["refused"] is None]
-            if valued and all(r["implied_return"] is None for r in valued):
-                # Raised inside the record block, so the figure it would have
-                # drawn leaves no provenance behind it.
-                raise NotMeaningfulError(
-                    f"No quarter's close is reached by any discount rate the solve tries: on "
-                    f"these assumptions every one of the {len(valued)} closes sits above the "
-                    "DCF even at the lowest rate, so there is no implied return to draw."
-                )
-            measured.history = ExpectationsHistory(rows=rows)
-    except TechvalError as exc:
-        refusals.append(Refusal("What the close assumed each quarter", str(exc)))
+                payload = sources.payload(ticker)
+                first = source.fetch(ticker, date.min, date.max).dates[0]
+                rows = expectations_history(payload, ticker, source, switched, quarter_ends(first, today))
+                valued = [r for r in rows if r["refused"] is None]
+                if valued and all(r["implied_return"] is None for r in valued):
+                    # Raised inside the record block, so the figure it would have
+                    # drawn leaves no provenance behind it.
+                    raise NotMeaningfulError(
+                        f"No quarter's close is reached by any discount rate the solve tries: on "
+                        f"these assumptions every one of the {len(valued)} closes sits above the "
+                        "DCF even at the lowest rate, so there is no implied return to draw."
+                    )
+                measured.history = ExpectationsHistory(rows=rows)
+        except TechvalError as exc:
+            refusals.append(Refusal("What the close assumed each quarter", str(exc)))
 
     # -- the sensitivity grid, and the DCF bands struck on it ------------------ #
     try:
