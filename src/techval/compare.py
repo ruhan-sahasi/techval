@@ -59,3 +59,77 @@ def measure_all(
             row = Compared(symbol, refused=" ".join(line.strip() for line in str(err).splitlines()))
         out.append(row)
     return out
+
+
+def _ratio(m: E.Measured | None) -> float | None:
+    if m is None or m.per_share_gordon is None or not m.price:
+        return None
+    return m.per_share_gordon / m.price
+
+
+def _implied(m: E.Measured | None) -> float | None:
+    return m.expectations.implied_return if m is not None and m.expectations is not None else None
+
+
+def value_figure(rows: list[Compared]) -> dict:
+    """Each company's DCF as a multiple of its close, on the assumptions and on its own record."""
+    valued = [c for c in rows if c.base is not None]
+    above = sum(1 for c in valued if (_ratio(c.base) or 0) >= 1)
+    above_record = sum(1 for c in valued if (_ratio(c.record) or 0) >= 1)
+    title = (
+        f"{above} of {len(valued)} base cases reach the close, and {above_record} "
+        f"{'does' if above_record == 1 else 'do'} on the companies' own records"
+    )
+    return E._figure(
+        "dot",
+        title,
+        "Gordon DCF value per share over the close. The base case is the assumptions file's; "
+        "the record case sets growth, margin and reinvestment from each company's own filings.",
+        {
+            "series": [
+                {"key": "base", "name": "Base case", "role": "model"},
+                {"key": "record", "name": "Record case", "role": "alt"},
+            ],
+            "rows": [
+                {"label": c.ticker, "values": {"base": _ratio(c.base), "record": _ratio(c.record)}}
+                for c in valued
+            ],
+            "format": "mult:2",
+            "reference": [{"value": 1.0, "label": "The close"}],
+            "labelHeader": "Company",
+        },
+        wide=True,
+    )
+
+
+def returns_figure(rows: list[Compared]) -> dict:
+    """What each close earns if its base case holds, beside its cost of capital."""
+    valued = [c for c in rows if c.base is not None]
+    earning = [(c, _implied(c.base)) for c in valued if _implied(c.base) is not None]
+    if earning:
+        low, rate = min(earning, key=lambda x: x[1])
+        title = (
+            f"{low.ticker}'s close earns least, {rate:.1%} a year against a "
+            f"{low.base.cost_of_capital.wacc:.1%} cost of capital"
+        )
+    else:
+        title = "No close in the set is reached by any discount rate"
+    return E._figure(
+        "dot",
+        title,
+        "The return a buyer at the close earns if the base case holds, the DCF run backwards "
+        "for its discount rate, beside the cost of capital the engine discounts at.",
+        {
+            "series": [
+                {"key": "implied", "name": "Implied return", "role": "model"},
+                {"key": "wacc", "name": "Cost of capital", "role": "baseline"},
+            ],
+            "rows": [
+                {"label": c.ticker, "values": {"implied": _implied(c.base), "wacc": c.base.cost_of_capital.wacc}}
+                for c in valued
+            ],
+            "format": "pct:1",
+            "labelHeader": "Company",
+        },
+        wide=True,
+    )
