@@ -11,7 +11,7 @@ engine's three terminal values; the third prints in the run below.*
 
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Twenty-two commands, 2,500
+the US Treasury daily curve for the risk-free rate. Twenty-three commands, 2,512
 tests, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
@@ -1546,6 +1546,25 @@ Datadog, MongoDB and Zscaler, built offline from the committed fixtures by
 `tests/fixtures/tearsheet/record_example.py`. `--facts-dir` builds a page the
 same way from any directory of recorded payloads.
 
+### Several companies, one page
+
+`techval compare` values a set of companies through the same engine and sets
+them side by side: each DCF as a multiple of its close on the assumptions file
+and on the company's own record, what each close earns against its cost of
+capital, and a table with the growth each price needs, how many company-years
+compounded that path, and the scenarios. A company that cannot be valued keeps
+its place with the reason. `--peers-from-set` values each against the rest of
+the set, which suits comparables and not a mixed list, and `--json` prints the
+table for another script.
+
+```bash
+techval compare CRWD DDOG MDB ZS DIS --open
+```
+
+[`docs/compare/index.html`](docs/compare/index.html) is those five from the
+committed fixtures: only Disney's base case reaches its close, and on its own
+record it does not.
+
 ---
 
 ### Reading filings
@@ -1657,7 +1676,7 @@ engine refuses to start without `TECHVAL_SEC_EMAIL`.
 
 ## Usage
 
-Twenty-two commands in seven groups.
+Twenty-three commands in seven groups.
 
 ```bash
 # Core valuation
@@ -1671,6 +1690,7 @@ uv run techval expectations DDOG --config assumptions.yaml        # what the pri
 uv run techval expectations-screen DDOG CRWD MDB ZS --config assumptions.yaml
 uv run techval scenarios DDOG --config assumptions.yaml           # bear, base and bull from similar company-years
 uv run techval tearsheet DDOG --config assumptions.yaml --open    # one company on one page
+uv run techval compare CRWD DDOG MDB --config assumptions.yaml    # several, side by side
 
 # TMT fundamentals
 uv run techval kpis DDOG --config assumptions.yaml      # operating metrics, with the provenance of each
@@ -2171,10 +2191,10 @@ filers.
 uv run pytest
 ```
 
-2,500 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
-`techval.ml`, 402 over the dashboard, 152 over the investing dashboard, 100 over
-the filing reader, 64 over the reverse DCF and its scenarios and 6 over the
-tearsheet. GitHub Actions runs the whole
+2,512 tests in about four minutes: 496 over `techval.tmt`, 518 over
+`techval.ml`, 405 over the dashboard, 154 over the investing dashboard, 100 over
+the filing reader, 70 over the reverse DCF and its scenarios and 20 over the
+tearsheet and the comparison. GitHub Actions runs the whole
 suite on Python 3.11 and 3.12 for every push to `main` and every pull request.
 No test touches the network, and none touches your home directory: the suite
 runs with a throwaway one, so no fit or response a real run cached under
