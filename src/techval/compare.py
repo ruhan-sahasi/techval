@@ -257,7 +257,10 @@ def build_comparison(
         | {f"{price_feed} daily closes, {t}" for t in symbols}
         | ({f"fade panel, {panel}"} if observations is not None else set())
     )
+    # Value against price first, then what each close earns, then the whole table.
     figures = {"value": value_figure(rows), "returns": returns_figure(rows), "table": table_figure(rows)}
+    for n, fid in enumerate(figures, start=1):
+        figures[fid]["order"] = n
     section = to_jsonable(
         {
             "id": "compare",
