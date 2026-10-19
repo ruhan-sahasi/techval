@@ -217,3 +217,81 @@ def takeaway(rows: list[Compared], when: str) -> str:
     return first + (
         f" {most.ticker}'s price asks the most: {exp.implied_growth:.0%} revenue growth next year{did}."
     )
+
+
+def build_comparison(
+    tickers: list[str],
+    assumptions,
+    *,
+    client,
+    prices,
+    price_feed: str,
+    observations,
+    panel: str,
+    today: date,
+    collected_at: str,
+    commit: str,
+    peers_from_set: bool = False,
+):
+    """Measure the set and wrap the comparison as a one-section page."""
+    import time
+    from contextlib import nullcontext
+
+    from .dashboard.snapshot import Snapshot, to_jsonable, validate_section
+
+    sources = E.Sources(
+        client=client,
+        prices=prices,
+        record=lambda *args, **kwargs: nullcontext(),
+        facts_name=lambda t: f"SEC EDGAR companyfacts, {t}",
+        prices_name=lambda t: f"{price_feed} daily closes, {t}",
+        panel_name=f"fade panel, {panel}",
+        observations=observations,
+    )
+    start = time.perf_counter()
+    rows = measure_all(tickers, assumptions, sources, today=today, peers_from_set=peers_from_set)
+    seconds = round(time.perf_counter() - start, 2)
+    symbols = [c.ticker for c in rows]
+    inputs = sorted(
+        {f"SEC EDGAR companyfacts, {t}" for t in symbols}
+        | {f"{price_feed} daily closes, {t}" for t in symbols}
+        | ({f"fade panel, {panel}"} if observations is not None else set())
+    )
+    figures = {"value": value_figure(rows), "returns": returns_figure(rows), "table": table_figure(rows)}
+    section = to_jsonable(
+        {
+            "id": "compare",
+            "title": "How the prices compare",
+            "takeaway": takeaway(rows, today.isoformat()),
+            "status": "ok",
+            "refusals": [{"what": c.ticker, "why": c.refused} for c in rows if c.refused],
+            "headline": None,
+            "figures": figures,
+            "provenance": [
+                {"figure": fid, "entry_point": "techval.compare.measure_all", "inputs": inputs, "seconds": seconds}
+                for fid in figures
+            ],
+        }
+    )
+    validate_section(section)
+    valued = [c.ticker for c in rows if c.base is not None]
+    return Snapshot(
+        title=f"{', '.join(symbols)}, compared",
+        techval_commit=commit,
+        collected_at=collected_at,
+        sections={"compare": section},
+        page={
+            "standfirst": (
+                f"{len(symbols)} companies through the same engine as the techval results page, each "
+                "valued twice: on the assumptions file, and on its own record, its growth, margin and "
+                "reinvestment set from its filings. The reverse DCF and the scenarios are the base "
+                f"case's. {len(valued)} could be valued; any that could not is named with the reason. "
+                "Nothing here is advice."
+            ),
+            "sources": [
+                f"SEC EDGAR companyfacts for {', '.join(symbols)}",
+                f"{price_feed} daily closes for {', '.join(symbols)}, through {today}",
+                *([f"Fade panel of point-in-time TMT company-years: {panel}"] if observations is not None else []),
+            ],
+        },
+    )
