@@ -71,3 +71,19 @@ def test_a_tearsheet_on_the_record_case_says_so_and_shows_its_figures(tmp_path):
     snap = snapshot_in(out.read_text(encoding="utf-8"))
     assert "record" in snap["sections"]["engine"]["figures"]
     assert "The DCF is the record case" in snap["page"]["standfirst"]
+
+
+def test_compare_writes_one_page_for_the_set_and_prints_the_table(tmp_path):
+    out = tmp_path / "compare.html"
+    result = runner.invoke(
+        app,
+        ["compare", "DDOG", "CRWD", "DIS", "NOPE", "--config", str(config(tmp_path, "[]")), "--facts-dir", str(FIXTURES),
+         "--panels", str(FIXTURES), "--out", str(out)],
+    )
+    assert result.exit_code == 0, result.output
+    text = " ".join(result.output.split())
+    assert "Record case" in text and "Implied return" in text
+    assert "Not valued NOPE" in text and f"Wrote {out}" in text
+    snap = snapshot_in(out.read_text(encoding="utf-8"))
+    assert snap["title"] == "DDOG, CRWD, DIS, NOPE, compared"
+    assert set(snap["sections"]["compare"]["figures"]) == {"value", "returns", "table"}
