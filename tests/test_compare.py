@@ -109,3 +109,20 @@ def test_the_takeaway_names_the_price_that_asks_the_most(compared):
     text = takeaway(compared, "2026-09-09")
     assert text.startswith("At the closes of 2026-09-09, the base case reaches the price of 1 of the 3")
     assert "CRWD's price asks the most" in text
+
+
+def test_the_comparison_is_a_one_section_page_that_validates(panel):
+    from techval.compare import build_comparison
+    from techval.dashboard.snapshot import Snapshot
+
+    snap = build_comparison(
+        ["DDOG", "DIS", "NOPE"], assumptions(), client=RecordedFacts(FIXTURES), prices=CsvSource(FIXTURES / "prices"),
+        price_feed="csv", observations=panel, panel="tests/fixtures/fade_companyfacts.json.gz",
+        today=AS_OF, collected_at="2026-09-09", commit="abc1234",
+    )
+    back = Snapshot.from_dict(snap.to_dict())
+    section = back.sections["compare"]
+    assert back.title == "DDOG, DIS, NOPE, compared" and back.fixtures == {}
+    assert set(section["figures"]) == {"value", "returns", "table"}
+    assert [r["what"] for r in section["refusals"]] == ["NOPE"]
+    assert "2 could be valued" in back.page["standfirst"]
