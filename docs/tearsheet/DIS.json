@@ -1,0 +1,845 @@
+{
+  "collected_at": "2026-09-09",
+  "fixtures": {},
+  "page": {
+    "sources": [
+      "SEC EDGAR companyfacts for DIS, DIS's filings through 2026-06-27",
+      "Committed fixture daily closes for DIS, through 2026-09-09",
+      "Risk-free rate: market.risk_free_rate in the assumptions",
+      "Fade panel of point-in-time TMT company-years: tests/fixtures/fade_companyfacts.json.gz"
+    ],
+    "standfirst": "DIS through the same engine as the techval results page: the cost of capital, a DCF with its bridge and sensitivity, no trading comps, since no peers are set, a Monte Carlo of value, APV, and what the price assumes and bear, base and bull from what similar company-years did. The DCF is the record case, its growth, margin and reinvestment set from the company's own filings rather than the assumptions file. Its filings run through 2026-06-27 and its closes through 2026-09-09. Every figure is the engine's own, and where it could not form one a note says so in its place. Nothing here is advice."
+  },
+  "schema": 1,
+  "sections": {
+    "engine": {
+      "figures": {
+        "apv": {
+          "data": {
+            "domain": [
+              180000.0,
+              205000.0
+            ],
+            "format": "num:0",
+            "gapFormat": "signed:0",
+            "gapLabel": "APV minus WACC DCF",
+            "height": 190,
+            "labelHeader": "Shield convention",
+            "rows": [
+              {
+                "label": "No shield (unlevered)",
+                "values": {
+                  "apv": 184340.43827,
+                  "wacc": 188698.381814
+                }
+              },
+              {
+                "label": "Harris-Pringle, Ku 9.04%",
+                "values": {
+                  "apv": 195141.825013,
+                  "wacc": 188698.381814
+                }
+              },
+              {
+                "label": "Modigliani-Miller, Kd 6.66%",
+                "values": {
+                  "apv": 201051.346605,
+                  "wacc": 188698.381814
+                }
+              }
+            ],
+            "series": [
+              {
+                "key": "apv",
+                "name": "APV",
+                "role": "alt"
+              },
+              {
+                "key": "wacc",
+                "name": "WACC DCF",
+                "role": "model"
+              }
+            ]
+          },
+          "kind": "dot",
+          "refused": [
+            "APV, Miles-Ezzell"
+          ],
+          "subtitle": "Enterprise value, USD mm, on the Gordon terminal value: 188,698 from the WACC DCF at 8.88%. The unlevered cost of equity is 9.04%, 15bp above the WACC.",
+          "title": "APV sits above the WACC DCF only once the shield is added",
+          "wide": true
+        },
+        "bridge": {
+          "data": {
+            "downLabel": "Subtracts",
+            "format": "num:0",
+            "start": {
+              "label": "Equity value",
+              "value": 185310.175
+            },
+            "steps": [
+              {
+                "label": "Straight debt",
+                "value": 46041.0
+              },
+              {
+                "label": "Minority interest",
+                "value": 6810.0
+              },
+              {
+                "label": "Cash",
+                "value": -5185.0
+              }
+            ],
+            "total": {
+              "label": "Enterprise value",
+              "value": 232976.175
+            },
+            "totalLegend": "Equity or enterprise value",
+            "upLabel": "Adds to enterprise value",
+            "valueLabel": "USD mm"
+          },
+          "kind": "waterfall",
+          "subtitle": "USD mm. 104.18 a share on 1,778.8mm diluted shares. Lease convention: operating leases excluded, EBITDA basis (ASC 842).",
+          "title": "Claims ahead of the common add 47,666mm to equity value"
+        },
+        "cost_of_capital": {
+          "data": {
+            "tiles": [
+              {
+                "label": "Valuation date",
+                "sub": "DIS close of 104.18; filings through 2026-06-27",
+                "value": "2026-09-09"
+              },
+              {
+                "format": "pct:2",
+                "label": "Risk-free rate",
+                "sub": "From market.risk_free_rate in the assumptions",
+                "value": 0.0483
+              },
+              {
+                "format": "num:2",
+                "label": "Beta, own regression",
+                "sub": "No peer regression survived, so DIS's own is used",
+                "value": 1.000685
+              },
+              {
+                "format": "pct:2",
+                "label": "Equity risk premium",
+                "sub": "From market.equity_risk_premium",
+                "value": 0.05
+              },
+              {
+                "format": "pct:2",
+                "label": "Cost of equity",
+                "sub": "CAPM on the 1.00 beta",
+                "value": 0.098334
+              },
+              {
+                "format": "pct:2",
+                "label": "WACC",
+                "sub": "80.1% equity at 9.83%, 19.9% debt at 5.06% after tax",
+                "value": 0.088838
+              }
+            ]
+          },
+          "kind": "tiles",
+          "subtitle": "",
+          "title": "A 8.88% WACC, with equity at 80.1% of capital"
+        },
+        "expectations": {
+          "data": {
+            "format": "pct:0",
+            "height": 220,
+            "labelHeader": "Terminal EBIT margin",
+            "rows": [
+              {
+                "label": "10%",
+                "labelled": false,
+                "role": "model",
+                "value": 0.498438
+              },
+              {
+                "label": "20%",
+                "labelled": false,
+                "role": "model",
+                "value": 0.086505
+              },
+              {
+                "label": "30%",
+                "labelled": false,
+                "role": "model",
+                "value": -0.093151
+              },
+              {
+                "label": "40%",
+                "labelled": false,
+                "role": "model",
+                "value": -0.202889
+              },
+              {
+                "label": "50%",
+                "labelled": false,
+                "role": "model",
+                "value": -0.279748
+              },
+              {
+                "label": "60%",
+                "labelled": false,
+                "role": "model",
+                "value": -0.337831
+              }
+            ],
+            "valueLabel": "First-year growth needed"
+          },
+          "kind": "column",
+          "subtitle": "First-year revenue growth the 104.18 close needs at each terminal EBIT margin, faded on the engine's straight line, everything else as assumed. At this price the base case earns 7.6% a year against a 8.9% cost of capital.",
+          "title": "The close needs 13% growth next year; 1016 of 1,662 TMT company-years ever compounded that path",
+          "wide": true
+        },
+        "expectations_history": {
+          "data": {
+            "format": "pct:1",
+            "series": [
+              {
+                "name": "Implied return",
+                "role": "model",
+                "values": [
+                  {
+                    "label": "close 122.36",
+                    "x": "2024-03-31",
+                    "y": 0.092279
+                  },
+                  {
+                    "label": "close 99.29",
+                    "x": "2024-06-30",
+                    "y": 0.10691
+                  },
+                  {
+                    "label": "close 96.19",
+                    "x": "2024-09-30",
+                    "y": 0.109608
+                  },
+                  {
+                    "label": "close 111.35",
+                    "x": "2024-12-31",
+                    "y": 0.074984
+                  },
+                  {
+                    "label": "close 98.70",
+                    "x": "2025-03-31",
+                    "y": 0.079259
+                  },
+                  {
+                    "label": "close 124.01",
+                    "x": "2025-06-30",
+                    "y": 0.070218
+                  },
+                  {
+                    "label": "close 114.50",
+                    "x": "2025-09-30",
+                    "y": 0.073393
+                  },
+                  {
+                    "label": "close 113.77",
+                    "x": "2025-12-31",
+                    "y": 0.073144
+                  },
+                  {
+                    "label": "close 96.38",
+                    "x": "2026-03-31",
+                    "y": 0.074762
+                  },
+                  {
+                    "label": "close 96.25",
+                    "x": "2026-06-30",
+                    "y": 0.07515
+                  }
+                ]
+              },
+              {
+                "name": "Cost of capital",
+                "role": "baseline",
+                "values": [
+                  {
+                    "label": "close 122.36",
+                    "x": "2024-03-31",
+                    "y": 0.096061
+                  },
+                  {
+                    "label": "close 99.29",
+                    "x": "2024-06-30",
+                    "y": 0.083531
+                  },
+                  {
+                    "label": "close 96.19",
+                    "x": "2024-09-30",
+                    "y": 0.082091
+                  },
+                  {
+                    "label": "close 111.35",
+                    "x": "2024-12-31",
+                    "y": 0.073711
+                  },
+                  {
+                    "label": "close 98.70",
+                    "x": "2025-03-31",
+                    "y": 0.077226
+                  },
+                  {
+                    "label": "close 124.01",
+                    "x": "2025-06-30",
+                    "y": 0.086946
+                  },
+                  {
+                    "label": "close 114.50",
+                    "x": "2025-09-30",
+                    "y": 0.08538
+                  },
+                  {
+                    "label": "close 113.77",
+                    "x": "2025-12-31",
+                    "y": 0.081939
+                  },
+                  {
+                    "label": "close 96.38",
+                    "x": "2026-03-31",
+                    "y": 0.082096
+                  },
+                  {
+                    "label": "close 96.25",
+                    "x": "2026-06-30",
+                    "y": 0.086137
+                  }
+                ]
+              }
+            ],
+            "x": {
+              "label": "Quarter-end",
+              "type": "date"
+            }
+          },
+          "kind": "line",
+          "notes": [
+            {
+              "what": "2023-09-30",
+              "why": "Could not source 'revenue' for DIS over period twelve months ended 2023-07-01."
+            },
+            {
+              "what": "2023-12-31",
+              "why": "Could not source 'beta regression' for DIS."
+            }
+          ],
+          "subtitle": "The return a buyer at each quarter-end close earns if that quarter's base case holds, against the cost of capital, each quarter built only from filings public by then. DIS.",
+          "title": "Through closes from 96 to 124, the implied return stayed between 7.0% and 11.0% a year",
+          "wide": true
+        },
+        "football": {
+          "data": {
+            "format": "num:2",
+            "labelHeader": "Method",
+            "reference": [
+              {
+                "label": "Price 104.18",
+                "value": 104.18
+              }
+            ],
+            "roleLabels": {
+              "alt": "Trading comps",
+              "baseline": "Trading range, for reference only",
+              "model": "DCF"
+            },
+            "rows": [
+              {
+                "hi": 117.37,
+                "label": "52-week trading range",
+                "lo": 92.42,
+                "mid": null,
+                "role": "baseline"
+              },
+              {
+                "hi": 140.613484,
+                "label": "DCF, Gordon growth",
+                "lo": 52.341825,
+                "mid": 79.287354,
+                "role": "model"
+              },
+              {
+                "hi": 94.91866,
+                "label": "DCF, value driver",
+                "lo": 57.219135,
+                "mid": 72.798497,
+                "role": "model"
+              }
+            ]
+          },
+          "kind": "range",
+          "refused": [
+            "Trading comps",
+            "DCF, exit multiple"
+          ],
+          "subtitle": "DIS, USD per share at the 2026-09-09 close. DCF bands span WACC 7.38% to 10.38% and terminal growth 1.5% to 3.5%, ticked at the base case.",
+          "title": "2 of 3 methods bracket the price",
+          "wide": true
+        },
+        "montecarlo": {
+          "data": {
+            "binLabel": "Value per share",
+            "edges": [
+              -20.0,
+              0.0,
+              20.0,
+              40.0,
+              60.0,
+              80.0,
+              100.0,
+              120.0,
+              140.0,
+              160.0,
+              180.0,
+              200.0,
+              220.0,
+              240.0,
+              260.0,
+              280.0,
+              300.0,
+              320.0,
+              340.0,
+              360.0,
+              380.0,
+              400.0,
+              420.0,
+              440.0,
+              460.0,
+              480.0,
+              500.0,
+              520.0,
+              540.0,
+              560.0,
+              580.0,
+              600.0
+            ],
+            "format": "num:0",
+            "reference": [
+              {
+                "label": "Base case 79.29",
+                "value": 79.287354
+              }
+            ],
+            "sd": {
+              "correlated": 43.606331,
+              "independent": 35.732695,
+              "ratio": 1.220348
+            },
+            "series": [
+              {
+                "counts": [
+                  28,
+                  239,
+                  901,
+                  1782,
+                  2170,
+                  1816,
+                  1310,
+                  733,
+                  438,
+                  252,
+                  141,
+                  85,
+                  39,
+                  35,
+                  14,
+                  8,
+                  1,
+                  1,
+                  0,
+                  3,
+                  3,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1
+                ],
+                "name": "Correlated drivers",
+                "role": "model"
+              },
+              {
+                "counts": [
+                  10,
+                  137,
+                  678,
+                  1828,
+                  2499,
+                  2141,
+                  1346,
+                  694,
+                  344,
+                  189,
+                  72,
+                  28,
+                  17,
+                  9,
+                  2,
+                  3,
+                  1,
+                  0,
+                  0,
+                  1,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1,
+                  0,
+                  0,
+                  0,
+                  0
+                ],
+                "name": "Independent drivers",
+                "role": "baseline"
+              }
+            ]
+          },
+          "kind": "hist",
+          "subtitle": "Value per share, USD, 10,000 seeded draws each on the Gordon terminal value. Standard deviation 43.61 correlated against 35.73 independent, a ratio of 1.22.",
+          "title": "Correlating the drivers widens the spread by 22%",
+          "wide": true
+        },
+        "record": {
+          "data": {
+            "columns": [
+              {
+                "key": "label",
+                "label": "Assumption"
+              },
+              {
+                "align": "right",
+                "format": "pct:1",
+                "key": "assumed",
+                "label": "Assumptions file"
+              },
+              {
+                "align": "right",
+                "format": "pct:1",
+                "key": "value",
+                "label": "From the record"
+              },
+              {
+                "key": "source",
+                "label": "Source"
+              }
+            ],
+            "rows": [
+              {
+                "assumed": 0.2,
+                "label": "Year 1 revenue growth",
+                "source": "fiscal-year revenue of 94,425mm to 2025-09-27 against 91,361mm the year before",
+                "value": 0.033537
+              },
+              {
+                "assumed": 0.05,
+                "label": "Year N revenue growth",
+                "source": "the lower of the trailing rate and the assumed year-N rate, and no lower than the perpetuity rate",
+                "value": 0.033537
+              },
+              {
+                "assumed": 0.2,
+                "label": "Terminal EBIT margin",
+                "source": "today's EBIT margin, 18,238mm on 98,861mm of revenue, held",
+                "value": 0.184481
+              },
+              {
+                "assumed": 0.03,
+                "label": "Capex, share of revenue",
+                "source": "trailing capex of 8,696mm on 98,861mm of revenue",
+                "value": 0.087962
+              },
+              {
+                "assumed": 0.025,
+                "label": "D&A, share of revenue",
+                "source": "trailing D&A of 5,529mm on 98,861mm of revenue",
+                "value": 0.055927
+              }
+            ]
+          },
+          "kind": "table",
+          "subtitle": "dcf.from_record is on, so these figures replace the assumptions file's for every DCF on this page except the quarterly history, where each quarter reads its own filings. The company as it stands, not a forecast.",
+          "title": "The DCF is set from DIS's own filings: growth fading from 3.4% and its 18.4% margin held",
+          "wide": true
+        },
+        "scenarios": {
+          "data": {
+            "format": "num:2",
+            "labelHeader": "Scenario",
+            "reference": [
+              {
+                "label": "Price 104.18",
+                "value": 104.18
+              }
+            ],
+            "roleLabels": {
+              "baseline": "Base case",
+              "model": "Scenario from the panel",
+              "total": "Weighted"
+            },
+            "rows": [
+              {
+                "label": "Bear: -0.8% a year",
+                "note": "P10, the mean path of 69 company-years",
+                "role": "model",
+                "value": 60.218255
+              },
+              {
+                "label": "Base: 7.3% a year",
+                "note": "P50, the mean path of 70 company-years",
+                "role": "model",
+                "value": 100.949389
+              },
+              {
+                "label": "Bull: 21.2% a year",
+                "note": "P90, the mean path of 69 company-years",
+                "role": "model",
+                "value": 207.498353
+              },
+              {
+                "label": "Weighted 30/40/30",
+                "role": "total",
+                "value": 120.694738
+              },
+              {
+                "label": "Engine base case",
+                "role": "baseline",
+                "value": 79.287354
+              }
+            ]
+          },
+          "kind": "hbar",
+          "notes": [
+            {
+              "what": "Calibration",
+              "why": "Held out from 2016, the 10th-to-90th percentile band held 69.1% of 674 company-years it had not seen, against a nominal 80%; 19.3% beat it and 11.6% fell below, so these bull cases have run low against what followed."
+            }
+          ],
+          "subtitle": "Per share. Each scenario is the mean growth path of the company-years around the 10th, 50th or 90th percentile of realised five-year growth among the 696 that started within 10 points of 3.4%, valued through the engine's DCF with everything else at the base case. DIS.",
+          "title": "The close puts 49% on the bear case, against 30% under Swanson's rule",
+          "wide": true
+        },
+        "sensitivity": {
+          "data": {
+            "base": [
+              2,
+              2
+            ],
+            "colTitle": "Terminal growth",
+            "cols": [
+              "1.5%",
+              "2.0%",
+              "2.5%",
+              "3.0%",
+              "3.5%"
+            ],
+            "format": "num:2",
+            "rowHeader": "WACC",
+            "rows": [
+              "7.38%",
+              "8.13%",
+              "8.88%",
+              "9.63%",
+              "10.38%"
+            ],
+            "scale": "plain",
+            "valueLabel": "Value per share",
+            "values": [
+              [
+                91.528491,
+                100.380795,
+                111.045688,
+                124.143385,
+                140.613484
+              ],
+              [
+                78.407713,
+                85.13332,
+                93.052725,
+                102.514735,
+                114.018705
+              ],
+              [
+                67.953234,
+                73.208671,
+                79.287354,
+                86.399163,
+                94.831938
+              ],
+              [
+                59.427445,
+                63.627436,
+                68.416174,
+                73.926782,
+                80.335792
+              ],
+              [
+                52.341825,
+                55.760673,
+                59.613177,
+                63.987432,
+                68.99713
+              ]
+            ]
+          },
+          "kind": "heat",
+          "subtitle": "Gordon DCF, implied value per share in USD, WACC down the side and terminal growth across the top. The base case, a 8.88% WACC and 2.5% terminal growth, gives 79.29 against a price of 104.18.",
+          "title": "4 of 25 cells clear the 104.18 price"
+        }
+      },
+      "headline": null,
+      "id": "engine",
+      "provenance": [
+        {
+          "entry_point": "techval.ev_bridge.build_ev_bridge",
+          "figure": "bridge",
+          "inputs": [
+            "Committed fixture daily closes, DIS",
+            "SEC EDGAR companyfacts, DIS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.wacc.compute_wacc",
+          "figure": "cost_of_capital",
+          "inputs": [
+            "Committed fixture daily closes, DIS",
+            "Committed fixture daily closes, SPY",
+            "SEC EDGAR companyfacts, DIS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.anchors.record_case",
+          "figure": "record",
+          "inputs": [
+            "Committed fixture daily closes, DIS",
+            "SEC EDGAR companyfacts, DIS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.market.PriceSeries.fifty_two_week_range",
+          "figure": "football",
+          "inputs": [
+            "Committed fixture daily closes, DIS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.dcf.run_dcf",
+          "figure": "football",
+          "inputs": [
+            "Committed fixture daily closes, DIS",
+            "Committed fixture daily closes, SPY",
+            "SEC EDGAR companyfacts, DIS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.reverse_dcf.market_expectations",
+          "figure": "expectations",
+          "inputs": [
+            "Committed fixture daily closes, DIS",
+            "Committed fixture daily closes, SPY",
+            "SEC EDGAR companyfacts, DIS",
+            "fade panel, tests/fixtures/fade_companyfacts.json.gz"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.scenarios.value_scenarios",
+          "figure": "scenarios",
+          "inputs": [
+            "Committed fixture daily closes, DIS",
+            "Committed fixture daily closes, SPY",
+            "SEC EDGAR companyfacts, DIS",
+            "fade panel, tests/fixtures/fade_companyfacts.json.gz"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.reverse_dcf.expectations_history",
+          "figure": "expectations_history",
+          "inputs": [
+            "Committed fixture daily closes, DIS",
+            "SEC EDGAR companyfacts, DIS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.dcf.sensitivity_wacc_growth",
+          "figure": "sensitivity",
+          "inputs": [
+            "Committed fixture daily closes, DIS",
+            "Committed fixture daily closes, SPY",
+            "SEC EDGAR companyfacts, DIS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.dcf.run_dcf",
+          "figure": "football",
+          "inputs": [
+            "Committed fixture daily closes, DIS",
+            "Committed fixture daily closes, SPY",
+            "SEC EDGAR companyfacts, DIS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.simulation.run_simulation",
+          "figure": "montecarlo",
+          "inputs": [
+            "Committed fixture daily closes, DIS",
+            "Committed fixture daily closes, SPY",
+            "SEC EDGAR companyfacts, DIS"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.apv.run_apv",
+          "figure": "apv",
+          "inputs": [
+            "Committed fixture daily closes, DIS",
+            "Committed fixture daily closes, SPY",
+            "SEC EDGAR companyfacts, DIS"
+          ],
+          "seconds": 0.0
+        }
+      ],
+      "refusals": [
+        {
+          "what": "Trading comps",
+          "why": "No peers are set; comps.peers in the assumptions names them."
+        },
+        {
+          "what": "DCF, exit multiple",
+          "why": "dcf.exit_multiple is unset and there are no comps to take a median EV/EBITDA from, so there is no exit-multiple terminal value to draw."
+        },
+        {
+          "what": "APV, Miles-Ezzell",
+          "why": "The engine computes two shield conventions, the cost of debt (Modigliani-Miller) and the unlevered cost of equity (Harris-Pringle), and does not compute Miles-Ezzell. Miles-Ezzell discounts each year's shield at the cost of debt for its last year and at Ku before that, which scales the Harris-Pringle value by (1 + Ku) / (1 + Kd). This is a convention the engine does not offer, not a figure its inputs cannot support, and the page draws only what the engine computes."
+        }
+      ],
+      "status": "ok",
+      "takeaway": "At the 2026-09-09 close of 104.18, on a 4.83% risk-free rate and a 8.88% WACC, the DCF values DIS at 79.29 a share on Gordon growth and 72.80 on the value driver, 76% and 70% of the price. No exit-multiple value is drawn; the note under the football field says why. Run backwards, the close earns 7.6% a year if the base case holds, or needs 13% revenue growth next year, a path 1016 of 1,662 TMT company-years ever compounded. Correlating the simulation's four drivers widens the spread of value by 22%.",
+      "title": "Valuation engine"
+    }
+  },
+  "techval_commit": "ea8d231",
+  "title": "DIS, valued by the engine"
+}

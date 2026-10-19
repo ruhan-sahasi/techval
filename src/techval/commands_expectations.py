@@ -22,6 +22,7 @@ from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
+from .anchors import summary as record_summary
 from .config import Assumptions, ml_cache_root
 from .errors import TechvalError
 
@@ -52,7 +53,7 @@ def _cell(solve) -> str:
     return f"beyond {solve.edge:.0%}"
 
 
-def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path | None):
+def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path | None, from_record: bool = False):
     """The company as ``techval value`` builds it, with what the commands here also need.
 
     Returns the assumptions, the price source, the market, the raw companyfacts
@@ -60,6 +61,7 @@ def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path 
     """
     from types import SimpleNamespace
 
+    from .anchors import record_case
     from .edgar import CompanyFacts, EdgarClient, HttpCache
     from .ev_bridge import build_ev_bridge
     from .financials import build_financials
@@ -68,6 +70,8 @@ def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path 
     from .wacc import compute_wacc
 
     assumptions = Assumptions.load(config)
+    if from_record:
+        assumptions.dcf.from_record = True
     knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
     cache = HttpCache(enabled=not no_cache)
     source = make_price_source(assumptions.price_source, cache, assumptions.price_csv_dir)
@@ -76,13 +80,17 @@ def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path 
         payload = json.loads(Path(facts_file).read_text(encoding="utf-8"))
     else:
         payload = EdgarClient(cache).company_facts(symbol).raw
-    fin = build_financials(symbol, facts=CompanyFacts(payload, symbol, knowledge_date=knowledge))
+    facts = CompanyFacts(payload, symbol, knowledge_date=knowledge)
+    fin = build_financials(symbol, facts=facts)
     spot = market.spot(symbol)
     bridge = build_ev_bridge(fin, spot, assumptions)
     wacc = compute_wacc(fin, bridge, market, assumptions)
+    # ``assumptions`` keeps the switch rather than today's anchors, so a history
+    # built from it reads each quarter's record from that quarter's filings.
+    anchored, anchors = record_case(assumptions, fin, facts)
     return SimpleNamespace(
-        assumptions=assumptions, source=source, market=market, payload=payload,
-        case=Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=assumptions), spot=spot,
+        assumptions=assumptions, source=source, market=market, payload=payload, anchors=anchors,
+        case=Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=anchored), spot=spot,
     )
 
 
@@ -108,13 +116,16 @@ def expectations(
         "--history",
         help="Also read what the price assumed at each quarter-end of the last three years, point in time.",
     ),
+    from_record: bool = typer.Option(
+        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
+    ),
 ) -> None:
     """What the price assumes: the DCF solved for the market price, lever by lever, with base rates."""
     from .reverse_dcf import market_expectations
 
     symbol = ticker.upper()
     try:
-        co = _company(symbol, config, no_cache, facts_file)
+        co = _company(symbol, config, no_cache, facts_file, from_record)
         observations, trailing = _panel(
             Path(panels) if panels else CHECKOUT_PANELS, symbol, ml_cache_root(co.assumptions)
         )
@@ -140,6 +151,8 @@ def expectations(
             out["history"] = rows
         typer.echo(json.dumps(out, indent=2, default=str))
         return
+    if co.anchors:
+        console.print(f"  {escape(record_summary(co.anchors))}", highlight=False)
     _print(result)
     if rows is not None:
         _print_history(symbol, rows)
@@ -221,6 +234,9 @@ def expectations_screen(
     ),
     panels: Path = typer.Option(None, "--panels", help="Directory holding fade_companyfacts.json.gz for base rates."),
     as_json: bool = typer.Option(False, "--json", help="Print the rows as JSON."),
+    from_record: bool = typer.Option(
+        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
+    ),
 ) -> None:
     """What each price assumes, side by side, the most demanding first."""
     from .edgar import EdgarClient, HttpCache
@@ -229,6 +245,8 @@ def expectations_screen(
 
     try:
         assumptions = Assumptions.load(config)
+        if from_record:
+            assumptions.dcf.from_record = True
         when = date.fromisoformat(assumptions.as_of) if assumptions.as_of else date.today()
         cache = HttpCache(enabled=not no_cache)
         source = make_price_source(assumptions.price_source, cache, assumptions.price_csv_dir)
@@ -291,6 +309,9 @@ def scenarios(
         help="Directory holding fade_companyfacts.json.gz. Defaults to tests/fixtures in this checkout.",
     ),
     as_json: bool = typer.Option(False, "--json", help="Print the whole result as JSON."),
+    from_record: bool = typer.Option(
+        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
+    ),
 ) -> None:
     """Bear, base and bull from what similar company-years went on to do, valued through the engine's DCF."""
     from .scenarios import band_coverage, value_scenarios
@@ -305,7 +326,7 @@ def scenarios(
                 "from it; point --panels at a checkout's tests/fixtures.[/red]"
             )
             raise typer.Exit(1)
-        co = _company(symbol, config, no_cache, facts_file)
+        co = _company(symbol, config, no_cache, facts_file, from_record)
         result = value_scenarios(co.case, price if price is not None else co.spot, observations, trailing=trailing)
         calibration = band_coverage(observations)
     except TechvalError as err:
@@ -315,6 +336,8 @@ def scenarios(
     if as_json:
         typer.echo(json.dumps({**result.to_dict(), "calibration": calibration}, indent=2, default=str))
         return
+    if co.anchors:
+        console.print(f"  {escape(record_summary(co.anchors))}", highlight=False)
     table = Table(title=f"{escape(symbol)}: bear, base and bull from what similar company-years did", title_justify="left")
     for name in ("Scenario", "Percentile", "Company-years", "5-year CAGR", "Growth, years 1 to 5", "Value", "Weight"):
         table.add_column(name, justify="left" if name in ("Scenario", "Growth, years 1 to 5") else "right")

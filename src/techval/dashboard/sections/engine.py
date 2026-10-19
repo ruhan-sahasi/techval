@@ -87,7 +87,7 @@ EXIT_ROW = "DCF, exit multiple"
 _MAX_BINS = 36
 
 # The chart kinds this section draws, all of them in the kit.
-KINDS = ("tiles", "range", "waterfall", "heat", "hist", "dot", "column", "line", "hbar")
+KINDS = ("tiles", "range", "waterfall", "heat", "hist", "dot", "column", "line", "hbar", "table")
 
 
 # --------------------------------------------------------------------------- #
@@ -246,6 +246,8 @@ class Measured:
     expectations: Expectations | None = None
     history: ExpectationsHistory | None = None
     scenarios: ScenarioRead | None = None
+    # The DCF assumptions set from the filings, when dcf.from_record is on.
+    anchors: list[dict] = field(default_factory=list)
     refusals: list[Refusal] = field(default_factory=list)
 
 
@@ -813,6 +815,44 @@ def _scenarios(m: Measured) -> dict[str, Any]:
     return figure
 
 
+def _record(m: Measured) -> dict[str, Any]:
+    """The DCF assumptions the filings set, beside the assumptions file's."""
+    by = {x["field"]: x for x in m.anchors}
+    parts = []
+    if "revenue_growth_start" in by:
+        parts.append(f"growth fading from {by['revenue_growth_start']['value']:.1%}")
+    if "ebit_margin_terminal" in by:
+        parts.append(f"its {by['ebit_margin_terminal']['value']:.1%} margin held")
+    figure = _figure(
+        "table",
+        f"The DCF is set from {m.ticker}'s own filings: " + " and ".join(parts),
+        "dcf.from_record is on, so these figures replace the assumptions file's for "
+        "every DCF on this page except the quarterly history, where each quarter "
+        "reads its own filings. The company as it stands, not a forecast.",
+        {
+            "columns": [
+                {"key": "label", "label": "Assumption"},
+                {"key": "assumed", "label": "Assumptions file", "align": "right", "format": "pct:1"},
+                {"key": "value", "label": "From the record", "align": "right", "format": "pct:1"},
+                {"key": "source", "label": "Source"},
+            ],
+            "rows": [
+                {"label": x["label"], "assumed": x["assumed"], "value": x["value"], "source": x["source"]}
+                for x in m.anchors
+            ],
+        },
+        wide=True,
+    )
+    from ...anchors import LABELS, unanchored
+
+    missing = unanchored(x["field"] for x in m.anchors)
+    if missing:
+        figure["notes"] = [
+            {"what": LABELS[f], "why": "Not in the filings, so it stays at the assumption."} for f in missing
+        ]
+    return figure
+
+
 def _history(m: Measured) -> dict[str, Any]:
     """The implied return each quarter against the cost of capital, point in time."""
     h = m.history
@@ -916,9 +956,13 @@ def shape(m: Measured) -> dict[str, Any]:
         figures["apv"] = _apv(m)
     if m.expectations is not None:
         figures["expectations"] = _expectations(m)
+    if m.anchors:
+        figures["record"] = _record(m)
     if m.scenarios is not None:
         figures["scenarios"] = _scenarios(m)
-    if m.history is not None and any(r["refused"] is None for r in m.history.rows):
+    if m.history is not None and any(
+        r["refused"] is None and r["implied_return"] is not None for r in m.history.rows
+    ):
         figures["expectations_history"] = _history(m)
 
     # A band built on one value is not a range: it would draw as a hairline and
@@ -1134,7 +1178,7 @@ def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, 
     from ...comps import run_comps
     from ...dcf import run_dcf, sensitivity_wacc_growth
     from ...edgar import HttpCache
-    from ...errors import TechvalError
+    from ...errors import NotMeaningfulError, TechvalError
     from ...ev_bridge import build_ev_bridge
     from ...financials import build_financials
     from ...market import MarketData
@@ -1201,6 +1245,17 @@ def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, 
         risk_free_source=next((src for label, _, src in w.inputs if label == "Risk-free rate"), ""),
     )
 
+    # -- the record case, where dcf.from_record is on -------------------------- #
+    # Every DCF figure below runs on the anchored assumptions; the history keeps
+    # the switch instead, so each quarter anchors on its own filings.
+    from ...anchors import LABELS, record_case
+
+    switched = a
+    anchors = []
+    if a.dcf.from_record:
+        with sources.record("record", "techval.anchors.record_case", target):
+            a, anchors = record_case(a, fin, client.company_facts(ticker))
+
     # -- market-based ranges -------------------------------------------------- #
     bands: list[Band] = []
     with sources.record(
@@ -1234,6 +1289,10 @@ def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, 
         comps_quantiles=tuple(a.comps.apply_percentiles),
         peers_requested=peers,
         refusals=refusals,
+        anchors=[
+            {"label": LABELS[x.field], "assumed": x.assumed, "value": x.value, "source": x.source, "field": x.field}
+            for x in anchors
+        ],
     )
 
     # -- the DCF -------------------------------------------------------------- #
@@ -1341,9 +1400,17 @@ def measure(ticker: str, peers: list[str], a, sources: Sources, *, today: date, 
 
             payload = sources.payload(ticker)
             first = source.fetch(ticker, date.min, date.max).dates[0]
-            measured.history = ExpectationsHistory(
-                rows=expectations_history(payload, ticker, source, a, quarter_ends(first, today))
-            )
+            rows = expectations_history(payload, ticker, source, switched, quarter_ends(first, today))
+            valued = [r for r in rows if r["refused"] is None]
+            if valued and all(r["implied_return"] is None for r in valued):
+                # Raised inside the record block, so the figure it would have
+                # drawn leaves no provenance behind it.
+                raise NotMeaningfulError(
+                    f"No quarter's close is reached by any discount rate the solve tries: on "
+                    f"these assumptions every one of the {len(valued)} closes sits above the "
+                    "DCF even at the lowest rate, so there is no implied return to draw."
+                )
+            measured.history = ExpectationsHistory(rows=rows)
     except TechvalError as exc:
         refusals.append(Refusal("What the close assumed each quarter", str(exc)))
 

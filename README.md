@@ -11,7 +11,7 @@ engine's three terminal values; the third prints in the run below.*
 
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Twenty-two commands, 2,482
+the US Treasury daily curve for the risk-free rate. Twenty-two commands, 2,500
 tests, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
@@ -1424,6 +1424,28 @@ own three, `techval invest` gives every valued holding a scenario tile, and the 
 dashboard charts them against the close. Methodology section 6.7 has the
 construction and the calibration.
 
+### The record case
+
+The DCF's defaults are written for subscription software, and asked about a
+cable company they value it at twenty times its price. `--from-record` on any
+command that values a company, or `dcf.from_record` in the assumptions file,
+sets the DCF from the company's own filings instead: growth from its trailing
+rate, today's margin held, today's capex and D&A. Each figure is printed
+beside the one it replaced and where it came from. On the committed fixtures:
+
+```
+$ techval value DIS --from-record
+Assumption               Assumptions file  From the record  Source
+Year 1 revenue growth               20.0%             3.4%  fiscal-year revenue of 94,425mm to 2025-09-27 against 91,361mm
+Terminal EBIT margin                20.0%            18.4%  today's EBIT margin, 18,238mm on 98,861mm of revenue, held
+Capex, share of revenue              3.0%             8.8%  trailing capex of 8,696mm on 98,861mm of revenue
+```
+
+It is a baseline, not a better forecast: across 60 names it is no closer to
+the price in aggregate, but Disney comes to 76 rather than 180 on a 109 close.
+[`docs/tearsheet/DIS.html`](docs/tearsheet/DIS.html) is Disney on its own
+record. Methodology section 6.8 has the rules and the comparison.
+
 ### Point-in-time valuation
 
 `--as-of` on every command pushes a knowledge date through the EDGAR client and
@@ -2149,7 +2171,7 @@ filers.
 uv run pytest
 ```
 
-2,482 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
+2,500 tests in about three and a half minutes: 496 over `techval.tmt`, 518 over
 `techval.ml`, 402 over the dashboard, 152 over the investing dashboard, 100 over
 the filing reader, 64 over the reverse DCF and its scenarios and 6 over the
 tearsheet. GitHub Actions runs the whole

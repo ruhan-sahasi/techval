@@ -155,7 +155,7 @@ class FixtureClient:
 
 
 @pytest.fixture(autouse=True)
-def offline(monkeypatch):
+def offline(monkeypatch, tmp_path):
     """Wire the command's own ``_setup`` to the fixtures.
 
     The constructors are replaced rather than ``_setup`` itself, so the knowledge
@@ -163,6 +163,8 @@ def offline(monkeypatch):
     test that stubbed ``_setup`` would prove the renderers work and nothing about
     whether ``--as-of`` reaches the client.
     """
+    # Charts a command writes to out/ land in the test's directory, not the checkout.
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(
         C, "EdgarClient", lambda cache, knowledge_date=None: FixtureClient(knowledge_date)
     )
