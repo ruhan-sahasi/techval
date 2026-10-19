@@ -133,3 +133,87 @@ def returns_figure(rows: list[Compared]) -> dict:
         },
         wide=True,
     )
+
+
+def _scenarios(m: E.Measured) -> tuple[float | None, str | None]:
+    """The weighted scenarios, and where the close sits against them, as a cell."""
+    if m.scenarios is None:
+        return None, None
+    r = m.scenarios.result
+    implied = r["implied"]
+    if implied["side"] == "above":
+        bull = next(s["value"] for s in r["scenarios"] if s["name"] == "bull")
+        where = f"{m.price / bull:.1f}x the bull"
+    elif implied["side"] == "below":
+        where = "below the bear"
+    else:
+        where = f"{implied['weight']:.0%} {implied['side']}"
+    return r["weighted"], where
+
+
+def table_figure(rows: list[Compared]) -> dict:
+    """Every company's reading in one table, in the order asked for."""
+    valued = [c for c in rows if c.base is not None]
+    out = []
+    for c in valued:
+        m, exp = c.base, c.base.expectations
+        weighted, where = _scenarios(m)
+        out.append(
+            {
+                "company": c.ticker,
+                "close": m.price,
+                "base": m.per_share_gordon,
+                "record": c.record.per_share_gordon if c.record else None,
+                "implied": exp.implied_return if exp else None,
+                "wacc": m.cost_of_capital.wacc,
+                "growth": exp.implied_growth if exp else None,
+                "did": f"{exp.base_hits:,} of {exp.base_n:,}" if exp and exp.base_n else "n/a",
+                "weighted": weighted,
+                "against": where or "n/a",
+            }
+        )
+    return E._figure(
+        "table",
+        f"{len(valued)} companies through the same engine, on the same assumptions",
+        "Per share, at each company's last close. Growth needed is the first-year growth the "
+        "close needs with everything else as assumed; the company-years beside it are the fade "
+        "panel's that compounded that path.",
+        {
+            "columns": [
+                {"key": "company", "label": "Company"},
+                {"key": "close", "label": "Close", "align": "right", "format": "num:2"},
+                {"key": "base", "label": "Base case", "align": "right", "format": "num:2"},
+                {"key": "record", "label": "Record case", "align": "right", "format": "num:2"},
+                {"key": "implied", "label": "Implied return", "align": "right", "format": "pct:1"},
+                {"key": "wacc", "label": "Cost of capital", "align": "right", "format": "pct:1"},
+                {"key": "growth", "label": "Growth needed", "align": "right", "format": "pct:0"},
+                {"key": "did", "label": "Company-years that did it", "align": "right"},
+                {"key": "weighted", "label": "Scenarios, weighted", "align": "right", "format": "num:2"},
+                {"key": "against", "label": "Close against them", "align": "right"},
+            ],
+            "rows": out,
+        },
+        wide=True,
+    )
+
+
+def takeaway(rows: list[Compared], when: str) -> str:
+    """The set in two sentences: how many prices the base case reaches, and which asks most."""
+    valued = [c for c in rows if c.base is not None]
+    if not valued:
+        return "No company in the set could be valued."
+    above = sum(1 for c in valued if (_ratio(c.base) or 0) >= 1)
+    first = f"At the closes of {when}, the base case reaches the price of {above} of the {len(valued)} companies valued."
+    needing = [c for c in valued if c.base.expectations and c.base.expectations.implied_growth is not None]
+    if not needing:
+        return first
+    most = max(needing, key=lambda c: c.base.expectations.implied_growth)
+    exp = most.base.expectations
+    did = (
+        f", a path {exp.base_hits:,} of {exp.base_n:,} TMT company-years compounded"
+        if exp.base_n
+        else ""
+    )
+    return first + (
+        f" {most.ticker}'s price asks the most: {exp.implied_growth:.0%} revenue growth next year{did}."
+    )
