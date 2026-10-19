@@ -124,5 +124,6 @@ def test_the_comparison_is_a_one_section_page_that_validates(panel):
     section = back.sections["compare"]
     assert back.title == "DDOG, DIS, NOPE, compared" and back.fixtures == {}
     assert set(section["figures"]) == {"value", "returns", "table"}
+    assert [section["figures"][f]["order"] for f in ("value", "returns", "table")] == [1, 2, 3]
     assert [r["what"] for r in section["refusals"]] == ["NOPE"]
     assert "2 could be valued" in back.page["standfirst"]
