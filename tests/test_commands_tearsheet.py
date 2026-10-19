@@ -87,3 +87,16 @@ def test_compare_writes_one_page_for_the_set_and_prints_the_table(tmp_path):
     snap = snapshot_in(out.read_text(encoding="utf-8"))
     assert snap["title"] == "DDOG, CRWD, DIS, NOPE, compared"
     assert set(snap["sections"]["compare"]["figures"]) == {"value", "returns", "table"}
+
+
+def test_compare_json_carries_the_rows_and_the_refusals(tmp_path):
+    out = tmp_path / "compare.html"
+    result = runner.invoke(
+        app,
+        ["compare", "DDOG", "NOPE", "--config", str(config(tmp_path, "[]")), "--facts-dir", str(FIXTURES),
+         "--panels", str(FIXTURES), "--out", str(out), "--json"],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert [r["company"] for r in payload["rows"]] == ["DDOG"]
+    assert payload["refused"][0]["what"] == "NOPE" and out.exists()

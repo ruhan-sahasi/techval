@@ -112,6 +112,7 @@ def compare(
         False, "--peers-from-set", help="Value each company against the rest of the set as its peers."
     ),
     open_page: bool = typer.Option(False, "--open", help="Open the page in the default browser once it is written."),
+    as_json: bool = typer.Option(False, "--json", help="Print the table, the takeaway and the refusals as JSON."),
 ) -> None:
     """Several companies through the same engine on one page: values, returns and scenarios side by side."""
     from rich.table import Table
@@ -152,6 +153,21 @@ def compare(
         raise typer.Exit(1)
 
     section = snap.sections["compare"]
+    if as_json:
+        import json
+
+        typer.echo(
+            json.dumps(
+                {
+                    "page": str(path),
+                    "takeaway": section["takeaway"],
+                    "rows": section["figures"]["table"]["data"]["rows"],
+                    "refused": section["refusals"],
+                },
+                indent=2,
+            )
+        )
+        return
     table = Table(box=None, pad_edge=False)
     for name in ("Company", "Close", "Base case", "Record case", "Implied return", "Cost of capital"):
         table.add_column(name, justify="left" if name == "Company" else "right")
