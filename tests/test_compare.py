@@ -127,3 +127,13 @@ def test_the_comparison_is_a_one_section_page_that_validates(panel):
     assert [section["figures"][f]["order"] for f in ("value", "returns", "table")] == [1, 2, 3]
     assert [r["what"] for r in section["refusals"]] == ["NOPE"]
     assert "2 could be valued" in back.page["standfirst"]
+
+
+def test_the_example_comparison_is_exactly_what_its_committed_snapshot_renders():
+    from techval.dashboard.render import render_dashboard
+    from techval.dashboard.snapshot import load_snapshot
+
+    docs = Path(__file__).parents[1] / "docs" / "compare"
+    snap = load_snapshot(docs / "snapshot.json")
+    assert snap.title == "CRWD, DDOG, MDB, ZS, DIS, compared"
+    assert render_dashboard(snap) == (docs / "index.html").read_text(encoding="utf-8")

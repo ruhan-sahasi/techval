@@ -1,0 +1,338 @@
+{
+  "collected_at": "2026-09-09",
+  "fixtures": {},
+  "page": {
+    "sources": [
+      "SEC EDGAR companyfacts for CRWD, DDOG, MDB, ZS, DIS",
+      "Committed fixture daily closes for CRWD, DDOG, MDB, ZS, DIS, through 2026-09-09",
+      "Fade panel of point-in-time TMT company-years: tests/fixtures/fade_companyfacts.json.gz"
+    ],
+    "standfirst": "5 companies through the same engine as the techval results page, each valued twice: on the assumptions file, and on its own record, its growth, margin and reinvestment set from its filings. The reverse DCF and the scenarios are the base case's. 5 could be valued; any that could not is named with the reason. Nothing here is advice."
+  },
+  "schema": 1,
+  "sections": {
+    "compare": {
+      "figures": {
+        "returns": {
+          "data": {
+            "format": "pct:1",
+            "labelHeader": "Company",
+            "rows": [
+              {
+                "label": "CRWD",
+                "values": {
+                  "implied": 0.031271,
+                  "wacc": 0.129445
+                }
+              },
+              {
+                "label": "DDOG",
+                "values": {
+                  "implied": 0.037095,
+                  "wacc": 0.112831
+                }
+              },
+              {
+                "label": "MDB",
+                "values": {
+                  "implied": 0.049248,
+                  "wacc": 0.147562
+                }
+              },
+              {
+                "label": "ZS",
+                "values": {
+                  "implied": 0.05577,
+                  "wacc": 0.102748
+                }
+              },
+              {
+                "label": "DIS",
+                "values": {
+                  "implied": 0.128685,
+                  "wacc": 0.088838
+                }
+              }
+            ],
+            "series": [
+              {
+                "key": "implied",
+                "name": "Implied return",
+                "role": "model"
+              },
+              {
+                "key": "wacc",
+                "name": "Cost of capital",
+                "role": "baseline"
+              }
+            ]
+          },
+          "kind": "dot",
+          "order": 2,
+          "subtitle": "The return a buyer at the close earns if the base case holds, the DCF run backwards for its discount rate, beside the cost of capital the engine discounts at.",
+          "title": "CRWD's close earns least, 3.1% a year against a 12.9% cost of capital",
+          "wide": true
+        },
+        "table": {
+          "data": {
+            "columns": [
+              {
+                "key": "company",
+                "label": "Company"
+              },
+              {
+                "align": "right",
+                "format": "num:2",
+                "key": "close",
+                "label": "Close"
+              },
+              {
+                "align": "right",
+                "format": "num:2",
+                "key": "base",
+                "label": "Base case"
+              },
+              {
+                "align": "right",
+                "format": "num:2",
+                "key": "record",
+                "label": "Record case"
+              },
+              {
+                "align": "right",
+                "format": "pct:1",
+                "key": "implied",
+                "label": "Implied return"
+              },
+              {
+                "align": "right",
+                "format": "pct:1",
+                "key": "wacc",
+                "label": "Cost of capital"
+              },
+              {
+                "align": "right",
+                "format": "pct:0",
+                "key": "growth",
+                "label": "Growth needed"
+              },
+              {
+                "align": "right",
+                "key": "did",
+                "label": "Company-years that did it"
+              },
+              {
+                "align": "right",
+                "format": "num:2",
+                "key": "weighted",
+                "label": "Scenarios, weighted"
+              },
+              {
+                "align": "right",
+                "key": "against",
+                "label": "Close against them"
+              }
+            ],
+            "rows": [
+              {
+                "against": "8.3x the bull",
+                "base": 14.046559,
+                "close": 207.8,
+                "company": "CRWD",
+                "did": "0 of 1,662",
+                "growth": 2.394205,
+                "implied": 0.031271,
+                "record": -2.337253,
+                "wacc": 0.129445,
+                "weighted": 16.923696
+              },
+              {
+                "against": "3.1x the bull",
+                "base": 36.646745,
+                "close": 225.27,
+                "company": "DDOG",
+                "did": "11 of 1,662",
+                "growth": 1.551991,
+                "implied": 0.037095,
+                "record": 13.637048,
+                "wacc": 0.112831,
+                "weighted": 47.806588
+              },
+              {
+                "against": "2.5x the bull",
+                "base": 83.537933,
+                "close": 358.38,
+                "company": "MDB",
+                "did": "23 of 1,662",
+                "growth": 1.290859,
+                "implied": 0.049248,
+                "record": 31.445215,
+                "wacc": 0.147562,
+                "weighted": 99.772341
+              },
+              {
+                "against": "1.2x the bull",
+                "base": 66.078078,
+                "close": 166.1,
+                "company": "ZS",
+                "did": "141 of 1,662",
+                "growth": 0.75194,
+                "implied": 0.05577,
+                "record": -25.741135,
+                "wacc": 0.102748,
+                "weighted": 88.089355
+              },
+              {
+                "against": "88% bear",
+                "base": 186.071146,
+                "close": 104.18,
+                "company": "DIS",
+                "did": "1,414 of 1,662",
+                "growth": -0.01672,
+                "implied": 0.128685,
+                "record": 79.287354,
+                "wacc": 0.088838,
+                "weighted": 169.418568
+              }
+            ]
+          },
+          "kind": "table",
+          "order": 3,
+          "subtitle": "Per share, at each company's last close. Growth needed is the first-year growth the close needs with everything else as assumed; the company-years beside it are the fade panel's that compounded that path.",
+          "title": "5 companies through the same engine, on the same assumptions",
+          "wide": true
+        },
+        "value": {
+          "data": {
+            "format": "mult:2",
+            "labelHeader": "Company",
+            "reference": [
+              {
+                "label": "The close",
+                "value": 1.0
+              }
+            ],
+            "rows": [
+              {
+                "label": "CRWD",
+                "values": {
+                  "base": 0.067597,
+                  "record": -0.011248
+                }
+              },
+              {
+                "label": "DDOG",
+                "values": {
+                  "base": 0.162679,
+                  "record": 0.060536
+                }
+              },
+              {
+                "label": "MDB",
+                "values": {
+                  "base": 0.233099,
+                  "record": 0.087743
+                }
+              },
+              {
+                "label": "ZS",
+                "values": {
+                  "base": 0.397821,
+                  "record": -0.154974
+                }
+              },
+              {
+                "label": "DIS",
+                "values": {
+                  "base": 1.786054,
+                  "record": 0.761061
+                }
+              }
+            ],
+            "series": [
+              {
+                "key": "base",
+                "name": "Base case",
+                "role": "model"
+              },
+              {
+                "key": "record",
+                "name": "Record case",
+                "role": "alt"
+              }
+            ]
+          },
+          "kind": "dot",
+          "order": 1,
+          "subtitle": "Gordon DCF value per share over the close. The base case is the assumptions file's; the record case sets growth, margin and reinvestment from each company's own filings.",
+          "title": "1 of 5 base cases reach the close, and 0 do on the companies' own records",
+          "wide": true
+        }
+      },
+      "headline": null,
+      "id": "compare",
+      "provenance": [
+        {
+          "entry_point": "techval.compare.measure_all",
+          "figure": "value",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "Committed fixture daily closes, DDOG",
+            "Committed fixture daily closes, DIS",
+            "Committed fixture daily closes, MDB",
+            "Committed fixture daily closes, ZS",
+            "SEC EDGAR companyfacts, CRWD",
+            "SEC EDGAR companyfacts, DDOG",
+            "SEC EDGAR companyfacts, DIS",
+            "SEC EDGAR companyfacts, MDB",
+            "SEC EDGAR companyfacts, ZS",
+            "fade panel, tests/fixtures/fade_companyfacts.json.gz"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.compare.measure_all",
+          "figure": "returns",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "Committed fixture daily closes, DDOG",
+            "Committed fixture daily closes, DIS",
+            "Committed fixture daily closes, MDB",
+            "Committed fixture daily closes, ZS",
+            "SEC EDGAR companyfacts, CRWD",
+            "SEC EDGAR companyfacts, DDOG",
+            "SEC EDGAR companyfacts, DIS",
+            "SEC EDGAR companyfacts, MDB",
+            "SEC EDGAR companyfacts, ZS",
+            "fade panel, tests/fixtures/fade_companyfacts.json.gz"
+          ],
+          "seconds": 0.0
+        },
+        {
+          "entry_point": "techval.compare.measure_all",
+          "figure": "table",
+          "inputs": [
+            "Committed fixture daily closes, CRWD",
+            "Committed fixture daily closes, DDOG",
+            "Committed fixture daily closes, DIS",
+            "Committed fixture daily closes, MDB",
+            "Committed fixture daily closes, ZS",
+            "SEC EDGAR companyfacts, CRWD",
+            "SEC EDGAR companyfacts, DDOG",
+            "SEC EDGAR companyfacts, DIS",
+            "SEC EDGAR companyfacts, MDB",
+            "SEC EDGAR companyfacts, ZS",
+            "fade panel, tests/fixtures/fade_companyfacts.json.gz"
+          ],
+          "seconds": 0.0
+        }
+      ],
+      "refusals": [],
+      "status": "ok",
+      "takeaway": "At the closes of 2026-09-09, the base case reaches the price of 1 of the 5 companies valued. CRWD's price asks the most: 239% revenue growth next year, a path 0 of 1,662 TMT company-years compounded.",
+      "title": "How the prices compare"
+    }
+  },
+  "techval_commit": "d719808",
+  "title": "CRWD, DDOG, MDB, ZS, DIS, compared"
+}
