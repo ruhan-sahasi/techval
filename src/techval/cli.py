@@ -97,6 +97,7 @@ from .backtest import (
     run_backtest,
 )
 from .dilution import build_share_count
+from .anchors import LABELS as RECORD_LABELS, record_case, unanchored
 from .config import Assumptions, ml_cache_root
 from .dcf import run_dcf, sensitivity_wacc_exit, sensitivity_wacc_growth
 from .edgar import EdgarClient, HttpCache
@@ -169,6 +170,9 @@ app.add_typer(_invest_app, rich_help_panel="Portfolio")
 app.add_typer(_cache_app, rich_help_panel="Housekeeping")
 
 _CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
+FROM_RECORD = typer.Option(
+    False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
+)
 _NOCACHE = typer.Option(False, "--no-cache", help="Bypass the HTTP cache.")
 _OUT = typer.Option("out", "--out", "-o", help="Directory for chart output.")
 _ASOF = typer.Option(
@@ -524,6 +528,19 @@ def _render_wacc(w) -> None:
         )
     console.print(t)
     _notes(w.notes)
+
+
+def _render_record_case(anchors) -> None:
+    """The DCF assumptions the filings set, beside what the assumptions file had."""
+    _rule("The record case: the DCF from the filings")
+    t = Table(box=None, pad_edge=False)
+    for name, justify in (("Assumption", "left"), ("Assumptions file", "right"), ("From the record", "right"), ("Source", "left")):
+        t.add_column(name, justify=justify)
+    for a in anchors:
+        t.add_row(RECORD_LABELS[a.field], _pct(a.assumed) if a.assumed is not None else "-", _pct(a.value), a.source)
+    console.print(t)
+    for field in unanchored(a.field for a in anchors):
+        console.print(f"  [yellow]{RECORD_LABELS[field]} is not in the filings, so it stays at the assumption.[/yellow]")
 
 
 def _render_dcf(d) -> None:
@@ -1327,10 +1344,13 @@ def value(
             "segment. Only consulted when tmt.sotp is on."
         ),
     ),
+    from_record: bool = FROM_RECORD,
 ) -> None:
     """Full valuation: statements, EV bridge, WACC, DCF, comps and football field."""
     try:
         assumptions, client, market = _setup(config, no_cache, as_of)
+        if from_record:
+            assumptions.dcf.from_record = True
         if assumptions.as_of:
             console.print(
                 f"[yellow]Point in time: valuing {ticker.upper()} as it was knowable "
@@ -1369,6 +1389,11 @@ def value(
 
         w = compute_wacc(fin, bridge, market, assumptions, peer_betas=peer_betas)
         _render_wacc(w)
+
+        # dcf.from_record sets the DCF from the filings; with it off nothing changes.
+        assumptions, anchors = record_case(assumptions, fin, client.company_facts(ticker))
+        if assumptions.dcf.from_record:
+            _render_record_case(anchors)
 
         # A DCF that cannot be formed, because the terminal year is a loss or an
         # assumption is inconsistent, is reported and stepped past. The comps

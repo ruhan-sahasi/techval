@@ -38,6 +38,9 @@ def tearsheet(
         help="Directory holding fade_companyfacts.json.gz for base rates and scenarios. Defaults to tests/fixtures in this checkout.",
     ),
     open_page: bool = typer.Option(False, "--open", help="Open the page in the default browser once it is written."),
+    from_record: bool = typer.Option(
+        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
+    ),
 ) -> None:
     """One company's valuation as a single page: the results page's engine section, measured for TICKER."""
     from .cli import _setup
@@ -53,6 +56,8 @@ def tearsheet(
     path = Path(out) if out else Path("out") / f"tearsheet_{symbol}.html"
     try:
         assumptions, client, market = _setup(config, no_cache)
+        if from_record:
+            assumptions.dcf.from_record = True
         if facts_dir is not None:
             knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
             client = RecordedFacts(facts_dir, knowledge)

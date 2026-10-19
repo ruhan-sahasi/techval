@@ -73,11 +73,20 @@ def test_a_company_with_no_peers_or_panel_still_gets_a_page_that_says_what_is_mi
     assert not any("Fade panel" in s for s in snap.page["sources"])
 
 
-def test_the_example_page_is_exactly_what_its_committed_snapshot_renders():
+@pytest.mark.parametrize("ticker", ["CRWD", "DIS"])
+def test_each_example_page_is_exactly_what_its_committed_snapshot_renders(ticker):
     from techval.dashboard.render import render_dashboard
     from techval.dashboard.snapshot import load_snapshot
 
     docs = Path(__file__).parents[1] / "docs" / "tearsheet"
-    snap = load_snapshot(docs / "CRWD.json")
-    assert snap.title == "CRWD, valued by the engine" and snap.page is not None
-    assert render_dashboard(snap) == (docs / "CRWD.html").read_text(encoding="utf-8")
+    snap = load_snapshot(docs / f"{ticker}.json")
+    assert snap.title == f"{ticker}, valued by the engine" and snap.page is not None
+    assert render_dashboard(snap) == (docs / f"{ticker}.html").read_text(encoding="utf-8")
+
+
+def test_the_disney_example_is_on_its_own_record():
+    from techval.dashboard.snapshot import load_snapshot
+
+    snap = load_snapshot(Path(__file__).parents[1] / "docs" / "tearsheet" / "DIS.json")
+    assert "record" in snap.sections["engine"]["figures"]
+    assert "The DCF is the record case" in snap.page["standfirst"]

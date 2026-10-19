@@ -415,7 +415,9 @@ def test_the_collector_runs_offline_on_the_fixtures_and_holds_to_the_schema(tmp_
 def test_the_renderer_orders_every_figure_the_collector_returns():
     source = (ASSETS / "sections" / "engine.js").read_text(encoding="utf-8")
     order = re.findall(r'"(\w+)"', source[source.index("var ORDER") : source.index("];")])
-    assert order == list(E.shape(_measured())["figures"])
+    figures = list(E.shape(_measured())["figures"])
+    # The record case's table is drawn only when dcf.from_record is on.
+    assert [f for f in order if f != "record"] == figures
 
 
 # --------------------------------------------------------------------------- #
@@ -554,3 +556,39 @@ def test_a_company_with_no_peers_is_valued_on_its_own_beta_and_says_why_comps_ar
     assert "What the price assumes" in refused and "Bear, base and bull" in refused
     assert {"cost_of_capital", "football", "bridge", "sensitivity", "montecarlo"} <= set(section["figures"])
     assert not any(label.startswith("Comps,") for label in (b.label for b in m.bands))
+
+
+def test_the_record_case_leads_the_section_and_moves_the_dcf_but_not_the_history():
+    from datetime import date
+
+    from techval.config import Assumptions
+
+    a = Assumptions()
+    a.market.risk_free_rate = 0.0483
+    plain = E.measure("DDOG", [], a, fixture_sources(), today=date(2026, 9, 9))
+    a.dcf.from_record = True
+    record = E.measure("DDOG", [], a, fixture_sources(), today=date(2026, 9, 9))
+    assert plain.anchors == [] and "record" not in E.shape(plain)["figures"]
+    figure = E.shape(record)["figures"]["record"]
+    assert figure["kind"] == "table"
+    labels = [r["label"] for r in figure["data"]["rows"]]
+    assert labels[0] == "Year 1 revenue growth" and "Terminal EBIT margin" in labels
+    assert "31.5% and its 0.4% margin held" in figure["title"]
+    # The DCF moves; the quarterly history reads each quarter's own record.
+    assert record.per_share_gordon != plain.per_share_gordon
+
+
+def test_a_history_no_quarter_of_which_has_an_implied_return_is_refused_not_drawn():
+    """With the margin held at Datadog's 0.4%, no discount rate reaches any close."""
+    from datetime import date
+
+    from techval.config import Assumptions
+
+    a = Assumptions()
+    a.market.risk_free_rate = 0.0483
+    a.dcf.ebit_margin_terminal = 0.004
+    m = E.measure("DDOG", [], a, fixture_sources(), today=date(2026, 9, 9))
+    section = E.shape(m)
+    assert "expectations_history" not in section["figures"]
+    why = next(r.why for r in m.refusals if r.what == "What the close assumed each quarter")
+    assert "no implied return to draw" in why

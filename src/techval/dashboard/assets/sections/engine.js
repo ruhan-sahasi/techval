@@ -3,7 +3,8 @@
  *
  * The exhibits read in the order an analyst builds them, so the order is set
  * here; the snapshot's keys are sorted and carry none. The cost of capital
- * comes first, led by the valuation date, then the football field, the bridge
+ * comes first, led by the valuation date, then the record case where it is on,
+ * since it sets every DCF after it, then the football field, the bridge
  * and the sensitivity grid, then the simulation and APV. Any figure not named
  * below follows, so nothing collected is dropped.
  *
@@ -20,7 +21,7 @@
 (function (TV) {
   "use strict";
 
-  var ORDER = ["cost_of_capital", "football", "bridge", "sensitivity", "montecarlo", "apv"];
+  var ORDER = ["cost_of_capital", "record", "football", "bridge", "sensitivity", "montecarlo", "apv"];
 
   TV.sections.register("engine", function (root, data) {
     return TV.sections.figures(root, data, {

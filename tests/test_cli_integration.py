@@ -167,7 +167,11 @@ def offline(monkeypatch, tmp_path):
     command tests give: stubbing ``_setup`` would prove the renderers work and
     nothing about whether the assumptions actually reach them, and the
     assumptions are the entire subject of this file.
+
+    The run happens in the test's own directory, so the football chart a value
+    run writes to out/ lands there and not over the one the README shows.
     """
+    monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(
         C, "EdgarClient", lambda cache, knowledge_date=None: FixtureClient(knowledge_date)
     )
@@ -737,3 +741,25 @@ def test_the_accretion_row_prints_the_dollars_the_model_computed(tmp_path):
     for _, _, pct in pa.accretion_by_year:
         if pct is not None:
             assert f"{pct:.1%}" in flat, f"{pct:.1%} is missing from the percent row"
+
+
+# --------------------------------------------------------------------------- #
+# the record case
+# --------------------------------------------------------------------------- #
+
+
+def test_the_record_case_sets_the_dcf_from_the_filings_and_says_which_figures(tmp_path):
+    default = run_value("-c", str(_config(tmp_path)))
+    record = run_value("-c", str(_config(tmp_path, "dcf:\n  from_record: true\n")))
+    assert default.exit_code == 0 and record.exit_code == 0
+    assert "The record case" not in default.output
+    text = " ".join(record.output.split())
+    assert "The record case" in text
+    for label in ("Year 1 revenue growth", "Terminal EBIT margin", "Capex, share of revenue"):
+        assert label in text, label
+    assert "twelve months to" in text or "fiscal-year revenue" in text
+
+
+def test_the_from_record_flag_does_what_the_setting_does(tmp_path):
+    flag = run_value("-c", str(_config(tmp_path)), "--from-record")
+    assert flag.exit_code == 0 and "The record case" in flag.output

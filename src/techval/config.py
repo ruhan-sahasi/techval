@@ -393,6 +393,15 @@ class DCFAssumptions(_Base):
     )
     capex_pct_revenue: float = 0.030
     da_pct_revenue: float = 0.025
+    from_record: bool = Field(
+        False,
+        description=(
+            "Set revenue growth, the terminal margin, capex and D&A from the "
+            "company's own filings instead of the figures here: growth from its "
+            "trailing rate, today's margin held, today's reinvestment. A baseline "
+            "for a company these defaults were not written for; see techval.anchors."
+        ),
+    )
     nwc_pct_revenue: float = Field(
         -0.05,
         description=(

@@ -105,3 +105,17 @@ def test_without_a_panel_a_holding_carries_no_scenarios(assumptions, market):
     reads = {"DDOG": EngineRead(symbol="DDOG", covered=True, sub_vertical="infrastructure_software")}
     attach_dcf(reads, facts_for=facts_for, market=market, assumptions=assumptions)
     assert reads["DDOG"].dcf["scenarios"] is None
+
+
+def test_a_holding_on_the_record_case_carries_its_anchors(market):
+    a = Assumptions()
+    a.market.risk_free_rate = 0.0483
+    plain = {"DDOG": EngineRead(symbol="DDOG", covered=True, sub_vertical="infrastructure_software")}
+    attach_dcf(plain, facts_for=facts_for, market=market, assumptions=a)
+    a.dcf.from_record = True
+    record = {"DDOG": EngineRead(symbol="DDOG", covered=True, sub_vertical="infrastructure_software")}
+    attach_dcf(record, facts_for=facts_for, market=market, assumptions=a)
+    assert plain["DDOG"].dcf["record"] == []
+    labels = [x["label"] for x in record["DDOG"].dcf["record"]]
+    assert labels[0] == "Year 1 revenue growth" and "Terminal EBIT margin" in labels
+    assert record["DDOG"].dcf["per_share"] != plain["DDOG"].dcf["per_share"]
