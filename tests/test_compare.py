@@ -88,3 +88,24 @@ def test_the_returns_figure_names_the_close_that_earns_least(compared):
     lowest = min(rows, key=lambda t: rows[t]["implied"])
     assert fig["title"].startswith(f"{lowest}'s close earns least")
     assert all(0 < v["wacc"] < 0.25 for v in rows.values())
+
+
+def test_the_table_carries_every_reading_for_every_company_valued(compared):
+    from techval.compare import table_figure
+
+    fig = table_figure(compared)
+    rows = {r["company"]: r for r in fig["data"]["rows"]}
+    assert list(rows) == ["DDOG", "CRWD", "DIS"]
+    ddog = rows["DDOG"]
+    assert ddog["base"] == pytest.approx(compared[0].base.per_share_gordon)
+    assert ddog["record"] == pytest.approx(compared[0].record.per_share_gordon)
+    assert "of 1,662" in ddog["did"] and ddog["against"].endswith("the bull")
+    assert [c["key"] for c in fig["data"]["columns"]][:4] == ["company", "close", "base", "record"]
+
+
+def test_the_takeaway_names_the_price_that_asks_the_most(compared):
+    from techval.compare import takeaway
+
+    text = takeaway(compared, "2026-09-09")
+    assert text.startswith("At the closes of 2026-09-09, the base case reaches the price of 1 of the 3")
+    assert "CRWD's price asks the most" in text
