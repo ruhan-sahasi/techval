@@ -12,4 +12,5 @@ out/*
 !out/DDOG_football.png
 .venv.nosync/
 .superpowers/
+# A private ledger from the old techval invest command: never committed.
 /portfolio/
