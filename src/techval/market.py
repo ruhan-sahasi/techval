@@ -5,11 +5,11 @@ account and carries roughly three years of daily closes for listed equities and
 ETFs. Sources sit behind one interface so the feed can be swapped without
 touching anything that consumes prices.
 
-A note on Stooq, which this package originally targeted: it now answers plain
-HTTP clients with a JavaScript proof-of-work challenge rather than CSV. Solving
-that would mean defeating a bot check the operator deliberately put up, so the
-Stooq source raises an explanatory error instead. Nasdaq is the default and the
-CSV source exists for offline and fully reproducible runs.
+Stooq, which this package first targeted, now answers plain HTTP clients with a
+JavaScript proof-of-work challenge rather than CSV. Solving it would mean
+defeating a bot check the operator deliberately put up, so there is no Stooq
+source. Nasdaq is the default and the CSV source exists for offline and fully
+reproducible runs.
 
 The market proxy for beta is SPY rather than the S&P 500 index itself, because
 the index is not available from a keyless source. The substitution is close to
@@ -183,40 +183,6 @@ class NasdaqSource:
         )
 
 
-class StooqSource:
-    """Stooq CSV. Currently unusable; see the module docstring."""
-
-    name = "stooq"
-
-    def __init__(self, cache: HttpCache) -> None:
-        self.cache = cache
-
-    def fetch(self, symbol: str, start: date, end: date) -> PriceSeries:
-        url = f"https://stooq.com/q/d/l/?s={symbol.lower()}.us&i=d"
-        body = http_get(url, cache=self.cache, headers={"User-Agent": _BROWSER_UA})
-        text = body.decode("utf-8", "replace")
-        if not text.lstrip().lower().startswith("date"):
-            raise DataSourceError(
-                "Stooq answered with a JavaScript bot challenge rather than CSV.\n"
-                "  techval will not defeat a bot check. Use the default Nasdaq "
-                "source (price_source: nasdaq) or supply local CSVs "
-                "(price_source: csv, price_csv_dir: <path>)."
-            )
-        rows = [
-            (date.fromisoformat(r["Date"]), float(r["Close"]))
-            for r in csv.DictReader(io.StringIO(text))
-            if r.get("Close") not in (None, "", "N/A")
-        ]
-        rows = [(d, p) for d, p in rows if start <= d <= end]
-        rows.sort()
-        return PriceSeries(
-            symbol.upper(),
-            [d for d, _ in rows],
-            np.array([p for _, p in rows]),
-            self.name,
-        )
-
-
 class CsvSource:
     """Local ``<dir>/<SYMBOL>.csv`` with Date and Close columns.
 
@@ -298,8 +264,6 @@ class SpanSource:
 def make_price_source(kind: str, cache: HttpCache, csv_dir: str | None = None):
     if kind == "nasdaq":
         return NasdaqSource(cache)
-    if kind == "stooq":
-        return StooqSource(cache)
     if kind == "csv":
         if not csv_dir:
             raise DataSourceError("price_source: csv requires price_csv_dir")

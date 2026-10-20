@@ -2271,9 +2271,9 @@ real contact address. These two are not held to the same standard.
 The package originally targeted Stooq for prices. Stooq now answers plain HTTP
 clients with a JavaScript proof-of-work challenge instead of CSV. Defeating a
 bot check the operator deliberately erected is not something this package will
-do, so the Stooq source raises an explanatory error and points at the
-alternatives. Sources sit behind one interface, and a local CSV source makes a
-valuation reproducible offline years later. That is what the backtest runs on.
+do, so there is no Stooq source. Sources sit behind one interface, and a local
+CSV source makes a valuation reproducible offline years later. That is what the
+backtest runs on.
 
 All HTTP responses are cached by request URL under `~/.techval/cache`, so the
 same ticker and the same assumptions produce identical output on every run.
