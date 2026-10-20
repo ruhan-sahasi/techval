@@ -50,7 +50,6 @@ from .commands_forecast import app as _forecast_app
 from .commands_cache import app as _cache_app
 from .commands_expectations import app as _expectations_app
 from .commands_tearsheet import app as _tearsheet_app
-from .commands_invest import app as _invest_app
 from .commands_mna import app as _mna_app
 from .commands_peers import app as _peers_app
 from .commands_rag import app as _rag_app
@@ -166,7 +165,6 @@ _mount(_mna_app, "M&A")
 # The filing reader is a group, not a merge: "template", "record" and "score"
 # are too generic to stand at the top level beside "value" and "comps".
 app.add_typer(_rag_app, name="rag", rich_help_panel="Filing reader")
-app.add_typer(_invest_app, rich_help_panel="Portfolio")
 app.add_typer(_cache_app, rich_help_panel="Housekeeping")
 
 _CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
