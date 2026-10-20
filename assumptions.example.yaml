@@ -12,7 +12,7 @@
 
 ticker: DDOG
 
-price_source: nasdaq        # nasdaq | stooq | csv
+price_source: nasdaq        # nasdaq | csv
 # price_csv_dir: tests/fixtures/prices   # required when price_source is csv
 
 market:

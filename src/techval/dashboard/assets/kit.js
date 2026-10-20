@@ -712,9 +712,6 @@
     loses: { label: "Loses to baseline", short: "Loses", tone: "critical" },
     not_significant: { label: "Not significant", short: "Not sig.", tone: "warning" },
     refused: { label: "Refused", short: "Refused", tone: "neutral" },
-    /* The portfolio page's calls against the warranted line. */
-    rich: { label: "Rich to warranted", short: "Rich", tone: "warning" },
-    cheap: { label: "Cheap to warranted", short: "Cheap", tone: "good" },
   };
 
   function statusInfo(status) {

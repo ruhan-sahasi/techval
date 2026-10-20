@@ -269,8 +269,8 @@ class SubVerticalClassifier(Protocol):
 class PriceLookup(Protocol):
     """What ``build_precedents(prices=...)`` expects.
 
-    Satisfied by every source in ``techval.market``: ``CsvSource``,
-    ``NasdaqSource`` and ``StooqSource`` all implement ``fetch``.
+    Satisfied by both sources in ``techval.market``: ``CsvSource`` and
+    ``NasdaqSource`` implement ``fetch``.
     """
 
     def fetch(self, symbol: str, start: date, end: date): ...

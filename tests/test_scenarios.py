@@ -75,7 +75,7 @@ def test_no_paths_means_no_scenarios():
 def test_datadogs_similar_starters_run_from_stalling_to_a_third_a_year():
     from pathlib import Path
 
-    from techval.invest.engine_read import fade_panel
+    from techval.ml.panels import fade_panel
 
     panel = fade_panel(Path(__file__).parent / "fixtures")
     pool = realised_paths(panel.observations, trailing=0.276754)
@@ -122,7 +122,7 @@ def case():
 def panel():
     from pathlib import Path
 
-    from techval.invest.engine_read import fade_panel
+    from techval.ml.panels import fade_panel
 
     return fade_panel(Path(__file__).parent / "fixtures")
 

@@ -165,7 +165,7 @@ def _panel(directory: Path, symbol: str, cache_root: Path | None = None):
     bytes and the code it is built through, so a second command does not pay
     the two seconds the build takes.
     """
-    from .invest.engine_read import FADE_PANEL, fade_panel
+    from .ml.panels import FADE_PANEL, fade_panel
 
     if not (directory / FADE_PANEL).is_file():
         return None, None

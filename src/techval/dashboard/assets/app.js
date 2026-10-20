@@ -27,9 +27,9 @@
 
   /*
    * ?theme=dark or ?theme=light stamps data-theme on the root, so a headless
-   * screenshot can force either theme. With no query the page opens dark, the
-   * way the investing app does, unless the system asks for light. Done at once
-   * rather than at boot, so the page never paints in the wrong one first.
+   * screenshot can force either theme. With no query the page opens dark,
+   * unless the system asks for light. Done at once rather than at boot, so the
+   * page never paints in the wrong one first.
    */
   function stampTheme() {
     var match = /[?&]theme=(dark|light)(?:&|#|$)/.exec(global.location ? global.location.search : "");

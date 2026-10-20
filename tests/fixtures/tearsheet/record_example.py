@@ -21,7 +21,7 @@ from techval.config import Assumptions
 from techval.dashboard.collect import techval_commit
 from techval.dashboard.render import write_dashboard
 from techval.dashboard.snapshot import dump_snapshot
-from techval.invest.engine_read import fade_panel
+from techval.ml.panels import fade_panel
 from techval.market import CsvSource
 from techval.tearsheet import RecordedFacts, build_tearsheet
 
