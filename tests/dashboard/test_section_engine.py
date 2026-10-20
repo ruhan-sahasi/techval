@@ -592,3 +592,18 @@ def test_a_history_no_quarter_of_which_has_an_implied_return_is_refused_not_draw
     assert "expectations_history" not in section["figures"]
     why = next(r.why for r in m.refusals if r.what == "What the close assumed each quarter")
     assert "no implied return to draw" in why
+
+
+def test_a_measurement_without_the_history_skips_it_and_refuses_nothing():
+    from datetime import date
+
+    from techval.config import Assumptions
+
+    a = Assumptions()
+    a.market.risk_free_rate = 0.0483
+    whole = E.measure("DDOG", [], a, fixture_sources(), today=date(2026, 9, 9))
+    lean = E.measure("DDOG", [], a, fixture_sources(), today=date(2026, 9, 9), history=False)
+    assert whole.history is not None and lean.history is None
+    assert not any(r.what == "What the close assumed each quarter" for r in lean.refusals)
+    assert lean.per_share_gordon == whole.per_share_gordon
+    assert "expectations_history" not in E.shape(lean)["figures"]
