@@ -799,7 +799,7 @@ class Assumptions(_Base):
         ),
     )
 
-    price_source: Literal["nasdaq", "stooq", "csv"] = "nasdaq"
+    price_source: Literal["nasdaq", "csv"] = "nasdaq"
     price_csv_dir: str | None = None
 
     @field_validator("as_of", mode="before")
