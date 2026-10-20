@@ -20,7 +20,7 @@ AS_OF = date(2026, 9, 9)
 
 @pytest.fixture(scope="module")
 def panel():
-    from techval.invest.engine_read import fade_panel
+    from techval.ml.panels import fade_panel
 
     return fade_panel(FIXTURES).observations
 

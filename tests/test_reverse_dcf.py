@@ -212,7 +212,7 @@ def test_without_a_trailing_rate_there_is_no_similar_bucket():
 
 @pytest.fixture(scope="module")
 def panel():
-    from techval.invest.engine_read import fade_panel
+    from techval.ml.panels import fade_panel
 
     return fade_panel(FIXTURES)
 

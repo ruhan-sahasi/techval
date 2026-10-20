@@ -1123,7 +1123,7 @@ def _reproduce_draws(fin, bridge, wacc_result, assumptions, result, independent:
 
 def collect(ctx) -> dict:
     from ...errors import ConfigError
-    from ...invest.engine_read import fade_panel
+    from ...ml.panels import fade_panel
     from ...market import CsvSource
 
     a = ctx.assumptions.model_copy(deep=True)
