@@ -70,8 +70,8 @@ def test_without_a_panel_there_is_nothing_to_read_scenarios_from(tmp_path):
 
 def test_the_built_panel_is_kept_for_the_next_command(tmp_path):
     assert run(tmp_path).exit_code == 0
-    cached = list((tmp_path / "ml").glob("invest_fade_panel_*.joblib"))
+    cached = list((tmp_path / "ml").glob("fade_panel_*.joblib"))
     assert len(cached) == 1
     # A second command reads it rather than building another.
     assert run(tmp_path).exit_code == 0
-    assert list((tmp_path / "ml").glob("invest_fade_panel_*.joblib")) == cached
+    assert list((tmp_path / "ml").glob("fade_panel_*.joblib")) == cached

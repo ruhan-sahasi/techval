@@ -335,7 +335,7 @@ def recorded_fit(path: Path, assumptions: Assumptions, only: set[str] | None):
     the build and the fit take between them.
     """
     from .config import ml_cache_root
-    from .invest.engine_read import _FADE_MODULES, cached_fit
+    from .ml.panels import FADE_MODULES, cached_fit
 
     def build():
         panel = _recorded_panel(path, assumptions, only)
@@ -346,7 +346,7 @@ def recorded_fit(path: Path, assumptions: Assumptions, only: set[str] | None):
     return cached_fit(
         "fade_fit",
         [Path(path)],
-        (*_FADE_MODULES, "techval.commands_forecast"),
+        (*FADE_MODULES, "techval.commands_forecast"),
         build,
         ml_cache_root(assumptions),
         extra=assumptions.model_dump_json() + "|" + ",".join(sorted(only or ())),

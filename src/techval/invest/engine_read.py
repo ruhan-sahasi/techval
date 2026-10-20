@@ -9,16 +9,13 @@ signal lost to a random score" is how a research tool becomes a tip sheet.
 
 from __future__ import annotations
 
-import gzip
-import hashlib
-import importlib
-import json
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
 from ..config import Assumptions
 from ..errors import TechvalError
+from ..ml.panels import FADE_MODULES, FADE_PANEL, cached_fit, fade_panel
 
 
 @dataclass
@@ -32,78 +29,16 @@ class EngineRead:
     refusals: list[dict] = field(default_factory=list)
 
 
-# Bumped whenever what a cached fit means changes without its inputs changing.
-FIT_SCHEMA = 1
-
-FADE_PANEL = "fade_companyfacts.json.gz"
 WARRANTED_PANEL = "warranted/observations.json.gz"
 
-# The modules whose source moves each fit. A change to any of them is a cache
-# miss, the same rule the dashboard collector keys its sections on. The fade
-# panel is built through CompanyFacts and the tag ladders as much as through the
-# forecast module, so those count; a test profiles the build to keep it so.
-_FADE_MODULES = (
-    "techval.ml.forecast",
-    "techval.ml.features",
-    "techval.edgar",
-    "techval.tags",
-    "techval.config",
-    "techval.tmt.taxonomy",
-    "techval.invest.engine_read",
-)
 _WARRANTED_MODULES = (
     "techval.ml.warranted",
     "techval.ml.nn",
     "techval.ml.features",
     "techval.commands_peers",
+    "techval.ml.panels",
     "techval.invest.engine_read",
 )
-
-
-def fit_key(kind: str, inputs: list[Path], modules: tuple[str, ...], extra: str = "") -> str:
-    """A key over the panel bytes, the fitting code, the cache schema and anything else named."""
-    h = hashlib.sha256(f"{kind}:{FIT_SCHEMA}:{extra}".encode())
-    for path in inputs:
-        h.update(Path(path).read_bytes())
-    for name in modules:
-        h.update(Path(importlib.import_module(name).__file__).read_bytes())
-    return h.hexdigest()[:16]
-
-
-def cached_fit(
-    kind: str,
-    inputs: list[Path],
-    modules: tuple[str, ...],
-    build,
-    cache_root: Path | None,
-    refit: bool = False,
-    extra: str = "",
-):
-    """Load a fit from the disk cache, or build it and store it.
-
-    The fits take nine seconds together and are pure functions of committed
-    panels, so a second run of techval invest should not pay for them again.
-    An unreadable or unwritable entry is a miss, never a failed run; with no
-    cache root there is no disk cache at all. ``extra`` carries anything else
-    the build reads, such as the assumptions, into the key.
-    """
-    if cache_root is None:
-        return build()
-    import joblib
-
-    path = Path(cache_root).expanduser() / f"invest_{kind}_{fit_key(kind, inputs, modules, extra)}.joblib"
-    if path.is_file() and not refit:
-        try:
-            return joblib.load(path)
-        except Exception:  # noqa: BLE001 - an unreadable cache is a miss
-            pass
-    model = build()
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        joblib.dump(model, path, compress=3)
-    except Exception:  # noqa: BLE001 - an unwritable cache slows the next run only
-        pass
-    return model
 
 
 def missing_panels(fixtures: Path) -> dict[str, Path]:
@@ -135,29 +70,6 @@ def warranted_model(fixtures: Path, cache_root: Path | None = None, refit: bool 
     return _warranted_model(*_normal(fixtures, cache_root, refit))
 
 
-def fade_panel(fixtures: Path, cache_root: Path | None = None, refit: bool = False):
-    """The point-in-time fade panel itself, for base rates as well as the fit."""
-    return _fade_panel(*_normal(fixtures, cache_root, refit))
-
-
-@lru_cache(maxsize=4)
-def _fade_panel(fixtures: Path, cache_root: Path | None, refit: bool):
-    def build():
-        from ..edgar import CompanyFacts
-        from ..ml.forecast import build_fade_panel, fade_universe
-
-        blob = json.load(gzip.open(fixtures / FADE_PANEL, "rt"))
-
-        class _Client:
-            def company_facts(self, ticker: str) -> CompanyFacts:
-                return CompanyFacts(blob["payloads"][ticker.upper()], ticker)
-
-        universe = {t: v for t, v in fade_universe().items() if t in blob["payloads"]}
-        return build_fade_panel(universe, _Client())
-
-    return cached_fit("fade_panel", [fixtures / FADE_PANEL], _FADE_MODULES, build, cache_root, refit)
-
-
 @lru_cache(maxsize=4)
 def _fade_model(fixtures: Path, cache_root: Path | None, refit: bool):
     def build():
@@ -165,9 +77,9 @@ def _fade_model(fixtures: Path, cache_root: Path | None, refit: bool):
 
         assumptions = Assumptions()
         assumptions.ml.forecast.enabled = True
-        return fit_fade(_fade_panel(fixtures, cache_root, refit), assumptions)
+        return fit_fade(fade_panel(fixtures, cache_root, refit), assumptions)
 
-    return cached_fit("fade", [fixtures / FADE_PANEL], _FADE_MODULES, build, cache_root, refit)
+    return cached_fit("fade", [fixtures / FADE_PANEL], FADE_MODULES, build, cache_root, refit)
 
 
 @lru_cache(maxsize=4)

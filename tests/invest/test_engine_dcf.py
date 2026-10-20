@@ -62,7 +62,7 @@ def test_an_uncovered_name_is_not_valued(assumptions, market):
 
 
 def test_a_valued_holding_carries_what_its_price_assumes(assumptions, market):
-    from techval.invest.engine_read import fade_panel
+    from techval.ml.panels import fade_panel
 
     reads = {"DDOG": EngineRead(symbol="DDOG", covered=True, sub_vertical="infrastructure_software")}
     attach_dcf(
@@ -88,7 +88,7 @@ def test_without_a_panel_the_expectations_carry_no_base_rate(assumptions, market
 
 
 def test_a_valued_holding_carries_its_panel_scenarios(assumptions, market):
-    from techval.invest.engine_read import fade_panel
+    from techval.ml.panels import fade_panel
 
     reads = {"DDOG": EngineRead(symbol="DDOG", covered=True, sub_vertical="infrastructure_software")}
     attach_dcf(
