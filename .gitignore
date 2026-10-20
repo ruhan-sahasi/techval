@@ -13,4 +13,5 @@ out/*
 .venv.nosync/
 .claude/
 .superpowers/
+# A private ledger from the old techval invest command: never committed.
 /portfolio/

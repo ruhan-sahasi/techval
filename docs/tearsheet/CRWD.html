@@ -2422,9 +2422,6 @@ a.tv-tile:hover .tv-tile__label {
     loses: { label: "Loses to baseline", short: "Loses", tone: "critical" },
     not_significant: { label: "Not significant", short: "Not sig.", tone: "warning" },
     refused: { label: "Refused", short: "Refused", tone: "neutral" },
-    /* The portfolio page's calls against the warranted line. */
-    rich: { label: "Rich to warranted", short: "Rich", tone: "warning" },
-    cheap: { label: "Cheap to warranted", short: "Cheap", tone: "good" },
   };
 
   function statusInfo(status) {
@@ -5794,9 +5791,9 @@ a.tv-tile:hover .tv-tile__label {
 
   /*
    * ?theme=dark or ?theme=light stamps data-theme on the root, so a headless
-   * screenshot can force either theme. With no query the page opens dark, the
-   * way the investing app does, unless the system asks for light. Done at once
-   * rather than at boot, so the page never paints in the wrong one first.
+   * screenshot can force either theme. With no query the page opens dark,
+   * unless the system asks for light. Done at once rather than at boot, so the
+   * page never paints in the wrong one first.
    */
   function stampTheme() {
     var match = /[?&]theme=(dark|light)(?:&|#|$)/.exec(global.location ? global.location.search : "");
@@ -7317,28 +7314,6 @@ a.tv-tile:hover .tv-tile__label {
         kpis: { wide: true, data: tableData("kpis"), after: kpiSources },
       },
     });
-  });
-})(window.TV);
-</script>
-<script data-asset="sections/reading.js">
-/*
- * Section renderer: reading.
- *
- * Four figures, in the order the argument runs:
- *   - every fact as each reader read it;
- *   - the errors by kind;
- *   - how often the search put the answer in front of the readers;
- *   - what the Claude readings were recorded from.
- * Each is a kit kind as it stands (table, hbar, tiles), so the kit's figure
- * loop draws them with their source lines and refusal routing.
- */
-(function (TV) {
-  "use strict";
-
-  var ORDER = ["readings", "errors", "retrieval", "recording"];
-
-  TV.sections.register("reading", function (root, data) {
-    return TV.sections.figures(root, data, { order: ORDER });
   });
 })(window.TV);
 </script>

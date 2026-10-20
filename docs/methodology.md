@@ -367,8 +367,8 @@ reproducible runs.
 
 This package originally targeted Stooq, which now answers plain HTTP clients
 with a JavaScript proof-of-work challenge rather than CSV. Defeating a bot check
-the operator deliberately erected is not something this package will do, so the
-Stooq source raises an explanatory error pointing at the alternatives.
+the operator deliberately erected is not something this package will do, so it
+has no Stooq source.
 
 **Risk-free rate.** The 10-year constant-maturity Treasury yield from the
 Treasury's daily yield curve feed, the last one published on or before the

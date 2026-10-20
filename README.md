@@ -11,7 +11,7 @@ engine's three terminal values; the third prints in the run below.*
 
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Twenty-three commands, 2,512
+the US Treasury daily curve for the risk-free rate. Twenty-one commands, 2,255
 tests, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
@@ -1393,9 +1393,8 @@ DIS               12.7%           -1.1%              1,398 of 1,662
 ```
 
 `--price` asks what any other price assumes and `--json` prints the whole
-result. The same reading sits on every valued holding in `techval invest`, with
-the same-size count as its own tile, and on the results dashboard's valuation
-engine section, with the quarterly history as a chart. Methodology section 6.6
+result. The same reading sits on the results dashboard's valuation engine
+section, with the quarterly history as a chart. Methodology section 6.6
 sets out the brackets, the base rates, the history and the screen.
 
 ### Bear, base and bull
@@ -1420,9 +1419,8 @@ At 225.27 the price is above even the bull case, 3.1 times it.
 Scored on company-years it had not seen, the 10th-to-90th percentile band held
 69.1% against a nominal 80%, with most misses above it, and the command prints
 that beside the scenarios. The screen shows where each price sits against its
-own three, `techval invest` gives every valued holding a scenario tile, and the results
-dashboard charts them against the close. Methodology section 6.7 has the
-construction and the calibration.
+own three, and the results dashboard charts them against the close. Methodology
+section 6.7 has the construction and the calibration.
 
 ### The record case
 
@@ -1567,99 +1565,6 @@ record it does not.
 
 ---
 
-### Reading filings
-
-`techval rag` reads facts that filings state in prose: operating figures in a
-10-K's Item 7, and the terms of a merger announcement. It answers each question
-three ways. A Claude reader reads the passages BM25 retrieves, and the regex
-rules techval already has run on the same passages and again on the whole
-text. A Claude answer counts only if its quote is in the passage it cites and
-its value is in that quote.
-
-    techval rag template   write the blank answer key to tests/fixtures/rag/answer_key.csv
-    techval rag record     record the Claude reader's answers (pip install 'techval[rag]',
-                           Anthropic credentials, about one to two dollars a full run)
-    techval rag score      score both readers against the filled-in key
-
-The Claude reader's requests and responses are committed under
-`tests/fixtures/rag/recordings/` and replayed, so the Reading filings section and
-the tests run offline with no SDK and no key. The section scores nothing until
-the key is filled in and every request is recorded. The design is in
-`docs/superpowers/specs/2026-09-16-rag-filing-reader-design.md`.
-
-## The investing dashboard
-
-`techval invest` turns the engine on a portfolio: your own holdings, tracked
-from a transaction ledger you keep in a plain YAML file, rendered as a single
-dark-first page in the same visual system as the results dashboard. A demo
-built from a fictional book is committed at `docs/invest/index.html`; open it
-from a checkout and click through the rail.
-
-    techval invest init                write a commented starter portfolio.yaml under portfolio/
-    techval invest add buy NET 5 80.5  append one transaction, replaying the ledger first
-    techval invest check               replay the ledger offline and print what it holds
-    techval invest                     refresh quotes, run the engine, render the page, print the headline
-    techval invest export realized     write realized sales as CSV in Form 8949 columns (or lots, activity)
-
-    --render      redraw the page from the last snapshot, touching nothing
-    --open        open the page in the browser once it is written
-    --offline     price from local CSVs and skip the live DCFs
-    --benchmark   compare against another symbol, QQQ say, for one run
-    --max-age     hours a cached price or filing stays fresh, 20 by default
-    --refit       refit the fade and warranted models instead of loading them
-    --panels      point at a checkout's tests/fixtures from an installed copy
-    --quiet       print only warnings and errors, for a scheduled run
-
-`add` takes `buy`/`sell`/`transfer_in SYMBOL SHARES PRICE`,
-`deposit`/`withdraw`/`interest`/`fee AMOUNT`, `dividend SYMBOL AMOUNT` or
-`split SYMBOL RATIO`, with `--date`, `--fee`, `--acquired`, `--kind` and
-`--note`. It inserts a line rather than rewriting the file, so your comments
-survive, and a row the ledger cannot hold, an overdraft say, leaves the file
-untouched; `check` and a full run both name a row entered twice. A trade's fee
-joins a buy's cost basis and comes off a sell's proceeds. `interest` and `fee`
-rows are cash the account earned or paid, so they count as return where a
-deposit does not. `transfer_in` brings shares from another broker at their
-original basis and purchase date, moving no cash; the time-weighted return
-counts the arrival as money moved in at that day's close, never as a gain.
-
-A holding the price source cannot quote, a delisting or a typo, is valued at
-your last trade price and named on the page and in the terminal, rather than
-taking the run down. The page prints as a statement: the rail and controls
-drop, and gains and losses print in ink colours on white.
-
-The two model fits take about nine seconds and are cached in `ml.cache_dir`,
-keyed on the panels and the code that fits them, so a second run takes about
-three. Prices and filings refresh once a day, where the valuation commands
-keep every response for ever so a memo reproduces; `techval cache info` shows
-what that has cost on disk and `techval cache prune --older-than 90` trims it.
-Prices are dated: the page names the session they closed in rather
-than saying today, flags a holding that closed in a different session from
-the benchmark, and warns when the last close is more than four days old. The
-ledger records splits as they happened and the price sources restate history
-for them, so each day's holding is converted into post-split units before it
-is valued; a split never shows up as a gain.
-
-Seven panes, reachable with the keys 1 to 7. Overview: the balance, the day,
-and growth of a dollar against the benchmark over 1M, 3M, YTD, 1Y or all of
-it, time-weighted so deposits are not performance. Holdings: the sortable
-book with the warranted call on every covered name. Performance: annualized
-return, volatility and max drawdown beside the benchmark's with the drawdown
-charted, contribution in dollars, dividend income by year, realized gains by
-tax year split short and long term, and the open lots at FIFO cost. Engine read: the DCF
-against the price, traded against warranted, and the fitted fade against the
-typed line, each with the verdict its model earned. Hygiene: concentration,
-exposure through the engine's own sub-verticals, and drift against targets
-you set yourself. Ideas: the screen's cheapest and richest, led by the
-recorded fact that this signal lost to a random score on forward returns.
-Activity: the ledger itself.
-
-Two lines matter more than the features. The `portfolio/` directory is
-gitignored, so your ledger, snapshot and page never leave your machine except
-as price and filing requests. And nothing on the page is advice: ETFs and
-crypto are priced and weighed but never valued from filings, every valuation
-sits beside its baseline, and the pane closest to a tip sheet opens with the
-measurement that would deflate it.
-
 ## Install
 
 Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
@@ -1676,7 +1581,7 @@ engine refuses to start without `TECHVAL_SEC_EMAIL`.
 
 ## Usage
 
-Twenty-three commands in seven groups.
+Twenty-one commands in six groups.
 
 ```bash
 # Core valuation
@@ -1711,12 +1616,8 @@ uv run techval signal --config assumptions.yaml         # test a score against f
 uv run techval precedents RAMP,PAYO,IRDM,SLAB --config assumptions.yaml
 uv run techval targets --dataset tests/fixtures/mna --config assumptions.yaml
 
-# Reading filings
-uv run techval rag score                                # the Claude reader against the regex one
-
 # Pages and housekeeping
 uv run techval dashboard --config docs/dashboard/assumptions.yaml --collect   # the results page, from the fixtures
-uv run techval invest                                   # your portfolio, on a private page
 uv run techval cache info                               # what the HTTP cache holds
 ```
 
@@ -2191,10 +2092,9 @@ filers.
 uv run pytest
 ```
 
-2,512 tests in about four minutes: 496 over `techval.tmt`, 518 over
-`techval.ml`, 405 over the dashboard, 154 over the investing dashboard, 100 over
-the filing reader, 70 over the reverse DCF and its scenarios and 20 over the
-tearsheet and the comparison. GitHub Actions runs the whole
+2,255 tests in about five minutes: 496 over `techval.tmt`, 523 over
+`techval.ml`, 399 over the dashboard, 70 over the reverse DCF and its scenarios
+and 20 over the tearsheet and the comparison. GitHub Actions runs the whole
 suite on Python 3.11 and 3.12 for every push to `main` and every pull request.
 No test touches the network, and none touches your home directory: the suite
 runs with a throwaway one, so no fit or response a real run cached under
@@ -2271,9 +2171,9 @@ real contact address. These two are not held to the same standard.
 The package originally targeted Stooq for prices. Stooq now answers plain HTTP
 clients with a JavaScript proof-of-work challenge instead of CSV. Defeating a
 bot check the operator deliberately erected is not something this package will
-do, so the Stooq source raises an explanatory error and points at the
-alternatives. Sources sit behind one interface, and a local CSV source makes a
-valuation reproducible offline years later. That is what the backtest runs on.
+do, so there is no Stooq source. Sources sit behind one interface, and a local
+CSV source makes a valuation reproducible offline years later. That is what the
+backtest runs on.
 
 All HTTP responses are cached by request URL under `~/.techval/cache`, so the
 same ticker and the same assumptions produce identical output on every run.

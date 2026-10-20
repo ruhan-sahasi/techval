@@ -48,7 +48,7 @@ def tearsheet(
     from .config import ml_cache_root
     from .dashboard.collect import techval_commit
     from .dashboard.render import write_dashboard
-    from .invest.engine_read import FADE_PANEL
+    from .ml.panels import FADE_PANEL
     from .tearsheet import RecordedFacts, build_tearsheet
 
     symbol = ticker.upper()
@@ -123,7 +123,7 @@ def compare(
     from .config import ml_cache_root
     from .dashboard.collect import techval_commit
     from .dashboard.render import write_dashboard
-    from .invest.engine_read import FADE_PANEL
+    from .ml.panels import FADE_PANEL
     from .tearsheet import RecordedFacts
 
     directory = Path(panels) if panels else CHECKOUT_PANELS
