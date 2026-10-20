@@ -36,7 +36,6 @@ SECTION_IDS = (
     "propensity",
     "engine",
     "tmt",
-    "reading",
     "datalayer",
     "sample",
 )
