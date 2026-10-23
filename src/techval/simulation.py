@@ -2,12 +2,12 @@
 
 A discounted cash flow prints one number. That number is a function of four
 judgments no one can observe, so the honest output is a distribution and a
-probability statement about it. This module draws year-one revenue growth, the
-terminal EBIT margin, the discount rate and terminal growth together, revalues
-the company on every draw, and reports the percentiles of value per share,
-the percentiles of enterprise value, and the probability that value clears the
-quoted price. Money is USD millions, share counts are millions, per-share
-figures are dollars.
+probability statement about it. This module draws revenue growth, in year one
+or across the whole path, the terminal EBIT margin, the discount rate and
+terminal growth together, revalues the company on every draw, and reports the
+percentiles of value per share, the percentiles of enterprise value, and the
+probability that value clears the quoted price. Money is USD millions, share
+counts are millions, per-share figures are dollars.
 
 **The draw is joint, and that is the whole point.** The commonest error in DCF
 Monte Carlo is four independent normals. Independence asserts that a company
