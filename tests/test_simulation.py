@@ -263,6 +263,10 @@ def _configure(assumptions, case):
     elif case == "nol":
         cfg.nol.track = True
         cfg.nol.opening_balance = 2_000.0
+    elif case == "nol_through_year_n":
+        # Still sheltering in the terminal year, so the perpetuity's tax matters.
+        cfg.nol.track = True
+        cfg.nol.opening_balance = 50_000.0
     elif case == "end_year_discounting":
         cfg.mid_year_convention = False
     elif case == "one_year":
@@ -288,6 +292,7 @@ def _configure(assumptions, case):
         "sbc_addback_diluted",
         "sbc_addback_undiluted",
         "nol",
+        "nol_through_year_n",
         "end_year_discounting",
         "one_year",
         "twelve_years",

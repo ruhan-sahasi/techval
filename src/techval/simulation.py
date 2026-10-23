@@ -607,7 +607,10 @@ class _Engine:
             safe_roic = np.where(formed, roic, 1.0)
             terminal = safe_nopat * (1.0 - g / safe_roic) / (wacc - g)
         else:
-            terminal = fcff * (1.0 + g) / (wacc - g)
+            # Taxed in full, as the scalar path's perpetuity is: the carryforward
+            # sheltering year N runs out, so its shelter is not grown for ever.
+            full_rate = fcff + cash_taxes - self.tax_rate * np.maximum(ebit, 0.0)
+            terminal = full_rate * (1.0 + g) / (wacc - g)
 
         ev = pv_explicit + terminal * (1.0 + wacc) ** (-exponent)
         value = (ev + self.equity_offset) / shares
