@@ -653,6 +653,45 @@ def test_the_tornado_centres_on_the_scalar_valuation(
         assert low < scalar.per_share < high
 
 
+def _moved(assumptions, driver, value, path):
+    """The assumptions with one tornado driver at ``value``, as run_dcf reads it."""
+    moved = assumptions.model_copy(deep=True)
+    cfg = moved.dcf
+    if driver == "revenue_growth":
+        if path:
+            cfg.revenue_growth_terminal += value - cfg.revenue_growth_start
+        cfg.revenue_growth_start = value
+    elif driver == "terminal_margin":
+        cfg.ebit_margin_terminal = value
+    elif driver == "wacc":
+        cfg.wacc_override = value
+    else:
+        cfg.terminal_growth = value
+    return moved
+
+
+@pytest.mark.parametrize("shock", ["year_one", "path"])
+@pytest.mark.parametrize(
+    "case", ["gordon", "value_driver", "nol_through_year_n", "end_year_discounting", "one_year"]
+)
+def test_every_tornado_end_is_run_dcf_with_that_driver_moved(
+    ddog, ddog_bridge, wacc_result, sim, case, shock
+):
+    """The central draw agreeing says nothing about a shocked one.
+
+    The bars are valued by the vectorised engine, and a balance left at year N
+    is valued there at each draw's own rate, growth and margin, so the ends of
+    the bars are where the two paths would part if they were going to.
+    """
+    _configure(sim, case)
+    sim.simulation.growth_shock = shock
+    for bar in tornado(ddog, ddog_bridge, wacc_result, sim):
+        for value, price in ((bar.low_value, bar.low_price), (bar.high_value, bar.high_price)):
+            moved = _moved(sim, bar.driver, value, path=shock == "path")
+            scalar = run_dcf(ddog, ddog_bridge, wacc_result, moved).per_share
+            assert price == pytest.approx(scalar, rel=1e-12), (bar.driver, value)
+
+
 def test_a_driver_pinned_at_zero_spread_has_no_swing(
     ddog, ddog_bridge, wacc_result, sim
 ):
