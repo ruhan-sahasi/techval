@@ -744,6 +744,56 @@ def test_the_gordon_perpetuity_pays_tax_at_the_full_rate(
     assert not any("inherits reinvestment" in c for c in d.checks)
 
 
+def test_the_balance_left_at_year_n_is_worth_the_tax_it_stops_until_it_runs_out(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """A balance unused at year N is an asset, and a finite one.
+
+    Each year after N it shelters the limitation's share of EBIT at the terminal
+    margin, growing at g, until it is gone. Rebuilt here by hand, year by year.
+    """
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.exit_multiple = 20.0
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    last = d.projections[-1]
+    assert last.nol_closing > 0
+
+    cfg = assumptions.dcf
+    rate = assumptions.tax.marginal_tax_rate
+    balance = last.nol_closing
+    ebit = cfg.ebit_margin_terminal * last.revenue * (1 + cfg.terminal_growth)
+    t, pv = len(d.projections) + 0.5, 0.0
+    while balance > 0:
+        used = min(balance, cfg.nol.annual_limitation_pct * ebit)
+        balance -= used
+        pv += rate * used / (1 + PINNED_WACC) ** t
+        ebit *= 1 + cfg.terminal_growth
+        t += 1
+    assert d.carryforward_value == pytest.approx(pv)
+
+    # Added once to every method's enterprise value, beside its terminal value.
+    explicit = sum(p.pv for p in d.projections)
+    assert d.enterprise_value_gordon == pytest.approx(explicit + d.terminal_gordon.pv + pv)
+    assert d.enterprise_value_exit == pytest.approx(explicit + d.terminal_exit.pv + pv)
+    line = next(c for c in d.checks if "unused at the end of year" in c)
+    assert f"{pv:,.0f}mm" in line
+
+
+def test_a_balance_spent_inside_the_projection_is_worth_nothing_after_it(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assert run_dcf(ddog, ddog_bridge, wacc_result, assumptions).carryforward_value == 0.0
+
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 2_000.0
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    assert d.projections[-1].nol_closing == 0.0
+    assert d.carryforward_value == 0.0
+
+
 def test_the_grid_centre_is_the_headline_with_a_carryforward(
     ddog, ddog_bridge, assumptions, wacc_result
 ):
