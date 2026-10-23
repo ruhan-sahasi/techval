@@ -7,6 +7,7 @@ import pytest
 
 from techval.config import Assumptions
 from techval.dcf import (
+    carryforward_value,
     discount_factors,
     exit_multiple_terminal_value,
     gordon_terminal_value,
@@ -783,6 +784,43 @@ def test_the_balance_left_at_year_n_is_worth_the_tax_it_stops_until_it_runs_out(
     )
     line = next(c for c in d.checks if "unused at the end of year" in c)
     assert f"{pv:,.0f}mm" in line
+
+
+def test_a_balance_after_year_n_shelters_nothing_in_a_loss_and_keeps_the_clock():
+    """The function on its own, where every figure can be written down.
+
+    A 100mm balance against 1,000mm of EBIT is spent in year N+1, so its whole
+    value is one year's tax at that year's discount: a half-year earlier under
+    the mid-year convention, as the projection's own flows are.
+    """
+    rate, limit = 0.21, 0.80
+    end = carryforward_value(100.0, 1_000.0, 0.03, 0.10, 5, False, rate, limit)
+    mid = carryforward_value(100.0, 1_000.0, 0.03, 0.10, 5, True, rate, limit)
+    assert isinstance(end, float)
+    assert end == pytest.approx(rate * 100.0 / 1.10**6)
+    assert mid == pytest.approx(rate * 100.0 / 1.10**5.5)
+
+    # The limitation binds: 80% of 100mm shelters 80mm a year, then the rest.
+    slow = carryforward_value(100.0, 100.0, 0.0, 0.10, 5, False, rate, limit)
+    assert slow == pytest.approx(rate * (80.0 / 1.10**6 + 20.0 / 1.10**7))
+
+    # A loss year has no taxable income for the balance to shelter.
+    assert carryforward_value(1_000.0, -50.0, 0.03, 0.10, 5, True, rate, limit) == 0.0
+
+
+def test_a_carryforward_on_arrays_is_each_draw_valued_on_its_own():
+    """The Monte Carlo values every draw's balance at once, on its own rate and growth."""
+    balances = np.array([0.0, 100.0, 5_000.0, 40_000.0])
+    ebit = np.array([1_000.0, -10.0, 1_500.0, 2_000.0])
+    growth = np.array([0.02, 0.025, 0.03, 0.01])
+    rates = np.array([0.08, 0.10, 0.12, 0.09])
+    together = carryforward_value(balances, ebit, growth, rates, 5, True, 0.21, 0.80)
+
+    assert together.shape == balances.shape
+    for b, e, g, r, v in zip(balances, ebit, growth, rates, together):
+        alone = carryforward_value(b, e, g, r, 5, True, 0.21, 0.80)
+        assert v == pytest.approx(alone, rel=1e-12)
+    assert together[0] == together[1] == 0.0
 
 
 def test_a_balance_spent_inside_the_projection_is_worth_nothing_after_it(
