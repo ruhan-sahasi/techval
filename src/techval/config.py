@@ -172,7 +172,11 @@ class SimulationAssumptions(_Base):
         description="Fixed so a distribution is reproducible; this is a model, not a lottery.",
     )
     revenue_growth_sd: float = Field(
-        0.04, description="Standard deviation on the year-one growth rate, absolute."
+        0.04,
+        description=(
+            "Standard deviation on the revenue growth draw, absolute: year-one growth "
+            "by default, every explicit year's under growth_shock: path."
+        ),
     )
     terminal_margin_sd: float = Field(
         0.04, description="Standard deviation on the terminal EBIT margin, absolute."
