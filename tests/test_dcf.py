@@ -714,6 +714,48 @@ def test_tracking_without_a_balance_anywhere_is_an_error(
     assert "nol.opening_balance" in str(exc.value)
 
 
+def _full_rate_flow(year, rate):
+    """Year N's free cash flow had it paid tax at the full rate on its EBIT."""
+    return year.fcff + year.cash_taxes - rate * max(year.ebit, 0.0)
+
+
+def test_the_gordon_perpetuity_pays_tax_at_the_full_rate(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """A carryforward still sheltering year N runs out; the perpetuity cannot keep it.
+
+    The value-driver steady state already taxes year N+1 at the full rate.
+    Growing year N's sheltered flow for ever instead would capitalise a shield
+    the balance cannot pay for, and the two terminal methods would disagree for
+    a reason that has nothing to do with growth or returns.
+    """
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0  # still sheltering in year N
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    last = d.projections[-1]
+    assert last.nol_used > 0
+
+    flow = _full_rate_flow(last, assumptions.tax.marginal_tax_rate)
+    g = assumptions.dcf.terminal_growth
+    assert flow < last.fcff
+    assert d.terminal_gordon.value == pytest.approx(flow * (1 + g) / (PINNED_WACC - g))
+    # No reinvestment flag fires on what is only a difference in tax.
+    assert not any("inherits reinvestment" in c for c in d.checks)
+
+
+def test_the_grid_centre_is_the_headline_with_a_carryforward(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    grid = sensitivity_wacc_growth(ddog, ddog_bridge, assumptions, PINNED_WACC)
+    centre = grid.iloc[len(grid) // 2, len(grid.columns) // 2]
+    assert centre == pytest.approx(d.per_share_gordon)
+
+
 def test_the_carryforward_columns_stay_off_the_page_when_unused(
     ddog, ddog_bridge, assumptions, wacc_result
 ):

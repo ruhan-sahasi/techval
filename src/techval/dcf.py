@@ -233,6 +233,16 @@ class ProjectionYear:
         """Post-rent, per ASC 842, matching the comps denominator."""
         return self.ebit + self.da
 
+    @property
+    def fcff_taxed_in_full(self) -> float:
+        """The year's free cash flow had the carryforward sheltered nothing.
+
+        A carryforward is finite, so this is the flow a perpetuity may grow: a
+        sheltered year N grown for ever would capitalise a shield the balance
+        cannot pay for.
+        """
+        return self.fcff + self.cash_taxes - self.taxes
+
 
 @dataclass
 class TerminalValue:
@@ -878,7 +888,7 @@ def run_dcf(
     steady = _steady_state(terminal, g, assumptions, tax_rate)
 
     # -- Gordon ------------------------------------------------------------ #
-    tv_gordon = gordon_terminal_value(terminal.fcff, wacc, g)
+    tv_gordon = gordon_terminal_value(terminal.fcff_taxed_in_full, wacc, g)
     pv_gordon = _pv_terminal_gordon(tv_gordon, wacc, n, cfg.mid_year_convention)
     ev_gordon = pv_explicit + pv_gordon
     # Restated onto the exit method's clock so the two cross-checks convert
@@ -943,7 +953,7 @@ def run_dcf(
             value=tv_exit,
             pv=pv_exit,
             implied_exit_multiple=multiple,
-            implied_growth=_implied_growth(equivalent, terminal.fcff, wacc),
+            implied_growth=_implied_growth(equivalent, terminal.fcff_taxed_in_full, wacc),
             pct_of_ev=pv_exit / ev_exit if ev_exit else float("nan"),
             note=(
                 f"{multiple:.1f}x terminal EBITDA of {terminal_ebitda:,.0f}mm, "
@@ -1255,7 +1265,7 @@ def _reinvestment_check(
     out: list[str] = []
 
     fcff_steady = steady.fcff
-    fcff_shortcut = terminal.fcff * (1.0 + g)
+    fcff_shortcut = terminal.fcff_taxed_in_full * (1.0 + g)
     if fcff_shortcut:
         gap = fcff_shortcut / fcff_steady - 1.0 if fcff_steady else float("inf")
         if abs(gap) > 0.02:
@@ -1545,6 +1555,7 @@ def sensitivity_wacc_growth(
     projections = project(fin, assumptions, price=bridge.price)
     n = len(projections)
     fcff = np.array([p.fcff for p in projections])
+    flow = projections[-1].fcff_taxed_in_full
     shares = projections[-1].shares_outstanding
 
     waccs = _grid_axis(wacc, cfg.sensitivity_wacc_step)
@@ -1558,7 +1569,7 @@ def sensitivity_wacc_growth(
         for j, gg in enumerate(growths):
             if gg >= w:
                 continue
-            tv = gordon_terminal_value(float(fcff[-1]), float(w), float(gg))
+            tv = gordon_terminal_value(flow, float(w), float(gg))
             ev = pv_explicit + _pv_terminal_gordon(
                 tv, float(w), n, cfg.mid_year_convention
             )
