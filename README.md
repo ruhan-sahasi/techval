@@ -1878,12 +1878,10 @@ annual use of a carryforward after a change of control, so any deal case here
 overstates the shield; state carryforwards, with their own expiry and
 apportionment; and the valuation allowance, so the balance used is the gross
 federal carryforward rather than the deferred tax asset the filer believes it
-will realise. The residual balance at year N is not carried into the terminal
-value either, which is struck at the full rate. Working capital is anchored on
-a ratio, not on the balance sheet: the year one change is measured against
-`nwc_pct_revenue` applied to TTM revenue rather than against the reported
-balance, which keeps the path internally consistent at the cost of ignoring
-where the balance sheet actually starts.
+will realise. Working capital is anchored on a ratio, not on the balance sheet:
+the year one change is measured against `nwc_pct_revenue` applied to TTM revenue
+rather than against the reported balance, which keeps the path internally
+consistent at the cost of ignoring where the balance sheet actually starts.
 
 The Monte Carlo shocks only year-one revenue growth. The path still fades to an
 unshocked terminal growth rate, so the spread on the final explicit year is

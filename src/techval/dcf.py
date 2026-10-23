@@ -71,10 +71,13 @@ carryforward after a change of control at roughly the equity value times the
 long-term tax-exempt rate, so any deal case here overstates the shield; state
 carryforwards, which have their own expiry rules and apportionment; and the
 valuation allowance, so the balance used is the gross federal carryforward and
-not the deferred tax asset the filer believes it will realise. Nor is the
-residual balance carried into the terminal value, which is struck at the full
-rate, so a large unused balance at year N is worth something this model does not
-count.
+not the deferred tax asset the filer believes it will realise.
+
+The perpetuity is taxed at the full rate, because a carryforward runs out and a
+sheltered year N grown for ever would capitalise a shield the balance cannot pay
+for. Whatever survives year N is valued on its own instead: it shelters the
+limitation's share of EBIT at the terminal margin, growing at g, until it is
+gone, and that tax, discounted, is added once beside the terminal value.
 
 **Terminal value the value-driver way.** The Gordon path assumes capex and
 working capital in the terminal year and leaves the implied return on capital to
