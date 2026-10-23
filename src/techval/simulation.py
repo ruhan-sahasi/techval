@@ -183,6 +183,7 @@ def _named(driver: str, shift_path: bool) -> tuple[str, str, str]:
         return _PATH_GROWTH
     return DRIVER_LABELS[driver], DRIVER_PROSE[driver], DRIVER_PATHS[driver]
 
+
 # The joint view of the four drivers. Signs are argued in the module docstring;
 # every omitted pair is zero. Edit this to change the shape of the distribution.
 DRIVER_CORRELATIONS: dict[tuple[str, str], float] = {
@@ -401,11 +402,12 @@ class DriverSensitivity:
     ``low_value`` and ``high_value`` are the driver's own values, not shocks, so
     the bar can be read without reference to the standard deviation that
     produced it. ``assumption`` names the line of the assumptions file the
-    driver moves, two lines for growth when the whole path is shocked. ``low_price`` is the value per share at ``low_value``, which for
-    the WACC driver is the HIGHER of the two prices, since value falls as the
-    discount rate rises. ``swing`` is the absolute gap and is what the ordering
-    uses, because the question a tornado answers is which assumption moves the
-    answer most, not in which direction.
+    driver moves, two lines for growth when the whole path is shocked.
+    ``low_price`` is the value per share at ``low_value``, which for the WACC
+    driver is the HIGHER of the two prices, since value falls as the discount
+    rate rises. ``swing`` is the absolute gap and is what the ordering uses,
+    because the question a tornado answers is which assumption moves the answer
+    most, not in which direction.
     """
 
     driver: str
