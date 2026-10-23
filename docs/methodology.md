@@ -1790,10 +1790,17 @@ inputs. For Datadog the two agree at a relative gap of zero. A disagreement
 raises rather than prints: if the two paths have diverged, the distribution is
 centred on a number the rest of the engine does not report.
 
-**Limitations left in.** Only year-one revenue growth is shocked, matching the
-assumption the config exposes, so the fade converges on an unshocked terminal
-revenue growth rate and the spread on the final explicit year is narrower than a
-parallel shift of the whole path would give. The exit-multiple terminal value is
+**One year of growth, or the whole path.** By default only year-one revenue
+growth is shocked, matching the assumption the config exposes, so the fade
+converges on an unshocked terminal revenue growth rate and the spread on the
+final explicit year is narrower than a parallel shift of the whole path would
+give. `simulation.growth_shock: path` draws that shift instead: every explicit
+year moves by the growth draw, year N included, and the tornado's growth bar
+names both ends of the fade. On Datadog, CrowdStrike, MongoDB and Zscaler it
+widens the standard deviation of value by 23% to 26%, and the central draw is
+unchanged.
+
+**Limitations left in.** The exit-multiple terminal value is
 not simulated, because the exit multiple is not one of the drawn drivers and
 sampling a peer median alongside terminal growth would put two competing terminal
 assumptions into one histogram. And the distribution is over assumptions, not

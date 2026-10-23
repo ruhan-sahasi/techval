@@ -107,10 +107,15 @@ it against ``run_dcf`` on the same inputs. A disagreement raises rather than
 prints: if the two paths have diverged, the distribution is around a number the
 rest of the engine does not report.
 
-**Limitations left in.** Only year-one revenue growth is shocked, matching the
-assumption the config exposes, so the fade converges on an unshocked terminal
-revenue growth rate and the spread on the final explicit year is narrower than
-a parallel shift of the whole path would give. The exit-multiple terminal value
+**One year of growth, or the whole path.** By default only year-one revenue
+growth is shocked, matching the assumption the config exposes, so the fade
+converges on an unshocked terminal revenue growth rate and the spread on the
+final explicit year is narrower than a parallel shift of the whole path would
+give. ``simulation.growth_shock: path`` draws that shift instead, moving every
+explicit year by the growth draw, and on the four fixture companies it widens
+the standard deviation of value by about a quarter.
+
+**Limitations left in.** The exit-multiple terminal value
 is not simulated: the exit multiple is not one of the drawn drivers, and
 sampling a peer median alongside terminal growth would put two competing
 terminal assumptions into one histogram. The distribution is over assumptions,
