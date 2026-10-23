@@ -1915,13 +1915,6 @@ roll-forward needs D&A, capex and pre-tax income and refuses where a filer does
 not tag them: CrowdStrike as an acquirer fails on the D&A tag, the same gap
 that makes its EV/EBITDA non-meaningful in the comp table.
 
-**The CLI cannot render the multi-year pro forma.** With
-`merger.purchase_accounting.enabled` the model computes correctly and the
-opening balance sheet prints, then `_render_purchase_accounting` passes each
-`(year, dollars, percent)` tuple from `accretion_by_year` to a formatter
-expecting a float and raises `TypeError`. The figures are reachable from the
-Python API. The renderer is not fixed yet.
-
 Left at its default the merger module is a screen: no opening balance sheet, no
 goodwill, no deferred tax on the step-up, no deferred revenue haircut, no debt
 paydown. Year-one EPS on two sets of TTM figures tells you the shape of a deal
