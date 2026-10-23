@@ -12,6 +12,7 @@ from techval.dcf import (
     gordon_terminal_value,
     project,
     run_dcf,
+    sensitivity_wacc_exit,
     sensitivity_wacc_growth,
     value_driver_terminal_value,
 )
@@ -777,6 +778,9 @@ def test_the_balance_left_at_year_n_is_worth_the_tax_it_stops_until_it_runs_out(
     explicit = sum(p.pv for p in d.projections)
     assert d.enterprise_value_gordon == pytest.approx(explicit + d.terminal_gordon.pv + pv)
     assert d.enterprise_value_exit == pytest.approx(explicit + d.terminal_exit.pv + pv)
+    assert d.enterprise_value_value_driver == pytest.approx(
+        explicit + d.terminal_value_driver.pv + pv
+    )
     line = next(c for c in d.checks if "unused at the end of year" in c)
     assert f"{pv:,.0f}mm" in line
 
@@ -804,6 +808,24 @@ def test_the_grid_centre_is_the_headline_with_a_carryforward(
     grid = sensitivity_wacc_growth(ddog, ddog_bridge, assumptions, PINNED_WACC)
     centre = grid.iloc[len(grid) // 2, len(grid.columns) // 2]
     assert centre == pytest.approx(d.per_share_gordon)
+
+
+def test_the_exit_grid_centre_is_the_exit_value_with_a_carryforward(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """Each row values the balance at its own rate, and the centre row is the headline's."""
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.exit_multiple = 20.0
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    assert d.carryforward_value > 0
+
+    grid = sensitivity_wacc_exit(ddog, ddog_bridge, assumptions, PINNED_WACC)
+    centre = grid.iloc[len(grid) // 2, len(grid.columns) // 2]
+    assert centre == pytest.approx(d.per_share_exit)
+    # A higher rate is worth less in every column, the balance after N included.
+    assert (grid.diff().iloc[1:] < 0).all().all()
 
 
 def test_the_carryforward_columns_stay_off_the_page_when_unused(
