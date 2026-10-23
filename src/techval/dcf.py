@@ -1703,15 +1703,15 @@ def sensitivity_wacc_exit(
 
     tax_rate, _ = _tax_rate(fin, assumptions)
     for i, w in enumerate(waccs):
+        pv_explicit = float(
+            np.sum(fcff * discount_factors(n, float(w), cfg.mid_year_convention))
+        )
         left = _carryforward_after(
             projections[-1], assumptions, tax_rate, float(w), cfg.terminal_growth
         )
-        pv_explicit = left + float(
-            np.sum(fcff * discount_factors(n, float(w), cfg.mid_year_convention))
-        )
         for j, m in enumerate(multiples):
             tv = exit_multiple_terminal_value(terminal_ebitda, float(m))
-            ev = pv_explicit + _pv_terminal_exit(tv, float(w), n)
+            ev = pv_explicit + _pv_terminal_exit(tv, float(w), n) + left
             grid[i, j] = _per_share(ev, bridge, shares)
 
     frame = pd.DataFrame(
