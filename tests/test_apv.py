@@ -239,6 +239,21 @@ def test_net_cash_datadog_reconciles_to_the_wacc_answer(ddog, assumptions, marke
     assert any("the same calculation" in note for note in result.notes)
 
 
+def test_a_carryforward_left_at_year_n_reaches_apv_as_it_reaches_the_wacc_value(
+    ddog, assumptions, market
+):
+    """With no debt APV is the WACC DCF run again, the balance after year N included."""
+    assumptions.convertibles.conversion_price = DDOG_CONVERSION_PRICE
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0
+    _, _, dcf_result, result = _stack(ddog, assumptions, market)
+
+    assert dcf_result.carryforward_value > 0
+    assert result.total_value == pytest.approx(
+        dcf_result.enterprise_value_gordon, rel=1e-12
+    )
+
+
 def test_no_debt_returns_a_zero_shield_rather_than_dividing_by_leverage(
     ddog, assumptions, market
 ):
