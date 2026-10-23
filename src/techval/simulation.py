@@ -164,6 +164,20 @@ DRIVER_PROSE = {
     "terminal_growth": "terminal growth",
 }
 
+# Under ``simulation.growth_shock: path`` the growth draw moves the whole fade.
+_PATH_GROWTH = (
+    "Revenue growth, every year",
+    "revenue growth in every explicit year",
+    "dcf.revenue_growth_start and dcf.revenue_growth_terminal",
+)
+
+
+def _named(driver: str, shift_path: bool) -> tuple[str, str, str]:
+    """A driver's label, its name inside a sentence, and the assumption it moves."""
+    if shift_path and driver == "revenue_growth":
+        return _PATH_GROWTH
+    return DRIVER_LABELS[driver], DRIVER_PROSE[driver], DRIVER_PATHS[driver]
+
 # The joint view of the four drivers. Signs are argued in the module docstring;
 # every omitted pair is zero. Edit this to change the shape of the distribution.
 DRIVER_CORRELATIONS: dict[tuple[str, str], float] = {
@@ -381,7 +395,8 @@ class DriverSensitivity:
 
     ``low_value`` and ``high_value`` are the driver's own values, not shocks, so
     the bar can be read without reference to the standard deviation that
-    produced it. ``low_price`` is the value per share at ``low_value``, which for
+    produced it. ``assumption`` names the line of the assumptions file the
+    driver moves, two lines for growth when the whole path is shocked. ``low_price`` is the value per share at ``low_value``, which for
     the WACC driver is the HIGHER of the two prices, since value falls as the
     discount rate rises. ``swing`` is the absolute gap and is what the ordering
     uses, because the question a tornado answers is which assumption moves the
@@ -395,6 +410,7 @@ class DriverSensitivity:
     low_price: float
     high_price: float
     swing: float
+    assumption: str = ""
 
 
 @dataclass
@@ -452,7 +468,7 @@ class SimulationResult:
         return [
             {
                 "Driver": bar.label,
-                "Assumption": DRIVER_PATHS[bar.driver],
+                "Assumption": bar.assumption or DRIVER_PATHS[bar.driver],
                 "Low": bar.low_value,
                 "High": bar.high_value,
                 "Price at low": bar.low_price,
@@ -506,6 +522,7 @@ class _Engine:
     track_nol: bool
     opening_nol: float
     nol_limit: float
+    shift_path: bool
     method: str
     terminal_roic: float | None
     equity_offset: float
@@ -521,6 +538,8 @@ class _Engine:
         shocks = np.atleast_2d(np.asarray(shocks, dtype=float))
         total = shocks.shape[0]
         growth_start = self.growth_start + shocks[:, 0]
+        # The year-N end of the fade moves too when the whole path is shocked.
+        growth_end = self.growth_terminal + (shocks[:, 0] if self.shift_path else 0.0)
         margin_terminal = self.margin_terminal + shocks[:, 1]
         wacc = self.base_wacc + shocks[:, 2]
         g = self.base_g + shocks[:, 3]
@@ -536,6 +555,7 @@ class _Engine:
             return per_share, enterprise, alive
 
         growth_start = growth_start[keep]
+        growth_end = np.broadcast_to(growth_end, alive.shape)[keep]
         margin_terminal = margin_terminal[keep]
         wacc = wacc[keep]
         g = g[keep]
@@ -543,16 +563,15 @@ class _Engine:
 
         if self.n == 1:
             # A single explicit year is also the terminal year, so the projection
-            # takes the terminal assumptions and the year-one growth driver moves
-            # nothing at all. That matches the scalar path rather than improving
-            # on it: a shock that silently changed meaning with the horizon would
-            # be worse than one that is inert and said to be.
-            growth_path = np.repeat(self.growth_terminal, live)[:, None]
+            # takes the terminal assumptions and a year-one growth shock moves
+            # nothing at all; a whole-path shock moves that one year, as moving
+            # dcf.revenue_growth_terminal would. That matches the scalar path
+            # rather than improving on it: a shock that silently changed meaning
+            # with the horizon would be worse than one that is inert and said to be.
+            growth_path = growth_end[:, None]
             margin_path = margin_terminal[:, None]
         else:
-            growth_path = np.linspace(
-                growth_start, self.growth_terminal, self.n, axis=-1
-            )
+            growth_path = np.linspace(growth_start, growth_end, self.n, axis=-1)
             margin_path = np.linspace(self.margin_start, margin_terminal, self.n, axis=-1)
 
         revenue = np.full(live, self.revenue0)
@@ -669,6 +688,7 @@ def _prepare(
         track_nol=cfg.nol.track,
         opening_nol=_opening_nol(fin, assumptions)[0] if cfg.nol.track else 0.0,
         nol_limit=cfg.nol.annual_limitation_pct,
+        shift_path=assumptions.simulation.growth_shock == "path",
         method=cfg.terminal.method,
         terminal_roic=cfg.terminal.terminal_roic,
         # The walk from enterprise value to equity is linear in the enterprise
@@ -728,23 +748,26 @@ def tornado(
         low, high = prices[2 * k], prices[2 * k + 1]
         if not (alive[2 * k] and alive[2 * k + 1]):
             end = "5th" if not alive[2 * k] else "95th"
+            moved = _named(driver, engine.shift_path)[2]
             raise ConfigError(
-                f"the {end} percentile of {DRIVER_PATHS[driver]} cannot be valued: "
+                f"the {end} percentile of {moved} cannot be valued: "
                 "terminal growth reaches the discount rate, or the terminal value "
                 "cannot be formed, inside the driver's own 90% band. The tornado "
                 "would have a hole in it, and the hole is the finding. Reduce "
                 f"simulation.{driver}_sd, or move the central case away from the "
                 "boundary."
             )
+        label, _, assumption = _named(driver, engine.shift_path)
         bars.append(
             DriverSensitivity(
                 driver=driver,
-                label=DRIVER_LABELS[driver],
+                label=label,
                 low_value=float(centres[k] - _Z95 * sds[k]),
                 high_value=float(centres[k] + _Z95 * sds[k]),
                 low_price=float(low),
                 high_price=float(high),
                 swing=float(abs(high - low)),
+                assumption=assumption,
             )
         )
     bars.sort(key=lambda bar: bar.swing, reverse=True)
@@ -912,10 +935,12 @@ def _notes(
 ) -> list[str]:
     cfg = assumptions.simulation
     matrix = np.eye(len(DRIVERS)) if independent else correlation_matrix(correlations)
+    prose = {d: _named(d, engine.shift_path)[1] for d in DRIVERS}
     out = [
         f"{cfg.draws:,} draws from a multivariate normal seeded at {cfg.seed}, with "
-        f"standard deviations of {cfg.revenue_growth_sd:.1%} on year-one revenue "
-        f"growth, {cfg.terminal_margin_sd:.1%} on the terminal EBIT margin, "
+        f"standard deviations of {cfg.revenue_growth_sd:.1%} on "
+        f"{prose['revenue_growth']}, {cfg.terminal_margin_sd:.1%} on the terminal "
+        "EBIT margin, "
         f"{cfg.wacc_sd:.2%} on the discount rate and "
         f"{cfg.terminal_growth_sd:.2%} on terminal growth."
     ]
@@ -928,7 +953,7 @@ def _notes(
         )
     else:
         pairs = ", ".join(
-            f"{DRIVER_PROSE[a]} and {DRIVER_PROSE[b]} at "
+            f"{prose[a]} and {prose[b]} at "
             f"{matrix[DRIVERS.index(a), DRIVERS.index(b)]:+.2f}"
             for a, b in (
                 ("revenue_growth", "terminal_margin"),
@@ -955,12 +980,20 @@ def _notes(
         "are reported: the tornado says which assumption to argue about, the "
         "distribution says how wide the answer is once they move together."
     )
-    out.append(
-        "Only year-one revenue growth is shocked, so the growth path still fades "
-        f"to an unshocked {engine.growth_terminal:.1%} in year {engine.n}. A "
-        "parallel shift of the whole path would widen the answer materially; this "
-        "is the narrower of the two and the one the assumptions file describes."
-    )
+    if engine.shift_path:
+        out.append(
+            "The growth draw shifts the whole growth path: every explicit year "
+            f"moves by the same amount, year {engine.n} included, so a draw that "
+            "misses year one misses every year after it. That is the wider of the "
+            "two spreads; simulation.growth_shock: year_one shocks year one alone."
+        )
+    else:
+        out.append(
+            "Only year-one revenue growth is shocked, so the growth path still fades "
+            f"to an unshocked {engine.growth_terminal:.1%} in year {engine.n}. A "
+            "parallel shift of the whole path would widen the answer materially, and "
+            "simulation.growth_shock: path draws it; this is the narrower of the two."
+        )
     return out
 
 
@@ -1053,12 +1086,13 @@ def _checks(
 
     widest = bars[0]
     narrowest = bars[-1]
+    path = cfg.growth_shock == "path"
     out.append(
-        f"The tornado is led by {DRIVER_PROSE[widest.driver]}, which swings the "
+        f"The tornado is led by {_named(widest.driver, path)[1]}, which swings the "
         f"price by {widest.swing:,.2f} a share across its 90% band, against "
-        f"{narrowest.swing:,.2f} for {DRIVER_PROSE[narrowest.driver]} at the foot "
+        f"{narrowest.swing:,.2f} for {_named(narrowest.driver, path)[1]} at the foot "
         f"of it. That is the assumption to argue about, and "
-        f"{DRIVER_PATHS[widest.driver]} is the line it comes from."
+        f"{_named(widest.driver, path)[2]} is the line it comes from."
     )
 
     if per_share.sd > 0:

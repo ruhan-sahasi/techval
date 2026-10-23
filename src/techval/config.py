@@ -179,6 +179,15 @@ class SimulationAssumptions(_Base):
     )
     wacc_sd: float = Field(0.010, description="Standard deviation on the discount rate.")
     terminal_growth_sd: float = Field(0.005)
+    growth_shock: Literal["year_one", "path"] = Field(
+        "year_one",
+        description=(
+            "What the revenue growth draw moves. 'year_one' shocks year-one growth and "
+            "lets the fade pull every draw back to the same year-N rate. 'path' shifts "
+            "every explicit year by the same draw, the wider spread, for a company "
+            "whose whole trajectory is in question rather than its next year."
+        ),
+    )
 
 
 class ScenarioAssumptions(_Base):

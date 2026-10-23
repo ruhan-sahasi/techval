@@ -533,6 +533,45 @@ def test_correlated_draws_are_wider_than_independent_ones(
     )
 
 
+def test_a_path_shock_is_the_whole_fade_moved_by_the_draw(
+    ddog, ddog_bridge, wacc_result, sim
+):
+    """Under ``growth_shock: path`` a growth draw shifts every explicit year.
+
+    The tornado's growth bar is two such draws, so its ends have to be run_dcf
+    with both ends of the fade moved by the band, year N included.
+    """
+    sim.simulation.growth_shock = "path"
+    bar = next(
+        b for b in tornado(ddog, ddog_bridge, wacc_result, sim) if b.driver == "revenue_growth"
+    )
+    band = bar.high_value - sim.dcf.revenue_growth_start
+    for value, price in ((bar.low_value, bar.low_price), (bar.high_value, bar.high_price)):
+        moved = sim.model_copy(deep=True)
+        shift = value - sim.dcf.revenue_growth_start
+        moved.dcf.revenue_growth_start += shift
+        moved.dcf.revenue_growth_terminal += shift
+        assert price == pytest.approx(
+            run_dcf(ddog, ddog_bridge, wacc_result, moved).per_share, rel=1e-12
+        )
+    assert band > 0
+    # The bar says it moved both ends of the fade, not year one.
+    assert bar.label == "Revenue growth, every year"
+    assert "dcf.revenue_growth_terminal" in bar.assumption
+
+
+def test_a_path_shock_is_wider_than_a_year_one_shock(ddog, ddog_bridge, wacc_result, sim):
+    """Only year one moving lets the fade pull every draw back to the same year N."""
+    narrow = run_simulation(ddog, ddog_bridge, wacc_result, sim)
+    sim.simulation.growth_shock = "path"
+    wide = run_simulation(ddog, ddog_bridge, wacc_result, sim)
+
+    assert wide.per_share.sd > narrow.per_share.sd
+    assert wide.central_per_share == pytest.approx(narrow.central_per_share, rel=1e-12)
+    assert any("shifts the whole growth path" in n for n in wide.notes)
+    assert any("Only year-one revenue growth is shocked" in n for n in narrow.notes)
+
+
 def test_flipping_the_wacc_pairings_narrows_the_spread(
     ddog, ddog_bridge, wacc_result, sim
 ):
