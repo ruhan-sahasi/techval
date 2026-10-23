@@ -1327,7 +1327,9 @@ where the perpetuity is largest. The tornado is reported alongside and is
 deliberately univariate: it says which assumption to argue about, and the
 distribution says how wide the answer is once they all move together. Here it is
 led by the terminal margin at $17.59 of swing across its 90% band, against $4.45
-for terminal growth at the foot of it.
+for terminal growth at the foot of it. `simulation.growth_shock: path` moves
+every explicit year's growth by the draw rather than year one alone, which
+widens the standard deviation by about a quarter on each fixture company.
 
 ### Adjusted present value
 
@@ -1883,9 +1885,10 @@ the year one change is measured against `nwc_pct_revenue` applied to TTM revenue
 rather than against the reported balance, which keeps the path internally
 consistent at the cost of ignoring where the balance sheet actually starts.
 
-The Monte Carlo shocks only year-one revenue growth. The path still fades to an
-unshocked terminal growth rate, so the spread on the final explicit year is
-narrower than a parallel shift of the whole path would give. The exit multiple
+By default the Monte Carlo shocks only year-one revenue growth, and the path
+still fades to an unshocked terminal growth rate, so the spread on the final
+explicit year is narrower than a parallel shift of the whole path would give;
+`simulation.growth_shock: path` draws the shift instead. The exit multiple
 is not simulated at all, because sampling a peer median alongside terminal
 growth would put two competing terminal assumptions into one histogram. And the
 distribution is over assumptions, not over outcomes: nothing here models the
