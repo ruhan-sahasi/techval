@@ -128,7 +128,7 @@ import numpy as np
 import pandas as pd
 
 from .config import Assumptions
-from .dcf import _opening_nol, _sbc_ratio, _tax_rate, run_dcf
+from .dcf import _opening_nol, _sbc_ratio, _tax_rate, carryforward_value, run_dcf
 from .errors import ConfigError
 from .ev_bridge import EVBridge, equity_value_from_dcf_ev
 from .financials import Financials
@@ -613,6 +613,12 @@ class _Engine:
             terminal = full_rate * (1.0 + g) / (wacc - g)
 
         ev = pv_explicit + terminal * (1.0 + wacc) ** (-exponent)
+        if self.track_nol:
+            # What each draw's balance shelters after year N, as the scalar path adds.
+            ev = ev + carryforward_value(
+                nol, margin_terminal * revenue * (1.0 + g), g, wacc,
+                self.n, self.mid_year, self.tax_rate, self.nol_limit,
+            )
         value = (ev + self.equity_offset) / shares
 
         survived = keep[formed]

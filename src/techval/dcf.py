@@ -273,6 +273,10 @@ class DCFResult:
     ``shares_for_value`` is the count the per-share figures divide by: the
     diluted share count at the end of the explicit period, which equals the
     starting count unless SBC dilution is being modelled.
+
+    ``carryforward_value`` is the present value of the tax a carryforward left
+    unused at year N stops after it, added once to each method's enterprise
+    value. It is zero unless ``dcf.nol.track`` is on and a balance survives.
     """
 
     projections: list[ProjectionYear]
@@ -294,6 +298,7 @@ class DCFResult:
     equity_value: float = float("nan")
     per_share: float = float("nan")
     shares_for_value: float = float("nan")
+    carryforward_value: float = 0.0
     checks: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
@@ -689,6 +694,62 @@ def _pv_terminal_exit(tv: float, wacc: float, n: int) -> float:
     return tv * (1.0 + wacc) ** (-float(n))
 
 
+# Years past N a carryforward is followed for. Two centuries out at a 5% cost of
+# capital, a year's shield is discounted to under a ten-thousandth of itself.
+_CARRYFORWARD_HORIZON = 200
+
+
+def carryforward_value(
+    balance, ebit_next, g, rate, n: int, mid_year: bool, tax_rate: float, limit: float
+):
+    """The tax a balance left at year N stops after it, discounted to today.
+
+    From year N+1 the balance shelters ``limit`` of EBIT, which starts at
+    ``ebit_next`` and grows at ``g``, until it is gone; a loss year shelters
+    nothing. The flows arrive through each year, so they take the mid-year
+    clock when the projection does. Works elementwise on arrays, so the Monte
+    Carlo values every draw's balance on its own rate and growth.
+    """
+    balance, ebit, g, rate = (
+        np.array(x, dtype=float) for x in np.broadcast_arrays(balance, ebit_next, g, rate)
+    )
+    pv = np.zeros_like(balance)
+    t = n + (0.5 if mid_year else 1.0)
+    for _ in range(_CARRYFORWARD_HORIZON):
+        live = (balance > 0) & (ebit > 0)
+        if not live.any():
+            break
+        used = np.where(live, np.minimum(balance, limit * ebit), 0.0)
+        balance = balance - used
+        pv = pv + tax_rate * used * (1.0 + rate) ** (-t)
+        ebit = ebit * (1.0 + g)
+        t += 1.0
+    return pv if pv.ndim else float(pv)
+
+
+def _carryforward_after(
+    terminal: ProjectionYear,
+    assumptions: Assumptions,
+    tax_rate: float,
+    wacc: float,
+    g: float,
+) -> float:
+    """``carryforward_value`` for the balance a scalar projection leaves at year N."""
+    cfg = assumptions.dcf
+    if not cfg.nol.track or terminal.nol_closing <= 0:
+        return 0.0
+    return carryforward_value(
+        terminal.nol_closing,
+        cfg.ebit_margin_terminal * terminal.revenue * (1.0 + g),
+        g,
+        wacc,
+        terminal.year,
+        cfg.mid_year_convention,
+        tax_rate,
+        cfg.nol.annual_limitation_pct,
+    )
+
+
 def _implied_growth(tv_end_year: float, fcff_n: float, wacc: float) -> float | None:
     """Solve TV = FCFF_N*(1+g)/(w-g) for g."""
     denominator = tv_end_year + fcff_n
@@ -886,11 +947,14 @@ def run_dcf(
     # unless dilution is being modelled.
     shares = terminal.shares_outstanding
     steady = _steady_state(terminal, g, assumptions, tax_rate)
+    # The balance left at year N, valued once and added beside every terminal
+    # value: it is an asset of the company whichever way the tail is priced.
+    carryforward = _carryforward_after(terminal, assumptions, tax_rate, wacc, g)
 
     # -- Gordon ------------------------------------------------------------ #
     tv_gordon = gordon_terminal_value(terminal.fcff_taxed_in_full, wacc, g)
     pv_gordon = _pv_terminal_gordon(tv_gordon, wacc, n, cfg.mid_year_convention)
-    ev_gordon = pv_explicit + pv_gordon
+    ev_gordon = pv_explicit + pv_gordon + carryforward
     # Restated onto the exit method's clock so the two cross-checks convert
     # between conventions the same way. Under mid-year discounting the Gordon
     # value carries a half-year uplift the exit method does not, so the multiple
@@ -940,7 +1004,7 @@ def run_dcf(
     else:
         tv_exit = exit_multiple_terminal_value(terminal_ebitda, multiple)
         pv_exit = _pv_terminal_exit(tv_exit, wacc, n)
-        ev_exit = pv_explicit + pv_exit
+        ev_exit = pv_explicit + pv_exit + carryforward
         # Compare like with like: restate the exit terminal value as the
         # end-of-year-N Gordon value carrying the same present value, then solve
         # for g. Without this step the implied growth silently absorbs the
@@ -994,7 +1058,7 @@ def run_dcf(
         # at a date, so under the mid-year convention it carries the half-year
         # uplift an exit multiple must not.
         pv_vd = _pv_terminal_gordon(tv_vd, wacc, n, cfg.mid_year_convention)
-        ev_vd = pv_explicit + pv_vd
+        ev_vd = pv_explicit + pv_vd + carryforward
         terminal_vd = TerminalValue(
             method="value_driver",
             value=tv_vd,
@@ -1052,6 +1116,7 @@ def run_dcf(
             terminal_exit=terminal_exit,
             terminal_vd=terminal_vd,
             peer_median_ev_ebitda=peer_median_ev_ebitda,
+            carryforward=carryforward,
         )
     )
 
@@ -1075,6 +1140,7 @@ def run_dcf(
         equity_value=equity_headline,
         per_share=equity_headline / shares,
         shares_for_value=shares,
+        carryforward_value=carryforward,
         checks=checks,
         notes=notes,
     )
@@ -1100,6 +1166,7 @@ def _cross_checks(
     terminal_exit: TerminalValue | None,
     terminal_vd: TerminalValue | None,
     peer_median_ev_ebitda: float | None,
+    carryforward: float = 0.0,
 ) -> list[str]:
     """What each terminal assumption implies about the others, and about returns."""
     out: list[str] = []
@@ -1186,7 +1253,7 @@ def _cross_checks(
         )
     )
     out.extend(_dilution_check(projections, assumptions, price, shares, g))
-    out.extend(_nol_check(projections, factors, assumptions, tax_rate))
+    out.extend(_nol_check(projections, factors, assumptions, tax_rate, carryforward))
 
     if bridge.operating_lease_in_debt > 0 and terminal_exit is not None:
         out.append(
@@ -1472,6 +1539,7 @@ def _nol_check(
     factors: np.ndarray,
     assumptions: Assumptions,
     tax_rate: float,
+    carryforward: float = 0.0,
 ) -> list[str]:
     """What the carryforward is worth, and the three things it does not include.
 
@@ -1512,9 +1580,11 @@ def _nol_check(
     if closing > 0:
         out.append(
             f"{closing:,.0f}mm of carryforward is unused at the end of year "
-            f"{projections[-1].year}. The terminal value is struck at the full "
-            f"{tax_rate:.1%} rate, so that balance shelters nothing in this "
-            "valuation and the answer is conservative by whatever it is worth."
+            f"{projections[-1].year}. It goes on sheltering "
+            f"{cfg.annual_limitation_pct:.0%} of taxable income at the terminal "
+            f"margin until it runs out, worth {carryforward:,.0f}mm discounted, "
+            "and that is added to the enterprise value beside the terminal value, "
+            f"which is itself taxed at the full {tax_rate:.1%} rate."
         )
     out.append(
         "Not modelled in the carryforward: section 382, which caps annual use "
@@ -1557,6 +1627,7 @@ def sensitivity_wacc_growth(
     fcff = np.array([p.fcff for p in projections])
     flow = projections[-1].fcff_taxed_in_full
     shares = projections[-1].shares_outstanding
+    tax_rate, _ = _tax_rate(fin, assumptions)
 
     waccs = _grid_axis(wacc, cfg.sensitivity_wacc_step)
     growths = _grid_axis(cfg.terminal_growth, cfg.sensitivity_growth_step)
@@ -1570,8 +1641,12 @@ def sensitivity_wacc_growth(
             if gg >= w:
                 continue
             tv = gordon_terminal_value(flow, float(w), float(gg))
-            ev = pv_explicit + _pv_terminal_gordon(
-                tv, float(w), n, cfg.mid_year_convention
+            ev = (
+                pv_explicit
+                + _pv_terminal_gordon(tv, float(w), n, cfg.mid_year_convention)
+                + _carryforward_after(
+                    projections[-1], assumptions, tax_rate, float(w), float(gg)
+                )
             )
             grid[i, j] = _per_share(ev, bridge, shares)
 
@@ -1623,8 +1698,12 @@ def sensitivity_wacc_exit(
     )
     grid = np.empty((_SENSITIVITY_POINTS, _SENSITIVITY_POINTS))
 
+    tax_rate, _ = _tax_rate(fin, assumptions)
     for i, w in enumerate(waccs):
-        pv_explicit = float(
+        left = _carryforward_after(
+            projections[-1], assumptions, tax_rate, float(w), cfg.terminal_growth
+        )
+        pv_explicit = left + float(
             np.sum(fcff * discount_factors(n, float(w), cfg.mid_year_convention))
         )
         for j, m in enumerate(multiples):
