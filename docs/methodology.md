@@ -987,10 +987,18 @@ long-term tax-exempt rate, and it is not modelled, so any deal case here
 overstates the shield. State carryforwards, with their own expiry and
 apportionment rules, are not tracked. No valuation allowance is applied, so the
 balance used is the gross federal carryforward and not the deferred tax asset the
-filer believes it will realise. And the residual balance at year N is not carried
-into the terminal value, which is struck at the full rate, so an unused balance
-is worth something this model does not count. Datadog leaves $286mm unused at
-year five in the example above, and the checks say so.
+filer believes it will realise.
+
+**The balance left at year N.** The perpetuity is taxed at the full rate,
+because a carryforward is finite: growing a sheltered year N for ever would
+capitalise a shield the balance cannot pay for. What survives the projection is
+valued on its own instead. From year N+1 it shelters the limitation's share of
+EBIT at the terminal margin, growing at g, until it is gone, and that tax,
+discounted on the projection's clock, is added once to each terminal method's
+enterprise value, to the sensitivity grids and to every Monte Carlo draw. APV
+takes it at the unlevered rate, as it takes the shelter inside the explicit
+flows. Datadog leaves $286mm unused at year five in the example above, worth
+$40mm discounted, and `techval value` prints it above the enterprise values.
 
 ### 6.3 Discounting
 
@@ -1782,10 +1790,17 @@ inputs. For Datadog the two agree at a relative gap of zero. A disagreement
 raises rather than prints: if the two paths have diverged, the distribution is
 centred on a number the rest of the engine does not report.
 
-**Limitations left in.** Only year-one revenue growth is shocked, matching the
-assumption the config exposes, so the fade converges on an unshocked terminal
-revenue growth rate and the spread on the final explicit year is narrower than a
-parallel shift of the whole path would give. The exit-multiple terminal value is
+**One year of growth, or the whole path.** By default only year-one revenue
+growth is shocked, matching the assumption the config exposes, so the fade
+converges on an unshocked terminal revenue growth rate and the spread on the
+final explicit year is narrower than a parallel shift of the whole path would
+give. `simulation.growth_shock: path` draws that shift instead: every explicit
+year moves by the growth draw, year N included, and the tornado's growth bar
+names both ends of the fade. On Datadog, CrowdStrike, MongoDB and Zscaler it
+widens the standard deviation of value by 23% to 26%, and the central draw is
+unchanged.
+
+**Limitations left in.** The exit-multiple terminal value is
 not simulated, because the exit multiple is not one of the drawn drivers and
 sampling a peer median alongside terminal growth would put two competing terminal
 assumptions into one histogram. And the distribution is over assumptions, not

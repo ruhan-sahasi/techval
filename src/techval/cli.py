@@ -568,7 +568,10 @@ def _render_dcf(d) -> None:
                       *(Text(c, style="bold" if bold else "") for c in cells))
     console.print(table)
 
-    summary = [
+    # Each enterprise value below includes it once, so it is shown beside them.
+    left = getattr(d, "carryforward_value", 0.0)
+    summary = [("Carryforward left at year N, discounted", left)] if left else []
+    summary += [
         ("Enterprise value, Gordon growth", d.enterprise_value_gordon),
         ("Enterprise value, exit multiple", d.enterprise_value_exit),
         ("Enterprise value, value driver", d.enterprise_value_value_driver),

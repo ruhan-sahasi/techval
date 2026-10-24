@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from techval.config import Assumptions
+from techval.config import Assumptions, NOLAssumptions, SimulationAssumptions
 from techval.errors import ConfigError
 
 EXAMPLE = Path(__file__).resolve().parents[1] / "assumptions.example.yaml"
@@ -202,6 +202,19 @@ def test_the_example_carries_every_capability_switch():
         "as_of:",
     ):
         assert flag in text, f"{flag} is missing from the worked example"
+
+
+def test_the_example_states_the_carryforward_and_the_simulation_at_their_defaults():
+    """Both change what a valuation counts, so a reader copying the file sees them.
+
+    Stated at their defaults, so copying the example switches neither on.
+    """
+    text = EXAMPLE.read_text()
+    for key in ("nol:", "track:", "simulation:", "growth_shock:"):
+        assert key in text, f"{key} is missing from the worked example"
+    a = Assumptions.load(EXAMPLE)
+    assert a.dcf.nol == NOLAssumptions()
+    assert a.simulation == SimulationAssumptions()
 
 
 def test_the_example_does_not_switch_a_fitted_section_on():

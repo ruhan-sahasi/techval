@@ -763,3 +763,30 @@ def test_the_record_case_sets_the_dcf_from_the_filings_and_says_which_figures(tm
 def test_the_from_record_flag_does_what_the_setting_does(tmp_path):
     flag = run_value("-c", str(_config(tmp_path)), "--from-record")
     assert flag.exit_code == 0 and "The record case" in flag.output
+
+
+# --------------------------------------------------------------------------- #
+# the carryforward left at year N
+# --------------------------------------------------------------------------- #
+
+
+# The rate is pinned so the figure can be rebuilt here without the peer betas.
+NOL_BODY = "dcf:\n  wacc_override: 0.105\n  nol:\n    track: true\n    opening_balance: 50000\n"
+
+
+def test_the_value_report_states_the_carryforward_left_at_year_n(tmp_path):
+    """The figure joins the enterprise values, so it gets a line of its own beside them."""
+    default = run_value("-c", str(_config(tmp_path)))
+    tracked = run_value("-c", str(_config(tmp_path, NOL_BODY)))
+    assert default.exit_code == 0 and tracked.exit_code == 0
+    label = "Carryforward left at year N, discounted"
+    assert label not in default.output
+
+    assumptions, client, market = C._setup(_config(tmp_path, NOL_BODY), True, AS_OF)
+    fin, _, bridge = C._load("DDOG", client, market, assumptions)
+    from techval.dcf import run_dcf
+    from techval.wacc import compute_wacc
+
+    d = run_dcf(fin, bridge, compute_wacc(fin, bridge, market, assumptions), assumptions)
+    row = next(line for line in tracked.output.splitlines() if label in line)
+    assert f"{d.carryforward_value:,.0f}" in row

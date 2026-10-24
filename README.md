@@ -1327,7 +1327,9 @@ where the perpetuity is largest. The tornado is reported alongside and is
 deliberately univariate: it says which assumption to argue about, and the
 distribution says how wide the answer is once they all move together. Here it is
 led by the terminal margin at $17.59 of swing across its 90% band, against $4.45
-for terminal growth at the foot of it.
+for terminal growth at the foot of it. `simulation.growth_shock: path` moves
+every explicit year's growth by the draw rather than year one alone, which
+widens the standard deviation by about a quarter on each fixture company.
 
 ### Adjusted present value
 
@@ -1878,16 +1880,15 @@ annual use of a carryforward after a change of control, so any deal case here
 overstates the shield; state carryforwards, with their own expiry and
 apportionment; and the valuation allowance, so the balance used is the gross
 federal carryforward rather than the deferred tax asset the filer believes it
-will realise. The residual balance at year N is not carried into the terminal
-value either, which is struck at the full rate. Working capital is anchored on
-a ratio, not on the balance sheet: the year one change is measured against
-`nwc_pct_revenue` applied to TTM revenue rather than against the reported
-balance, which keeps the path internally consistent at the cost of ignoring
-where the balance sheet actually starts.
+will realise. Working capital is anchored on a ratio, not on the balance sheet:
+the year one change is measured against `nwc_pct_revenue` applied to TTM revenue
+rather than against the reported balance, which keeps the path internally
+consistent at the cost of ignoring where the balance sheet actually starts.
 
-The Monte Carlo shocks only year-one revenue growth. The path still fades to an
-unshocked terminal growth rate, so the spread on the final explicit year is
-narrower than a parallel shift of the whole path would give. The exit multiple
+By default the Monte Carlo shocks only year-one revenue growth, and the path
+still fades to an unshocked terminal growth rate, so the spread on the final
+explicit year is narrower than a parallel shift of the whole path would give;
+`simulation.growth_shock: path` draws the shift instead. The exit multiple
 is not simulated at all, because sampling a peer median alongside terminal
 growth would put two competing terminal assumptions into one histogram. And the
 distribution is over assumptions, not over outcomes: nothing here models the
@@ -1916,13 +1917,6 @@ therefore looks more dilutive here than it should, not less. The multi-year
 roll-forward needs D&A, capex and pre-tax income and refuses where a filer does
 not tag them: CrowdStrike as an acquirer fails on the D&A tag, the same gap
 that makes its EV/EBITDA non-meaningful in the comp table.
-
-**The CLI cannot render the multi-year pro forma.** With
-`merger.purchase_accounting.enabled` the model computes correctly and the
-opening balance sheet prints, then `_render_purchase_accounting` passes each
-`(year, dollars, percent)` tuple from `accretion_by_year` to a formatter
-expecting a float and raises `TypeError`. The figures are reachable from the
-Python API. The renderer is not fixed yet.
 
 Left at its default the merger module is a screen: no opening balance sheet, no
 goodwill, no deferred tax on the step-up, no deferred revenue haircut, no debt

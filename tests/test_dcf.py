@@ -7,11 +7,13 @@ import pytest
 
 from techval.config import Assumptions
 from techval.dcf import (
+    carryforward_value,
     discount_factors,
     exit_multiple_terminal_value,
     gordon_terminal_value,
     project,
     run_dcf,
+    sensitivity_wacc_exit,
     sensitivity_wacc_growth,
     value_driver_terminal_value,
 )
@@ -712,6 +714,156 @@ def test_tracking_without_a_balance_anywhere_is_an_error(
     with pytest.raises(ConfigError) as exc:
         run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
     assert "nol.opening_balance" in str(exc.value)
+
+
+def _full_rate_flow(year, rate):
+    """Year N's free cash flow had it paid tax at the full rate on its EBIT."""
+    return year.fcff + year.cash_taxes - rate * max(year.ebit, 0.0)
+
+
+def test_the_gordon_perpetuity_pays_tax_at_the_full_rate(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """A carryforward still sheltering year N runs out; the perpetuity cannot keep it.
+
+    The value-driver steady state already taxes year N+1 at the full rate.
+    Growing year N's sheltered flow for ever instead would capitalise a shield
+    the balance cannot pay for, and the two terminal methods would disagree for
+    a reason that has nothing to do with growth or returns.
+    """
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0  # still sheltering in year N
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    last = d.projections[-1]
+    assert last.nol_used > 0
+
+    flow = _full_rate_flow(last, assumptions.tax.marginal_tax_rate)
+    g = assumptions.dcf.terminal_growth
+    assert flow < last.fcff
+    assert d.terminal_gordon.value == pytest.approx(flow * (1 + g) / (PINNED_WACC - g))
+    # No reinvestment flag fires on what is only a difference in tax.
+    assert not any("inherits reinvestment" in c for c in d.checks)
+
+
+def test_the_balance_left_at_year_n_is_worth_the_tax_it_stops_until_it_runs_out(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """A balance unused at year N is an asset, and a finite one.
+
+    Each year after N it shelters the limitation's share of EBIT at the terminal
+    margin, growing at g, until it is gone. Rebuilt here by hand, year by year.
+    """
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.exit_multiple = 20.0
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    last = d.projections[-1]
+    assert last.nol_closing > 0
+
+    cfg = assumptions.dcf
+    rate = assumptions.tax.marginal_tax_rate
+    balance = last.nol_closing
+    ebit = cfg.ebit_margin_terminal * last.revenue * (1 + cfg.terminal_growth)
+    t, pv = len(d.projections) + 0.5, 0.0
+    while balance > 0:
+        used = min(balance, cfg.nol.annual_limitation_pct * ebit)
+        balance -= used
+        pv += rate * used / (1 + PINNED_WACC) ** t
+        ebit *= 1 + cfg.terminal_growth
+        t += 1
+    assert d.carryforward_value == pytest.approx(pv)
+
+    # Added once to every method's enterprise value, beside its terminal value.
+    explicit = sum(p.pv for p in d.projections)
+    assert d.enterprise_value_gordon == pytest.approx(explicit + d.terminal_gordon.pv + pv)
+    assert d.enterprise_value_exit == pytest.approx(explicit + d.terminal_exit.pv + pv)
+    assert d.enterprise_value_value_driver == pytest.approx(
+        explicit + d.terminal_value_driver.pv + pv
+    )
+    line = next(c for c in d.checks if "unused at the end of year" in c)
+    assert f"{pv:,.0f}mm" in line
+
+
+def test_a_balance_after_year_n_shelters_nothing_in_a_loss_and_keeps_the_clock():
+    """The function on its own, where every figure can be written down.
+
+    A 100mm balance against 1,000mm of EBIT is spent in year N+1, so its whole
+    value is one year's tax at that year's discount: a half-year earlier under
+    the mid-year convention, as the projection's own flows are.
+    """
+    rate, limit = 0.21, 0.80
+    end = carryforward_value(100.0, 1_000.0, 0.03, 0.10, 5, False, rate, limit)
+    mid = carryforward_value(100.0, 1_000.0, 0.03, 0.10, 5, True, rate, limit)
+    assert isinstance(end, float)
+    assert end == pytest.approx(rate * 100.0 / 1.10**6)
+    assert mid == pytest.approx(rate * 100.0 / 1.10**5.5)
+
+    # The limitation binds: 80% of 100mm shelters 80mm a year, then the rest.
+    slow = carryforward_value(100.0, 100.0, 0.0, 0.10, 5, False, rate, limit)
+    assert slow == pytest.approx(rate * (80.0 / 1.10**6 + 20.0 / 1.10**7))
+
+    # A loss year has no taxable income for the balance to shelter.
+    assert carryforward_value(1_000.0, -50.0, 0.03, 0.10, 5, True, rate, limit) == 0.0
+
+
+def test_a_carryforward_on_arrays_is_each_draw_valued_on_its_own():
+    """The Monte Carlo values every draw's balance at once, on its own rate and growth."""
+    balances = np.array([0.0, 100.0, 5_000.0, 40_000.0])
+    ebit = np.array([1_000.0, -10.0, 1_500.0, 2_000.0])
+    growth = np.array([0.02, 0.025, 0.03, 0.01])
+    rates = np.array([0.08, 0.10, 0.12, 0.09])
+    together = carryforward_value(balances, ebit, growth, rates, 5, True, 0.21, 0.80)
+
+    assert together.shape == balances.shape
+    for b, e, g, r, v in zip(balances, ebit, growth, rates, together):
+        alone = carryforward_value(b, e, g, r, 5, True, 0.21, 0.80)
+        assert v == pytest.approx(alone, rel=1e-12)
+    assert together[0] == together[1] == 0.0
+
+
+def test_a_balance_spent_inside_the_projection_is_worth_nothing_after_it(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assert run_dcf(ddog, ddog_bridge, wacc_result, assumptions).carryforward_value == 0.0
+
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 2_000.0
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    assert d.projections[-1].nol_closing == 0.0
+    assert d.carryforward_value == 0.0
+
+
+def test_the_grid_centre_is_the_headline_with_a_carryforward(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    grid = sensitivity_wacc_growth(ddog, ddog_bridge, assumptions, PINNED_WACC)
+    centre = grid.iloc[len(grid) // 2, len(grid.columns) // 2]
+    assert centre == pytest.approx(d.per_share_gordon)
+
+
+def test_the_exit_grid_centre_is_the_exit_value_with_a_carryforward(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """Each row values the balance at its own rate, and the centre row is the headline's."""
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.exit_multiple = 20.0
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    assert d.carryforward_value > 0
+
+    grid = sensitivity_wacc_exit(ddog, ddog_bridge, assumptions, PINNED_WACC)
+    centre = grid.iloc[len(grid) // 2, len(grid.columns) // 2]
+    assert centre == pytest.approx(d.per_share_exit)
+    # A higher rate is worth less in every column, the balance after N included.
+    assert (grid.diff().iloc[1:] < 0).all().all()
 
 
 def test_the_carryforward_columns_stay_off_the_page_when_unused(
