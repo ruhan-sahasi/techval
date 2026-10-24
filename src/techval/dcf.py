@@ -228,6 +228,8 @@ class ProjectionYear:
     nol_opening: float = 0.0
     nol_used: float = 0.0
     nol_closing: float = 0.0
+    nol_capped_closing: float = 0.0
+    nol_cap_unused: float = 0.0
     sbc_shares_issued: float = 0.0
     shares_outstanding: float = 0.0
 
@@ -494,6 +496,26 @@ def _opening_nol(fin: Financials, assumptions: Assumptions) -> tuple[float, str]
     )
 
 
+def _shelter(ebit, free, capped, unused_cap, limit: float, cap: float):
+    """One year's use of the carryforward, and the balances it leaves.
+
+    ``capped`` is the balance under a section 382 cap. It is the older loss, so
+    it is used first, and only as far as this year's ``cap`` plus the cap
+    earlier years left unused reaches. ``free`` is every other loss, the
+    projection's own included. Together they shelter at most ``limit`` of the
+    year's EBIT; a loss year shelters nothing and its loss joins ``free``.
+    Returns the income sheltered, ``free``, ``capped`` and the unused cap carried
+    to the next year. Works elementwise, so the Monte Carlo runs every draw
+    through the same rule as the projection.
+    """
+    room = np.maximum(limit * ebit, 0.0)
+    unused_cap = unused_cap + cap
+    from_capped = np.minimum(np.minimum(capped, unused_cap), room)
+    from_free = np.minimum(free, room - from_capped)
+    free = free - from_free + np.maximum(-ebit, 0.0)
+    return from_capped + from_free, free, capped - from_capped, unused_cap - from_capped
+
+
 def project(
     fin: Financials,
     assumptions: Assumptions,
@@ -542,6 +564,11 @@ def project(
             "dcf.sbc_dilution to false and read the per-share figure as overstated."
         )
     nol_balance = _opening_nol(fin, assumptions)[0] if cfg.nol.track else 0.0
+    # Under a section 382 cap the whole opening balance is the capped one; only
+    # losses the projection itself makes are free of it.
+    cap = cfg.nol.section_382_limit
+    nol_capped, nol_free = (nol_balance, 0.0) if cap is not None else (0.0, nol_balance)
+    cap_unused = 0.0
 
     growth = (
         _fade(cfg.revenue_growth_start, cfg.revenue_growth_terminal, n)
@@ -573,13 +600,16 @@ def project(
         nol_opening = nol_balance
         nol_used = 0.0
         if cfg.nol.track:
-            if ebit < 0:
-                # The loss itself joins the balance. It shelters nothing this
-                # year because there is nothing to shelter.
-                nol_balance = nol_opening - ebit
-            else:
-                nol_used = min(nol_opening, cfg.nol.annual_limitation_pct * ebit)
-                nol_balance = nol_opening - nol_used
+            # A loss joins the balance and shelters nothing this year, because
+            # there is nothing to shelter.
+            nol_used, nol_free, nol_capped, cap_unused = (
+                float(x)
+                for x in _shelter(
+                    ebit, nol_free, nol_capped, cap_unused,
+                    cfg.nol.annual_limitation_pct, cap or 0.0,
+                )
+            )
+            nol_balance = nol_free + nol_capped
             cash_taxes = tax_rate * max(ebit - nol_used, 0.0)
         else:
             cash_taxes = taxes
@@ -613,6 +643,8 @@ def project(
                 nol_opening=nol_opening,
                 nol_used=nol_used,
                 nol_closing=nol_balance,
+                nol_capped_closing=nol_capped,
+                nol_cap_unused=cap_unused,
                 sbc_shares_issued=issued,
                 shares_outstanding=shares,
             )

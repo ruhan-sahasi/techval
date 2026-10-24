@@ -136,6 +136,17 @@ class NOLAssumptions(_Base):
             "income, so a profitable year still pays some cash tax."
         ),
     )
+    section_382_limit: float | None = Field(
+        None,
+        ge=0.0,
+        description=(
+            "Annual cap on using the opening balance after an ownership change, USD "
+            "millions: the equity value just before the change times the IRS "
+            "long-term tax-exempt rate. Cap a year leaves unused carries forward to "
+            "the next. Losses projected after the valuation date are not capped. "
+            "Null means no change of control."
+        ),
+    )
 
 
 class TerminalAssumptions(_Base):

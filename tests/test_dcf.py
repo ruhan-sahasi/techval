@@ -866,6 +866,57 @@ def test_the_exit_grid_centre_is_the_exit_value_with_a_carryforward(
     assert (grid.diff().iloc[1:] < 0).all().all()
 
 
+def test_a_section_382_cap_rations_the_opening_balance_and_carries_its_unused_cap(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """After an ownership change the old balance is used no faster than the cap.
+
+    Datadog's early years earn less than a 300mm cap, so the cap they leave
+    unused carries forward and lets year three shelter more than 300mm; from
+    year four the cap binds and cash tax rises against the uncapped case.
+    """
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0
+    free = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    assumptions.dcf.nol.section_382_limit = 300.0
+    capped = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+
+    balance, unused = 50_000.0, 0.0
+    for p in capped.projections:
+        unused += 300.0
+        used = min(balance, unused, 0.80 * max(p.ebit, 0.0))
+        balance, unused = balance - used, unused - used
+        assert p.nol_used == pytest.approx(used)
+        assert p.nol_capped_closing == pytest.approx(balance) == p.nol_closing
+        assert p.nol_cap_unused == pytest.approx(unused)
+    assert capped.projections[2].nol_used > 300.0
+    assert capped.projections[-1].cash_taxes > free.projections[-1].cash_taxes
+    assert capped.per_share < free.per_share
+
+
+def test_losses_made_after_the_change_are_not_capped(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """Only the balance at the change is limited; the projection's own losses are not."""
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.ebit_margin_start = -0.10
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 1_000.0
+    assumptions.dcf.nol.section_382_limit = 0.0
+    rows = run_dcf(ddog, ddog_bridge, wacc_result, assumptions).projections
+
+    losses = -sum(p.ebit for p in rows if p.ebit < 0)
+    assert losses > 0
+    assert sum(p.nol_used for p in rows) == pytest.approx(losses)
+    assert all(p.nol_capped_closing == 1_000.0 for p in rows)
+
+
+def test_a_section_382_cap_cannot_be_negative():
+    with pytest.raises(ValueError, match="section_382_limit"):
+        Assumptions.model_validate({"dcf": {"nol": {"section_382_limit": -1.0}}})
+
+
 def test_the_carryforward_columns_stay_off_the_page_when_unused(
     ddog, ddog_bridge, assumptions, wacc_result
 ):
