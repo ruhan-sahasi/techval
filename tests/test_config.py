@@ -221,7 +221,7 @@ def test_the_example_states_the_carryforward_and_the_simulation_at_their_default
     Stated at their defaults, so copying the example switches neither on.
     """
     text = EXAMPLE.read_text()
-    for key in ("nol:", "track:", "simulation:", "growth_shock:"):
+    for key in ("nol:", "track:", "section_382_limit:", "simulation:", "growth_shock:"):
         assert key in text, f"{key} is missing from the worked example"
     a = Assumptions.load(EXAMPLE)
     assert a.dcf.nol == NOLAssumptions()
