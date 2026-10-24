@@ -66,18 +66,27 @@ turns profitable, because only 80% of taxable income can be sheltered however
 large the carryforward. NOPAT is struck on the cash tax, so the shield reaches
 free cash flow in the year it is used rather than being asserted in a footnote.
 
-What the NOL model does not do: section 382, which caps the annual use of a
-carryforward after a change of control at roughly the equity value times the
-long-term tax-exempt rate, so any deal case here overstates the shield; state
-carryforwards, which have their own expiry rules and apportionment; and the
-valuation allowance, so the balance used is the gross federal carryforward and
-not the deferred tax asset the filer believes it will realise.
+``nol.section_382_limit``, null by default, caps each year's use of the opening
+balance as an ownership change does: the equity value just before the change
+times the IRS long-term tax-exempt rate. Any of the cap a year leaves unused
+carries to the next, and losses the projection makes are free of it, so the
+balance is held in two pools and the older, capped one is used first; together
+they still shelter no more than the limitation allows. ``_shelter`` is that
+rule for one year, and the projection, the balance after year N and every
+Monte Carlo draw all run it.
+
+What the NOL model does not do: the parts of section 382 beyond the annual cap,
+such as the built-in gains that raise it; state carryforwards, which have their
+own expiry rules and apportionment; and the valuation allowance, so the balance
+used is the gross federal carryforward and not the deferred tax asset the filer
+believes it will realise.
 
 The perpetuity is taxed at the full rate, because a carryforward runs out and a
 sheltered year N grown for ever would capitalise a shield the balance cannot pay
 for. Whatever survives year N is valued on its own instead: it shelters the
-limitation's share of EBIT at the terminal margin, growing at g, until it is
-gone, and that tax, discounted, is added once beside the terminal value.
+limitation's share of EBIT at the terminal margin, growing at g, no faster than
+any cap allows, until it is gone, and that tax, discounted, is added once
+beside the terminal value.
 
 **Terminal value the value-driver way.** The Gordon path assumes capex and
 working capital in the terminal year and leaves the implied return on capital to

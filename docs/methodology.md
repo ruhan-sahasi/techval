@@ -981,24 +981,42 @@ engine raises rather than assuming zero, because the carryforward is commonly
 reported only by jurisdiction and a dimensioned fact does not reach
 `companyfacts` (§2.6).
 
-**What the carryforward model does not do.** Section 382 caps the annual use of a
-carryforward after a change of control at roughly the equity value times the
-long-term tax-exempt rate, and it is not modelled, so any deal case here
-overstates the shield. State carryforwards, with their own expiry and
-apportionment rules, are not tracked. No valuation allowance is applied, so the
-balance used is the gross federal carryforward and not the deferred tax asset the
-filer believes it will realise.
-
 **The balance left at year N.** The perpetuity is taxed at the full rate,
 because a carryforward is finite: growing a sheltered year N for ever would
 capitalise a shield the balance cannot pay for. What survives the projection is
 valued on its own instead. From year N+1 it shelters the limitation's share of
-EBIT at the terminal margin, growing at g, until it is gone, and that tax,
-discounted on the projection's clock, is added once to each terminal method's
-enterprise value, to the sensitivity grids and to every Monte Carlo draw. APV
+EBIT at the terminal margin, growing at g, no faster than any section 382 cap
+allows, until it is gone, and that tax, discounted on the projection's clock, is
+added once to each terminal method's enterprise value, to the sensitivity grids
+and to every Monte Carlo draw. APV
 takes it at the unlevered rate, as it takes the shelter inside the explicit
 flows. Datadog leaves $286mm unused at year five in the example above, worth
 $40mm discounted, and `techval value` prints it above the enterprise values.
+
+**Section 382.** After an ownership change, the balance at the change can be used
+no faster than an annual cap: the equity value just before the change times the
+IRS long-term tax-exempt rate. `nol.section_382_limit` sets it, and null means no
+change. Any of the cap a year leaves unused carries forward to the next, and
+losses made after the change are not capped, so the balance is held in two pools
+and the older, capped one is used first. Together they still shelter no more than
+the 80% limitation allows. Datadog with a $50,000mm balance shelters $2,714mm
+across the explicit period uncapped, worth $460mm discounted. Capped at $300mm a
+year it shelters $1,500mm, worth $268mm. The first three years earn less than the
+cap and carry the rest forward, so year three shelters $508mm; from year four the
+cap binds, and year five pays $269mm of cash tax against $68mm uncapped. The
+balance left at year five is worth $438mm discounted rather than $1,966mm, because
+at $300mm a year it lasts a century and a half. The projection prints the capped
+balance and the unused cap as rows of their own, and the checks run the cap
+backwards against today's equity value: $300mm is 0.36% of Datadog's, far below
+the rates the IRS has published in recent years, which is how a mistyped cap
+shows itself. A cap with `nol.track` off is refused, since there would be no
+balance for it to ration.
+
+**What the carryforward model does not do.** The parts of section 382 beyond the
+annual cap are not modelled, such as the built-in gains that raise it. State
+carryforwards, with their own expiry and apportionment rules, are not tracked. No
+valuation allowance is applied, so the balance used is the gross federal
+carryforward and not the deferred tax asset the filer believes it will realise.
 
 ### 6.3 Discounting
 
@@ -1624,8 +1642,9 @@ the pro forma rather than carried as negative goodwill.
 No revenue build and no margin path: the top line compounds at one rate and every
 margin is held at its trailing twelve month level, which is generous to an
 acquirer buying a faster-growing, lower-margin target. No section 382 limitation
-on the target's carryforwards, which would cut whatever NOL shield a deal case
-claims (§6.2), and no carryforwards at all inside the roll-forward, so a pro
+on the target's carryforwards here, which would cut whatever NOL shield a deal
+case claims; a DCF of the target can carry the cap (§6.2). And no carryforwards
+at all inside the roll-forward, so a pro
 forma loss books a full tax benefit at the acquirer's marginal rate. No
 retention, integration or restructuring cost beyond the one-time fees in sources
 and uses. No change-of-control repayment of the target's
