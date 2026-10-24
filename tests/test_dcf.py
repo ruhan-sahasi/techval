@@ -955,6 +955,9 @@ def test_the_checks_say_where_the_section_382_cap_binds(
     assert "no faster than the 300mm cap allows" in tail
     assert f"{d.carryforward_value:,.0f}mm" in tail
     assert any("beyond the annual cap" in c for c in d.checks)
+    implied = next(c for c in d.checks if c.startswith("A 300mm cap is"))
+    assert f"{300.0 / ddog_bridge.equity_value:.2%}" in implied
+    assert f"{ddog_bridge.equity_value:,.0f}mm equity value" in implied
 
     assumptions.dcf.nol.section_382_limit = 5_000.0
     roomy = run_dcf(ddog, ddog_bridge, wacc_result, assumptions).checks

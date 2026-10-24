@@ -1313,7 +1313,11 @@ def _cross_checks(
         )
     )
     out.extend(_dilution_check(projections, assumptions, price, shares, g))
-    out.extend(_nol_check(projections, factors, assumptions, tax_rate, carryforward))
+    out.extend(
+        _nol_check(
+            projections, factors, assumptions, tax_rate, carryforward, bridge.equity_value
+        )
+    )
 
     if bridge.operating_lease_in_debt > 0 and terminal_exit is not None:
         out.append(
@@ -1600,6 +1604,7 @@ def _nol_check(
     assumptions: Assumptions,
     tax_rate: float,
     carryforward: float = 0.0,
+    equity_value: float = float("nan"),
 ) -> list[str]:
     """What the carryforward is worth, what caps it, and what it does not include.
 
@@ -1661,6 +1666,15 @@ def _nol_check(
             + f"{still_capped:,.0f}mm is still under it at the end of year "
             f"{projections[-1].year}."
         )
+        if equity_value > 0:
+            # The statute's own formula run backwards, so a mistyped cap shows.
+            out.append(
+                f"A {cap:,.0f}mm cap is {cap / equity_value:.2%} of today's "
+                f"{equity_value:,.0f}mm equity value. The cap is the equity value "
+                "just before the change times the IRS long-term tax-exempt rate, "
+                "so that is the rate it implies for a change at today's price; a "
+                "deal at a premium raises the cap in proportion."
+            )
     if closing > 0:
         pace = ""
         if cap is not None and still_capped > 0:
