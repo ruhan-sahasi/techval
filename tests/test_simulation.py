@@ -263,6 +263,10 @@ def _configure(assumptions, case):
     elif case == "nol":
         cfg.nol.track = True
         cfg.nol.opening_balance = 2_000.0
+    elif case == "nol_through_year_n":
+        # Still sheltering in the terminal year, so the perpetuity's tax matters.
+        cfg.nol.track = True
+        cfg.nol.opening_balance = 50_000.0
     elif case == "end_year_discounting":
         cfg.mid_year_convention = False
     elif case == "one_year":
@@ -288,6 +292,7 @@ def _configure(assumptions, case):
         "sbc_addback_diluted",
         "sbc_addback_undiluted",
         "nol",
+        "nol_through_year_n",
         "end_year_discounting",
         "one_year",
         "twelve_years",
@@ -528,6 +533,45 @@ def test_correlated_draws_are_wider_than_independent_ones(
     )
 
 
+def test_a_path_shock_is_the_whole_fade_moved_by_the_draw(
+    ddog, ddog_bridge, wacc_result, sim
+):
+    """Under ``growth_shock: path`` a growth draw shifts every explicit year.
+
+    The tornado's growth bar is two such draws, so its ends have to be run_dcf
+    with both ends of the fade moved by the band, year N included.
+    """
+    sim.simulation.growth_shock = "path"
+    bar = next(
+        b for b in tornado(ddog, ddog_bridge, wacc_result, sim) if b.driver == "revenue_growth"
+    )
+    band = bar.high_value - sim.dcf.revenue_growth_start
+    for value, price in ((bar.low_value, bar.low_price), (bar.high_value, bar.high_price)):
+        moved = sim.model_copy(deep=True)
+        shift = value - sim.dcf.revenue_growth_start
+        moved.dcf.revenue_growth_start += shift
+        moved.dcf.revenue_growth_terminal += shift
+        assert price == pytest.approx(
+            run_dcf(ddog, ddog_bridge, wacc_result, moved).per_share, rel=1e-12
+        )
+    assert band > 0
+    # The bar says it moved both ends of the fade, not year one.
+    assert bar.label == "Revenue growth, every year"
+    assert "dcf.revenue_growth_terminal" in bar.assumption
+
+
+def test_a_path_shock_is_wider_than_a_year_one_shock(ddog, ddog_bridge, wacc_result, sim):
+    """Only year one moving lets the fade pull every draw back to the same year N."""
+    narrow = run_simulation(ddog, ddog_bridge, wacc_result, sim)
+    sim.simulation.growth_shock = "path"
+    wide = run_simulation(ddog, ddog_bridge, wacc_result, sim)
+
+    assert wide.per_share.sd > narrow.per_share.sd
+    assert wide.central_per_share == pytest.approx(narrow.central_per_share, rel=1e-12)
+    assert any("shifts the whole growth path" in n for n in wide.notes)
+    assert any("Only year-one revenue growth is shocked" in n for n in narrow.notes)
+
+
 def test_flipping_the_wacc_pairings_narrows_the_spread(
     ddog, ddog_bridge, wacc_result, sim
 ):
@@ -607,6 +651,45 @@ def test_the_tornado_centres_on_the_scalar_valuation(
     for bar in tornado(ddog, ddog_bridge, wacc_result, sim):
         low, high = sorted((bar.low_price, bar.high_price))
         assert low < scalar.per_share < high
+
+
+def _moved(assumptions, driver, value, path):
+    """The assumptions with one tornado driver at ``value``, as run_dcf reads it."""
+    moved = assumptions.model_copy(deep=True)
+    cfg = moved.dcf
+    if driver == "revenue_growth":
+        if path:
+            cfg.revenue_growth_terminal += value - cfg.revenue_growth_start
+        cfg.revenue_growth_start = value
+    elif driver == "terminal_margin":
+        cfg.ebit_margin_terminal = value
+    elif driver == "wacc":
+        cfg.wacc_override = value
+    else:
+        cfg.terminal_growth = value
+    return moved
+
+
+@pytest.mark.parametrize("shock", ["year_one", "path"])
+@pytest.mark.parametrize(
+    "case", ["gordon", "value_driver", "nol_through_year_n", "end_year_discounting", "one_year"]
+)
+def test_every_tornado_end_is_run_dcf_with_that_driver_moved(
+    ddog, ddog_bridge, wacc_result, sim, case, shock
+):
+    """The central draw agreeing says nothing about a shocked one.
+
+    The bars are valued by the vectorised engine, and a balance left at year N
+    is valued there at each draw's own rate, growth and margin, so the ends of
+    the bars are where the two paths would part if they were going to.
+    """
+    _configure(sim, case)
+    sim.simulation.growth_shock = shock
+    for bar in tornado(ddog, ddog_bridge, wacc_result, sim):
+        for value, price in ((bar.low_value, bar.low_price), (bar.high_value, bar.high_price)):
+            moved = _moved(sim, bar.driver, value, path=shock == "path")
+            scalar = run_dcf(ddog, ddog_bridge, wacc_result, moved).per_share
+            assert price == pytest.approx(scalar, rel=1e-12), (bar.driver, value)
 
 
 def test_a_driver_pinned_at_zero_spread_has_no_swing(

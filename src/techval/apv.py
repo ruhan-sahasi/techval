@@ -130,7 +130,7 @@ import numpy as np
 import pandas as pd
 
 from .config import APVAssumptions, Assumptions
-from .dcf import DCFResult, discount_factors
+from .dcf import DCFResult, _carryforward_after, _tax_rate, discount_factors
 from .errors import ConfigError, NotMeaningfulError
 from .ev_bridge import EVBridge
 from .financials import Financials
@@ -404,7 +404,12 @@ def run_apv(
     terminal_flow = terminal_value_w * (wacc - g)
 
     pv_explicit_u, pv_terminal_u, _ = _value_at(ku, flows, terminal_flow, g, mid_year)
-    unlevered_value = pv_explicit_u + pv_terminal_u
+    # A tracked balance left at year N, valued at Ku as the shelter inside the
+    # explicit flows already is, so the WACC value and this one hold the same asset.
+    carried = _carryforward_after(
+        dcf_result.projections[-1], assumptions, _tax_rate(fin, assumptions)[0], ku, g
+    )
+    unlevered_value = pv_explicit_u + pv_terminal_u + carried
 
     wacc_enterprise_value = (
         dcf_result.enterprise_value_value_driver

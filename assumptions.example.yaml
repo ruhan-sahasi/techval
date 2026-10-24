@@ -115,6 +115,16 @@ dcf:
   sensitivity_wacc_step: 0.015
   sensitivity_growth_step: 0.010
 
+  nol:
+    # Off keeps the base case simple. On, a projected loss builds a carryforward
+    # that shelters later taxable income. Whatever is left unused at year N is
+    # valued on its own and added beside the terminal value, which is taxed at
+    # the full rate. Null reads the opening federal balance from the filings.
+    track: false
+    opening_balance: null
+    # Post-2017 federal losses offset at most 80% of a year's taxable income.
+    annual_limitation_pct: 0.80
+
 comps:
   peers: [MDB, NET, ZS, CRWD, SNOW, HUBS]
 
@@ -243,6 +253,22 @@ ml:
     precedents_enabled: false
     lookback_years: 10
     min_deal_size: 250.0
+
+# Monte Carlo over revenue growth, the terminal margin, the discount rate and
+# terminal growth, drawn jointly. On, the value report adds the distribution of
+# value per share and a tornado beside the DCF.
+simulation:
+  enabled: false
+  draws: 10000
+  seed: 7
+  revenue_growth_sd: 0.04
+  terminal_margin_sd: 0.04
+  wacc_sd: 0.010
+  terminal_growth_sd: 0.005
+  # year_one  shock year-one growth and let the fade pull every draw back to
+  #           the same year-N rate
+  # path      shift every explicit year by the same draw, the wider spread
+  growth_shock: year_one
 
 scenarios:
   # Bear, base and bull read off the fade panel: the mean growth path of the

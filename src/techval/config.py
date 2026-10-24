@@ -172,13 +172,26 @@ class SimulationAssumptions(_Base):
         description="Fixed so a distribution is reproducible; this is a model, not a lottery.",
     )
     revenue_growth_sd: float = Field(
-        0.04, description="Standard deviation on the year-one growth rate, absolute."
+        0.04,
+        description=(
+            "Standard deviation on the revenue growth draw, absolute: year-one growth "
+            "by default, every explicit year's under growth_shock: path."
+        ),
     )
     terminal_margin_sd: float = Field(
         0.04, description="Standard deviation on the terminal EBIT margin, absolute."
     )
     wacc_sd: float = Field(0.010, description="Standard deviation on the discount rate.")
     terminal_growth_sd: float = Field(0.005)
+    growth_shock: Literal["year_one", "path"] = Field(
+        "year_one",
+        description=(
+            "What the revenue growth draw moves. 'year_one' shocks year-one growth and "
+            "lets the fade pull every draw back to the same year-N rate. 'path' shifts "
+            "every explicit year by the same draw, the wider spread, for a company "
+            "whose whole trajectory is in question rather than its next year."
+        ),
+    )
 
 
 class ScenarioAssumptions(_Base):
