@@ -133,7 +133,14 @@ import numpy as np
 import pandas as pd
 
 from .config import Assumptions
-from .dcf import _opening_nol, _sbc_ratio, _tax_rate, carryforward_value, run_dcf
+from .dcf import (
+    _opening_nol,
+    _sbc_ratio,
+    _shelter,
+    _tax_rate,
+    carryforward_value,
+    run_dcf,
+)
 from .errors import ConfigError
 from .ev_bridge import EVBridge, equity_value_from_dcf_ev
 from .financials import Financials
@@ -529,6 +536,7 @@ class _Engine:
     track_nol: bool
     opening_nol: float
     nol_limit: float
+    nol_cap: float | None
     shift_path: bool
     method: str
     terminal_roic: float | None
@@ -584,7 +592,12 @@ class _Engine:
         revenue = np.full(live, self.revenue0)
         nwc_prev = np.full(live, self.nwc_pct * self.revenue0)
         shares = np.full(live, self.shares0)
-        nol = np.full(live, self.opening_nol)
+        # Under a section 382 cap the opening balance is the capped one, as in
+        # the scalar projection, and the draws' own losses join the free one.
+        under_cap = self.nol_cap is not None
+        capped = np.full(live, self.opening_nol if under_cap else 0.0)
+        nol = np.full(live, 0.0 if under_cap else self.opening_nol)
+        cap_unused = np.zeros(live)
         pv_explicit = np.zeros(live)
         fcff = np.zeros(live)
 
@@ -592,9 +605,9 @@ class _Engine:
             revenue = revenue * (1.0 + growth_path[:, i])
             ebit = revenue * margin_path[:, i]
             if self.track_nol:
-                loss = ebit < 0.0
-                used = np.where(loss, 0.0, np.minimum(nol, self.nol_limit * ebit))
-                nol = np.where(loss, nol - ebit, nol - used)
+                used, nol, capped, cap_unused = _shelter(
+                    ebit, nol, capped, cap_unused, self.nol_limit, self.nol_cap or 0.0
+                )
                 cash_taxes = self.tax_rate * np.maximum(ebit - used, 0.0)
             else:
                 cash_taxes = self.tax_rate * np.maximum(ebit, 0.0)
@@ -644,6 +657,7 @@ class _Engine:
             ev = ev + carryforward_value(
                 nol, margin_terminal * revenue * (1.0 + g), g, wacc,
                 self.n, self.mid_year, self.tax_rate, self.nol_limit,
+                capped=capped, cap_unused=cap_unused, cap=self.nol_cap or 0.0,
             )
         value = (ev + self.equity_offset) / shares
 
@@ -695,6 +709,7 @@ def _prepare(
         track_nol=cfg.nol.track,
         opening_nol=_opening_nol(fin, assumptions)[0] if cfg.nol.track else 0.0,
         nol_limit=cfg.nol.annual_limitation_pct,
+        nol_cap=cfg.nol.section_382_limit,
         shift_path=assumptions.simulation.growth_shock == "path",
         method=cfg.terminal.method,
         terminal_roic=cfg.terminal.terminal_roic,

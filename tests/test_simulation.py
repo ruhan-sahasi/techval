@@ -267,6 +267,11 @@ def _configure(assumptions, case):
         # Still sheltering in the terminal year, so the perpetuity's tax matters.
         cfg.nol.track = True
         cfg.nol.opening_balance = 50_000.0
+    elif case == "section_382":
+        # A cap that binds from year four and leaves most of the balance to year N.
+        cfg.nol.track = True
+        cfg.nol.opening_balance = 50_000.0
+        cfg.nol.section_382_limit = 300.0
     elif case == "end_year_discounting":
         cfg.mid_year_convention = False
     elif case == "one_year":
@@ -293,6 +298,7 @@ def _configure(assumptions, case):
         "sbc_addback_undiluted",
         "nol",
         "nol_through_year_n",
+        "section_382",
         "end_year_discounting",
         "one_year",
         "twelve_years",
@@ -672,7 +678,15 @@ def _moved(assumptions, driver, value, path):
 
 @pytest.mark.parametrize("shock", ["year_one", "path"])
 @pytest.mark.parametrize(
-    "case", ["gordon", "value_driver", "nol_through_year_n", "end_year_discounting", "one_year"]
+    "case",
+    [
+        "gordon",
+        "value_driver",
+        "nol_through_year_n",
+        "section_382",
+        "end_year_discounting",
+        "one_year",
+    ],
 )
 def test_every_tornado_end_is_run_dcf_with_that_driver_moved(
     ddog, ddog_bridge, wacc_result, sim, case, shock
