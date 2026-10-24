@@ -823,6 +823,42 @@ def test_a_carryforward_on_arrays_is_each_draw_valued_on_its_own():
     assert together[0] == together[1] == 0.0
 
 
+def test_the_balance_left_at_year_n_stays_under_its_section_382_cap(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """After year N the capped balance still comes out no faster than the cap.
+
+    Uncapped, the 48,500mm left at year five would shelter 80% of a growing EBIT
+    and be gone within decades. At 300mm a year it takes a century and a half,
+    and most of it is discounted away. Rebuilt here year by year.
+    """
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0
+    assumptions.dcf.nol.section_382_limit = 300.0
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    last = d.projections[-1]
+    assert last.nol_capped_closing == last.nol_closing > 0
+
+    cfg = assumptions.dcf
+    rate, g, n = assumptions.tax.marginal_tax_rate, cfg.terminal_growth, len(d.projections)
+    ebit_next = cfg.ebit_margin_terminal * last.revenue * (1 + g)
+    balance, unused, ebit, t, pv = last.nol_capped_closing, last.nol_cap_unused, ebit_next, n + 0.5, 0.0
+    for _ in range(200):
+        unused += 300.0
+        used = min(balance, unused, 0.80 * ebit)
+        balance, unused = balance - used, unused - used
+        pv += rate * used / (1 + PINNED_WACC) ** t
+        ebit *= 1 + g
+        t += 1
+    assert d.carryforward_value == pytest.approx(pv)
+
+    uncapped = carryforward_value(
+        last.nol_closing, ebit_next, g, PINNED_WACC, n, True, rate, 0.80
+    )
+    assert d.carryforward_value < 0.5 * uncapped
+
+
 def test_a_balance_spent_inside_the_projection_is_worth_nothing_after_it(
     ddog, ddog_bridge, assumptions, wacc_result
 ):
@@ -836,26 +872,30 @@ def test_a_balance_spent_inside_the_projection_is_worth_nothing_after_it(
     assert d.carryforward_value == 0.0
 
 
+@pytest.mark.parametrize("cap", [None, 300.0])
 def test_the_grid_centre_is_the_headline_with_a_carryforward(
-    ddog, ddog_bridge, assumptions, wacc_result
+    ddog, ddog_bridge, assumptions, wacc_result, cap
 ):
     assumptions.dcf.wacc_override = PINNED_WACC
     assumptions.dcf.nol.track = True
     assumptions.dcf.nol.opening_balance = 50_000.0
+    assumptions.dcf.nol.section_382_limit = cap
     d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
     grid = sensitivity_wacc_growth(ddog, ddog_bridge, assumptions, PINNED_WACC)
     centre = grid.iloc[len(grid) // 2, len(grid.columns) // 2]
     assert centre == pytest.approx(d.per_share_gordon)
 
 
+@pytest.mark.parametrize("cap", [None, 300.0])
 def test_the_exit_grid_centre_is_the_exit_value_with_a_carryforward(
-    ddog, ddog_bridge, assumptions, wacc_result
+    ddog, ddog_bridge, assumptions, wacc_result, cap
 ):
     """Each row values the balance at its own rate, and the centre row is the headline's."""
     assumptions.dcf.wacc_override = PINNED_WACC
     assumptions.dcf.exit_multiple = 20.0
     assumptions.dcf.nol.track = True
     assumptions.dcf.nol.opening_balance = 50_000.0
+    assumptions.dcf.nol.section_382_limit = cap
     d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
     assert d.carryforward_value > 0
 

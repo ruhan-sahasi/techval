@@ -735,27 +735,41 @@ _CARRYFORWARD_HORIZON = 200
 
 
 def carryforward_value(
-    balance, ebit_next, g, rate, n: int, mid_year: bool, tax_rate: float, limit: float
+    balance,
+    ebit_next,
+    g,
+    rate,
+    n: int,
+    mid_year: bool,
+    tax_rate: float,
+    limit: float,
+    capped=0.0,
+    cap_unused=0.0,
+    cap: float = 0.0,
 ):
     """The tax a balance left at year N stops after it, discounted to today.
 
     From year N+1 the balance shelters ``limit`` of EBIT, which starts at
     ``ebit_next`` and grows at ``g``, until it is gone; a loss year shelters
-    nothing. The flows arrive through each year, so they take the mid-year
-    clock when the projection does. Works elementwise on arrays, so the Monte
-    Carlo values every draw's balance on its own rate and growth.
+    nothing. ``balance`` is the part free of any cap. ``capped`` is the part
+    still under a section 382 cap, which goes on being used no faster than
+    ``cap`` a year plus the ``cap_unused`` carried out of year N. The flows
+    arrive through each year, so they take the mid-year clock when the
+    projection does. Works elementwise on arrays, so the Monte Carlo values
+    every draw's balance on its own rate and growth.
     """
-    balance, ebit, g, rate = (
-        np.array(x, dtype=float) for x in np.broadcast_arrays(balance, ebit_next, g, rate)
+    balance, capped, cap_unused, ebit, g, rate = (
+        np.array(x, dtype=float)
+        for x in np.broadcast_arrays(balance, capped, cap_unused, ebit_next, g, rate)
     )
     pv = np.zeros_like(balance)
     t = n + (0.5 if mid_year else 1.0)
     for _ in range(_CARRYFORWARD_HORIZON):
-        live = (balance > 0) & (ebit > 0)
-        if not live.any():
+        if not ((balance + capped > 0) & (ebit > 0)).any():
             break
-        used = np.where(live, np.minimum(balance, limit * ebit), 0.0)
-        balance = balance - used
+        used, balance, capped, cap_unused = _shelter(
+            ebit, balance, capped, cap_unused, limit, cap
+        )
         pv = pv + tax_rate * used * (1.0 + rate) ** (-t)
         ebit = ebit * (1.0 + g)
         t += 1.0
@@ -774,7 +788,7 @@ def _carryforward_after(
     if not cfg.nol.track or terminal.nol_closing <= 0:
         return 0.0
     return carryforward_value(
-        terminal.nol_closing,
+        terminal.nol_closing - terminal.nol_capped_closing,
         cfg.ebit_margin_terminal * terminal.revenue * (1.0 + g),
         g,
         wacc,
@@ -782,6 +796,9 @@ def _carryforward_after(
         cfg.mid_year_convention,
         tax_rate,
         cfg.nol.annual_limitation_pct,
+        capped=terminal.nol_capped_closing,
+        cap_unused=terminal.nol_cap_unused,
+        cap=cfg.nol.section_382_limit or 0.0,
     )
 
 
