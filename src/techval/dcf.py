@@ -1593,7 +1593,7 @@ def _nol_check(
     tax_rate: float,
     carryforward: float = 0.0,
 ) -> list[str]:
-    """What the carryforward is worth, and the three things it does not include.
+    """What the carryforward is worth, what caps it, and what it does not include.
 
     The shield is reported in present value because that is the only form in
     which it is comparable to anything else in the model. An NOL balance quoted
@@ -1629,21 +1629,62 @@ def _nol_check(
             "carry forward indefinitely but shelter only part of taxable income, "
             "so a profitable year pays cash tax however large the carryforward."
         )
+    cap = cfg.section_382_limit
+    still_capped = projections[-1].nol_capped_closing
+    if cap is not None:
+        binds = next(
+            (
+                p for p in projections
+                if p.ebit > 0 and p.nol_capped_closing > 0 and p.nol_cap_unused <= 0
+            ),
+            None,
+        )
+        out.append(
+            f"Section 382 caps use of the {projections[0].nol_opening:,.0f}mm "
+            f"balance at the ownership change at {cap:,.0f}mm a year, and any of "
+            "the cap a year leaves unused carries to the next; losses the "
+            "projection makes are not capped. "
+            + (
+                f"The cap binds from year {binds.year}, and "
+                if binds is not None
+                else "Taxable income stays inside the cap through the explicit "
+                "period, and "
+            )
+            + f"{still_capped:,.0f}mm is still under it at the end of year "
+            f"{projections[-1].year}."
+        )
     if closing > 0:
+        pace = ""
+        if cap is not None and still_capped > 0:
+            if cap == 0:
+                pace = f", the {still_capped:,.0f}mm under a zero cap aside,"
+            elif still_capped >= closing:
+                pace = f", no faster than the {cap:,.0f}mm cap allows,"
+            else:
+                pace = (
+                    f", the {still_capped:,.0f}mm of it under the cap no faster "
+                    f"than {cap:,.0f}mm a year,"
+                )
         out.append(
             f"{closing:,.0f}mm of carryforward is unused at the end of year "
-            f"{projections[-1].year}. It goes on sheltering "
+            f"{projections[-1].year}. It goes on sheltering up to "
             f"{cfg.annual_limitation_pct:.0%} of taxable income at the terminal "
-            f"margin until it runs out, worth {carryforward:,.0f}mm discounted, "
-            "and that is added to the enterprise value beside the terminal value, "
-            f"which is itself taxed at the full {tax_rate:.1%} rate."
+            f"margin{pace} until it runs out, worth {carryforward:,.0f}mm "
+            "discounted, and that is added to the enterprise value beside the "
+            f"terminal value, which is itself taxed at the full {tax_rate:.1%} rate."
         )
+    unmodelled = (
+        "the parts of section 382 beyond the annual cap, such as the built-in "
+        "gains that raise it"
+        if cap is not None
+        else "section 382, which caps annual use after a change of control, so "
+        "a deal case without dcf.nol.section_382_limit overstates the shield"
+    )
     out.append(
-        "Not modelled in the carryforward: section 382, which caps annual use "
-        "after a change of control and would cut the shield in any deal case; "
-        "state carryforwards, with their own expiry and apportionment; and the "
-        "valuation allowance, so this is the gross federal balance rather than "
-        "the deferred tax asset the filer expects to realise."
+        f"Not modelled in the carryforward: {unmodelled}; state carryforwards, "
+        "with their own expiry and apportionment; and the valuation allowance, "
+        "so this is the gross federal balance rather than the deferred tax "
+        "asset the filer expects to realise."
     )
     return out
 

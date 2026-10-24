@@ -935,6 +935,44 @@ def test_a_section_382_cap_rations_the_opening_balance_and_carries_its_unused_ca
     assert capped.per_share < free.per_share
 
 
+def test_the_checks_say_where_the_section_382_cap_binds(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0
+    uncapped = run_dcf(ddog, ddog_bridge, wacc_result, assumptions).checks
+    assert any("without dcf.nol.section_382_limit overstates" in c for c in uncapped)
+
+    assumptions.dcf.nol.section_382_limit = 300.0
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    left = d.projections[-1].nol_capped_closing
+    line = next(c for c in d.checks if c.startswith("Section 382 caps"))
+    assert "50,000mm balance" in line and "300mm a year" in line
+    assert "binds from year 4" in line
+    assert f"{left:,.0f}mm is still under it at the end of year 5" in line
+    tail = next(c for c in d.checks if "unused at the end of year" in c)
+    assert "no faster than the 300mm cap allows" in tail
+    assert f"{d.carryforward_value:,.0f}mm" in tail
+    assert any("beyond the annual cap" in c for c in d.checks)
+
+    assumptions.dcf.nol.section_382_limit = 5_000.0
+    roomy = run_dcf(ddog, ddog_bridge, wacc_result, assumptions).checks
+    assert any("stays inside the cap through the explicit period" in c for c in roomy)
+
+    # Early losses leave a free balance beside the capped one at year N.
+    assumptions.dcf.ebit_margin_start = -0.40
+    assumptions.dcf.nol.opening_balance = 1_000.0
+    for cap, phrase in ((50.0, "of it under the cap no faster than 50mm a year"),
+                        (0.0, "under a zero cap aside")):
+        assumptions.dcf.nol.section_382_limit = cap
+        mixed = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+        last = mixed.projections[-1]
+        assert 0 < last.nol_capped_closing < last.nol_closing
+        tail = next(c for c in mixed.checks if "unused at the end of year" in c)
+        assert f"the {last.nol_capped_closing:,.0f}mm" in tail and phrase in tail
+
+
 def test_losses_made_after_the_change_are_not_capped(
     ddog, ddog_bridge, assumptions, wacc_result
 ):
