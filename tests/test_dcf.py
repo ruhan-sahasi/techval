@@ -1006,6 +1006,14 @@ def test_the_carryforward_columns_stay_off_the_page_when_unused(
     tracked = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
     for column in ("NOL opening", "NOL used", "NOL closing", "Cash taxes"):
         assert column in tracked.to_frame().columns
+    assert "NOL under 382 cap" not in tracked.to_frame().columns
+
+    assumptions.dcf.nol.section_382_limit = 300.0
+    frame = run_dcf(ddog, ddog_bridge, wacc_result, assumptions).to_frame()
+    columns = list(frame.columns)
+    assert columns.index("NOL closing") + 1 == columns.index("NOL under 382 cap")
+    assert columns.index("382 cap unused") + 1 == columns.index("Cash taxes")
+    assert frame["382 cap unused"].iloc[0] == pytest.approx(300.0 - frame["NOL used"].iloc[0])
 
 
 # --------------------------------------------------------------------------- #

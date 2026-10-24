@@ -315,6 +315,7 @@ class DCFResult:
         it is clutter, and on a transposed terminal table it costs five rows.
         """
         show_nol = any(p.nol_opening or p.nol_used for p in self.projections)
+        show_cap = any(p.nol_capped_closing or p.nol_cap_unused for p in self.projections)
         show_dilution = any(p.sbc_shares_issued for p in self.projections)
 
         records = []
@@ -332,8 +333,15 @@ class DCFResult:
                     "NOL opening": p.nol_opening,
                     "NOL used": p.nol_used,
                     "NOL closing": p.nol_closing,
-                    "Cash taxes": p.cash_taxes,
                 }
+                if show_cap:
+                    # What is still rationed, and the cap carried unused, which
+                    # is how a year can shelter more than one year's cap.
+                    row |= {
+                        "NOL under 382 cap": p.nol_capped_closing,
+                        "382 cap unused": p.nol_cap_unused,
+                    }
+                row["Cash taxes"] = p.cash_taxes
             row |= {
                 "NOPAT": p.nopat,
                 "D&A": p.da,
