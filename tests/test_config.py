@@ -134,6 +134,17 @@ def test_a_hand_written_consistency_check_is_not_swallowed(tmp_path):
 # --------------------------------------------------------------------------- #
 
 
+def test_a_section_382_cap_without_a_tracked_carryforward_refuses(tmp_path):
+    """With tracking off there is no balance for the cap to ration."""
+    path = _write(tmp_path, "dcf:\n  nol:\n    section_382_limit: 120\n")
+    with pytest.raises(ConfigError) as exc:
+        Assumptions.load(path)
+    assert "dcf.nol.track is off" in str(exc.value)
+
+    path = _write(tmp_path, "dcf:\n  nol:\n    track: true\n    section_382_limit: 120\n")
+    assert Assumptions.load(path).dcf.nol.section_382_limit == 120.0
+
+
 def test_require_same_sub_vertical_refuses_rather_than_being_ignored(tmp_path):
     """It was the only field in the file that read as a setting and did nothing.
 

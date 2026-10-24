@@ -148,6 +148,17 @@ class NOLAssumptions(_Base):
         ),
     )
 
+    @model_validator(mode="after")
+    def _check(self) -> "NOLAssumptions":
+        if self.section_382_limit is not None and not self.track:
+            raise ConfigError(
+                "dcf.nol.section_382_limit caps the use of a carryforward, but "
+                "dcf.nol.track is off, so there is no carryforward for it to cap and "
+                "the setting would change nothing. Turn dcf.nol.track on, or leave "
+                "the limit null."
+            )
+        return self
+
 
 class TerminalAssumptions(_Base):
     """How the terminal value is constructed."""
