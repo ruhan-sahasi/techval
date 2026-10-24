@@ -1875,10 +1875,13 @@ to measure comparability, is not wired into `comps.py`.
 
 ### The projection, the simulation and the APV
 
-The NOL model stops short of three things that matter: Section 382, which caps
-annual use of a carryforward after a change of control, so any deal case here
-overstates the shield; state carryforwards, with their own expiry and
-apportionment; and the valuation allowance, so the balance used is the gross
+The NOL model's Section 382 cap is only as good as the number typed into
+`dcf.nol.section_382_limit`. It rations the balance at an ownership change, but
+nothing derives it from a deal price, so a deal case that leaves it null
+overstates the shield; the checks print the tax-exempt rate a cap implies against
+today's equity value, and the built-in gains that raise a cap are not counted.
+The model also leaves out state carryforwards, with their own expiry and
+apportionment, and the valuation allowance, so the balance used is the gross
 federal carryforward rather than the deferred tax asset the filer believes it
 will realise. Working capital is anchored on a ratio, not on the balance sheet:
 the year one change is measured against `nwc_pct_revenue` applied to TTM revenue
