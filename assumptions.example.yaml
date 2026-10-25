@@ -142,6 +142,17 @@ dcf:
     # and later losses are not capped. Null means no change; a deal case needs it.
     section_382_limit: null
 
+  terminal:
+    # Which terminal value is the headline; both are always reported.
+    # gordon        capitalise year N's cash flow and check the return it implies
+    # value_driver  state the return on new capital and derive the reinvestment
+    #               growth needs from it, so the terminal value cannot embed a
+    #               return nobody signed up for
+    method: gordon
+    # The value-driver return in perpetuity. Null uses the WACC, the competitive
+    # equilibrium in which growth is worth exactly nothing.
+    terminal_roic: null
+
 comps:
   peers: [MDB, NET, ZS, CRWD, SNOW, HUBS]
 
