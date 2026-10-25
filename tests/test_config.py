@@ -238,7 +238,6 @@ _COMMENTED = {"price_csv_dir", "as_of"}
 # Settings the worked example does not name yet. Each is a gap in the claim its
 # header makes, and the list only ever shrinks.
 _NOT_YET = {
-    "comps.regression",
     "merger.purchase_accounting",
     "dilution",
     "ml.peers.require_same_sub_vertical",
@@ -291,6 +290,7 @@ def test_the_example_does_not_switch_a_fitted_section_on():
     """Copying the example must not silently put a fitted number in a valuation."""
     a = Assumptions.load(EXAMPLE)
     assert a.tmt.sotp is False
+    assert a.comps.regression.enabled is False
     assert a.ml.peers.enabled is False
     assert a.ml.forecast.enabled is False
     assert a.ml.warranted.enabled is False
