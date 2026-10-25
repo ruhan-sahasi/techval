@@ -19,6 +19,8 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+import yaml
+from pydantic import BaseModel
 
 from techval.config import Assumptions, NOLAssumptions, SimulationAssumptions
 from techval.errors import ConfigError
@@ -226,6 +228,66 @@ def test_the_example_states_the_carryforward_and_the_simulation_at_their_default
     a = Assumptions.load(EXAMPLE)
     assert a.dcf.nol == NOLAssumptions()
     assert a.simulation == SimulationAssumptions()
+
+
+# Left as commented lines, because setting either changes what a run reads: a
+# CSV directory matters only under price_source: csv, and as_of pins every
+# filing to a date.
+_COMMENTED = {"price_csv_dir", "as_of"}
+
+# Settings the worked example does not name yet. Each is a gap in the claim its
+# header makes, and the list only ever shrinks.
+_NOT_YET = {
+    "market.peer_beta_method",
+    "dcf.sbc_dilution",
+    "dcf.terminal",
+    "comps.regression",
+    "merger.purchase_accounting",
+    "dilution",
+    "ml.peers.require_same_sub_vertical",
+    "ml.signals.overlapping_windows",
+    "apv",
+}
+
+_ABSENT = object()
+
+
+def _settings(model, prefix=""):
+    """Every setting's dotted path, a nested block's own path included."""
+    for name, field in model.model_fields.items():
+        path = prefix + name
+        yield path
+        kind = field.annotation
+        if isinstance(kind, type) and issubclass(kind, BaseModel):
+            yield from _settings(kind, path + ".")
+
+
+def _lookup(raw, path):
+    node = raw
+    for part in path.split("."):
+        node = node.get(part, _ABSENT) if isinstance(node, dict) else _ABSENT
+    return node
+
+
+def test_the_example_names_every_setting():
+    """The header says every judgment that moves a valuation is in the file.
+
+    So every setting the engine reads is in it, at a value or as a commented
+    line, and a setting added to the engine without a line in the example
+    fails here rather than going undiscovered.
+    """
+    text = EXAMPLE.read_text()
+    raw = yaml.safe_load(text)
+    absent = [
+        path
+        for path in _settings(Assumptions)
+        if _lookup(raw, path) is _ABSENT
+        and not (path in _COMMENTED and f"# {path}:" in text)
+        and not any(path == gap or path.startswith(gap + ".") for gap in _NOT_YET)
+    ]
+    assert not absent, f"missing from the worked example: {', '.join(absent)}"
+    for gap in _NOT_YET:
+        assert _lookup(raw, gap) is _ABSENT, f"{gap} is in the example now; strike it off"
 
 
 def test_the_example_does_not_switch_a_fitted_section_on():
