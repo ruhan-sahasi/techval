@@ -243,9 +243,7 @@ _NOT_A_CHOICE = {"ml.peers.require_same_sub_vertical", "ml.signals.overlapping_w
 
 # Settings the worked example does not name yet. Each is a gap in the claim its
 # header makes, and the list only ever shrinks.
-_NOT_YET = {
-    "apv",
-}
+_NOT_YET: set[str] = set()
 
 _ABSENT = object()
 
@@ -314,6 +312,7 @@ def test_the_example_does_not_switch_a_fitted_section_on():
     a = Assumptions.load(EXAMPLE)
     assert a.tmt.sotp is False
     assert a.comps.regression.enabled is False
+    assert a.apv.enabled is False
     assert a.ml.peers.enabled is False
     assert a.ml.forecast.enabled is False
     assert a.ml.warranted.enabled is False
