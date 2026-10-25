@@ -110,6 +110,12 @@ dcf:
   # GAAP EBIT is already net of SBC, so 'expense' adds nothing back. See
   # methodology.md for why adding it back without modelling dilution overstates value.
   sbc_treatment: expense
+  # Only bites under addback: grow the share count each year by the stock
+  # compensation issued at the share price, the cost that goes with adding the
+  # cash back. It closes only about an eighth of the gap between the two
+  # camps, because the addback lands mostly in the terminal value; the DCF
+  # checks say how much.
+  sbc_dilution: true
 
   mid_year_convention: true
   terminal_growth: 0.025
