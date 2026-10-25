@@ -29,6 +29,12 @@ market:
   beta_lookback_years: 2.0
   beta_frequency: weekly    # weekly | monthly
   beta_adjustment: raw      # raw | blume (0.67*raw + 0.33*1.0)
+  # How the peers' asset betas are pooled.
+  # median   the sell-side default; a beta measured on an R-squared of 0.05
+  #          counts exactly as much as one measured on 0.40
+  # vasicek  shrink each toward the cross-sectional mean by its own standard
+  #          error first, so the noisy ones count for less
+  peer_beta_method: median
   size_premium: 0.0
 
 tax:
