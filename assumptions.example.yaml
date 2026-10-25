@@ -203,6 +203,25 @@ merger:
     pretax_revenue_synergies: 0.0
     phase_in_year_one: 0.60
 
+  # The opening balance sheet a merger model builds. Off, the module stays the
+  # year-one screen it is documented as. On, it books goodwill, writes up
+  # intangibles with the deferred tax on the step-up, haircuts the target's
+  # deferred revenue to fair value, and runs the deal forward with the
+  # acquisition debt paid down from free cash flow.
+  purchase_accounting:
+    enabled: false
+    # Share of the price above book equity that goes to identifiable
+    # intangibles. Software deals commonly land at 30% to 50%; the rest is
+    # goodwill, which is not amortised. The life is this block's own, not the
+    # screen's intangible_life_years above.
+    intangible_pct_of_excess: 0.40
+    intangible_life_years: 7
+    # Acquired deferred revenue is written down to the cost of delivering it
+    # plus a margin, and the revenue it would have recognised is gone for good.
+    deferred_revenue_haircut: 0.40
+    projection_years: 3
+    debt_repayment_pct_of_fcf: 0.50   # free cash flow swept to the new debt
+
 # Point in time. Value the company as it was knowable on this date: every fact
 # filed after it is discarded and the price series stops there, which is what
 # separates a backtest from an exercise in hindsight. Left out, the run uses
