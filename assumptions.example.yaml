@@ -344,6 +344,17 @@ simulation:
   # path      shift every explicit year by the same draw, the wider spread
   growth_shock: year_one
 
+# Adjusted present value: the business valued unlevered, plus the present value
+# of the interest tax shield, reconciled to the WACC answer. The two agree only
+# when leverage is constant, and where they part the gap is the finding.
+apv:
+  enabled: false
+  # What the shield is worth turns on how safe it is.
+  # cost_of_debt              a fixed debt schedule (Modigliani-Miller)
+  # unlevered_cost_of_equity  debt rebalanced continuously with firm value
+  #                           (Harris-Pringle), as a constant WACC already implies
+  shield_discount_rate: cost_of_debt
+
 scenarios:
   # Bear, base and bull read off the fade panel: the mean growth path of the
   # company-years around each percentile of realised five-year growth, among
