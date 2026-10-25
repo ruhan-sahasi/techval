@@ -1581,6 +1581,11 @@ cp assumptions.example.yaml assumptions.yaml
 The SEC blocks automated clients that do not declare a contact address, so the
 engine refuses to start without `TECHVAL_SEC_EMAIL`.
 
+`assumptions.example.yaml` names every setting the engine offers, each with what
+it does, and the suite fails if a setting is added without a line there. Every
+optional section that would change a valuation is off in it, so the copy values
+Datadog on the base case until you change it.
+
 ## Usage
 
 Twenty-one commands in six groups.
