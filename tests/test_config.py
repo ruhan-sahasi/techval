@@ -241,10 +241,6 @@ _COMMENTED = {"price_csv_dir", "as_of"}
 # example would offer a switch that does nothing.
 _NOT_A_CHOICE = {"ml.peers.require_same_sub_vertical", "ml.signals.overlapping_windows"}
 
-# Settings the worked example does not name yet. Each is a gap in the claim its
-# header makes, and the list only ever shrinks.
-_NOT_YET: set[str] = set()
-
 _ABSENT = object()
 
 
@@ -268,7 +264,7 @@ def _lookup(raw, path):
 def test_the_example_names_every_setting():
     """The header says every judgment that moves a valuation is in the file.
 
-    So every setting the engine reads is in it, at a value or as a commented
+    So every setting that is a choice is in it, at a value or as a commented
     line, and a setting added to the engine without a line in the example
     fails here rather than going undiscovered.
     """
@@ -280,13 +276,10 @@ def test_the_example_names_every_setting():
         if _lookup(raw, path) is _ABSENT
         and not (path in _COMMENTED and f"# {path}:" in text)
         and path not in _NOT_A_CHOICE
-        and not any(path == gap or path.startswith(gap + ".") for gap in _NOT_YET)
     ]
     assert not absent, f"missing from the worked example: {', '.join(absent)}"
     for path in _NOT_A_CHOICE:
         assert _lookup(raw, path) is _ABSENT, f"{path} offers a choice it refuses"
-    for gap in _NOT_YET:
-        assert _lookup(raw, gap) is _ABSENT, f"{gap} is in the example now; strike it off"
 
 
 def test_a_setting_kept_out_of_the_example_still_refuses_any_other_value():
