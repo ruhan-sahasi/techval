@@ -235,11 +235,15 @@ def test_the_example_states_the_carryforward_and_the_simulation_at_their_default
 # filing to a date.
 _COMMENTED = {"price_csv_dir", "as_of"}
 
+# Not judgments: each accepts only its default and refuses anything else, one
+# because the gate it names does not exist and one because the overlap it
+# describes is a fact the harness always corrects for. Offering either in the
+# example would offer a switch that does nothing.
+_NOT_A_CHOICE = {"ml.peers.require_same_sub_vertical", "ml.signals.overlapping_windows"}
+
 # Settings the worked example does not name yet. Each is a gap in the claim its
 # header makes, and the list only ever shrinks.
 _NOT_YET = {
-    "ml.peers.require_same_sub_vertical",
-    "ml.signals.overlapping_windows",
     "apv",
 }
 
@@ -277,11 +281,32 @@ def test_the_example_names_every_setting():
         for path in _settings(Assumptions)
         if _lookup(raw, path) is _ABSENT
         and not (path in _COMMENTED and f"# {path}:" in text)
+        and path not in _NOT_A_CHOICE
         and not any(path == gap or path.startswith(gap + ".") for gap in _NOT_YET)
     ]
     assert not absent, f"missing from the worked example: {', '.join(absent)}"
+    for path in _NOT_A_CHOICE:
+        assert _lookup(raw, path) is _ABSENT, f"{path} offers a choice it refuses"
     for gap in _NOT_YET:
         assert _lookup(raw, gap) is _ABSENT, f"{gap} is in the example now; strike it off"
+
+
+def test_a_setting_kept_out_of_the_example_still_refuses_any_other_value():
+    """The exemption lasts only while the setting is not a choice.
+
+    Implement either one and it accepts its other value, this fails, and the
+    setting belongs in the example with the rest.
+    """
+    for path in _NOT_A_CHOICE:
+        *blocks, name = path.split(".")
+        model, data = Assumptions, {}
+        node = data
+        for block in blocks:
+            model = model.model_fields[block].annotation
+            node = node.setdefault(block, {})
+        node[name] = not model.model_fields[name].default
+        with pytest.raises(ConfigError):
+            Assumptions.model_validate(data)
 
 
 def test_the_example_does_not_switch_a_fitted_section_on():
