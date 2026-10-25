@@ -238,7 +238,6 @@ _COMMENTED = {"price_csv_dir", "as_of"}
 # Settings the worked example does not name yet. Each is a gap in the claim its
 # header makes, and the list only ever shrinks.
 _NOT_YET = {
-    "dilution",
     "ml.peers.require_same_sub_vertical",
     "ml.signals.overlapping_windows",
     "apv",

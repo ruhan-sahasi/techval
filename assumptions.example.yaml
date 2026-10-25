@@ -222,6 +222,23 @@ merger:
     projection_years: 3
     debt_repayment_pct_of_fcf: 0.50   # free cash flow swept to the new debt
 
+# The share count equity value is divided by.
+# waso            trailing diluted weighted-average shares as filed. An average
+#                 over the past year, so it sits below today's count at a
+#                 company issuing steadily.
+# treasury_stock  shares outstanding plus the net new shares in-the-money awards
+#                 would create at today's price, read from the latest instance
+#                 document. Where the awards are not tagged usably it falls back
+#                 to waso and says what was missing.
+dilution:
+  method: waso
+  # These two apply under treasury_stock. Unvested RSUs have no strike, so each
+  # adds a full share, and leaving them out understates dilution.
+  include_rsus: true
+  # Zero, as ASC 260 has it: the treasury stock method does not haircut for
+  # forfeitures, and guessing a rate is a thumb on the scale.
+  assumed_forfeiture_rate: 0.0
+
 # Point in time. Value the company as it was knowable on this date: every fact
 # filed after it is discarded and the price series stops there, which is what
 # separates a backtest from an exercise in hindsight. Left out, the run uses
