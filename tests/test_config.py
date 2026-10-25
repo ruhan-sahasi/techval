@@ -238,7 +238,6 @@ _COMMENTED = {"price_csv_dir", "as_of"}
 # Settings the worked example does not name yet. Each is a gap in the claim its
 # header makes, and the list only ever shrinks.
 _NOT_YET = {
-    "market.peer_beta_method",
     "dcf.sbc_dilution",
     "dcf.terminal",
     "comps.regression",
