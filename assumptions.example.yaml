@@ -168,6 +168,16 @@ comps:
 
   apply_percentiles: [0.25, 0.75]
 
+  # Warranted EV/Revenue: an OLS fit across the peers on the drivers below, read
+  # off at the company's own growth and margin, with the residual against the
+  # traded multiple as the thing to argue about. It declines below
+  # min_observations usable peers, and the six names above give five, so on
+  # this file it says so rather than fitting three parameters to five points.
+  regression:
+    enabled: false
+    min_observations: 8
+    drivers: [revenue_growth, ebitda_margin]
+
 merger:
   # Set exactly one of offer_price_per_share or offer_premium.
   offer_price_per_share: null
