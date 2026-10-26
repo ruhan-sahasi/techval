@@ -9,8 +9,8 @@ assumptions file being asked about a business it was not written for.
 
 ``record_anchors`` reads the alternative off the filings: revenue growth from
 the company's own trailing growth, fading toward a rate no higher than that and
-no lower than the perpetuity rate; today's EBIT margin, held; capex and D&A at
-today's share of revenue. Each anchor says what the assumptions file had and
+no lower than the perpetuity rate; today's EBIT margin, held; capex, D&A and
+working capital at today's share of revenue. Each anchor says what the assumptions file had and
 where the new figure came from, and an anchor the filings cannot support is
 left at the assumption and said to be. The result is the company as it stands,
 with nothing improving and nothing getting worse: a baseline to set the
@@ -42,6 +42,7 @@ LABELS = {
     "ebit_margin_terminal": "Terminal EBIT margin",
     "capex_pct_revenue": "Capex, share of revenue",
     "da_pct_revenue": "D&A, share of revenue",
+    "nwc_pct_revenue": "Working capital, share of revenue",
 }
 
 
@@ -154,12 +155,31 @@ def record_anchors(fin, facts, assumptions) -> list[Anchor]:
                 f"trailing D&A of {fin.da:,.0f}mm on {fin.revenue:,.0f}mm of revenue",
             )
         )
+    # Struck on the same TTM revenue the projection starts from, so year one's
+    # change is measured against the balance actually reported, with no step.
+    nwc = fin.operating_working_capital
+    if nwc is not None and fin.revenue:
+        out.append(
+            Anchor(
+                "nwc_pct_revenue",
+                nwc / fin.revenue,
+                cfg.nwc_pct_revenue,
+                f"working capital of {nwc:,.0f}mm on {fin.revenue:,.0f}mm of revenue, "
+                "with current debt and leases taken out",
+            )
+        )
     return out
 
 
 def unanchored(fields) -> list[str]:
     """Of the record-case fields, those not among ``fields``: left at the assumption."""
-    wanted = ("revenue_growth_start", "ebit_margin_terminal", "capex_pct_revenue", "da_pct_revenue")
+    wanted = (
+        "revenue_growth_start",
+        "ebit_margin_terminal",
+        "capex_pct_revenue",
+        "da_pct_revenue",
+        "nwc_pct_revenue",
+    )
     have = set(fields)
     return [f for f in wanted if f not in have]
 
