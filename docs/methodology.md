@@ -1338,11 +1338,12 @@ company, replaces them with what the filings show (`techval.anchors`):
 | Year N revenue growth | The lower of that rate and the assumed year-N rate, and no lower than the perpetuity rate. |
 | Terminal EBIT margin | Today's margin, held. |
 | Capex, D&A | Today's share of revenue. |
+| Working capital | Today's operating balance on TTM revenue, with current debt and leases taken out, so year one starts from the balance sheet with no step. |
 
-Working capital, the discount rate and the perpetuity stay where the
-assumptions put them. A figure the filings cannot support is left at the
-assumption and named. Every page that values a company prints each anchor
-beside the figure it replaced and where it came from, and the quarterly
+The discount rate and the perpetuity stay where the assumptions put them. A
+figure the filings cannot support is left at the assumption and named. Every
+page that values a company prints each anchor beside the figure it replaced and
+where it came from, and the quarterly
 history reads each quarter's anchors from the filings known that quarter, so
 the record case adds no lookahead to it.
 
@@ -1357,6 +1358,13 @@ on 31, Charter at 745 against 2,605 on 107. Charter and the telecoms stay far
 above their prices for a different reason, a beta regression with an
 R-squared near zero over the last two years that holds their cost of capital
 near 5%; peers fix that, the record does not.
+
+That comparison was measured before working capital joined the record case. On
+the fixtures at a 10.5% rate, setting it from the balance sheet moves Disney's
+record case by under 1%, Datadog's 23% higher, since it carries a fifth of its
+revenue as negative working capital, and MongoDB's 14% lower, since its working
+capital is positive. So the mature names above barely move, and the subscription
+names, which the defaults were written for, move most.
 
 ## 7. Trading comparables
 
