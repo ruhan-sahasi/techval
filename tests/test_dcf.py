@@ -998,6 +998,44 @@ def test_a_section_382_cap_cannot_be_negative():
         Assumptions.model_validate({"dcf": {"nol": {"section_382_limit": -1.0}}})
 
 
+def _working_capital_note(d):
+    return next(n for n in d.notes if n.startswith("Working capital is carried at"))
+
+
+def test_the_working_capital_note_sets_the_assumed_ratio_beside_the_balance_sheet(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """The ratio is a choice, so the note shows what the filer actually carries."""
+    from conftest import load_facts
+    from techval.anchors import record_case
+
+    assumptions.dcf.wacc_override = PINNED_WACC
+    reported = ddog.operating_working_capital
+    note = _working_capital_note(run_dcf(ddog, ddog_bridge, wacc_result, assumptions))
+    assert f"{assumptions.dcf.nwc_pct_revenue:.1%} of revenue" in note
+    assert f"reported {reported:,.0f}mm, {reported / ddog.revenue:.1%} of revenue" in note
+    assert "dcf.from_record sets the ratio" in note
+
+    assumptions.dcf.from_record = True
+    record, _ = record_case(assumptions, ddog, load_facts("DDOG"))
+    note = _working_capital_note(run_dcf(ddog, ddog_bridge, wacc_result, record))
+    assert f"That is the {reported:,.0f}mm the balance sheet reports" in note
+    assert "releases cash" in note
+
+
+def test_a_positive_working_capital_ratio_is_said_to_tie_up_cash(
+    mdb, assumptions, market
+):
+    from techval.ev_bridge import build_ev_bridge
+
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.nwc_pct_revenue = 0.03
+    bridge = build_ev_bridge(mdb, market.spot("MDB"), assumptions)
+    w = compute_wacc(mdb, bridge, market, assumptions)
+    note = _working_capital_note(run_dcf(mdb, bridge, w, assumptions))
+    assert "growth ties up cash" in note and "releases" not in note
+
+
 def test_the_carryforward_columns_stay_off_the_page_when_unused(
     ddog, ddog_bridge, assumptions, wacc_result
 ):
