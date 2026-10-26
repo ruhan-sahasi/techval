@@ -136,6 +136,28 @@ class NOLAssumptions(_Base):
             "income, so a profitable year still pays some cash tax."
         ),
     )
+    section_382_limit: float | None = Field(
+        None,
+        ge=0.0,
+        description=(
+            "Annual cap on using the opening balance after an ownership change, USD "
+            "millions: the equity value just before the change times the IRS "
+            "long-term tax-exempt rate. Any of the cap a year leaves unused carries "
+            "forward to the next. Losses projected after the valuation date are not "
+            "capped. Null means no change of control."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _check(self) -> "NOLAssumptions":
+        if self.section_382_limit is not None and not self.track:
+            raise ConfigError(
+                "dcf.nol.section_382_limit caps the use of a carryforward, but "
+                "dcf.nol.track is off, so there is no carryforward for it to cap and "
+                "the setting would change nothing. Turn dcf.nol.track on, or leave "
+                "the limit null."
+            )
+        return self
 
 
 class TerminalAssumptions(_Base):

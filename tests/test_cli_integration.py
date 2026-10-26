@@ -790,3 +790,14 @@ def test_the_value_report_states_the_carryforward_left_at_year_n(tmp_path):
     d = run_dcf(fin, bridge, compute_wacc(fin, bridge, market, assumptions), assumptions)
     row = next(line for line in tracked.output.splitlines() if label in line)
     assert f"{d.carryforward_value:,.0f}" in row
+
+
+def test_the_value_report_shows_the_section_382_cap_at_work(tmp_path):
+    """The rationed balance gets rows of its own, and the checks say where it binds."""
+    body = NOL_BODY + "    section_382_limit: 300\n"
+    tracked = run_value("-c", str(_config(tmp_path, NOL_BODY)))
+    capped = run_value("-c", str(_config(tmp_path, body)))
+    assert tracked.exit_code == 0 and capped.exit_code == 0
+    assert "NOL under 382 cap" not in tracked.output
+    for text in ("NOL under 382 cap", "382 cap unused", "The cap binds from year 4"):
+        assert text in capped.output, text

@@ -823,6 +823,42 @@ def test_a_carryforward_on_arrays_is_each_draw_valued_on_its_own():
     assert together[0] == together[1] == 0.0
 
 
+def test_the_balance_left_at_year_n_stays_under_its_section_382_cap(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """After year N the capped balance still comes out no faster than the cap.
+
+    Uncapped, the 48,500mm left at year five would shelter 80% of a growing EBIT
+    and be gone within decades. At 300mm a year it takes a century and a half,
+    and most of it is discounted away. Rebuilt here year by year.
+    """
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0
+    assumptions.dcf.nol.section_382_limit = 300.0
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    last = d.projections[-1]
+    assert last.nol_capped_closing == last.nol_closing > 0
+
+    cfg = assumptions.dcf
+    rate, g, n = assumptions.tax.marginal_tax_rate, cfg.terminal_growth, len(d.projections)
+    ebit_next = cfg.ebit_margin_terminal * last.revenue * (1 + g)
+    balance, unused, ebit, t, pv = last.nol_capped_closing, last.nol_cap_unused, ebit_next, n + 0.5, 0.0
+    for _ in range(200):
+        unused += 300.0
+        used = min(balance, unused, 0.80 * ebit)
+        balance, unused = balance - used, unused - used
+        pv += rate * used / (1 + PINNED_WACC) ** t
+        ebit *= 1 + g
+        t += 1
+    assert d.carryforward_value == pytest.approx(pv)
+
+    uncapped = carryforward_value(
+        last.nol_closing, ebit_next, g, PINNED_WACC, n, True, rate, 0.80
+    )
+    assert d.carryforward_value < 0.5 * uncapped
+
+
 def test_a_balance_spent_inside_the_projection_is_worth_nothing_after_it(
     ddog, ddog_bridge, assumptions, wacc_result
 ):
@@ -836,26 +872,30 @@ def test_a_balance_spent_inside_the_projection_is_worth_nothing_after_it(
     assert d.carryforward_value == 0.0
 
 
+@pytest.mark.parametrize("cap", [None, 300.0])
 def test_the_grid_centre_is_the_headline_with_a_carryforward(
-    ddog, ddog_bridge, assumptions, wacc_result
+    ddog, ddog_bridge, assumptions, wacc_result, cap
 ):
     assumptions.dcf.wacc_override = PINNED_WACC
     assumptions.dcf.nol.track = True
     assumptions.dcf.nol.opening_balance = 50_000.0
+    assumptions.dcf.nol.section_382_limit = cap
     d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
     grid = sensitivity_wacc_growth(ddog, ddog_bridge, assumptions, PINNED_WACC)
     centre = grid.iloc[len(grid) // 2, len(grid.columns) // 2]
     assert centre == pytest.approx(d.per_share_gordon)
 
 
+@pytest.mark.parametrize("cap", [None, 300.0])
 def test_the_exit_grid_centre_is_the_exit_value_with_a_carryforward(
-    ddog, ddog_bridge, assumptions, wacc_result
+    ddog, ddog_bridge, assumptions, wacc_result, cap
 ):
     """Each row values the balance at its own rate, and the centre row is the headline's."""
     assumptions.dcf.wacc_override = PINNED_WACC
     assumptions.dcf.exit_multiple = 20.0
     assumptions.dcf.nol.track = True
     assumptions.dcf.nol.opening_balance = 50_000.0
+    assumptions.dcf.nol.section_382_limit = cap
     d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
     assert d.carryforward_value > 0
 
@@ -864,6 +904,98 @@ def test_the_exit_grid_centre_is_the_exit_value_with_a_carryforward(
     assert centre == pytest.approx(d.per_share_exit)
     # A higher rate is worth less in every column, the balance after N included.
     assert (grid.diff().iloc[1:] < 0).all().all()
+
+
+def test_a_section_382_cap_rations_the_opening_balance_and_carries_its_unused_cap(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """After an ownership change the old balance is used no faster than the cap.
+
+    Datadog's early years earn less than a 300mm cap, so the cap they leave
+    unused carries forward and lets year three shelter more than 300mm; from
+    year four the cap binds and cash tax rises against the uncapped case.
+    """
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0
+    free = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    assumptions.dcf.nol.section_382_limit = 300.0
+    capped = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+
+    balance, unused = 50_000.0, 0.0
+    for p in capped.projections:
+        unused += 300.0
+        used = min(balance, unused, 0.80 * max(p.ebit, 0.0))
+        balance, unused = balance - used, unused - used
+        assert p.nol_used == pytest.approx(used)
+        assert p.nol_capped_closing == pytest.approx(balance) == p.nol_closing
+        assert p.nol_cap_unused == pytest.approx(unused)
+    assert capped.projections[2].nol_used > 300.0
+    assert capped.projections[-1].cash_taxes > free.projections[-1].cash_taxes
+    assert capped.per_share < free.per_share
+
+
+def test_the_checks_say_where_the_section_382_cap_binds(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 50_000.0
+    uncapped = run_dcf(ddog, ddog_bridge, wacc_result, assumptions).checks
+    assert any("without dcf.nol.section_382_limit overstates" in c for c in uncapped)
+
+    assumptions.dcf.nol.section_382_limit = 300.0
+    d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+    left = d.projections[-1].nol_capped_closing
+    line = next(c for c in d.checks if c.startswith("Section 382 caps"))
+    assert "50,000mm balance" in line and "300mm a year" in line
+    assert "binds from year 4" in line
+    assert f"{left:,.0f}mm is still under it at the end of year 5" in line
+    tail = next(c for c in d.checks if "unused at the end of year" in c)
+    assert "no faster than the 300mm cap allows" in tail
+    assert f"{d.carryforward_value:,.0f}mm" in tail
+    assert any("beyond the annual cap" in c for c in d.checks)
+    implied = next(c for c in d.checks if c.startswith("A 300mm cap is"))
+    assert f"{300.0 / ddog_bridge.equity_value:.2%}" in implied
+    assert f"{ddog_bridge.equity_value:,.0f}mm equity value" in implied
+
+    assumptions.dcf.nol.section_382_limit = 5_000.0
+    roomy = run_dcf(ddog, ddog_bridge, wacc_result, assumptions).checks
+    assert any("stays inside the cap through the explicit period" in c for c in roomy)
+
+    # Early losses leave a free balance beside the capped one at year N.
+    assumptions.dcf.ebit_margin_start = -0.40
+    assumptions.dcf.nol.opening_balance = 1_000.0
+    for cap, phrase in ((50.0, "of it under the cap no faster than 50mm a year"),
+                        (0.0, "under a zero cap aside")):
+        assumptions.dcf.nol.section_382_limit = cap
+        mixed = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+        last = mixed.projections[-1]
+        assert 0 < last.nol_capped_closing < last.nol_closing
+        tail = next(c for c in mixed.checks if "unused at the end of year" in c)
+        assert f"the {last.nol_capped_closing:,.0f}mm" in tail and phrase in tail
+
+
+def test_losses_made_after_the_change_are_not_capped(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """Only the balance at the change is limited; the projection's own losses are not."""
+    assumptions.dcf.wacc_override = PINNED_WACC
+    assumptions.dcf.ebit_margin_start = -0.10
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 1_000.0
+    assumptions.dcf.nol.section_382_limit = 0.0
+    rows = run_dcf(ddog, ddog_bridge, wacc_result, assumptions).projections
+
+    losses = -sum(p.ebit for p in rows if p.ebit < 0)
+    assert losses > 0
+    assert sum(p.nol_used for p in rows) == pytest.approx(losses)
+    assert all(p.nol_capped_closing == 1_000.0 for p in rows)
+
+
+def test_a_section_382_cap_cannot_be_negative():
+    with pytest.raises(ValueError, match="section_382_limit"):
+        Assumptions.model_validate({"dcf": {"nol": {"section_382_limit": -1.0}}})
 
 
 def test_the_carryforward_columns_stay_off_the_page_when_unused(
@@ -877,6 +1009,14 @@ def test_the_carryforward_columns_stay_off_the_page_when_unused(
     tracked = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
     for column in ("NOL opening", "NOL used", "NOL closing", "Cash taxes"):
         assert column in tracked.to_frame().columns
+    assert "NOL under 382 cap" not in tracked.to_frame().columns
+
+    assumptions.dcf.nol.section_382_limit = 300.0
+    frame = run_dcf(ddog, ddog_bridge, wacc_result, assumptions).to_frame()
+    columns = list(frame.columns)
+    assert columns.index("NOL closing") + 1 == columns.index("NOL under 382 cap")
+    assert columns.index("382 cap unused") + 1 == columns.index("Cash taxes")
+    assert frame["382 cap unused"].iloc[0] == pytest.approx(300.0 - frame["NOL used"].iloc[0])
 
 
 # --------------------------------------------------------------------------- #
