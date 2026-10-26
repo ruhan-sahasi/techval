@@ -938,6 +938,16 @@ subscription software the percentage is negative, because customers are billed
 ahead of delivery and deferred revenue grows with the business, so growth
 releases cash rather than consuming it.
 
+The reported balance is printed beside the ratio all the same, with the current
+debt, convertible notes and lease liabilities taken back out of current
+liabilities, since the bridge already counts them as debt. Datadog carries
+-$808mm, -20.4% of revenue, against the -5% default. Verizon reads -$26,392mm with
+its current debt inside and $226mm without it, which is a telecom running on
+almost no working capital rather than one owed a fifth of its revenue. Where debt
+resolves only as a total its current leg cannot be told apart, and the balance
+is not printed. The record case (§6.8) sets the ratio from that balance on TTM
+revenue, so its path starts where the balance sheet does and still takes no step.
+
 **Taxes** are `rate * max(EBIT, 0)` by default. A loss year creates a
 carryforward, not a refund, and with the carryforward untracked no cash benefit
 is booked in the loss year and none is taken later. For a company with large
