@@ -10,11 +10,11 @@ assumptions file being asked about a business it was not written for.
 ``record_anchors`` reads the alternative off the filings: revenue growth from
 the company's own trailing growth, fading toward a rate no higher than that and
 no lower than the perpetuity rate; today's EBIT margin, held; capex, D&A and
-working capital at today's share of revenue. Each anchor says what the assumptions file had and
-where the new figure came from, and an anchor the filings cannot support is
-left at the assumption and said to be. The result is the company as it stands,
-with nothing improving and nothing getting worse: a baseline to set the
-assumption-driven case against, not a forecast.
+working capital at today's share of revenue. Each anchor says what the
+assumptions file had and where the new figure came from, and an anchor the
+filings cannot support is left at the assumption and said to be. The result is
+the company as it stands, with nothing improving and nothing getting worse: a
+baseline to set the assumption-driven case against, not a forecast.
 """
 
 from __future__ import annotations

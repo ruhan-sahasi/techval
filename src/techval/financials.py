@@ -194,12 +194,12 @@ class Financials:
     def operating_working_capital(self) -> float | None:
         """Working capital the business runs on, with the financing taken out.
 
-        ``net_working_capital`` less nothing it should keep: the current debt,
-        convertible notes and lease liabilities inside current liabilities are
-        added back, because they are borrowing and the EV bridge already counts
-        them as debt. What is left is receivables, payables, accruals and, for a
-        subscription business, the deferred revenue that makes the figure
-        negative. None when either piece cannot be read.
+        ``net_working_capital`` with the current debt, convertible notes and
+        lease liabilities inside current liabilities added back, because they
+        are borrowing and the EV bridge already counts them as debt. What is
+        left is receivables, payables, accruals and, for a subscription
+        business, the deferred revenue that makes the figure negative. None
+        when either piece cannot be read.
         """
         if self.net_working_capital is None or self.current_financing is None:
             return None
