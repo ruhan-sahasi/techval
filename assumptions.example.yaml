@@ -29,6 +29,12 @@ market:
   beta_lookback_years: 2.0
   beta_frequency: weekly    # weekly | monthly
   beta_adjustment: raw      # raw | blume (0.67*raw + 0.33*1.0)
+  # How the peers' asset betas are pooled.
+  # median   the sell-side default; a beta measured on an R-squared of 0.05
+  #          counts exactly as much as one measured on 0.40
+  # vasicek  shrink each toward the cross-sectional mean by its own standard
+  #          error first, so the noisy ones count for less
+  peer_beta_method: median
   size_premium: 0.0
 
 tax:
@@ -104,6 +110,12 @@ dcf:
   # GAAP EBIT is already net of SBC, so 'expense' adds nothing back. See
   # methodology.md for why adding it back without modelling dilution overstates value.
   sbc_treatment: expense
+  # Only bites under addback: grow the share count each year by the stock
+  # compensation issued at the share price, the cost that goes with adding the
+  # cash back. It closes only about an eighth of the gap between the two
+  # camps, because the addback lands mostly in the terminal value; the DCF
+  # checks say how much.
+  sbc_dilution: true
 
   mid_year_convention: true
   terminal_growth: 0.025
@@ -130,6 +142,17 @@ dcf:
     # and later losses are not capped. Null means no change; a deal case needs it.
     section_382_limit: null
 
+  terminal:
+    # Which terminal value is the headline; both are always reported.
+    # gordon        capitalise year N's cash flow and check the return it implies
+    # value_driver  state the return on new capital and derive the reinvestment
+    #               growth needs from it, so the terminal value cannot embed a
+    #               return nobody signed up for
+    method: gordon
+    # The value-driver return in perpetuity. Null uses the WACC, the competitive
+    # equilibrium in which growth is worth exactly nothing.
+    terminal_roic: null
+
 comps:
   peers: [MDB, NET, ZS, CRWD, SNOW, HUBS]
 
@@ -144,6 +167,16 @@ comps:
   pe_nm_threshold: 75.0
 
   apply_percentiles: [0.25, 0.75]
+
+  # Warranted EV/Revenue: an OLS fit across the peers on the drivers below, read
+  # off at the company's own growth and margin, with the residual against the
+  # traded multiple as the thing to argue about. It declines below
+  # min_observations usable peers, and the six names above give five, so on
+  # this file it says so rather than fitting three parameters to five points.
+  regression:
+    enabled: false
+    min_observations: 8
+    drivers: [revenue_growth, ebitda_margin]
 
 merger:
   # Set exactly one of offer_price_per_share or offer_premium.
@@ -169,6 +202,42 @@ merger:
     pretax_cost_synergies: 400.0
     pretax_revenue_synergies: 0.0
     phase_in_year_one: 0.60
+
+  # The opening balance sheet a merger model builds. Off, the module stays the
+  # year-one screen it is documented as. On, it books goodwill, writes up
+  # intangibles with the deferred tax on the step-up, haircuts the target's
+  # deferred revenue to fair value, and runs the deal forward with the
+  # acquisition debt paid down from free cash flow.
+  purchase_accounting:
+    enabled: false
+    # Share of the price above book equity that goes to identifiable
+    # intangibles. Software deals commonly land at 30% to 50%; the rest is
+    # goodwill, which is not amortised. The life is this block's own, not the
+    # screen's intangible_life_years above.
+    intangible_pct_of_excess: 0.40
+    intangible_life_years: 7
+    # Acquired deferred revenue is written down to the cost of delivering it
+    # plus a margin, and the revenue it would have recognised is gone for good.
+    deferred_revenue_haircut: 0.40
+    projection_years: 3
+    debt_repayment_pct_of_fcf: 0.50   # free cash flow swept to the new debt
+
+# The share count equity value is divided by.
+# waso            trailing diluted weighted-average shares as filed. An average
+#                 over the past year, so it sits below today's count at a
+#                 company issuing steadily.
+# treasury_stock  shares outstanding plus the net new shares in-the-money awards
+#                 would create at today's price, read from the latest instance
+#                 document. Where the awards are not tagged usably it falls back
+#                 to waso and says what was missing.
+dilution:
+  method: waso
+  # These two apply under treasury_stock. Unvested RSUs have no strike, so each
+  # adds a full share, and leaving them out understates dilution.
+  include_rsus: true
+  # Zero, as ASC 260 has it: the treasury stock method does not haircut for
+  # forfeitures, and guessing a rate is a thumb on the scale.
+  assumed_forfeiture_rate: 0.0
 
 # Point in time. Value the company as it was knowable on this date: every fact
 # filed after it is discarded and the price series stops there, which is what
@@ -274,6 +343,17 @@ simulation:
   #           the same year-N rate
   # path      shift every explicit year by the same draw, the wider spread
   growth_shock: year_one
+
+# Adjusted present value: the business valued unlevered, plus the present value
+# of the interest tax shield, reconciled to the WACC answer. The two agree only
+# when leverage is constant, and where they part the gap is the finding.
+apv:
+  enabled: false
+  # What the shield is worth turns on how safe it is.
+  # cost_of_debt              a fixed debt schedule (Modigliani-Miller)
+  # unlevered_cost_of_equity  debt rebalanced continuously with firm value
+  #                           (Harris-Pringle), as a constant WACC already implies
+  shield_discount_rate: cost_of_debt
 
 scenarios:
   # Bear, base and bull read off the fade panel: the mean growth path of the
