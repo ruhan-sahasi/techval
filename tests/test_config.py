@@ -19,6 +19,8 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+import yaml
+from pydantic import BaseModel
 
 from techval.config import Assumptions, NOLAssumptions, SimulationAssumptions
 from techval.errors import ConfigError
@@ -228,10 +230,82 @@ def test_the_example_states_the_carryforward_and_the_simulation_at_their_default
     assert a.simulation == SimulationAssumptions()
 
 
+# Left as commented lines, because setting either changes what a run reads: a
+# CSV directory matters only under price_source: csv, and as_of pins every
+# filing to a date.
+_COMMENTED = {"price_csv_dir", "as_of"}
+
+# Not judgments: each accepts only its default and refuses anything else, one
+# because the gate it names does not exist and one because the overlap it
+# describes is a fact the harness always corrects for. Offering either in the
+# example would offer a switch that does nothing.
+_NOT_A_CHOICE = {"ml.peers.require_same_sub_vertical", "ml.signals.overlapping_windows"}
+
+_ABSENT = object()
+
+
+def _settings(model, prefix=""):
+    """Every setting's dotted path, a nested block's own path included."""
+    for name, field in model.model_fields.items():
+        path = prefix + name
+        yield path
+        kind = field.annotation
+        if isinstance(kind, type) and issubclass(kind, BaseModel):
+            yield from _settings(kind, path + ".")
+
+
+def _lookup(raw, path):
+    node = raw
+    for part in path.split("."):
+        node = node.get(part, _ABSENT) if isinstance(node, dict) else _ABSENT
+    return node
+
+
+def test_the_example_names_every_setting():
+    """The header says every judgment that moves a valuation is in the file.
+
+    So every setting that is a choice is in it, at a value or as a commented
+    line, and a setting added to the engine without a line in the example
+    fails here rather than going undiscovered.
+    """
+    text = EXAMPLE.read_text()
+    raw = yaml.safe_load(text)
+    absent = [
+        path
+        for path in _settings(Assumptions)
+        if _lookup(raw, path) is _ABSENT
+        and not (path in _COMMENTED and f"# {path}:" in text)
+        and path not in _NOT_A_CHOICE
+    ]
+    assert not absent, f"missing from the worked example: {', '.join(absent)}"
+    for path in _NOT_A_CHOICE:
+        assert _lookup(raw, path) is _ABSENT, f"{path} offers a choice it refuses"
+
+
+def test_a_setting_kept_out_of_the_example_still_refuses_any_other_value():
+    """The exemption lasts only while the setting is not a choice.
+
+    Implement either one and it accepts its other value, this fails, and the
+    setting belongs in the example with the rest.
+    """
+    for path in _NOT_A_CHOICE:
+        *blocks, name = path.split(".")
+        model, data = Assumptions, {}
+        node = data
+        for block in blocks:
+            model = model.model_fields[block].annotation
+            node = node.setdefault(block, {})
+        node[name] = not model.model_fields[name].default
+        with pytest.raises(ConfigError):
+            Assumptions.model_validate(data)
+
+
 def test_the_example_does_not_switch_a_fitted_section_on():
     """Copying the example must not silently put a fitted number in a valuation."""
     a = Assumptions.load(EXAMPLE)
     assert a.tmt.sotp is False
+    assert a.comps.regression.enabled is False
+    assert a.apv.enabled is False
     assert a.ml.peers.enabled is False
     assert a.ml.forecast.enabled is False
     assert a.ml.warranted.enabled is False
