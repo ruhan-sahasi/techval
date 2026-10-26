@@ -66,18 +66,27 @@ turns profitable, because only 80% of taxable income can be sheltered however
 large the carryforward. NOPAT is struck on the cash tax, so the shield reaches
 free cash flow in the year it is used rather than being asserted in a footnote.
 
-What the NOL model does not do: section 382, which caps the annual use of a
-carryforward after a change of control at roughly the equity value times the
-long-term tax-exempt rate, so any deal case here overstates the shield; state
-carryforwards, which have their own expiry rules and apportionment; and the
-valuation allowance, so the balance used is the gross federal carryforward and
-not the deferred tax asset the filer believes it will realise.
+``nol.section_382_limit``, null by default, caps each year's use of the opening
+balance as an ownership change does: the equity value just before the change
+times the IRS long-term tax-exempt rate. Any of the cap a year leaves unused
+carries to the next, and losses the projection makes are free of it, so the
+balance is held in two pools and the older, capped one is used first; together
+they still shelter no more than the limitation allows. ``_shelter`` is that
+rule for one year, and the projection, the balance after year N and every
+Monte Carlo draw all run it.
+
+What the NOL model does not do: the parts of section 382 beyond the annual cap,
+such as the built-in gains that raise it; state carryforwards, which have their
+own expiry rules and apportionment; and the valuation allowance, so the balance
+used is the gross federal carryforward and not the deferred tax asset the filer
+believes it will realise.
 
 The perpetuity is taxed at the full rate, because a carryforward runs out and a
 sheltered year N grown for ever would capitalise a shield the balance cannot pay
 for. Whatever survives year N is valued on its own instead: it shelters the
-limitation's share of EBIT at the terminal margin, growing at g, until it is
-gone, and that tax, discounted, is added once beside the terminal value.
+limitation's share of EBIT at the terminal margin, growing at g, no faster than
+any cap allows, until it is gone, and that tax, discounted, is added once
+beside the terminal value.
 
 **Terminal value the value-driver way.** The Gordon path assumes capex and
 working capital in the terminal year and leaves the implied return on capital to
@@ -228,6 +237,8 @@ class ProjectionYear:
     nol_opening: float = 0.0
     nol_used: float = 0.0
     nol_closing: float = 0.0
+    nol_capped_closing: float = 0.0
+    nol_cap_unused: float = 0.0
     sbc_shares_issued: float = 0.0
     shares_outstanding: float = 0.0
 
@@ -313,6 +324,7 @@ class DCFResult:
         it is clutter, and on a transposed terminal table it costs five rows.
         """
         show_nol = any(p.nol_opening or p.nol_used for p in self.projections)
+        show_cap = any(p.nol_capped_closing or p.nol_cap_unused for p in self.projections)
         show_dilution = any(p.sbc_shares_issued for p in self.projections)
 
         records = []
@@ -330,8 +342,15 @@ class DCFResult:
                     "NOL opening": p.nol_opening,
                     "NOL used": p.nol_used,
                     "NOL closing": p.nol_closing,
-                    "Cash taxes": p.cash_taxes,
                 }
+                if show_cap:
+                    # What is still rationed, and the cap carried unused, which
+                    # is how a year can shelter more than one year's cap.
+                    row |= {
+                        "NOL under 382 cap": p.nol_capped_closing,
+                        "382 cap unused": p.nol_cap_unused,
+                    }
+                row["Cash taxes"] = p.cash_taxes
             row |= {
                 "NOPAT": p.nopat,
                 "D&A": p.da,
@@ -494,6 +513,26 @@ def _opening_nol(fin: Financials, assumptions: Assumptions) -> tuple[float, str]
     )
 
 
+def _shelter(ebit, free, capped, unused_cap, limit: float, cap: float):
+    """One year's use of the carryforward, and the balances it leaves.
+
+    ``capped`` is the balance under a section 382 cap. It is the older loss, so
+    it is used first, and only as far as this year's ``cap`` plus the cap
+    earlier years left unused reaches. ``free`` is every other loss, the
+    projection's own included. Together they shelter at most ``limit`` of the
+    year's EBIT; a loss year shelters nothing and its loss joins ``free``.
+    Returns the income sheltered, ``free``, ``capped`` and the unused cap carried
+    to the next year. Works elementwise, so the Monte Carlo runs every draw
+    through the same rule as the projection.
+    """
+    room = np.maximum(limit * ebit, 0.0)
+    unused_cap = unused_cap + cap
+    from_capped = np.minimum(np.minimum(capped, unused_cap), room)
+    from_free = np.minimum(free, room - from_capped)
+    free = free - from_free + np.maximum(-ebit, 0.0)
+    return from_capped + from_free, free, capped - from_capped, unused_cap - from_capped
+
+
 def project(
     fin: Financials,
     assumptions: Assumptions,
@@ -542,6 +581,11 @@ def project(
             "dcf.sbc_dilution to false and read the per-share figure as overstated."
         )
     nol_balance = _opening_nol(fin, assumptions)[0] if cfg.nol.track else 0.0
+    # Under a section 382 cap the whole opening balance is the capped one; only
+    # losses the projection itself makes are free of it.
+    cap = cfg.nol.section_382_limit
+    nol_capped, nol_free = (nol_balance, 0.0) if cap is not None else (0.0, nol_balance)
+    cap_unused = 0.0
 
     growth = (
         _fade(cfg.revenue_growth_start, cfg.revenue_growth_terminal, n)
@@ -573,13 +617,16 @@ def project(
         nol_opening = nol_balance
         nol_used = 0.0
         if cfg.nol.track:
-            if ebit < 0:
-                # The loss itself joins the balance. It shelters nothing this
-                # year because there is nothing to shelter.
-                nol_balance = nol_opening - ebit
-            else:
-                nol_used = min(nol_opening, cfg.nol.annual_limitation_pct * ebit)
-                nol_balance = nol_opening - nol_used
+            # A loss joins the balance and shelters nothing this year, because
+            # there is nothing to shelter.
+            nol_used, nol_free, nol_capped, cap_unused = (
+                float(x)
+                for x in _shelter(
+                    ebit, nol_free, nol_capped, cap_unused,
+                    cfg.nol.annual_limitation_pct, cap or 0.0,
+                )
+            )
+            nol_balance = nol_free + nol_capped
             cash_taxes = tax_rate * max(ebit - nol_used, 0.0)
         else:
             cash_taxes = taxes
@@ -613,6 +660,8 @@ def project(
                 nol_opening=nol_opening,
                 nol_used=nol_used,
                 nol_closing=nol_balance,
+                nol_capped_closing=nol_capped,
+                nol_cap_unused=cap_unused,
                 sbc_shares_issued=issued,
                 shares_outstanding=shares,
             )
@@ -703,27 +752,41 @@ _CARRYFORWARD_HORIZON = 200
 
 
 def carryforward_value(
-    balance, ebit_next, g, rate, n: int, mid_year: bool, tax_rate: float, limit: float
+    balance,
+    ebit_next,
+    g,
+    rate,
+    n: int,
+    mid_year: bool,
+    tax_rate: float,
+    limit: float,
+    capped=0.0,
+    cap_unused=0.0,
+    cap: float = 0.0,
 ):
     """The tax a balance left at year N stops after it, discounted to today.
 
     From year N+1 the balance shelters ``limit`` of EBIT, which starts at
     ``ebit_next`` and grows at ``g``, until it is gone; a loss year shelters
-    nothing. The flows arrive through each year, so they take the mid-year
-    clock when the projection does. Works elementwise on arrays, so the Monte
-    Carlo values every draw's balance on its own rate and growth.
+    nothing. ``balance`` is the part free of any cap. ``capped`` is the part
+    still under a section 382 cap, which goes on being used no faster than
+    ``cap`` a year plus the ``cap_unused`` carried out of year N. The flows
+    arrive through each year, so they take the mid-year clock when the
+    projection does. Works elementwise on arrays, so the Monte Carlo values
+    every draw's balance on its own rate and growth.
     """
-    balance, ebit, g, rate = (
-        np.array(x, dtype=float) for x in np.broadcast_arrays(balance, ebit_next, g, rate)
+    balance, capped, cap_unused, ebit, g, rate = (
+        np.array(x, dtype=float)
+        for x in np.broadcast_arrays(balance, capped, cap_unused, ebit_next, g, rate)
     )
     pv = np.zeros_like(balance)
     t = n + (0.5 if mid_year else 1.0)
     for _ in range(_CARRYFORWARD_HORIZON):
-        live = (balance > 0) & (ebit > 0)
-        if not live.any():
+        if not ((balance + capped > 0) & (ebit > 0)).any():
             break
-        used = np.where(live, np.minimum(balance, limit * ebit), 0.0)
-        balance = balance - used
+        used, balance, capped, cap_unused = _shelter(
+            ebit, balance, capped, cap_unused, limit, cap
+        )
         pv = pv + tax_rate * used * (1.0 + rate) ** (-t)
         ebit = ebit * (1.0 + g)
         t += 1.0
@@ -742,7 +805,7 @@ def _carryforward_after(
     if not cfg.nol.track or terminal.nol_closing <= 0:
         return 0.0
     return carryforward_value(
-        terminal.nol_closing,
+        terminal.nol_closing - terminal.nol_capped_closing,
         cfg.ebit_margin_terminal * terminal.revenue * (1.0 + g),
         g,
         wacc,
@@ -750,6 +813,9 @@ def _carryforward_after(
         cfg.mid_year_convention,
         tax_rate,
         cfg.nol.annual_limitation_pct,
+        capped=terminal.nol_capped_closing,
+        cap_unused=terminal.nol_cap_unused,
+        cap=cfg.nol.section_382_limit or 0.0,
     )
 
 
@@ -1256,7 +1322,11 @@ def _cross_checks(
         )
     )
     out.extend(_dilution_check(projections, assumptions, price, shares, g))
-    out.extend(_nol_check(projections, factors, assumptions, tax_rate, carryforward))
+    out.extend(
+        _nol_check(
+            projections, factors, assumptions, tax_rate, carryforward, bridge.equity_value
+        )
+    )
 
     if bridge.operating_lease_in_debt > 0 and terminal_exit is not None:
         out.append(
@@ -1543,8 +1613,9 @@ def _nol_check(
     assumptions: Assumptions,
     tax_rate: float,
     carryforward: float = 0.0,
+    equity_value: float = float("nan"),
 ) -> list[str]:
-    """What the carryforward is worth, and the three things it does not include.
+    """What the carryforward is worth, what caps it, and what it does not include.
 
     The shield is reported in present value because that is the only form in
     which it is comparable to anything else in the model. An NOL balance quoted
@@ -1580,21 +1651,71 @@ def _nol_check(
             "carry forward indefinitely but shelter only part of taxable income, "
             "so a profitable year pays cash tax however large the carryforward."
         )
+    cap = cfg.section_382_limit
+    still_capped = projections[-1].nol_capped_closing
+    if cap is not None:
+        binds = next(
+            (
+                p for p in projections
+                if p.ebit > 0 and p.nol_capped_closing > 0 and p.nol_cap_unused <= 0
+            ),
+            None,
+        )
+        out.append(
+            f"Section 382 caps use of the {projections[0].nol_opening:,.0f}mm "
+            f"balance at the ownership change at {cap:,.0f}mm a year, and any of "
+            "the cap a year leaves unused carries to the next; losses the "
+            "projection makes are not capped. "
+            + (
+                f"The cap binds from year {binds.year}, and "
+                if binds is not None
+                else "Taxable income stays inside the cap through the explicit "
+                "period, and "
+            )
+            + f"{still_capped:,.0f}mm is still under it at the end of year "
+            f"{projections[-1].year}."
+        )
+        if equity_value > 0:
+            # The statute's own formula run backwards, so a mistyped cap shows.
+            out.append(
+                f"A {cap:,.0f}mm cap is {cap / equity_value:.2%} of today's "
+                f"{equity_value:,.0f}mm equity value. The cap is the equity value "
+                "just before the change times the IRS long-term tax-exempt rate, "
+                "so that is the rate it implies for a change at today's price; a "
+                "deal at a premium raises the cap in proportion."
+            )
     if closing > 0:
+        pace = ""
+        if cap is not None and still_capped > 0:
+            if cap == 0:
+                pace = f", the {still_capped:,.0f}mm under a zero cap aside,"
+            elif still_capped >= closing:
+                pace = f", no faster than the {cap:,.0f}mm cap allows,"
+            else:
+                pace = (
+                    f", the {still_capped:,.0f}mm of it under the cap no faster "
+                    f"than {cap:,.0f}mm a year,"
+                )
         out.append(
             f"{closing:,.0f}mm of carryforward is unused at the end of year "
-            f"{projections[-1].year}. It goes on sheltering "
+            f"{projections[-1].year}. It goes on sheltering up to "
             f"{cfg.annual_limitation_pct:.0%} of taxable income at the terminal "
-            f"margin until it runs out, worth {carryforward:,.0f}mm discounted, "
-            "and that is added to the enterprise value beside the terminal value, "
-            f"which is itself taxed at the full {tax_rate:.1%} rate."
+            f"margin{pace} until it runs out, worth {carryforward:,.0f}mm "
+            "discounted, and that is added to the enterprise value beside the "
+            f"terminal value, which is itself taxed at the full {tax_rate:.1%} rate."
         )
+    unmodelled = (
+        "the parts of section 382 beyond the annual cap, such as the built-in "
+        "gains that raise it"
+        if cap is not None
+        else "section 382, which caps annual use after a change of control, so "
+        "a deal case without dcf.nol.section_382_limit overstates the shield"
+    )
     out.append(
-        "Not modelled in the carryforward: section 382, which caps annual use "
-        "after a change of control and would cut the shield in any deal case; "
-        "state carryforwards, with their own expiry and apportionment; and the "
-        "valuation allowance, so this is the gross federal balance rather than "
-        "the deferred tax asset the filer expects to realise."
+        f"Not modelled in the carryforward: {unmodelled}; state carryforwards, "
+        "with their own expiry and apportionment; and the valuation allowance, "
+        "so this is the gross federal balance rather than the deferred tax "
+        "asset the filer expects to realise."
     )
     return out
 

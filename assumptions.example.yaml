@@ -124,6 +124,11 @@ dcf:
     opening_balance: null
     # Post-2017 federal losses offset at most 80% of a year's taxable income.
     annual_limitation_pct: 0.80
+    # After an ownership change the balance at the change is used no faster than
+    # this many USD millions a year: the equity value just before the change
+    # times the IRS long-term tax-exempt rate. Any unused cap carries forward,
+    # and later losses are not capped. Null means no change; a deal case needs it.
+    section_382_limit: null
 
 comps:
   peers: [MDB, NET, ZS, CRWD, SNOW, HUBS]

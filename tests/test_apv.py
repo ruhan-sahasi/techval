@@ -239,13 +239,15 @@ def test_net_cash_datadog_reconciles_to_the_wacc_answer(ddog, assumptions, marke
     assert any("the same calculation" in note for note in result.notes)
 
 
+@pytest.mark.parametrize("cap", [None, 300.0])
 def test_a_carryforward_left_at_year_n_reaches_apv_as_it_reaches_the_wacc_value(
-    ddog, assumptions, market
+    ddog, assumptions, market, cap
 ):
     """With no debt APV is the WACC DCF run again, the balance after year N included."""
     assumptions.convertibles.conversion_price = DDOG_CONVERSION_PRICE
     assumptions.dcf.nol.track = True
     assumptions.dcf.nol.opening_balance = 50_000.0
+    assumptions.dcf.nol.section_382_limit = cap
     _, _, dcf_result, result = _stack(ddog, assumptions, market)
 
     assert dcf_result.carryforward_value > 0
