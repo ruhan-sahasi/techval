@@ -1430,19 +1430,23 @@ The DCF's defaults are written for subscription software, and asked about a
 cable company they value it at twenty times its price. `--from-record` on any
 command that values a company, or `dcf.from_record` in the assumptions file,
 sets the DCF from the company's own filings instead: growth from its trailing
-rate, today's margin held, today's capex and D&A. Each figure is printed
-beside the one it replaced and where it came from. On the committed fixtures:
+rate, today's margin held, today's capex, D&A and working capital. Each figure
+is printed beside the one it replaced and where it came from. On the committed
+fixtures:
 
 ```
 $ techval value DIS --from-record
-Assumption               Assumptions file  From the record  Source
-Year 1 revenue growth               20.0%             3.4%  fiscal-year revenue of 94,425mm to 2025-09-27 against 91,361mm
-Terminal EBIT margin                20.0%            18.4%  today's EBIT margin, 18,238mm on 98,861mm of revenue, held
-Capex, share of revenue              3.0%             8.8%  trailing capex of 8,696mm on 98,861mm of revenue
+Assumption                         Assumptions file  From the record  Source
+Year 1 revenue growth                         20.0%             3.4%  fiscal-year revenue of 94,425mm to 2025-09-27 against 91,361mm the year before
+Terminal EBIT margin                          20.0%            18.4%  today's EBIT margin, 18,238mm on 98,861mm of revenue, held
+Capex, share of revenue                        3.0%             8.8%  trailing capex of 8,696mm on 98,861mm of revenue
+Working capital, share of revenue             -5.0%            -6.8%  working capital of -6,771mm on 98,861mm of revenue, with current debt and leases taken out
 ```
 
 It is a baseline, not a better forecast: across 60 names it is no closer to
 the price in aggregate, but Disney comes to 76 rather than 180 on a 109 close.
+That was measured before working capital joined the record case, which moves
+Disney under 1% and a subscription name such as Datadog by about a quarter.
 [`docs/tearsheet/DIS.html`](docs/tearsheet/DIS.html) is Disney on its own
 record. Methodology section 6.8 has the rules and the comparison.
 
@@ -1888,10 +1892,12 @@ today's equity value, and the built-in gains that raise a cap are not counted.
 The model also leaves out state carryforwards, with their own expiry and
 apportionment, and the valuation allowance, so the balance used is the gross
 federal carryforward rather than the deferred tax asset the filer believes it
-will realise. Working capital is anchored on a ratio, not on the balance sheet:
-the year one change is measured against `nwc_pct_revenue` applied to TTM revenue
-rather than against the reported balance, which keeps the path internally
-consistent at the cost of ignoring where the balance sheet actually starts.
+will realise. Outside the record case, working capital is anchored on a ratio,
+not on the balance sheet: the year one change is measured against
+`nwc_pct_revenue` applied to TTM revenue rather than against the reported
+balance, which keeps the path internally consistent at the cost of ignoring
+where the balance sheet actually starts. The notes print the reported balance
+beside the ratio, and `dcf.from_record` sets the ratio from it.
 
 By default the Monte Carlo shocks only year-one revenue growth, and the path
 still fades to an unshocked terminal growth rate, so the spread on the final
