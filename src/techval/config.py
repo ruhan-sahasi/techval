@@ -431,18 +431,21 @@ class DCFAssumptions(_Base):
     from_record: bool = Field(
         False,
         description=(
-            "Set revenue growth, the terminal margin, capex and D&A from the "
-            "company's own filings instead of the figures here: growth from its "
-            "trailing rate, today's margin held, today's reinvestment. A baseline "
-            "for a company these defaults were not written for; see techval.anchors."
+            "Set revenue growth, the terminal margin, capex, D&A and working capital "
+            "from the company's own filings instead of the figures here: growth from "
+            "its trailing rate, today's margin held, today's reinvestment and "
+            "today's working capital. A baseline for a company these defaults were "
+            "not written for; see techval.anchors."
         ),
     )
     nwc_pct_revenue: float = Field(
         -0.05,
         description=(
-            "Non-cash working capital as a share of revenue. Negative for most "
-            "subscription software: deferred revenue is billed ahead of delivery, so "
-            "growth releases cash rather than consuming it."
+            "Non-cash working capital as a share of revenue, with current debt and "
+            "leases left out. Negative for most subscription software: deferred "
+            "revenue is billed ahead of delivery, so growth releases cash rather than "
+            "consuming it. Year one's change is measured against this ratio on TTM "
+            "revenue, not the reported balance; from_record sets it from that balance."
         ),
     )
     sbc_treatment: Literal["expense", "addback"] = Field(
