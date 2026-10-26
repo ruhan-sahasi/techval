@@ -755,9 +755,19 @@ def test_the_record_case_sets_the_dcf_from_the_filings_and_says_which_figures(tm
     assert "The record case" not in default.output
     text = " ".join(record.output.split())
     assert "The record case" in text
-    for label in ("Year 1 revenue growth", "Terminal EBIT margin", "Capex, share of revenue"):
+    for label in (
+        "Year 1 revenue growth",
+        "Terminal EBIT margin",
+        "Capex, share of revenue",
+        "Working capital, share of revenue",
+    ):
         assert label in text, label
     assert "twelve months to" in text or "fiscal-year revenue" in text
+    # And the DCF's own note says where year one's working capital now starts.
+    assert "the balance sheet reports" in text
+    assert "dcf.from_record sets the ratio from the balance instead" in " ".join(
+        default.output.split()
+    )
 
 
 def test_the_from_record_flag_does_what_the_setting_does(tmp_path):
