@@ -1648,7 +1648,13 @@ direction worth tracking. Lease liabilities are deliberately not deducted: ASC 8
 a right-of-use asset against the liability at inception and the two stay close,
 so subtracting the liability while the matching asset is absent from the object
 would conjure hundreds of millions of goodwill out of an accounting entry.
-Non-current operating assets are missing for the same reason. Book equity is
+That holds for the current leg too, so the current debt, convertible notes and
+lease liabilities inside current liabilities are taken back out of them first: a
+borrowing is then deducted once, with total debt, and a lease not at all. Taken
+whole, current liabilities would deduct Disney's current debt twice. Where debt
+resolves only as a total its current leg cannot be told apart, and the note says
+that much is deducted twice. Non-current operating assets are missing for the
+same reason as the leases. Book equity is
 therefore understated, and the excess, the write-up and the amortisation are
 overstated, which makes the deal look more dilutive here than a full opening
 balance sheet would make it, not less. A price at or below book equity is treated
