@@ -587,6 +587,11 @@ def test_year_one_is_the_headline_less_the_after_tax_amortisation(pa_case):
     )
 
 
+def test_a_profitable_pro_forma_has_no_tax_benefit_line(pa_case):
+    r, _, _, _ = pa_case
+    assert not any(c.startswith("Pro forma EPS books") for c in r.purchase_accounting.checks)
+
+
 def test_free_cash_flow_adds_back_only_the_after_tax_amortisation(pa_case):
     """The deferred tax benefit inside net income is not cash.
 
@@ -849,7 +854,12 @@ def test_the_sweep_runs_on_the_tax_actually_paid_and_carries_a_loss_forward(hand
     assert 0 < second.cash_taxes < rate * (second.pretax_income + second.intangible_amortisation)
     assert third.carryforward == 0.0
 
-    frame = _rerun(acq, tgt, a).purchase_accounting.to_frame()
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    line = next(c for c in pa.checks if c.startswith("Pro forma EPS books"))
+    assert f"{-first.taxes:,.0f}mm of tax benefit on pre-tax losses in year 1," in line
+    assert "by year 3 the loss has sheltered later years' income in full" in line
+
+    frame = pa.to_frame()
     columns = list(frame.columns)
     assert columns.index("Cash taxes") == columns.index("Taxes") + 1
     assert frame["Loss carried forward"].tolist() == pytest.approx([y.carryforward for y in years])

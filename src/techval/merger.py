@@ -1517,6 +1517,26 @@ def _purchase_accounting_checks(
             "synergy assumption, not a result."
         )
 
+    losing = [y for y in years if y.taxes < 0]
+    if losing:
+        booked = -sum(y.taxes for y in losing)
+        which = ", ".join(str(y.year) for y in losing)
+        checks.append(
+            f"Pro forma EPS books {booked:,.0f}mm of tax benefit on pre-tax losses "
+            f"in year{'s' if len(losing) > 1 else ''} {which}, as GAAP does where "
+            "the deferred tax asset is expected to be realised. None of it is "
+            "cash: the sweep pays tax on taxable income only, and "
+            + (
+                f"{horizon.carryforward:,.0f}mm of loss is still carried forward at "
+                f"the end of year {horizon.year}"
+                if horizon.carryforward > 0
+                else f"by year {horizon.year} the loss has sheltered later years' "
+                "income in full"
+            )
+            + ". If that asset is not realisable, a valuation allowance takes the "
+            "benefit out of EPS as well."
+        )
+
     # Leverage is quoted on whichever earnings figure the lease convention allows,
     # the same rule the headline check follows. Under the lease-inclusive
     # convention net debt carries the lease liabilities, so the denominator has to
