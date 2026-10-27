@@ -294,6 +294,8 @@ class ProFormaYear:
     GAAP books one. ``cash_taxes`` is what is paid: the step-up amortisation is
     not deductible, a loss is carried forward rather than refunded, and
     ``carryforward`` is the roll-forward's own loss balance left at year end.
+    ``change_in_working_capital`` comes out of the cash flow, so a release from
+    a subscription business's negative working capital is a negative figure.
     """
 
     year: int
@@ -312,6 +314,7 @@ class ProFormaYear:
     debt_repaid: float
     cash_taxes: float = 0.0
     carryforward: float = 0.0
+    change_in_working_capital: float = 0.0
 
 
 @dataclass
@@ -348,6 +351,7 @@ class PurchaseAccounting:
                     "Diluted shares (mm)": y.shares,
                     "Pro forma EPS": y.eps,
                     "Acquisition debt, closing": y.debt_balance,
+                    "Change in working capital": y.change_in_working_capital,
                     "Free cash flow": y.cash_flow,
                     "Debt repaid": y.debt_repaid,
                     "Loss carried forward": y.carryforward,
@@ -1289,8 +1293,13 @@ def build_purchase_accounting(
     years up to ``dcf.nol.annual_limitation_pct``, by the rule the DCF uses. In a
     profitable year with no carryforward this is net income plus the after-tax
     amortisation, since the deferred tax benefit inside net income is not cash.
-    A configured share of the cash flow repays the acquisition facility at the
-    end of each year, and the next year's interest is charged on what is left.
+    Working capital is held at the share of revenue the two balance sheets carry
+    together, with current debt and leases taken out, like every other ratio
+    here, and its change comes out of the cash flow. It is struck on revenue
+    before the deferred revenue haircut, which writes down a liability for cash
+    collected before close and moves no cash. A configured share of the cash
+    flow repays the acquisition facility at the end of each year, and the next
+    year's interest is charged on what is left.
     """
     m = assumptions.merger
     pa = m.purchase_accounting
@@ -1321,6 +1330,16 @@ def build_purchase_accounting(
     debt = cons.new_debt
     carryforward = 0.0
     limit = assumptions.dcf.nol.annual_limitation_pct
+    unread = [
+        f.ticker for f in (acq_fin, tgt_fin) if f.operating_working_capital is None
+    ]
+    nwc_pct = (
+        None
+        if unread
+        else (acq_fin.operating_working_capital + tgt_fin.operating_working_capital)
+        / base_revenue
+    )
+    working_before = base_revenue * (nwc_pct or 0.0)
     for y in range(1, pa.projection_years + 1):
         compounding = (1.0 + growth) ** (y - 1)
         haircut = opening.deferred_revenue_haircut if y == 1 else 0.0
@@ -1349,7 +1368,17 @@ def build_purchase_accounting(
             float(x) for x in _shelter(taxable, carryforward, 0.0, 0.0, limit, 0.0)
         )
         cash_taxes = tax_rate * max(taxable - used, 0.0)
-        cash_flow = pretax - cash_taxes + amortisation + da - revenue * capex_pct
+        working = base_revenue * compounding * (nwc_pct or 0.0)
+        change_in_working_capital = working - working_before
+        working_before = working
+        cash_flow = (
+            pretax
+            - cash_taxes
+            + amortisation
+            + da
+            - revenue * capex_pct
+            - change_in_working_capital
+        )
         repaid = min(max(cash_flow, 0.0) * pa.debt_repayment_pct_of_fcf, debt)
         debt -= repaid
 
@@ -1371,6 +1400,7 @@ def build_purchase_accounting(
                 debt_repaid=repaid,
                 cash_taxes=cash_taxes,
                 carryforward=carryforward,
+                change_in_working_capital=change_in_working_capital,
             )
         )
 
@@ -1405,9 +1435,26 @@ def build_purchase_accounting(
         "every margin, the capital intensity and the non-operating line held where "
         "the trailing twelve months put them. Year one carries no growth, so it "
         "covers the same period as the year-one screen and the two are comparable. "
-        "No fade, no working capital movement and no buyback: the only capital "
-        "action modelled after close is the debt sweep."
+        "No fade and no buyback: the only capital action modelled after close is "
+        "the debt sweep."
     )
+    if nwc_pct is None:
+        notes.append(
+            "Working capital does not move in the sweep, because "
+            + " and ".join(unread)
+            + "'s cannot be read: current assets or liabilities are not tagged, or "
+            "debt resolves only as a total and its current part cannot be taken "
+            "out."
+        )
+    else:
+        notes.append(
+            f"Working capital is held at {nwc_pct:.1%} of revenue, what the two "
+            "balance sheets carry together with current debt and leases taken out, "
+            "so growth "
+            + ("releases cash into" if nwc_pct < 0 else "takes cash out of")
+            + " the sweep. It is struck on revenue before the deferred revenue "
+            "haircut, which moves no cash."
+        )
     notes.append(
         f"Cash not swept to the facility, {1.0 - pa.debt_repayment_pct_of_fcf:.0%} of "
         "free cash flow, piles up earning nothing in this model. That understates "
