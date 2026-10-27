@@ -1259,10 +1259,12 @@ write-up is $14,855mm, the DTL on it is $3,565mm at 24%, and goodwill comes out
 at $25,847mm against the $22,281mm a model that skips the DTL would report. The
 liability everybody forgets is a seventh of the goodwill it creates, and without
 it the opening balance sheet does not balance. The amortisation of those
-intangibles is a book expense with no tax basis behind it, so free cash flow
-gets back only `(1 - t)` of the charge, and acquired deferred revenue is written
-down to fair value, which permanently destroys revenue the target would have
-recognised.
+intangibles is a book expense with no tax basis behind it, so the debt sweep
+pays tax as though it were never charged. A pro forma loss pays no tax and is
+carried forward against later years, and the benefit EPS books on it is not
+cash, which the checks say. Working capital moves at the two balance sheets'
+combined share of revenue. Acquired deferred revenue is written down to fair
+value, which permanently destroys revenue the target would have recognised.
 
 ### Software is two sub-verticals and telecom is two, and both are arguable
 
