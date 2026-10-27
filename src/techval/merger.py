@@ -132,6 +132,7 @@ from dataclasses import dataclass, field
 import pandas as pd
 
 from .config import Assumptions
+from .dcf import _shelter
 from .errors import ConfigError, MissingDataError, NotMeaningfulError
 from .ev_bridge import EVBridge, build_ev_bridge
 from .financials import Financials
@@ -255,8 +256,21 @@ class OpeningBalanceSheet:
     deferred_tax_liability: float
     deferred_revenue_haircut: float
     target_debt_refinanced: float
+    # Taken back out of current liabilities before book equity is formed, so a
+    # borrowing is deducted once. None where the target's debt has no split.
+    target_current_financing: float | None = None
 
     def rows(self) -> list[tuple[str, float]]:
+        memo = (
+            []
+            if self.target_current_financing is None
+            else [
+                (
+                    "Memo: current debt and leases out of current liabilities",
+                    self.target_current_financing,
+                )
+            ]
+        )
         return [
             ("Equity purchase price", self.equity_purchase_price),
             ("- Book equity acquired", _charge(self.target_book_equity)),
@@ -269,7 +283,7 @@ class OpeningBalanceSheet:
             ("Goodwill created", self.goodwill_created),
             ("Memo: deferred revenue written down", self.deferred_revenue_haircut),
             ("Memo: target debt assumed or refinanced", self.target_debt_refinanced),
-        ]
+        ] + memo
 
 
 @dataclass
@@ -288,6 +302,13 @@ class ProFormaYear:
 
     The gap between ``ebitda`` and ``ebit`` is the existing depreciation and
     amortisation of the two businesses plus ``intangible_amortisation``.
+
+    ``taxes`` is the book charge EPS is struck on, a benefit in a loss year as
+    GAAP books one. ``cash_taxes`` is what is paid: the step-up amortisation is
+    not deductible, a loss is carried forward rather than refunded, and
+    ``carryforward`` is the roll-forward's own loss balance left at year end.
+    ``change_in_working_capital`` comes out of the cash flow, so a release from
+    a subscription business's negative working capital is a negative figure.
     """
 
     year: int
@@ -304,6 +325,9 @@ class ProFormaYear:
     debt_balance: float
     cash_flow: float
     debt_repaid: float
+    cash_taxes: float = 0.0
+    carryforward: float = 0.0
+    change_in_working_capital: float = 0.0
 
 
 @dataclass
@@ -335,12 +359,15 @@ class PurchaseAccounting:
                     "Interest on acquisition debt": y.interest,
                     "Pre-tax income": y.pretax_income,
                     "Taxes": y.taxes,
+                    "Cash taxes": y.cash_taxes,
                     "Net income": y.net_income,
                     "Diluted shares (mm)": y.shares,
                     "Pro forma EPS": y.eps,
                     "Acquisition debt, closing": y.debt_balance,
+                    "Change in working capital": y.change_in_working_capital,
                     "Free cash flow": y.cash_flow,
                     "Debt repaid": y.debt_repaid,
+                    "Loss carried forward": y.carryforward,
                 }
                 for y in self.years
             ]
@@ -1134,6 +1161,7 @@ def _opening_balance_sheet(
         deferred_tax_liability=dtl,
         deferred_revenue_haircut=haircut,
         target_debt_refinanced=refinanced,
+        target_current_financing=tgt_fin.current_financing,
     )
 
     # The allocation is an identity. A residual here means the deferred tax was
@@ -1267,15 +1295,25 @@ def build_purchase_accounting(
     module assumes. Where either filer's reported effective rate differs from
     that rate, year one here will not reproduce the headline walk exactly, since
     the walk starts from reported net income and this starts from revenue. No
-    loss carryforwards are tracked, so a pro forma loss books a full tax benefit
-    at the marginal rate.
+    loss carryforwards are tracked for EPS, so a pro forma loss books a full tax
+    benefit at the marginal rate, as GAAP does where the deferred tax asset is
+    expected to be realised. The sweep below runs on the tax actually paid.
 
-    **The sweep.** Free cash flow is net income, plus the after-tax intangible
-    amortisation, plus existing D&A, less capital expenditure. Only ``(1 - t)`` of
-    the amortisation comes back because the deferred tax benefit inside net income
-    is not cash. A configured share of that cash flow repays the acquisition
-    facility at the end of each year, and the next year's interest is charged on
-    what is left.
+    **The sweep.** Free cash flow is pre-tax income less the tax actually paid,
+    plus the intangible amortisation, plus existing D&A, less capital
+    expenditure. The tax paid is on taxable income, which adds back the step-up
+    amortisation because a stock deal carries the target's tax basis over. A
+    loss year pays nothing and its loss joins a carryforward that shelters later
+    years up to ``dcf.nol.annual_limitation_pct``, by the rule the DCF uses. In a
+    profitable year with no carryforward this is net income plus the after-tax
+    amortisation, since the deferred tax benefit inside net income is not cash.
+    Working capital is held at the share of revenue the two balance sheets carry
+    together, with current debt and leases taken out, like every other ratio
+    here, and its change comes out of the cash flow. It is struck on revenue
+    before the deferred revenue haircut, which writes down a liability for cash
+    collected before close and moves no cash. A configured share of the cash
+    flow repays the acquisition facility at the end of each year, and the next
+    year's interest is charged on what is left.
     """
     m = assumptions.merger
     pa = m.purchase_accounting
@@ -1304,6 +1342,18 @@ def build_purchase_accounting(
 
     years: list[ProFormaYear] = []
     debt = cons.new_debt
+    carryforward = 0.0
+    limit = assumptions.dcf.nol.annual_limitation_pct
+    unread = [
+        f.ticker for f in (acq_fin, tgt_fin) if f.operating_working_capital is None
+    ]
+    nwc_pct = (
+        None
+        if unread
+        else (acq_fin.operating_working_capital + tgt_fin.operating_working_capital)
+        / base_revenue
+    )
+    working_before = base_revenue * (nwc_pct or 0.0)
     for y in range(1, pa.projection_years + 1):
         compounding = (1.0 + growth) ** (y - 1)
         haircut = opening.deferred_revenue_haircut if y == 1 else 0.0
@@ -1327,7 +1377,22 @@ def build_purchase_accounting(
         net_income = pretax - taxes
         eps = net_income / shares
 
-        cash_flow = net_income + amortisation * after_tax + da - revenue * capex_pct
+        taxable = pretax + amortisation
+        used, carryforward, _, _ = (
+            float(x) for x in _shelter(taxable, carryforward, 0.0, 0.0, limit, 0.0)
+        )
+        cash_taxes = tax_rate * max(taxable - used, 0.0)
+        working = base_revenue * compounding * (nwc_pct or 0.0)
+        change_in_working_capital = working - working_before
+        working_before = working
+        cash_flow = (
+            pretax
+            - cash_taxes
+            + amortisation
+            + da
+            - revenue * capex_pct
+            - change_in_working_capital
+        )
         repaid = min(max(cash_flow, 0.0) * pa.debt_repayment_pct_of_fcf, debt)
         debt -= repaid
 
@@ -1347,6 +1412,9 @@ def build_purchase_accounting(
                 debt_balance=debt,
                 cash_flow=cash_flow,
                 debt_repaid=repaid,
+                cash_taxes=cash_taxes,
+                carryforward=carryforward,
+                change_in_working_capital=change_in_working_capital,
             )
         )
 
@@ -1381,9 +1449,26 @@ def build_purchase_accounting(
         "every margin, the capital intensity and the non-operating line held where "
         "the trailing twelve months put them. Year one carries no growth, so it "
         "covers the same period as the year-one screen and the two are comparable. "
-        "No fade, no working capital movement and no buyback: the only capital "
-        "action modelled after close is the debt sweep."
+        "No fade and no buyback: the only capital action modelled after close is "
+        "the debt sweep."
     )
+    if nwc_pct is None:
+        notes.append(
+            "Working capital does not move in the sweep, because "
+            + " and ".join(unread)
+            + "'s cannot be read: current assets or liabilities are not tagged, or "
+            "debt resolves only as a total and its current part cannot be taken "
+            "out."
+        )
+    else:
+        notes.append(
+            f"Working capital is held at {nwc_pct:.1%} of revenue, what the two "
+            "balance sheets carry together with current debt and leases taken out, "
+            "so growth "
+            + ("releases cash into" if nwc_pct < 0 else "takes cash out of")
+            + " the sweep. It is struck on revenue before the deferred revenue "
+            "haircut, which moves no cash."
+        )
     notes.append(
         f"Cash not swept to the facility, {1.0 - pa.debt_repayment_pct_of_fcf:.0%} of "
         "free cash flow, piles up earning nothing in this model. That understates "
@@ -1491,6 +1576,31 @@ def _purchase_accounting_checks(
             "horizon only helps once the amortisation runs off in year "
             f"{pa.intangible_life_years + 1}, and a crossover that far out is a "
             "synergy assumption, not a result."
+        )
+
+    losing = [y for y in years if y.taxes < 0]
+    if losing:
+        booked = -sum(y.taxes for y in losing)
+        which = ", ".join(str(y.year) for y in losing)
+        checks.append(
+            f"Pro forma EPS books {booked:,.0f}mm of tax benefit on pre-tax losses "
+            f"in year{'s' if len(losing) > 1 else ''} {which}, as GAAP does where "
+            "the deferred tax asset is expected to be realised. None of it is "
+            "cash: the sweep pays tax on taxable income only, and "
+            + (
+                f"{horizon.carryforward:,.0f}mm of loss is still carried forward at "
+                f"the end of year {horizon.year}"
+                if horizon.carryforward > 0
+                else f"by year {horizon.year} the loss has sheltered later years' "
+                "income in full"
+                if any(y.pretax_income + y.intangible_amortisation < 0 for y in years)
+                # A book loss smaller than the step-up amortisation is taxable
+                # income all the same, so there is no loss to carry.
+                else "taxable income, with the step-up amortisation added back, is "
+                "never a loss, so tax is paid in those years all the same"
+            )
+            + ". If that asset is not realisable, a valuation allowance takes the "
+            "benefit out of EPS as well."
         )
 
     # Leverage is quoted on whichever earnings figure the lease convention allows,

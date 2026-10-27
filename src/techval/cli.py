@@ -299,6 +299,9 @@ def _render_financials(fin) -> None:
         ("Stock-based compensation", fin.sbc),
         ("Net income", fin.net_income),
         ("Capital expenditure", fin.capex),
+        # Current debt and leases out: the balance the DCF notes and the
+        # record case read, so it is on the page they point back to.
+        ("Working capital, ex financing", fin.operating_working_capital),
         ("Diluted shares (mm)", fin.diluted_shares),
     ]
     t = Table(box=None, pad_edge=False)
@@ -312,6 +315,7 @@ def _render_financials(fin) -> None:
             "EBIT",
             "EBITDA",
             "Stock-based compensation",
+            "Working capital, ex financing",
         ):
             margin = f"{v / fin.revenue:.1%} of revenue"
         t.add_row(label, _money(v, 1), margin)
@@ -378,8 +382,14 @@ def _render_purchase_accounting(pa) -> None:
         ("EBIT", "ebit", 0), ("Interest", "interest", 0),
         ("Taxes", "taxes", 0), ("Net income", "net_income", 0),
         ("Diluted shares (mm)", "shares", 1), ("EPS", "eps", 3),
+        # The sweep runs on cash, so the tax actually paid sits beside it.
+        ("Cash taxes", "cash_taxes", 0),
+        ("Change in working capital", "change_in_working_capital", 0),
+        ("Free cash flow", "cash_flow", 0),
         ("Debt balance", "debt_balance", 0), ("Debt repaid", "debt_repaid", 0),
     ]
+    if any(y.carryforward for y in pa.years):
+        rows.append(("Loss carried forward", "carryforward", 0))
     for label, attr, dp in rows:
         bold = label in ("EPS", "Net income")
         cells = [Text(_money(getattr(y, attr), dp), style="bold" if bold else "")
