@@ -898,3 +898,17 @@ def test_working_capital_that_cannot_be_read_does_not_move_and_says_why(pa_case)
     pa = r.purchase_accounting
     assert all(y.change_in_working_capital == 0.0 for y in pa.years)
     assert any(n.startswith("Working capital does not move") and acq.ticker in n for n in pa.notes)
+
+
+def test_the_opening_balance_sheet_shows_the_financing_taken_out(pa_case):
+    """The book equity line moves by it, so the table says by how much."""
+    r, a, acq, tgt = pa_case
+    labels = [label for label, _ in r.purchase_accounting.opening.rows()]
+    assert not any("out of current liabilities" in label for label in labels)
+
+    opened = _rerun(acq, replace(tgt, current_financing=50.0), a).purchase_accounting.opening
+    rows = dict(opened.rows())
+    assert rows["Memo: current debt and leases out of current liabilities"] == 50.0
+    assert opened.target_book_equity == pytest.approx(
+        r.purchase_accounting.opening.target_book_equity + 50.0
+    )

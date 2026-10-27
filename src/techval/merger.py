@@ -256,8 +256,21 @@ class OpeningBalanceSheet:
     deferred_tax_liability: float
     deferred_revenue_haircut: float
     target_debt_refinanced: float
+    # Taken back out of current liabilities before book equity is formed, so a
+    # borrowing is deducted once. None where the target's debt has no split.
+    target_current_financing: float | None = None
 
     def rows(self) -> list[tuple[str, float]]:
+        memo = (
+            []
+            if self.target_current_financing is None
+            else [
+                (
+                    "Memo: current debt and leases out of current liabilities",
+                    self.target_current_financing,
+                )
+            ]
+        )
         return [
             ("Equity purchase price", self.equity_purchase_price),
             ("- Book equity acquired", _charge(self.target_book_equity)),
@@ -270,7 +283,7 @@ class OpeningBalanceSheet:
             ("Goodwill created", self.goodwill_created),
             ("Memo: deferred revenue written down", self.deferred_revenue_haircut),
             ("Memo: target debt assumed or refinanced", self.target_debt_refinanced),
-        ]
+        ] + memo
 
 
 @dataclass
@@ -1148,6 +1161,7 @@ def _opening_balance_sheet(
         deferred_tax_liability=dtl,
         deferred_revenue_haircut=haircut,
         target_debt_refinanced=refinanced,
+        target_current_financing=tgt_fin.current_financing,
     )
 
     # The allocation is an identity. A residual here means the deferred tax was
