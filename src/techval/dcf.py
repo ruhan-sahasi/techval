@@ -120,7 +120,9 @@ step, the gap between the filer's actual working capital and the assumed ratio,
 into year one and leave the rest of the path clean, which reads as an operating
 event that was never forecast. Measuring against the ratio keeps the whole path
 internally consistent at the cost of ignoring where the balance sheet actually
-starts. That trade is stated rather than hidden.
+starts. That trade is stated rather than hidden, with the reported balance
+beside it. The record case sets the ratio from that balance on TTM revenue,
+so there the path starts where the balance sheet does and still takes no step.
 
 **Mid-year convention.** Explicit-period flows arrive through the year, not on
 its last day, so they are discounted at ``(1+w)^-(t-0.5)``.
@@ -793,6 +795,36 @@ def carryforward_value(
     return pv if pv.ndim else float(pv)
 
 
+def _working_capital_note(fin: Financials, ratio: float) -> str:
+    """Where year one's working capital starts, against the balance reported."""
+    flow = (
+        ", so growth releases cash: customers are billed ahead of delivery"
+        if ratio < 0
+        else ", so growth ties up cash"
+    )
+    reported = fin.operating_working_capital
+    if reported is not None and abs(ratio * fin.revenue - reported) <= 0.5:
+        return (
+            f"Working capital is carried at {ratio:.1%} of revenue{flow}. That is the "
+            f"{reported:,.0f}mm the balance sheet reports, with current debt and "
+            "leases taken out, on TTM revenue, so year one's change runs from the "
+            "balance the company actually has."
+        )
+    against = (
+        f"the reported {reported:,.0f}mm, {reported / fin.revenue:.1%} of revenue "
+        "once current debt and leases are taken out"
+        if reported is not None
+        else "the reported balance, which could not be read"
+    )
+    return (
+        f"Working capital is carried at {ratio:.1%} of revenue{flow}. The year one "
+        "change is measured against that same ratio applied to TTM revenue, not "
+        f"against {against}, which keeps the path free of a one-time step that "
+        "was never an operating event; dcf.from_record sets the ratio from the "
+        "balance instead."
+    )
+
+
 def _carryforward_after(
     terminal: ProjectionYear,
     assumptions: Assumptions,
@@ -976,19 +1008,7 @@ def run_dcf(
             "SBC is left inside EBIT, where the filer charged it. Nothing is added "
             "back, because nothing was taken out."
         )
-    if cfg.nwc_pct_revenue < 0:
-        reported = (
-            f"the reported balance of {fin.net_working_capital:,.0f}mm"
-            if fin.net_working_capital is not None
-            else "the reported balance sheet"
-        )
-        notes.append(
-            f"Working capital is carried at {cfg.nwc_pct_revenue:.1%} of revenue, so "
-            "growth releases cash: customers are billed ahead of delivery. The year "
-            "one change is measured against that same ratio applied to TTM revenue, "
-            f"not against {reported}, which keeps the path free of a one-time step "
-            "that was never an operating event."
-        )
+    notes.append(_working_capital_note(fin, cfg.nwc_pct_revenue))
 
     if cfg.nol.track:
         notes.append(_opening_nol(fin, assumptions)[1])

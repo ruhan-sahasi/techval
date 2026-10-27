@@ -1019,13 +1019,17 @@ def _target_book_equity(tgt_fin: Financials, notes: list[str]) -> float:
     balance, which for a company with a large office footprint is hundreds of
     millions of goodwill conjured out of an accounting entry.
 
-    Non-current operating assets are absent for the same reason: property, existing
-    goodwill and intangibles, and capitalised commissions are not carried here. So
-    is any current portion of borrowings, which sits inside current liabilities and
-    is deducted a second time with total debt below. Both errors point the same
-    way, understating book equity, which overstates the excess, the write-up and
-    the amortisation charge. The deal therefore looks more dilutive here than a
-    full opening balance sheet would make it, not less.
+    The current debt, convertible notes and lease liabilities inside current
+    liabilities are taken back out of them, so a borrowing is deducted once, with
+    total debt below, and a lease not at all. Where debt resolves only as a total
+    its current leg cannot be told apart, current liabilities are taken whole,
+    and the note says that much of the borrowing is deducted twice.
+
+    Non-current operating assets are absent for the same reason as the leases:
+    property, existing goodwill and intangibles, and capitalised commissions are
+    not carried here. That understates book equity, which overstates the excess,
+    the write-up and the amortisation charge. The deal therefore looks more
+    dilutive here than a full opening balance sheet would make it, not less.
     """
     missing = [
         label
@@ -1050,21 +1054,26 @@ def _target_book_equity(tgt_fin: Financials, notes: list[str]) -> float:
     assert tgt_fin.current_assets is not None
     assert tgt_fin.current_liabilities is not None
 
-    book = (
-        (tgt_fin.current_assets - tgt_fin.current_liabilities)
-        - tgt_fin.total_debt_ex_leases
-        - tgt_fin.nci
-        - tgt_fin.preferred
+    financing = tgt_fin.current_financing
+    working = tgt_fin.current_assets - tgt_fin.current_liabilities + (financing or 0.0)
+    book = working - tgt_fin.total_debt_ex_leases - tgt_fin.nci - tgt_fin.preferred
+    inside = (
+        f", after taking back out the {financing:,.0f}mm of current debt and leases "
+        "inside current liabilities so that a borrowing is deducted once and a lease "
+        "not at all"
+        if financing is not None
+        else ". The current part of the debt cannot be told apart from a total, so "
+        "it is inside current liabilities and deducted a second time with the "
+        "borrowings"
     )
     notes.append(
         f"Book equity acquired of {book:,.0f}mm is working capital of "
-        f"{tgt_fin.current_assets - tgt_fin.current_liabilities:,.0f}mm less "
-        f"{tgt_fin.total_debt_ex_leases:,.0f}mm of borrowings and any preferred or "
-        "minority interest. Lease liabilities are left out because their "
-        "right-of-use assets are not carried here and deducting one side alone "
-        "would invent goodwill; non-current operating assets are missing for the "
-        "same reason. Book equity is therefore understated and goodwill overstated, "
-        "which makes the deal look more dilutive here, not less."
+        f"{working:,.0f}mm less {tgt_fin.total_debt_ex_leases:,.0f}mm of borrowings "
+        f"and any preferred or minority interest{inside}. Lease liabilities are left "
+        "out because their right-of-use assets are not carried here and deducting "
+        "one side alone would invent goodwill; non-current operating assets are "
+        "missing for the same reason. Book equity is therefore understated and "
+        "goodwill overstated, which makes the deal look more dilutive here, not less."
     )
     return book
 

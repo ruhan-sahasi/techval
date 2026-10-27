@@ -784,3 +784,30 @@ def test_purchase_accounting_off_changes_nothing(hand_case):
     assert on.notes[:-1] == off.notes[:-1]
     assert off.notes[-1].startswith("Not modelled")
     assert on.notes[-1].startswith("Purchase accounting is on")
+
+
+def test_book_equity_deducts_a_borrowing_once_and_a_lease_not_at_all():
+    """Disney's current debt and current leases sit inside its current liabilities.
+
+    Taken whole, current liabilities deduct the current debt there and again in
+    total borrowings, and deduct the current leg of leases the method leaves out.
+    Each borrowing now comes off once, and a separately tagged lease not at all.
+    """
+    from conftest import load_facts
+    from techval.financials import build_financials
+    from techval.merger import _target_book_equity
+
+    dis = build_financials("DIS", facts=load_facts("DIS"))
+    assert dis.current_financing > 0
+    notes: list[str] = []
+    book = _target_book_equity(dis, notes)
+    whole = dis.current_assets - dis.current_liabilities
+    assert book == pytest.approx(
+        whole + dis.current_financing - dis.total_debt_ex_leases - dis.nci - dis.preferred
+    )
+    assert f"{dis.current_financing:,.0f}mm of current debt and leases" in notes[-1]
+
+    unsplit = replace(dis, current_financing=None)
+    notes = []
+    assert _target_book_equity(unsplit, notes) == pytest.approx(book - dis.current_financing)
+    assert "deducted a second time" in notes[-1]
