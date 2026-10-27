@@ -863,3 +863,38 @@ def test_the_sweep_runs_on_the_tax_actually_paid_and_carries_a_loss_forward(hand
     columns = list(frame.columns)
     assert columns.index("Cash taxes") == columns.index("Taxes") + 1
     assert frame["Loss carried forward"].tolist() == pytest.approx([y.carryforward for y in years])
+
+
+def test_the_sweep_moves_working_capital_at_the_two_balance_sheets_ratio(hand_case):
+    """Held at the share of revenue both companies carry, like every margin here.
+
+    Together they carry minus 1,900mm against 9,500mm of revenue, minus 20%, so
+    each year's growth releases a fifth of the new revenue into the sweep. Year
+    one carries no growth and so no movement.
+    """
+    _, a, acq, tgt = hand_case
+    acq = replace(acq, current_assets=3_500.0, current_liabilities=2_400.0, current_financing=0.0)
+    tgt = replace(tgt, current_assets=1_000.0, current_liabilities=1_000.0, current_financing=0.0)
+    assert acq.operating_working_capital + tgt.operating_working_capital == -1_900.0
+    a.merger.purchase_accounting.enabled = True
+    a.dcf.revenue_growth_start = 0.10
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    first, second, third = pa.years
+
+    assert first.change_in_working_capital == 0.0
+    assert second.change_in_working_capital == pytest.approx(-0.20 * 9_500.0 * 0.10)
+    assert third.change_in_working_capital == pytest.approx(-0.20 * 9_500.0 * 1.10 * 0.10)
+    for y in pa.years:
+        da = 260.0 * (1.10 ** (y.year - 1))
+        assert y.cash_flow == pytest.approx(
+            y.pretax_income - y.cash_taxes + y.intangible_amortisation + da
+            - y.change_in_working_capital
+        )
+    assert any("held at -20.0% of revenue" in n and "releases cash" in n for n in pa.notes)
+
+
+def test_working_capital_that_cannot_be_read_does_not_move_and_says_why(pa_case):
+    r, _, acq, _ = pa_case
+    pa = r.purchase_accounting
+    assert all(y.change_in_working_capital == 0.0 for y in pa.years)
+    assert any(n.startswith("Working capital does not move") and acq.ticker in n for n in pa.notes)
