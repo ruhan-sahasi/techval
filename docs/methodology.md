@@ -1641,6 +1641,20 @@ charged on what is left. Interest is charged on the balance at the **start** of
 the year: sweeping out of cash the year has not generated yet would credit the
 deal with a repayment before the money arrives.
 
+Free cash flow is struck on the tax actually paid, not on the book charge EPS
+carries. Taxable income adds back the step-up amortisation, which a stock deal
+never deducts, and a pro forma loss pays nothing and is carried forward to
+shelter later years up to `dcf.nol.annual_limitation_pct`, by the DCF's own rule
+(§6.2). EPS keeps the book charge, which books a benefit on the loss as GAAP does
+where the deferred tax asset is expected to be realised, and the checks say that
+none of it is cash. Datadog buying MongoDB on the fixtures books $671mm of that
+benefit a year against a $2,796mm pre-tax loss and pays no tax at all. Working
+capital is held at the share of revenue the two balance sheets carry together,
+with current debt and leases taken out, and its change comes out of the cash
+flow: minus 10.7% for that pair, so year two's growth releases about $144mm.
+Where either balance cannot be read, working capital does not move, and the
+note names the company.
+
 `Financials` carries the claims a valuation needs rather than a full balance
 sheet, so book equity acquired is assembled from working capital less
 borrowings, preferred and minority interest, and it is understated in a
@@ -1667,9 +1681,10 @@ No revenue build and no margin path: the top line compounds at one rate and ever
 margin is held at its trailing twelve month level, which is generous to an
 acquirer buying a faster-growing, lower-margin target. No section 382 limitation
 on the target's carryforwards here, which would cut whatever NOL shield a deal
-case claims; a DCF of the target can carry the cap (§6.2). And no carryforwards
-at all inside the roll-forward, so a pro
-forma loss books a full tax benefit at the acquirer's marginal rate. No
+case claims; a DCF of the target can carry the cap (§6.2). The roll-forward
+carries only the losses it makes itself, not either company's opening balance,
+and EPS books a full tax benefit on a pro forma loss with no valuation
+allowance; the sweep counts none of it. No
 retention, integration or restructuring cost beyond the one-time fees in sources
 and uses. No change-of-control repayment of the target's
 borrowings: they are assumed at close on unchanged terms, and where a covenant
