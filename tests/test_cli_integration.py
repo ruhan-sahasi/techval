@@ -814,3 +814,16 @@ def test_the_value_report_shows_the_section_382_cap_at_work(tmp_path):
     assert "NOL under 382 cap" not in tracked.output
     for text in ("NOL under 382 cap", "382 cap unused", "The cap binds from year 4"):
         assert text in capped.output, text
+
+
+def test_the_financials_table_shows_working_capital_without_the_financing(tmp_path):
+    """The balance the DCF notes quote is printed where the reader can find it."""
+    from conftest import load_facts
+    from techval.financials import build_financials
+
+    result = run_value("-c", str(_config(tmp_path)))
+    assert result.exit_code == 0
+    ddog = build_financials("DDOG", facts=load_facts("DDOG"))
+    wc = ddog.operating_working_capital
+    row = next(line for line in result.output.splitlines() if "Working capital, ex financing" in line)
+    assert f"({abs(wc):,.1f})" in row and f"{wc / ddog.revenue:.1%} of revenue" in row
