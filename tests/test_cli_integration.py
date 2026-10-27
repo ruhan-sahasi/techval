@@ -711,6 +711,8 @@ def test_merger_with_purchase_accounting_renders_to_the_last_row(tmp_path):
     assert "Purchase accounting: opening balance sheet" in result.output
     assert "Pro forma" in result.output
     assert "Accretion / (dilution)" in result.output
+    # The sweep runs on the tax actually paid, so it prints beside the book charge.
+    assert "Cash taxes" in result.output and "Free cash flow" in result.output
 
 
 def test_the_accretion_row_prints_the_dollars_the_model_computed(tmp_path):

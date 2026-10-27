@@ -848,3 +848,8 @@ def test_the_sweep_runs_on_the_tax_actually_paid_and_carries_a_loss_forward(hand
     assert first.cash_flow < first.net_income + first.intangible_amortisation * (1 - rate) + 260.0
     assert 0 < second.cash_taxes < rate * (second.pretax_income + second.intangible_amortisation)
     assert third.carryforward == 0.0
+
+    frame = _rerun(acq, tgt, a).purchase_accounting.to_frame()
+    columns = list(frame.columns)
+    assert columns.index("Cash taxes") == columns.index("Taxes") + 1
+    assert frame["Loss carried forward"].tolist() == pytest.approx([y.carryforward for y in years])

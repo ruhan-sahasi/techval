@@ -343,12 +343,14 @@ class PurchaseAccounting:
                     "Interest on acquisition debt": y.interest,
                     "Pre-tax income": y.pretax_income,
                     "Taxes": y.taxes,
+                    "Cash taxes": y.cash_taxes,
                     "Net income": y.net_income,
                     "Diluted shares (mm)": y.shares,
                     "Pro forma EPS": y.eps,
                     "Acquisition debt, closing": y.debt_balance,
                     "Free cash flow": y.cash_flow,
                     "Debt repaid": y.debt_repaid,
+                    "Loss carried forward": y.carryforward,
                 }
                 for y in self.years
             ]
