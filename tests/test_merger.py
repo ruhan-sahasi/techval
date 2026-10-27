@@ -811,3 +811,40 @@ def test_book_equity_deducts_a_borrowing_once_and_a_lease_not_at_all():
     notes = []
     assert _target_book_equity(unsplit, notes) == pytest.approx(book - dis.current_financing)
     assert "deducted a second time" in notes[-1]
+
+
+def test_the_sweep_runs_on_the_tax_actually_paid_and_carries_a_loss_forward(hand_case):
+    """A pro forma loss books a tax benefit for EPS, and none of it is cash.
+
+    The acquirer here loses money, and year one's synergies are a tenth of the
+    run rate, so year one is a tax loss. It pays no tax, gets no refund, and its
+    loss shelters 80% of the next years' taxable income until it is used. The
+    step-up amortisation is never deductible, so taxable income adds it back.
+    """
+    _, a, _, tgt = hand_case
+    acq = _company("ACQ", revenue=8000, ebit=-600, da=200, net_income=-500, shares=500, cash=3000)
+    tgt = replace(tgt, current_assets=1000.0, current_liabilities=400.0)
+    a.merger.purchase_accounting.enabled = True
+    a.merger.synergies.pretax_cost_synergies = 900.0
+    a.merger.synergies.phase_in_year_one = 0.1
+    a.dcf.revenue_growth_start = 0.0
+    years = _rerun(acq, tgt, a).purchase_accounting.years
+    rate, limit = a.tax.marginal_tax_rate, a.dcf.nol.annual_limitation_pct
+
+    balance = 0.0
+    for y in years:
+        taxable = y.pretax_income + y.intangible_amortisation
+        used = min(balance, limit * taxable) if taxable > 0 else 0.0
+        balance += -taxable if taxable < 0 else -used
+        assert y.cash_taxes == pytest.approx(rate * max(taxable - used, 0.0))
+        assert y.carryforward == pytest.approx(balance)
+        # EPS keeps the book charge, a benefit in the loss year.
+        assert y.taxes == pytest.approx(rate * y.pretax_income)
+        assert y.cash_flow == pytest.approx(
+            y.pretax_income - y.cash_taxes + y.intangible_amortisation + 260.0
+        )
+    first, second, third = years
+    assert first.taxes < 0 == first.cash_taxes and first.debt_repaid == 0.0
+    assert first.cash_flow < first.net_income + first.intangible_amortisation * (1 - rate) + 260.0
+    assert 0 < second.cash_taxes < rate * (second.pretax_income + second.intangible_amortisation)
+    assert third.carryforward == 0.0

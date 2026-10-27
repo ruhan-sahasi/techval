@@ -132,6 +132,7 @@ from dataclasses import dataclass, field
 import pandas as pd
 
 from .config import Assumptions
+from .dcf import _shelter
 from .errors import ConfigError, MissingDataError, NotMeaningfulError
 from .ev_bridge import EVBridge, build_ev_bridge
 from .financials import Financials
@@ -288,6 +289,11 @@ class ProFormaYear:
 
     The gap between ``ebitda`` and ``ebit`` is the existing depreciation and
     amortisation of the two businesses plus ``intangible_amortisation``.
+
+    ``taxes`` is the book charge EPS is struck on, a benefit in a loss year as
+    GAAP books one. ``cash_taxes`` is what is paid: the step-up amortisation is
+    not deductible, a loss is carried forward rather than refunded, and
+    ``carryforward`` is the roll-forward's own loss balance left at year end.
     """
 
     year: int
@@ -304,6 +310,8 @@ class ProFormaYear:
     debt_balance: float
     cash_flow: float
     debt_repaid: float
+    cash_taxes: float = 0.0
+    carryforward: float = 0.0
 
 
 @dataclass
@@ -1267,15 +1275,20 @@ def build_purchase_accounting(
     module assumes. Where either filer's reported effective rate differs from
     that rate, year one here will not reproduce the headline walk exactly, since
     the walk starts from reported net income and this starts from revenue. No
-    loss carryforwards are tracked, so a pro forma loss books a full tax benefit
-    at the marginal rate.
+    loss carryforwards are tracked for EPS, so a pro forma loss books a full tax
+    benefit at the marginal rate, as GAAP does where the deferred tax asset is
+    expected to be realised. The sweep below runs on the tax actually paid.
 
-    **The sweep.** Free cash flow is net income, plus the after-tax intangible
-    amortisation, plus existing D&A, less capital expenditure. Only ``(1 - t)`` of
-    the amortisation comes back because the deferred tax benefit inside net income
-    is not cash. A configured share of that cash flow repays the acquisition
-    facility at the end of each year, and the next year's interest is charged on
-    what is left.
+    **The sweep.** Free cash flow is pre-tax income less the tax actually paid,
+    plus the intangible amortisation, plus existing D&A, less capital
+    expenditure. The tax paid is on taxable income, which adds back the step-up
+    amortisation because a stock deal carries the target's tax basis over. A
+    loss year pays nothing and its loss joins a carryforward that shelters later
+    years up to ``dcf.nol.annual_limitation_pct``, by the rule the DCF uses. In a
+    profitable year with no carryforward this is net income plus the after-tax
+    amortisation, since the deferred tax benefit inside net income is not cash.
+    A configured share of the cash flow repays the acquisition facility at the
+    end of each year, and the next year's interest is charged on what is left.
     """
     m = assumptions.merger
     pa = m.purchase_accounting
@@ -1304,6 +1317,8 @@ def build_purchase_accounting(
 
     years: list[ProFormaYear] = []
     debt = cons.new_debt
+    carryforward = 0.0
+    limit = assumptions.dcf.nol.annual_limitation_pct
     for y in range(1, pa.projection_years + 1):
         compounding = (1.0 + growth) ** (y - 1)
         haircut = opening.deferred_revenue_haircut if y == 1 else 0.0
@@ -1327,7 +1342,12 @@ def build_purchase_accounting(
         net_income = pretax - taxes
         eps = net_income / shares
 
-        cash_flow = net_income + amortisation * after_tax + da - revenue * capex_pct
+        taxable = pretax + amortisation
+        used, carryforward, _, _ = (
+            float(x) for x in _shelter(taxable, carryforward, 0.0, 0.0, limit, 0.0)
+        )
+        cash_taxes = tax_rate * max(taxable - used, 0.0)
+        cash_flow = pretax - cash_taxes + amortisation + da - revenue * capex_pct
         repaid = min(max(cash_flow, 0.0) * pa.debt_repayment_pct_of_fcf, debt)
         debt -= repaid
 
@@ -1347,6 +1367,8 @@ def build_purchase_accounting(
                 debt_balance=debt,
                 cash_flow=cash_flow,
                 debt_repaid=repaid,
+                cash_taxes=cash_taxes,
+                carryforward=carryforward,
             )
         )
 
