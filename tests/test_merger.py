@@ -587,6 +587,11 @@ def test_year_one_is_the_headline_less_the_after_tax_amortisation(pa_case):
     )
 
 
+def test_a_profitable_pro_forma_has_no_tax_benefit_line(pa_case):
+    r, _, _, _ = pa_case
+    assert not any(c.startswith("Pro forma EPS books") for c in r.purchase_accounting.checks)
+
+
 def test_free_cash_flow_adds_back_only_the_after_tax_amortisation(pa_case):
     """The deferred tax benefit inside net income is not cash.
 
@@ -811,3 +816,121 @@ def test_book_equity_deducts_a_borrowing_once_and_a_lease_not_at_all():
     notes = []
     assert _target_book_equity(unsplit, notes) == pytest.approx(book - dis.current_financing)
     assert "deducted a second time" in notes[-1]
+
+
+def test_the_sweep_runs_on_the_tax_actually_paid_and_carries_a_loss_forward(hand_case):
+    """A pro forma loss books a tax benefit for EPS, and none of it is cash.
+
+    The acquirer here loses money, and year one's synergies are a tenth of the
+    run rate, so year one is a tax loss. It pays no tax, gets no refund, and its
+    loss shelters 80% of the next years' taxable income until it is used. The
+    step-up amortisation is never deductible, so taxable income adds it back.
+    """
+    _, a, _, tgt = hand_case
+    acq = _company("ACQ", revenue=8000, ebit=-600, da=200, net_income=-500, shares=500, cash=3000)
+    tgt = replace(tgt, current_assets=1000.0, current_liabilities=400.0)
+    a.merger.purchase_accounting.enabled = True
+    a.merger.synergies.pretax_cost_synergies = 900.0
+    a.merger.synergies.phase_in_year_one = 0.1
+    a.dcf.revenue_growth_start = 0.0
+    years = _rerun(acq, tgt, a).purchase_accounting.years
+    rate, limit = a.tax.marginal_tax_rate, a.dcf.nol.annual_limitation_pct
+
+    balance = 0.0
+    for y in years:
+        taxable = y.pretax_income + y.intangible_amortisation
+        used = min(balance, limit * taxable) if taxable > 0 else 0.0
+        balance += -taxable if taxable < 0 else -used
+        assert y.cash_taxes == pytest.approx(rate * max(taxable - used, 0.0))
+        assert y.carryforward == pytest.approx(balance)
+        # EPS keeps the book charge, a benefit in the loss year.
+        assert y.taxes == pytest.approx(rate * y.pretax_income)
+        assert y.cash_flow == pytest.approx(
+            y.pretax_income - y.cash_taxes + y.intangible_amortisation + 260.0
+        )
+    first, second, third = years
+    assert first.taxes < 0 == first.cash_taxes and first.debt_repaid == 0.0
+    assert first.cash_flow < first.net_income + first.intangible_amortisation * (1 - rate) + 260.0
+    assert 0 < second.cash_taxes < rate * (second.pretax_income + second.intangible_amortisation)
+    assert third.carryforward == 0.0
+
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    line = next(c for c in pa.checks if c.startswith("Pro forma EPS books"))
+    assert f"{-first.taxes:,.0f}mm of tax benefit on pre-tax losses in year 1," in line
+    assert "by year 3 the loss has sheltered later years' income in full" in line
+
+    frame = pa.to_frame()
+    columns = list(frame.columns)
+    assert columns.index("Cash taxes") == columns.index("Taxes") + 1
+    assert frame["Loss carried forward"].tolist() == pytest.approx([y.carryforward for y in years])
+
+
+def test_the_sweep_moves_working_capital_at_the_two_balance_sheets_ratio(hand_case):
+    """Held at the share of revenue both companies carry, like every margin here.
+
+    Together they carry minus 1,900mm against 9,500mm of revenue, minus 20%, so
+    each year's growth releases a fifth of the new revenue into the sweep. Year
+    one carries no growth and so no movement.
+    """
+    _, a, acq, tgt = hand_case
+    acq = replace(acq, current_assets=3_500.0, current_liabilities=2_400.0, current_financing=0.0)
+    tgt = replace(tgt, current_assets=1_000.0, current_liabilities=1_000.0, current_financing=0.0)
+    assert acq.operating_working_capital + tgt.operating_working_capital == -1_900.0
+    a.merger.purchase_accounting.enabled = True
+    a.dcf.revenue_growth_start = 0.10
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    first, second, third = pa.years
+
+    assert first.change_in_working_capital == 0.0
+    assert second.change_in_working_capital == pytest.approx(-0.20 * 9_500.0 * 0.10)
+    assert third.change_in_working_capital == pytest.approx(-0.20 * 9_500.0 * 1.10 * 0.10)
+    for y in pa.years:
+        da = 260.0 * (1.10 ** (y.year - 1))
+        assert y.cash_flow == pytest.approx(
+            y.pretax_income - y.cash_taxes + y.intangible_amortisation + da
+            - y.change_in_working_capital
+        )
+    assert any("held at -20.0% of revenue" in n and "releases cash" in n for n in pa.notes)
+
+
+def test_working_capital_that_cannot_be_read_does_not_move_and_says_why(pa_case):
+    r, _, acq, _ = pa_case
+    pa = r.purchase_accounting
+    assert all(y.change_in_working_capital == 0.0 for y in pa.years)
+    assert any(n.startswith("Working capital does not move") and acq.ticker in n for n in pa.notes)
+
+
+def test_the_opening_balance_sheet_shows_the_financing_taken_out(pa_case):
+    """The book equity line moves by it, so the table says by how much."""
+    r, a, acq, tgt = pa_case
+    labels = [label for label, _ in r.purchase_accounting.opening.rows()]
+    assert not any("out of current liabilities" in label for label in labels)
+
+    opened = _rerun(acq, replace(tgt, current_financing=50.0), a).purchase_accounting.opening
+    rows = dict(opened.rows())
+    assert rows["Memo: current debt and leases out of current liabilities"] == 50.0
+    assert opened.target_book_equity == pytest.approx(
+        r.purchase_accounting.opening.target_book_equity + 50.0
+    )
+
+
+def test_a_book_loss_smaller_than_the_amortisation_still_pays_tax(hand_case):
+    """The step-up amortisation is a book charge only, so it can turn a profit into a book loss.
+
+    Year one here loses 119.5mm before tax on the books and earns 31.9mm on the
+    return, so EPS takes a benefit while the company pays tax, and there is no
+    loss to carry forward. The check must not say there was.
+    """
+    _, a, _, tgt = hand_case
+    acq = _company("ACQ", revenue=8000, ebit=-220, da=200, net_income=-170, shares=500, cash=3000)
+    tgt = replace(tgt, current_assets=1000.0, current_liabilities=400.0)
+    a.merger.purchase_accounting.enabled = True
+    a.merger.synergies.pretax_cost_synergies = 900.0
+    a.merger.synergies.phase_in_year_one = 0.1
+    a.dcf.revenue_growth_start = 0.0
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    first = pa.years[0]
+    assert first.taxes < 0 < first.cash_taxes and first.carryforward == 0.0
+    line = next(c for c in pa.checks if c.startswith("Pro forma EPS books"))
+    assert "is never a loss, so tax is paid in those years all the same" in line
+    assert "sheltered" not in line
