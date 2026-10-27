@@ -912,3 +912,25 @@ def test_the_opening_balance_sheet_shows_the_financing_taken_out(pa_case):
     assert opened.target_book_equity == pytest.approx(
         r.purchase_accounting.opening.target_book_equity + 50.0
     )
+
+
+def test_a_book_loss_smaller_than_the_amortisation_still_pays_tax(hand_case):
+    """The step-up amortisation is a book charge only, so it can turn a profit into a book loss.
+
+    Year one here loses 119.5mm before tax on the books and earns 31.9mm on the
+    return, so EPS takes a benefit while the company pays tax, and there is no
+    loss to carry forward. The check must not say there was.
+    """
+    _, a, _, tgt = hand_case
+    acq = _company("ACQ", revenue=8000, ebit=-220, da=200, net_income=-170, shares=500, cash=3000)
+    tgt = replace(tgt, current_assets=1000.0, current_liabilities=400.0)
+    a.merger.purchase_accounting.enabled = True
+    a.merger.synergies.pretax_cost_synergies = 900.0
+    a.merger.synergies.phase_in_year_one = 0.1
+    a.dcf.revenue_growth_start = 0.0
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    first = pa.years[0]
+    assert first.taxes < 0 < first.cash_taxes and first.carryforward == 0.0
+    line = next(c for c in pa.checks if c.startswith("Pro forma EPS books"))
+    assert "is never a loss, so tax is paid in those years all the same" in line
+    assert "sheltered" not in line
