@@ -46,6 +46,10 @@ def test_each_anchor_says_what_the_assumptions_file_had_and_where_the_figure_cam
     assert anchors["ebit_margin_terminal"].value == pytest.approx(fin.ebit_margin)
     assert anchors["capex_pct_revenue"].value == pytest.approx(fin.capex / fin.revenue)
     assert anchors["da_pct_revenue"].value == pytest.approx(fin.da / fin.revenue)
+    assert anchors["nwc_pct_revenue"].value == pytest.approx(
+        fin.operating_working_capital / fin.revenue
+    )
+    assert anchors["nwc_pct_revenue"].assumed == a.dcf.nwc_pct_revenue
     # The fade ends at the lower of the trailing and the assumed year-N rate.
     assert anchors["revenue_growth_terminal"].value == pytest.approx(0.05)
     assert all(x.source for x in anchors.values())
@@ -57,6 +61,31 @@ def test_a_figure_the_filings_cannot_support_is_left_at_the_assumption_and_named
     anchors = record_anchors(fin, facts, Assumptions())
     assert "da_pct_revenue" not in by_field(anchors)
     assert unanchored(a.field for a in anchors) == ["da_pct_revenue"]
+
+
+def test_working_capital_on_the_record_is_the_balance_the_projection_starts_from():
+    """Struck on TTM revenue, so the ratio applied to it gives back the reported balance.
+
+    Year one's change in working capital is measured against that, so on the
+    record case it runs from the balance sheet the company actually reported,
+    and there is no one-time step to it. Datadog bills ahead of delivery and
+    carries a fifth of its revenue as negative working capital, four times the
+    software default.
+    """
+    fin, facts = company("DDOG")
+    a = Assumptions()
+    nwc = by_field(record_anchors(fin, facts, a))["nwc_pct_revenue"]
+    assert nwc.value * fin.revenue == pytest.approx(fin.operating_working_capital)
+    assert nwc.value < 4 * a.dcf.nwc_pct_revenue < 0
+    assert f"{fin.operating_working_capital:,.0f}mm" in nwc.source
+
+
+def test_working_capital_whose_debt_cannot_be_split_stays_at_the_assumption(monkeypatch):
+    fin, facts = company("DDOG")
+    monkeypatch.setattr(type(fin), "operating_working_capital", property(lambda self: None))
+    anchors = record_anchors(fin, facts, Assumptions())
+    assert "nwc_pct_revenue" not in by_field(anchors)
+    assert "nwc_pct_revenue" in unanchored(a.field for a in anchors)
 
 
 def test_growth_outside_the_band_is_held_to_it_and_says_so(monkeypatch):

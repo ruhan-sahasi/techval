@@ -70,6 +70,11 @@ class Financials:
     current_liabilities: float | None
     deferred_revenue: float
 
+    # Debt, convertible notes and lease liabilities falling due within the year:
+    # the financing inside current liabilities. None where the debt resolved only
+    # as a total, whose current leg cannot be told apart.
+    current_financing: float | None = None
+
     # A point-in-time share count, when one has been built. ``diluted_shares``
     # stays as filed so the two can always be compared and so the EPS tie-out
     # control keeps comparing like with like.
@@ -177,17 +182,28 @@ class Financials:
 
         Current liabilities are taken whole, which means any current debt and
         current lease liability sit inside this figure even though they are
-        financing too. Stripping them would need those balances at the same
-        instant and they are resolved for the bridge, not here. The DCF does not
-        read this property, it projects working capital as a share of revenue, so
-        the inconsistency does not reach a valuation; it matters only if you use
-        this figure directly.
+        financing too. ``operating_working_capital`` takes them back out.
         """
         if self.current_assets is None or self.current_liabilities is None:
             return None
         return (self.current_assets - self.cash - self.short_term_investments) - (
             self.current_liabilities
         )
+
+    @property
+    def operating_working_capital(self) -> float | None:
+        """Working capital the business runs on, with the financing taken out.
+
+        ``net_working_capital`` with the current debt, convertible notes and
+        lease liabilities inside current liabilities added back, because they
+        are borrowing and the EV bridge already counts them as debt. What is
+        left is receivables, payables, accruals and, for a subscription
+        business, the deferred revenue that makes the figure negative. None
+        when either piece cannot be read.
+        """
+        if self.net_working_capital is None or self.current_financing is None:
+            return None
+        return self.net_working_capital + self.current_financing
 
     @property
     def shares_for_valuation(self) -> float:
@@ -256,6 +272,18 @@ class _DebtLadder:
         the last dollar.
         """
         return any(tag in tags.INCLUDES_FINANCE_LEASES for tag in self.source_tags)
+
+    @property
+    def current_or_none(self) -> float | None:
+        """The current leg, or None where only a total resolved and cannot be split.
+
+        A total read off one concept says nothing about how much of it falls due
+        within the year, so reading its current leg as zero would be a guess.
+        A total of zero splits trivially.
+        """
+        if self.combined_tag is None or self.total == 0:
+            return self.current
+        return None
 
     def _swallows(self, tag: str | None) -> bool:
         if tag in tags.INCLUDES_FINANCE_LEASES:
@@ -587,6 +615,14 @@ def build_financials(
             "through the lease line"
         )
 
+    convertible_nc = (
+        instant("convertible notes, non-current", tags.CONVERTIBLE_NONCURRENT, default=0.0)
+        or 0.0
+    )
+    convertible_cur = (
+        instant("convertible notes, current", tags.CONVERTIBLE_CURRENT, default=0.0) or 0.0
+    )
+
     fin = Financials(
         ticker=ticker.upper(),
         entity_name=facts.entity_name,
@@ -618,22 +654,7 @@ def build_financials(
             "short-term investments", tags.SHORT_TERM_INVESTMENTS, default=0.0
         ),
         straight_debt=debt.total,
-        convertible_debt=(
-            (
-                instant(
-                    "convertible notes, non-current",
-                    tags.CONVERTIBLE_NONCURRENT,
-                    default=0.0,
-                )
-                or 0.0
-            )
-            + (
-                instant(
-                    "convertible notes, current", tags.CONVERTIBLE_CURRENT, default=0.0
-                )
-                or 0.0
-            )
-        ),
+        convertible_debt=convertible_nc + convertible_cur,
         operating_lease_liability=operating_lease_nc + operating_lease_cur,
         finance_lease_liability=finance_lease_nc + finance_lease_cur,
         finance_lease_inside_debt=inside_debt,
@@ -644,6 +665,14 @@ def build_financials(
         current_assets=instant("current assets", tags.CURRENT_ASSETS, required=False),
         current_liabilities=instant(
             "current liabilities", tags.CURRENT_LIABILITIES, required=False
+        ),
+        current_financing=(
+            None
+            if debt.current_or_none is None
+            else debt.current_or_none
+            + convertible_cur
+            + operating_lease_cur
+            + finance_lease_cur
         ),
         deferred_revenue=(
             (

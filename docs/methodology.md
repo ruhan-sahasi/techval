@@ -938,6 +938,16 @@ subscription software the percentage is negative, because customers are billed
 ahead of delivery and deferred revenue grows with the business, so growth
 releases cash rather than consuming it.
 
+The reported balance is printed beside the ratio all the same, with the current
+debt, convertible notes and lease liabilities taken back out of current
+liabilities, since the bridge already counts them as debt. Datadog carries
+-$808mm, -20.4% of revenue, against the -5% default. Verizon reads -$26,392mm with
+its current debt inside and $226mm without it, which is a telecom running on
+almost no working capital rather than one owed a fifth of its revenue. Where debt
+resolves only as a total its current leg cannot be told apart, and the balance
+is not printed. The record case (§6.8) sets the ratio from that balance on TTM
+revenue, so its path starts where the balance sheet does and still takes no step.
+
 **Taxes** are `rate * max(EBIT, 0)` by default. A loss year creates a
 carryforward, not a refund, and with the carryforward untracked no cash benefit
 is booked in the loss year and none is taken later. For a company with large
@@ -1328,11 +1338,12 @@ company, replaces them with what the filings show (`techval.anchors`):
 | Year N revenue growth | The lower of that rate and the assumed year-N rate, and no lower than the perpetuity rate. |
 | Terminal EBIT margin | Today's margin, held. |
 | Capex, D&A | Today's share of revenue. |
+| Working capital | Today's operating balance on TTM revenue, with current debt and leases taken out, so year one starts from the balance sheet with no step. |
 
-Working capital, the discount rate and the perpetuity stay where the
-assumptions put them. A figure the filings cannot support is left at the
-assumption and named. Every page that values a company prints each anchor
-beside the figure it replaced and where it came from, and the quarterly
+The discount rate and the perpetuity stay where the assumptions put them. A
+figure the filings cannot support is left at the assumption and named. Every
+page that values a company prints each anchor beside the figure it replaced and
+where it came from, and the quarterly
 history reads each quarter's anchors from the filings known that quarter, so
 the record case adds no lookahead to it.
 
@@ -1347,6 +1358,13 @@ on 31, Charter at 745 against 2,605 on 107. Charter and the telecoms stay far
 above their prices for a different reason, a beta regression with an
 R-squared near zero over the last two years that holds their cost of capital
 near 5%; peers fix that, the record does not.
+
+That comparison was measured before working capital joined the record case. On
+the fixtures at a 10.5% rate, setting it from the balance sheet moves Disney's
+record case by under 1%, Datadog's 23% higher, since it carries a fifth of its
+revenue as negative working capital, and MongoDB's 14% lower, since its working
+capital is positive. So the mature names above barely move, and the subscription
+names, which the defaults were written for, move most.
 
 ## 7. Trading comparables
 
@@ -1630,7 +1648,13 @@ direction worth tracking. Lease liabilities are deliberately not deducted: ASC 8
 a right-of-use asset against the liability at inception and the two stay close,
 so subtracting the liability while the matching asset is absent from the object
 would conjure hundreds of millions of goodwill out of an accounting entry.
-Non-current operating assets are missing for the same reason. Book equity is
+That holds for the current leg too, so the current debt, convertible notes and
+lease liabilities inside current liabilities are taken back out of them first: a
+borrowing is then deducted once, with total debt, and a lease not at all. Taken
+whole, current liabilities would deduct Disney's current debt twice. Where debt
+resolves only as a total its current leg cannot be told apart, and the note says
+that much is deducted twice. Non-current operating assets are missing for the
+same reason as the leases. Book equity is
 therefore understated, and the excess, the write-up and the amortisation are
 overstated, which makes the deal look more dilutive here than a full opening
 balance sheet would make it, not less. A price at or below book equity is treated

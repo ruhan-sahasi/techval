@@ -248,6 +248,51 @@ def test_working_capital_excludes_cash_and_investments(ddog):
     )
 
 
+def _at(fin, tag):
+    """A tag's balance at the filer's balance-sheet date, USD millions, zero if absent."""
+    value, _ = load_facts(fin.ticker).resolve_instant(tag, [tag], fin.as_of, required=False)
+    return (value or 0.0) / 1e6
+
+
+def test_operating_working_capital_takes_the_financing_back_out(ddog, mdb, vz):
+    """Current debt, notes and leases are borrowing, and already debt in the bridge.
+
+    Verizon is the case that matters. 26,618mm of its current liabilities is debt
+    and lease falling due within the year, and left in, it makes working capital
+    read as minus a fifth of revenue for a business that runs on close to none.
+    Its current debt line carries the finance leases inside it, so they are not
+    taken out a second time.
+    """
+    assert vz.current_financing == pytest.approx(
+        _at(vz, "LongTermDebtCurrent") + _at(vz, "OperatingLeaseLiabilityCurrent")
+    )
+    assert vz.net_working_capital < -0.15 * vz.revenue
+    assert abs(vz.operating_working_capital) < 0.01 * vz.revenue
+
+    # No straight debt: the convertible notes and the lease are the financing.
+    assert ddog.current_financing == pytest.approx(
+        _at(ddog, "ConvertibleNotesPayableCurrent") + _at(ddog, "OperatingLeaseLiabilityCurrent")
+    )
+    # Finance leases beside operating ones, neither inside a debt line.
+    assert mdb.current_financing == pytest.approx(
+        _at(mdb, "OperatingLeaseLiabilityCurrent") + _at(mdb, "FinanceLeaseLiabilityCurrent")
+    )
+    for fin in (ddog, mdb, vz):
+        assert fin.operating_working_capital == pytest.approx(
+            fin.net_working_capital + fin.current_financing
+        )
+
+
+def test_a_debt_total_with_no_split_leaves_working_capital_unread():
+    """A total off one concept says nothing about what falls due within the year."""
+    from techval.financials import _DebtLadder
+
+    assert _DebtLadder(total=5_000.0, combined_tag="DebtLongtermAndShorttermCombinedAmount").current_or_none is None
+    assert _DebtLadder(total=0.0, combined_tag="DebtLongtermAndShorttermCombinedAmount").current_or_none == 0.0
+    split = _DebtLadder(5_000.0, 4_200.0, 800.0, "LongTermDebtNoncurrent", "LongTermDebtCurrent")
+    assert split.current_or_none == 800.0
+
+
 def test_eps_tie_out_control_is_silent_on_clean_data(ddog, mdb, zs):
     for fin in (ddog, mdb, zs):
         assert not any("EPS tie-out" in w for w in fin.warnings)
