@@ -696,6 +696,36 @@ def build_financials(
         warnings=warnings,
     )
 
+    if fin.operating_working_capital is not None:
+        # Derived, so it names what it was built from like any reported line.
+        legs = [
+            prov[concept].tag
+            for concept, value in (
+                ("current debt", debt.current_or_none),
+                ("convertible notes, current", convertible_cur),
+                ("operating lease liability, current", operating_lease_cur),
+                ("finance lease liability, current", finance_lease_cur),
+            )
+            if value and prov[concept].tag
+        ]
+        source = prov["current assets"]
+        prov["operating working capital"] = Provenance(
+            concept="operating working capital",
+            tag=f"{source.tag} - {prov['current liabilities'].tag}"
+            + (f" + {' + '.join(legs)}" if legs else ""),
+            method=(
+                "derived: current assets less cash and short-term investments, less "
+                "current liabilities other than current debt and leases"
+            ),
+            periods=source.periods,
+            forms=source.forms,
+            filed=source.filed,
+            note=(
+                f"{fin.current_financing:,.1f}mm of current debt and leases taken back "
+                "out of current liabilities"
+            ),
+        )
+
     _run_controls(fin, facts, as_of, warnings)
     return fin
 

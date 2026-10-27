@@ -283,6 +283,20 @@ def test_operating_working_capital_takes_the_financing_back_out(ddog, mdb, vz):
         )
 
 
+def test_operating_working_capital_names_the_tags_it_was_built_from(ddog, vz):
+    rows = {r["concept"]: r for r in vz.provenance_rows()}
+    row = rows["operating working capital"]
+    assert row["tag"] == (
+        "AssetsCurrent - LiabilitiesCurrent + LongTermDebtCurrent + OperatingLeaseLiabilityCurrent"
+    )
+    assert row["method"].startswith("derived:")
+    assert f"{vz.current_financing:,.1f}mm" in row["note"]
+    assert row["period"] == rows["current assets"]["period"]
+    # A leg that adds nothing is not named: Datadog's notes are not current.
+    tag = {r["concept"]: r for r in ddog.provenance_rows()}["operating working capital"]["tag"]
+    assert tag == "AssetsCurrent - LiabilitiesCurrent + OperatingLeaseLiabilityCurrent"
+
+
 def test_a_debt_total_with_no_split_leaves_working_capital_unread():
     """A total off one concept says nothing about what falls due within the year."""
     from techval.financials import _DebtLadder
