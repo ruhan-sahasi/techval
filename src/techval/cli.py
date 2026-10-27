@@ -379,7 +379,9 @@ def _render_purchase_accounting(pa) -> None:
         ("Taxes", "taxes", 0), ("Net income", "net_income", 0),
         ("Diluted shares (mm)", "shares", 1), ("EPS", "eps", 3),
         # The sweep runs on cash, so the tax actually paid sits beside it.
-        ("Cash taxes", "cash_taxes", 0), ("Free cash flow", "cash_flow", 0),
+        ("Cash taxes", "cash_taxes", 0),
+        ("Change in working capital", "change_in_working_capital", 0),
+        ("Free cash flow", "cash_flow", 0),
         ("Debt balance", "debt_balance", 0), ("Debt repaid", "debt_repaid", 0),
     ]
     if any(y.carryforward for y in pa.years):
