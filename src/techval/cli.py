@@ -299,6 +299,9 @@ def _render_financials(fin) -> None:
         ("Stock-based compensation", fin.sbc),
         ("Net income", fin.net_income),
         ("Capital expenditure", fin.capex),
+        # Current debt and leases out: the balance the DCF notes and the
+        # record case read, so it is on the page they point back to.
+        ("Working capital, ex financing", fin.operating_working_capital),
         ("Diluted shares (mm)", fin.diluted_shares),
     ]
     t = Table(box=None, pad_edge=False)
@@ -312,6 +315,7 @@ def _render_financials(fin) -> None:
             "EBIT",
             "EBITDA",
             "Stock-based compensation",
+            "Working capital, ex financing",
         ):
             margin = f"{v / fin.revenue:.1%} of revenue"
         t.add_row(label, _money(v, 1), margin)
