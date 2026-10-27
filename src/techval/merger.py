@@ -1593,6 +1593,11 @@ def _purchase_accounting_checks(
                 if horizon.carryforward > 0
                 else f"by year {horizon.year} the loss has sheltered later years' "
                 "income in full"
+                if any(y.pretax_income + y.intangible_amortisation < 0 for y in years)
+                # A book loss smaller than the step-up amortisation is taxable
+                # income all the same, so there is no loss to carry.
+                else "taxable income, with the step-up amortisation added back, is "
+                "never a loss, so tax is paid in those years all the same"
             )
             + ". If that asset is not realisable, a valuation allowance takes the "
             "benefit out of EPS as well."
