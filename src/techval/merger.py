@@ -372,6 +372,7 @@ class PurchaseAccounting:
                     "Free cash flow": y.cash_flow,
                     "Debt repaid": y.debt_repaid,
                     "Loss carried forward": y.carryforward,
+                    "Of which the target's, under its cap": y.capped_carryforward,
                 }
                 for y in self.years
             ]
