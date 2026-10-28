@@ -729,6 +729,20 @@ def test_the_merger_command_prints_the_targets_capped_carryforward(tmp_path):
     assert "Of which the target's, under its cap" in flat
     assert "Carryforwards at close shelter the sweep's cash taxes" in flat
 
+    # The opening balance sheet it prints books the target's balance at the rate.
+    assumptions, client, market = C._setup(_config(tmp_path, body), True, AS_OF)
+    acq_fin, acq_price, acq_bridge = C._load("DDOG", client, market, assumptions)
+    tgt_fin, tgt_price, tgt_bridge = C._load("MDB", client, market, assumptions)
+    opening = run_merger(
+        acq_fin, tgt_fin, acq_bridge, tgt_bridge, acq_price, tgt_price, assumptions
+    ).purchase_accounting.opening
+    assert opening.deferred_tax_asset == pytest.approx(assumptions.tax.marginal_tax_rate * 3000)
+    row = next(
+        line for line in result.output.splitlines()
+        if "Deferred tax asset on the target's carryforward" in line
+    )
+    assert f"({opening.deferred_tax_asset:,.0f})" in row
+
 
 def test_the_accretion_row_prints_the_dollars_the_model_computed(tmp_path):
     """The rendered cells are the tuple's per-share dollars, not any other field.
