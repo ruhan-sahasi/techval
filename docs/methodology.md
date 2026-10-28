@@ -1020,7 +1020,9 @@ balance and the unused cap as rows of their own, and the checks run the cap
 backwards against today's equity value: $300mm is 0.36% of Datadog's, far below
 the rates the IRS has published in recent years, which is how a mistyped cap
 shows itself. A cap with `nol.track` off is refused, since there would be no
-balance for it to ration.
+balance for it to ration. The merger roll-forward runs the same rule on a
+target's carryforward, where the deal itself is the ownership change and the
+price paid sets the cap (§8.2).
 
 **What the carryforward model does not do.** The parts of section 382 beyond the
 annual cap are not modelled, such as the built-in gains that raise it. State
