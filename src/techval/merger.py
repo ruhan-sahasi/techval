@@ -306,7 +306,10 @@ class ProFormaYear:
     ``taxes`` is the book charge EPS is struck on, a benefit in a loss year as
     GAAP books one. ``cash_taxes`` is what is paid: the step-up amortisation is
     not deductible, a loss is carried forward rather than refunded, and
-    ``carryforward`` is the roll-forward's own loss balance left at year end.
+    ``carryforward`` is the balance left at year end: the companies' own
+    carryforwards at close plus the roll-forward's losses, less what they have
+    sheltered. ``capped_carryforward`` is the part of it that is the target's,
+    still under its section 382 cap.
     ``change_in_working_capital`` comes out of the cash flow, so a release from
     a subscription business's negative working capital is a negative figure.
     """
@@ -328,6 +331,7 @@ class ProFormaYear:
     cash_taxes: float = 0.0
     carryforward: float = 0.0
     change_in_working_capital: float = 0.0
+    capped_carryforward: float = 0.0
 
 
 @dataclass
@@ -1304,7 +1308,11 @@ def build_purchase_accounting(
     expenditure. The tax paid is on taxable income, which adds back the step-up
     amortisation because a stock deal carries the target's tax basis over. A
     loss year pays nothing and its loss joins a carryforward that shelters later
-    years up to ``dcf.nol.annual_limitation_pct``, by the rule the DCF uses. In a
+    years up to ``dcf.nol.annual_limitation_pct``, by the rule the DCF uses. The
+    acquirer's own carryforward at close joins it uncapped. The target's is
+    used first, being older, and no faster than its section 382 cap: the equity
+    purchase price times the long-term tax-exempt rate, with any cap a year
+    leaves unused carried to the next. In a
     profitable year with no carryforward this is net income plus the after-tax
     amortisation, since the deferred tax benefit inside net income is not cash.
     Working capital is held at the share of revenue the two balance sheets carry
@@ -1342,8 +1350,13 @@ def build_purchase_accounting(
 
     years: list[ProFormaYear] = []
     debt = cons.new_debt
-    carryforward = 0.0
     limit = assumptions.dcf.nol.annual_limitation_pct
+    # The deal is the target's ownership change and not the acquirer's, so only
+    # the target's balance is capped, at the price paid times the IRS rate.
+    carryforward = pa.acquirer_carryforward or 0.0
+    capped = pa.target_carryforward or 0.0
+    cap = opening.equity_purchase_price * (pa.long_term_tax_exempt_rate or 0.0)
+    cap_unused = 0.0
     unread = [
         f.ticker for f in (acq_fin, tgt_fin) if f.operating_working_capital is None
     ]
@@ -1378,8 +1391,9 @@ def build_purchase_accounting(
         eps = net_income / shares
 
         taxable = pretax + amortisation
-        used, carryforward, _, _ = (
-            float(x) for x in _shelter(taxable, carryforward, 0.0, 0.0, limit, 0.0)
+        used, carryforward, capped, cap_unused = (
+            float(x)
+            for x in _shelter(taxable, carryforward, capped, cap_unused, limit, cap)
         )
         cash_taxes = tax_rate * max(taxable - used, 0.0)
         working = base_revenue * compounding * (nwc_pct or 0.0)
@@ -1413,8 +1427,9 @@ def build_purchase_accounting(
                 cash_flow=cash_flow,
                 debt_repaid=repaid,
                 cash_taxes=cash_taxes,
-                carryforward=carryforward,
+                carryforward=carryforward + capped,
                 change_in_working_capital=change_in_working_capital,
+                capped_carryforward=capped,
             )
         )
 

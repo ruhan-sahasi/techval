@@ -934,3 +934,39 @@ def test_a_book_loss_smaller_than_the_amortisation_still_pays_tax(hand_case):
     line = next(c for c in pa.checks if c.startswith("Pro forma EPS books"))
     assert "is never a loss, so tax is paid in those years all the same" in line
     assert "sheltered" not in line
+
+
+def test_the_companies_own_carryforwards_shelter_the_sweep_the_target_under_its_cap(pa_case):
+    """The acquirer keeps its losses whole; the target's come out no faster than section 382 allows.
+
+    The cap is the 3,250mm price times a 3.4% rate, 110.5mm a year. The target's
+    balance is the older loss, so it is used first, and the acquirer's shelters
+    what is left of 80% of taxable income. Year one's EPS does not move: using a
+    balance already on the books changes the tax paid, not the tax charged. Year
+    two's rises, because the cash saved repays debt sooner.
+    """
+    r, a, acq, tgt = pa_case
+    pa = a.merger.purchase_accounting
+    pa.acquirer_carryforward = 1_000.0
+    pa.target_carryforward = 2_000.0
+    pa.long_term_tax_exempt_rate = 0.034
+    years = _rerun(acq, tgt, a).purchase_accounting.years
+    rate, limit, cap = a.tax.marginal_tax_rate, a.dcf.nol.annual_limitation_pct, 3_250.0 * 0.034
+
+    free, capped, unused = 1_000.0, 2_000.0, 0.0
+    for y in years:
+        taxable = y.pretax_income + y.intangible_amortisation
+        unused += cap
+        from_capped = min(capped, unused, limit * taxable)
+        from_free = min(free, limit * taxable - from_capped)
+        capped, free, unused = capped - from_capped, free - from_free, unused - from_capped
+        assert y.cash_taxes == pytest.approx(rate * (taxable - from_capped - from_free))
+        assert y.capped_carryforward == pytest.approx(capped)
+        assert y.carryforward == pytest.approx(free + capped)
+    first, before = years[0], r.purchase_accounting.years[0]
+    assert first.cash_taxes < before.cash_taxes and first.eps == pytest.approx(before.eps)
+    assert first.cash_flow == pytest.approx(before.cash_flow + before.cash_taxes - first.cash_taxes)
+    # Year two pays less interest; by year three both runs have repaid the facility.
+    assert years[1].eps > r.purchase_accounting.years[1].eps
+    assert years[2].eps == pytest.approx(r.purchase_accounting.years[2].eps)
+    assert free == 0.0 and capped == pytest.approx(2_000.0 - 3 * cap)

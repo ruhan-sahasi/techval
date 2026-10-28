@@ -147,6 +147,27 @@ def test_a_section_382_cap_without_a_tracked_carryforward_refuses(tmp_path):
     assert Assumptions.load(path).dcf.nol.section_382_limit == 120.0
 
 
+def test_a_target_carryforward_needs_its_section_382_rate_and_the_rate_its_balance(tmp_path):
+    """The deal is the target's ownership change; its losses come out capped or not at all."""
+    block = "merger:\n  purchase_accounting:\n"
+    path = _write(tmp_path, block + "    target_carryforward: 2000\n")
+    with pytest.raises(ConfigError) as exc:
+        Assumptions.load(path)
+    assert "without long_term_tax_exempt_rate" in str(exc.value)
+
+    path = _write(tmp_path, block + "    long_term_tax_exempt_rate: 0.034\n")
+    with pytest.raises(ConfigError) as exc:
+        Assumptions.load(path)
+    assert "target_carryforward is not set" in str(exc.value)
+
+    path = _write(
+        tmp_path,
+        block + "    target_carryforward: 2000\n    long_term_tax_exempt_rate: 0.034\n",
+    )
+    pa = Assumptions.load(path).merger.purchase_accounting
+    assert (pa.target_carryforward, pa.long_term_tax_exempt_rate) == (2000.0, 0.034)
+
+
 def test_require_same_sub_vertical_refuses_rather_than_being_ignored(tmp_path):
     """It was the only field in the file that read as a setting and did nothing.
 
