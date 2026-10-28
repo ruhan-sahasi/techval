@@ -995,3 +995,34 @@ def test_the_checks_name_each_carryforward_and_the_targets_cap(pa_case):
     assert frame["Of which the target's, under its cap"].tolist() == pytest.approx(
         [y.capped_carryforward for y in result.years]
     )
+
+
+def test_a_loss_year_carries_its_unused_cap_and_a_zero_cap_releases_nothing(hand_case):
+    """Two edges of the target's cap that a profitable year never reaches.
+
+    Year one here is a tax loss, so none of the target's balance is used and the
+    year's cap carries into year two, which can use two years of it. A zero rate,
+    which is what failing the continuity-of-business test comes to, never
+    releases the balance at all.
+    """
+    _, a, _, tgt = hand_case
+    acq = _company("ACQ", revenue=8000, ebit=-600, da=200, net_income=-500, shares=500, cash=3000)
+    tgt = replace(tgt, current_assets=1000.0, current_liabilities=400.0)
+    pa = a.merger.purchase_accounting
+    pa.enabled = True
+    a.merger.synergies.pretax_cost_synergies = 900.0
+    a.merger.synergies.phase_in_year_one = 0.1
+    a.dcf.revenue_growth_start = 0.0
+    pa.target_carryforward = 5_000.0
+    pa.long_term_tax_exempt_rate = 0.034
+    result = _rerun(acq, tgt, a).purchase_accounting
+    first, second, _ = result.years
+    cap = result.opening.equity_purchase_price * 0.034
+    assert first.capped_carryforward == 5_000.0
+    assert second.capped_carryforward == pytest.approx(5_000.0 - 2 * cap)
+
+    pa.long_term_tax_exempt_rate = 0.0
+    zero = _rerun(acq, tgt, a).purchase_accounting
+    assert all(y.capped_carryforward == 5_000.0 for y in zero.years)
+    line = next(c for c in zero.checks if c.startswith("Carryforwards at close"))
+    assert "a zero cap never releases it" in line
