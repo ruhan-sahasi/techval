@@ -359,6 +359,52 @@ class PurchaseAccountingAssumptions(_Base):
         le=1.0,
         description="Share of free cash flow swept to repay acquisition debt each year.",
     )
+    acquirer_carryforward: float | None = Field(
+        None,
+        ge=0.0,
+        description=(
+            "The acquirer's own federal NOL carryforward at close, USD millions. The "
+            "acquirer has no ownership change, so it shelters the combined company's "
+            "taxable income uncapped, up to the annual limitation. Null carries none."
+        ),
+    )
+    target_carryforward: float | None = Field(
+        None,
+        ge=0.0,
+        description=(
+            "The target's federal NOL carryforward at close, USD millions. The deal is "
+            "its ownership change, so section 382 caps its use each year at the equity "
+            "purchase price times long_term_tax_exempt_rate, which must be set with it. "
+            "Null carries none."
+        ),
+    )
+    long_term_tax_exempt_rate: float | None = Field(
+        None,
+        ge=0.0,
+        le=0.20,
+        description=(
+            "The IRS long-term tax-exempt rate for the month of the change, which sets "
+            "the target's section 382 cap. Only read when target_carryforward is set."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _check(self) -> "PurchaseAccountingAssumptions":
+        if self.target_carryforward and self.long_term_tax_exempt_rate is None:
+            raise ConfigError(
+                "merger.purchase_accounting.target_carryforward is set without "
+                "long_term_tax_exempt_rate. The deal is the target's ownership change, "
+                "so section 382 caps the use of that balance at the equity purchase "
+                "price times the rate, and carrying it uncapped would overstate the "
+                "shield. Set the rate, or leave the target's balance null."
+            )
+        if self.long_term_tax_exempt_rate is not None and not self.target_carryforward:
+            raise ConfigError(
+                "merger.purchase_accounting.long_term_tax_exempt_rate sets the cap on "
+                "the target's carryforward, but target_carryforward is not set, so the "
+                "rate would change nothing. Set the balance, or leave the rate null."
+            )
+        return self
 
 
 class TaxAssumptions(_Base):
