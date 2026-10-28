@@ -1593,6 +1593,39 @@ def _purchase_accounting_checks(
             "synergy assumption, not a result."
         )
 
+    held: list[str] = []
+    if pa.acquirer_carryforward:
+        held.append(f"the acquirer's {pa.acquirer_carryforward:,.0f}mm, uncapped")
+    if pa.target_carryforward:
+        cap = price * (pa.long_term_tax_exempt_rate or 0.0)
+        held.append(
+            f"the target's {pa.target_carryforward:,.0f}mm, no faster than "
+            f"{cap:,.0f}mm a year under section 382, the price paid times "
+            f"{pa.long_term_tax_exempt_rate:.2%}"
+        )
+    if held:
+        line = (
+            "Carryforwards at close shelter the sweep's cash taxes: "
+            + ", and ".join(held)
+            + "."
+        )
+        if pa.target_carryforward and horizon.capped_carryforward > 0:
+            line += (
+                f" {horizon.capped_carryforward:,.0f}mm of the target's is still under "
+                f"the cap at the end of year {horizon.year}, "
+                + (
+                    f"about {horizon.capped_carryforward / cap:,.0f} more years of it."
+                    if cap > 0
+                    else "and a zero cap never releases it."
+                )
+            )
+        if pa.target_carryforward:
+            line += (
+                " The opening balance sheet books no deferred tax asset for the "
+                "target's balance, so goodwill is overstated by it."
+            )
+        checks.append(line)
+
     losing = [y for y in years if y.taxes < 0]
     if losing:
         booked = -sum(y.taxes for y in losing)
