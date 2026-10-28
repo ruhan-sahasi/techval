@@ -989,7 +989,18 @@ def test_the_checks_name_each_carryforward_and_the_targets_cap(pa_case):
     assert "the price paid times 3.40%" in line
     assert f"{left:,.0f}mm of the target's is still under the cap at the end of year 3" in line
     assert f"about {left / cap:,.0f} more years" in line
-    assert "goodwill is overstated by it" in line
+    # The target's balance is an identifiable asset acquired, and goodwill falls by it.
+    opening, before = result.opening, r.purchase_accounting.opening
+    assert opening.deferred_tax_asset == pytest.approx(a.tax.marginal_tax_rate * 2_000.0)
+    assert opening.goodwill_created == pytest.approx(
+        before.goodwill_created - opening.deferred_tax_asset
+    )
+    assert f"booked as a {opening.deferred_tax_asset:,.0f}mm deferred tax asset" in line
+    rows = dict(opening.rows())
+    assert rows["- Deferred tax asset on the target's carryforward"] == pytest.approx(
+        -opening.deferred_tax_asset
+    )
+    assert "- Deferred tax asset on the target's carryforward" not in dict(before.rows())
 
     frame = result.to_frame()
     assert frame["Of which the target's, under its cap"].tolist() == pytest.approx(
@@ -1026,3 +1037,5 @@ def test_a_loss_year_carries_its_unused_cap_and_a_zero_cap_releases_nothing(hand
     assert all(y.capped_carryforward == 5_000.0 for y in zero.years)
     line = next(c for c in zero.checks if c.startswith("Carryforwards at close"))
     assert "a zero cap never releases it" in line
+    assert "no deferred tax asset is booked for it" in line
+    assert zero.opening.deferred_tax_asset == 0.0

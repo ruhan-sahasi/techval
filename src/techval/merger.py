@@ -239,7 +239,10 @@ class OpeningBalanceSheet:
     The identity that has to hold, and that ``_opening_balance_sheet`` asserts
     rather than trusts:
 
-        book equity acquired + intangibles + goodwill - DTL = equity purchase price
+        book equity acquired + intangibles + goodwill - DTL + DTA = equity purchase price
+
+    where the DTA is the deferred tax asset on the target's own carryforward,
+    zero unless one is carried.
 
     Goodwill is the residual in that line, never an input. ``deferred_revenue_haircut``
     and ``target_debt_refinanced`` are memo figures: they carry earnings and
@@ -259,6 +262,8 @@ class OpeningBalanceSheet:
     # Taken back out of current liabilities before book equity is formed, so a
     # borrowing is deducted once. None where the target's debt has no split.
     target_current_financing: float | None = None
+    # On the target's carryforward, an identifiable asset acquired.
+    deferred_tax_asset: float = 0.0
 
     def rows(self) -> list[tuple[str, float]]:
         memo = (
@@ -280,6 +285,16 @@ class OpeningBalanceSheet:
                 _charge(self.intangibles_created),
             ),
             ("+ Deferred tax liability on the write-up", self.deferred_tax_liability),
+        ] + (
+            [
+                (
+                    "- Deferred tax asset on the target's carryforward",
+                    _charge(self.deferred_tax_asset),
+                )
+            ]
+            if self.deferred_tax_asset
+            else []
+        ) + [
             ("Goodwill created", self.goodwill_created),
             ("Memo: deferred revenue written down", self.deferred_revenue_haircut),
             ("Memo: target debt assumed or refinanced", self.target_debt_refinanced),
@@ -1125,12 +1140,23 @@ def _opening_balance_sheet(
     not for tax. The difference reverses over the life of the asset at the
     acquirer's rate, and the liability that represents it is assumed at close, so
     it lifts goodwill rather than reducing it.
+
+    The target's own carryforward is the opposite case: an identifiable asset
+    acquired, booked at the tax it will save. Section 382 slows its use but does
+    not shrink it, since post-2017 losses do not expire and deferred tax is not
+    discounted, so it is the whole balance at the rate; a zero cap means it is
+    never used, and nothing is booked. It takes goodwill down.
     """
     pa = assumptions.merger.purchase_accounting
 
     price = cons.equity_purchase_price
     book = _target_book_equity(tgt_fin, notes)
     excess = price - book
+    dta = (
+        tax_rate * pa.target_carryforward
+        if pa.target_carryforward and (pa.long_term_tax_exempt_rate or 0.0) > 0
+        else 0.0
+    )
 
     if excess <= 0:
         # A price below book is a bargain purchase. ASC 805 requires the buyer to
@@ -1140,7 +1166,7 @@ def _opening_balance_sheet(
         # pro forma below, so it is flagged instead of being quietly booked.
         intangibles = 0.0
         dtl = 0.0
-        goodwill = excess
+        goodwill = excess - dta
         notes.append(
             f"The offer of {price:,.0f}mm is at or below the {book:,.0f}mm of book "
             "equity acquired, so there is nothing to write up. Under ASC 805 the "
@@ -1152,7 +1178,7 @@ def _opening_balance_sheet(
     else:
         intangibles = pa.intangible_pct_of_excess * excess
         dtl = intangibles * tax_rate
-        goodwill = excess - intangibles + dtl
+        goodwill = excess - intangibles + dtl - dta
 
     haircut = pa.deferred_revenue_haircut * tgt_fin.deferred_revenue
     refinanced = tgt_bridge.total_debt
@@ -1167,11 +1193,12 @@ def _opening_balance_sheet(
         deferred_revenue_haircut=haircut,
         target_debt_refinanced=refinanced,
         target_current_financing=tgt_fin.current_financing,
+        deferred_tax_asset=dta,
     )
 
     # The allocation is an identity. A residual here means the deferred tax was
     # signed the wrong way, which is the failure this construction exists to avoid.
-    reconciled = book + intangibles + goodwill - dtl
+    reconciled = book + intangibles + goodwill - dtl + dta
     assert abs(reconciled - price) <= _BALANCE_TOLERANCE * max(1.0, abs(price)), (
         f"opening balance sheet does not reconcile: assets acquired of "
         f"{reconciled:,.6f}mm against consideration of {price:,.6f}mm"
@@ -1186,6 +1213,13 @@ def _opening_balance_sheet(
         f"are amortised over {pa.intangible_life_years} years and touch EPS every "
         "quarter."
     )
+    if dta:
+        notes.append(
+            f"The target's {pa.target_carryforward:,.0f}mm carryforward is booked as a "
+            f"deferred tax asset of {dta:,.0f}mm at {tax_rate:.0%}, which takes goodwill "
+            "down by as much. Section 382 slows its use but does not shrink it: "
+            "post-2017 losses do not expire, and deferred tax is not discounted."
+        )
     notes.append(
         f"Deferred revenue of {tgt_fin.deferred_revenue:,.0f}mm is written down by "
         f"{pa.deferred_revenue_haircut:.0%} to {haircut:,.0f}mm of fair value "
@@ -1622,8 +1656,12 @@ def _purchase_accounting_checks(
             )
         if pa.target_carryforward:
             line += (
-                " The opening balance sheet books no deferred tax asset for the "
-                "target's balance, so goodwill is overstated by it."
+                f" The target's is booked as a {opening.deferred_tax_asset:,.0f}mm "
+                "deferred tax asset in the opening balance sheet, which takes goodwill "
+                "down by as much."
+                if opening.deferred_tax_asset
+                else " A zero cap means it is never used, so no deferred tax asset "
+                "is booked for it."
             )
         checks.append(line)
 
