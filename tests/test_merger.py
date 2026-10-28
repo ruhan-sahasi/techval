@@ -990,3 +990,8 @@ def test_the_checks_name_each_carryforward_and_the_targets_cap(pa_case):
     assert f"{left:,.0f}mm of the target's is still under the cap at the end of year 3" in line
     assert f"about {left / cap:,.0f} more years" in line
     assert "goodwill is overstated by it" in line
+
+    frame = result.to_frame()
+    assert frame["Of which the target's, under its cap"].tolist() == pytest.approx(
+        [y.capped_carryforward for y in result.years]
+    )
