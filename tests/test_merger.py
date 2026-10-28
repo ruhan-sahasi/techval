@@ -759,6 +759,15 @@ def test_a_price_below_book_is_a_bargain_purchase_not_negative_amortisation(pa_c
     assert all(y.intangible_amortisation == 0.0 for y in pa.years)
     assert any("805" in n for n in pa.notes)
 
+    # A deferred tax asset on the target's own losses is an asset acquired too,
+    # so the gain the note quotes grows by it.
+    a.merger.purchase_accounting.target_carryforward = 1_000.0
+    a.merger.purchase_accounting.long_term_tax_exempt_rate = 0.034
+    with_dta = _rerun(acq, rich, a).purchase_accounting
+    gain = -with_dta.opening.goodwill_created
+    assert gain == pytest.approx(6350.0 + a.tax.marginal_tax_rate * 1_000.0)
+    assert any(f"difference of {gain:,.0f}mm, the deferred tax asset" in n for n in with_dta.notes)
+
 
 def test_purchase_accounting_off_changes_nothing(hand_case):
     """The switch adds a result. It must not restate one.
@@ -934,3 +943,108 @@ def test_a_book_loss_smaller_than_the_amortisation_still_pays_tax(hand_case):
     line = next(c for c in pa.checks if c.startswith("Pro forma EPS books"))
     assert "is never a loss, so tax is paid in those years all the same" in line
     assert "sheltered" not in line
+
+
+def test_the_companies_own_carryforwards_shelter_the_sweep_the_target_under_its_cap(pa_case):
+    """The acquirer keeps its losses whole; the target's come out no faster than section 382 allows.
+
+    The cap is the 3,250mm price times a 3.4% rate, 110.5mm a year. The target's
+    balance is the older loss, so it is used first, and the acquirer's shelters
+    what is left of 80% of taxable income. Year one's EPS does not move: using a
+    balance already on the books changes the tax paid, not the tax charged. Year
+    two's rises, because the cash saved repays debt sooner.
+    """
+    r, a, acq, tgt = pa_case
+    pa = a.merger.purchase_accounting
+    pa.acquirer_carryforward = 1_000.0
+    pa.target_carryforward = 2_000.0
+    pa.long_term_tax_exempt_rate = 0.034
+    years = _rerun(acq, tgt, a).purchase_accounting.years
+    rate, limit, cap = a.tax.marginal_tax_rate, a.dcf.nol.annual_limitation_pct, 3_250.0 * 0.034
+
+    free, capped, unused = 1_000.0, 2_000.0, 0.0
+    for y in years:
+        taxable = y.pretax_income + y.intangible_amortisation
+        unused += cap
+        from_capped = min(capped, unused, limit * taxable)
+        from_free = min(free, limit * taxable - from_capped)
+        capped, free, unused = capped - from_capped, free - from_free, unused - from_capped
+        assert y.cash_taxes == pytest.approx(rate * (taxable - from_capped - from_free))
+        assert y.capped_carryforward == pytest.approx(capped)
+        assert y.carryforward == pytest.approx(free + capped)
+    first, before = years[0], r.purchase_accounting.years[0]
+    assert first.cash_taxes < before.cash_taxes and first.eps == pytest.approx(before.eps)
+    assert first.cash_flow == pytest.approx(before.cash_flow + before.cash_taxes - first.cash_taxes)
+    # Year two pays less interest; by year three both runs have repaid the facility.
+    assert years[1].eps > r.purchase_accounting.years[1].eps
+    assert years[2].eps == pytest.approx(r.purchase_accounting.years[2].eps)
+    assert free == 0.0 and capped == pytest.approx(2_000.0 - 3 * cap)
+
+
+def test_the_checks_name_each_carryforward_and_the_targets_cap(pa_case):
+    r, a, acq, tgt = pa_case
+    assert not any(c.startswith("Carryforwards at close") for c in r.purchase_accounting.checks)
+
+    pa = a.merger.purchase_accounting
+    pa.acquirer_carryforward = 1_000.0
+    pa.target_carryforward = 2_000.0
+    pa.long_term_tax_exempt_rate = 0.034
+    result = _rerun(acq, tgt, a).purchase_accounting
+    line = next(c for c in result.checks if c.startswith("Carryforwards at close"))
+    left = result.years[-1].capped_carryforward
+    cap = 3_250.0 * 0.034
+    assert "the acquirer's 1,000mm, uncapped, and the target's 2,000mm" in line
+    assert f"no faster than {cap:,.0f}mm a year under section 382" in line
+    assert "the price paid times 3.40%" in line
+    assert f"{left:,.0f}mm of the target's is still under the cap at the end of year 3" in line
+    assert f"about {left / cap:,.0f} more years" in line
+    # The target's balance is an identifiable asset acquired, and goodwill falls by it.
+    opening, before = result.opening, r.purchase_accounting.opening
+    assert opening.deferred_tax_asset == pytest.approx(a.tax.marginal_tax_rate * 2_000.0)
+    assert opening.goodwill_created == pytest.approx(
+        before.goodwill_created - opening.deferred_tax_asset
+    )
+    assert f"booked as a {opening.deferred_tax_asset:,.0f}mm deferred tax asset" in line
+    rows = dict(opening.rows())
+    assert rows["- Deferred tax asset on the target's carryforward"] == pytest.approx(
+        -opening.deferred_tax_asset
+    )
+    assert "- Deferred tax asset on the target's carryforward" not in dict(before.rows())
+
+    frame = result.to_frame()
+    assert frame["Of which the target's, under its cap"].tolist() == pytest.approx(
+        [y.capped_carryforward for y in result.years]
+    )
+
+
+def test_a_loss_year_carries_its_unused_cap_and_a_zero_cap_releases_nothing(hand_case):
+    """Two edges of the target's cap that a profitable year never reaches.
+
+    Year one here is a tax loss, so none of the target's balance is used and the
+    year's cap carries into year two, which can use two years of it. A zero rate,
+    which is what failing the continuity-of-business test comes to, never
+    releases the balance at all.
+    """
+    _, a, _, tgt = hand_case
+    acq = _company("ACQ", revenue=8000, ebit=-600, da=200, net_income=-500, shares=500, cash=3000)
+    tgt = replace(tgt, current_assets=1000.0, current_liabilities=400.0)
+    pa = a.merger.purchase_accounting
+    pa.enabled = True
+    a.merger.synergies.pretax_cost_synergies = 900.0
+    a.merger.synergies.phase_in_year_one = 0.1
+    a.dcf.revenue_growth_start = 0.0
+    pa.target_carryforward = 5_000.0
+    pa.long_term_tax_exempt_rate = 0.034
+    result = _rerun(acq, tgt, a).purchase_accounting
+    first, second, _ = result.years
+    cap = result.opening.equity_purchase_price * 0.034
+    assert first.capped_carryforward == 5_000.0
+    assert second.capped_carryforward == pytest.approx(5_000.0 - 2 * cap)
+
+    pa.long_term_tax_exempt_rate = 0.0
+    zero = _rerun(acq, tgt, a).purchase_accounting
+    assert all(y.capped_carryforward == 5_000.0 for y in zero.years)
+    line = next(c for c in zero.checks if c.startswith("Carryforwards at close"))
+    assert "a zero cap never releases it" in line
+    assert "no deferred tax asset is booked for it" in line
+    assert zero.opening.deferred_tax_asset == 0.0

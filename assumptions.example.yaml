@@ -223,6 +223,15 @@ merger:
     deferred_revenue_haircut: 0.40
     projection_years: 3
     debt_repayment_pct_of_fcf: 0.50   # free cash flow swept to the new debt
+    # Federal NOL carryforwards at close, USD millions, from the tax footnotes,
+    # which shelter the sweep's cash taxes. The acquirer's is uncapped. The deal
+    # is the target's ownership change, so section 382 caps its use each year at
+    # the equity purchase price times the IRS long-term tax-exempt rate, which has
+    # to be set with it, and the target's is booked at close as a deferred tax
+    # asset that takes goodwill down. Null carries none.
+    acquirer_carryforward: null
+    target_carryforward: null
+    long_term_tax_exempt_rate: null
 
 # The share count equity value is divided by.
 # waso            trailing diluted weighted-average shares as filed. An average
