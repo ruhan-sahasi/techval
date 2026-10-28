@@ -1170,7 +1170,9 @@ def _opening_balance_sheet(
         notes.append(
             f"The offer of {price:,.0f}mm is at or below the {book:,.0f}mm of book "
             "equity acquired, so there is nothing to write up. Under ASC 805 the "
-            f"difference of {-excess:,.0f}mm is a bargain purchase gain taken to "
+            f"difference of {-goodwill:,.0f}mm"
+            + (", the deferred tax asset on the target's carryforward included," if dta else "")
+            + " is a bargain purchase gain taken to "
             "earnings at close once fair values have been reassessed. It is shown "
             "here as negative goodwill and is deliberately kept out of the pro forma "
             "income statement, because a one-time gain is not run-rate earnings."
