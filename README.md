@@ -1262,7 +1262,9 @@ it the opening balance sheet does not balance. The amortisation of those
 intangibles is a book expense with no tax basis behind it, so the debt sweep
 pays tax as though it were never charged. A pro forma loss pays no tax and is
 carried forward against later years, and the benefit EPS books on it is not
-cash, which the checks say. Working capital moves at the two balance sheets'
+cash, which the checks say. Either company's own carryforward can be carried in
+too: the acquirer's uncapped, the target's under the section 382 cap the price
+paid sets, and booked at close as a deferred tax asset that takes goodwill down. Working capital moves at the two balance sheets'
 combined share of revenue. Acquired deferred revenue is written down to fair
 value, which permanently destroys revenue the target would have recognised.
 
@@ -1886,11 +1888,14 @@ to measure comparability, is not wired into `comps.py`.
 
 ### The projection, the simulation and the APV
 
-The NOL model's Section 382 cap is only as good as the number typed into
-`dcf.nol.section_382_limit`. It rations the balance at an ownership change, but
-nothing derives it from a deal price, so a deal case that leaves it null
-overstates the shield; the checks print the tax-exempt rate a cap implies against
-today's equity value, and the built-in gains that raise a cap are not counted.
+The DCF's Section 382 cap is only as good as the number typed into
+`dcf.nol.section_382_limit`. It rations the balance at an ownership change, but a
+standalone DCF has no deal price to derive it from, so a deal case that leaves it
+null overstates the shield; the checks print the tax-exempt rate a cap implies
+against today's equity value. The merger module does derive the target's cap,
+from the price paid and `merger.purchase_accounting.long_term_tax_exempt_rate`,
+but both companies' balances have to be typed in from the tax footnotes, and in
+neither place are the built-in gains that raise a cap counted.
 The model also leaves out state carryforwards, with their own expiry and
 apportionment, and the valuation allowance, so the balance used is the gross
 federal carryforward rather than the deferred tax asset the filer believes it

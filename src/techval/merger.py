@@ -239,7 +239,10 @@ class OpeningBalanceSheet:
     The identity that has to hold, and that ``_opening_balance_sheet`` asserts
     rather than trusts:
 
-        book equity acquired + intangibles + goodwill - DTL = equity purchase price
+        book equity acquired + intangibles + goodwill - DTL + DTA = equity purchase price
+
+    where the DTA is the deferred tax asset on the target's own carryforward,
+    zero unless one is carried.
 
     Goodwill is the residual in that line, never an input. ``deferred_revenue_haircut``
     and ``target_debt_refinanced`` are memo figures: they carry earnings and
@@ -259,6 +262,8 @@ class OpeningBalanceSheet:
     # Taken back out of current liabilities before book equity is formed, so a
     # borrowing is deducted once. None where the target's debt has no split.
     target_current_financing: float | None = None
+    # On the target's carryforward, an identifiable asset acquired.
+    deferred_tax_asset: float = 0.0
 
     def rows(self) -> list[tuple[str, float]]:
         memo = (
@@ -280,6 +285,16 @@ class OpeningBalanceSheet:
                 _charge(self.intangibles_created),
             ),
             ("+ Deferred tax liability on the write-up", self.deferred_tax_liability),
+        ] + (
+            [
+                (
+                    "- Deferred tax asset on the target's carryforward",
+                    _charge(self.deferred_tax_asset),
+                )
+            ]
+            if self.deferred_tax_asset
+            else []
+        ) + [
             ("Goodwill created", self.goodwill_created),
             ("Memo: deferred revenue written down", self.deferred_revenue_haircut),
             ("Memo: target debt assumed or refinanced", self.target_debt_refinanced),
@@ -306,7 +321,10 @@ class ProFormaYear:
     ``taxes`` is the book charge EPS is struck on, a benefit in a loss year as
     GAAP books one. ``cash_taxes`` is what is paid: the step-up amortisation is
     not deductible, a loss is carried forward rather than refunded, and
-    ``carryforward`` is the roll-forward's own loss balance left at year end.
+    ``carryforward`` is the balance left at year end: the companies' own
+    carryforwards at close plus the roll-forward's losses, less what they have
+    sheltered. ``capped_carryforward`` is the part of it that is the target's,
+    still under its section 382 cap.
     ``change_in_working_capital`` comes out of the cash flow, so a release from
     a subscription business's negative working capital is a negative figure.
     """
@@ -328,6 +346,7 @@ class ProFormaYear:
     cash_taxes: float = 0.0
     carryforward: float = 0.0
     change_in_working_capital: float = 0.0
+    capped_carryforward: float = 0.0
 
 
 @dataclass
@@ -368,6 +387,7 @@ class PurchaseAccounting:
                     "Free cash flow": y.cash_flow,
                     "Debt repaid": y.debt_repaid,
                     "Loss carried forward": y.carryforward,
+                    "Of which the target's, under its cap": y.capped_carryforward,
                 }
                 for y in self.years
             ]
@@ -1120,12 +1140,23 @@ def _opening_balance_sheet(
     not for tax. The difference reverses over the life of the asset at the
     acquirer's rate, and the liability that represents it is assumed at close, so
     it lifts goodwill rather than reducing it.
+
+    The target's own carryforward is the opposite case: an identifiable asset
+    acquired, booked at the tax it will save. Section 382 slows its use but does
+    not shrink it, since post-2017 losses do not expire and deferred tax is not
+    discounted, so it is the whole balance at the rate; a zero cap means it is
+    never used, and nothing is booked. It takes goodwill down.
     """
     pa = assumptions.merger.purchase_accounting
 
     price = cons.equity_purchase_price
     book = _target_book_equity(tgt_fin, notes)
     excess = price - book
+    dta = (
+        tax_rate * pa.target_carryforward
+        if pa.target_carryforward and (pa.long_term_tax_exempt_rate or 0.0) > 0
+        else 0.0
+    )
 
     if excess <= 0:
         # A price below book is a bargain purchase. ASC 805 requires the buyer to
@@ -1135,11 +1166,13 @@ def _opening_balance_sheet(
         # pro forma below, so it is flagged instead of being quietly booked.
         intangibles = 0.0
         dtl = 0.0
-        goodwill = excess
+        goodwill = excess - dta
         notes.append(
             f"The offer of {price:,.0f}mm is at or below the {book:,.0f}mm of book "
             "equity acquired, so there is nothing to write up. Under ASC 805 the "
-            f"difference of {-excess:,.0f}mm is a bargain purchase gain taken to "
+            f"difference of {-goodwill:,.0f}mm"
+            + (", the deferred tax asset on the target's carryforward included," if dta else "")
+            + " is a bargain purchase gain taken to "
             "earnings at close once fair values have been reassessed. It is shown "
             "here as negative goodwill and is deliberately kept out of the pro forma "
             "income statement, because a one-time gain is not run-rate earnings."
@@ -1147,7 +1180,7 @@ def _opening_balance_sheet(
     else:
         intangibles = pa.intangible_pct_of_excess * excess
         dtl = intangibles * tax_rate
-        goodwill = excess - intangibles + dtl
+        goodwill = excess - intangibles + dtl - dta
 
     haircut = pa.deferred_revenue_haircut * tgt_fin.deferred_revenue
     refinanced = tgt_bridge.total_debt
@@ -1162,11 +1195,12 @@ def _opening_balance_sheet(
         deferred_revenue_haircut=haircut,
         target_debt_refinanced=refinanced,
         target_current_financing=tgt_fin.current_financing,
+        deferred_tax_asset=dta,
     )
 
     # The allocation is an identity. A residual here means the deferred tax was
     # signed the wrong way, which is the failure this construction exists to avoid.
-    reconciled = book + intangibles + goodwill - dtl
+    reconciled = book + intangibles + goodwill - dtl + dta
     assert abs(reconciled - price) <= _BALANCE_TOLERANCE * max(1.0, abs(price)), (
         f"opening balance sheet does not reconcile: assets acquired of "
         f"{reconciled:,.6f}mm against consideration of {price:,.6f}mm"
@@ -1181,6 +1215,13 @@ def _opening_balance_sheet(
         f"are amortised over {pa.intangible_life_years} years and touch EPS every "
         "quarter."
     )
+    if dta:
+        notes.append(
+            f"The target's {pa.target_carryforward:,.0f}mm carryforward is booked as a "
+            f"deferred tax asset of {dta:,.0f}mm at {tax_rate:.0%}, which takes goodwill "
+            "down by as much. Section 382 slows its use but does not shrink it: "
+            "post-2017 losses do not expire, and deferred tax is not discounted."
+        )
     notes.append(
         f"Deferred revenue of {tgt_fin.deferred_revenue:,.0f}mm is written down by "
         f"{pa.deferred_revenue_haircut:.0%} to {haircut:,.0f}mm of fair value "
@@ -1304,7 +1345,11 @@ def build_purchase_accounting(
     expenditure. The tax paid is on taxable income, which adds back the step-up
     amortisation because a stock deal carries the target's tax basis over. A
     loss year pays nothing and its loss joins a carryforward that shelters later
-    years up to ``dcf.nol.annual_limitation_pct``, by the rule the DCF uses. In a
+    years up to ``dcf.nol.annual_limitation_pct``, by the rule the DCF uses. The
+    acquirer's own carryforward at close joins it uncapped. The target's is
+    used first, being older, and no faster than its section 382 cap: the equity
+    purchase price times the long-term tax-exempt rate, with any cap a year
+    leaves unused carried to the next. In a
     profitable year with no carryforward this is net income plus the after-tax
     amortisation, since the deferred tax benefit inside net income is not cash.
     Working capital is held at the share of revenue the two balance sheets carry
@@ -1342,8 +1387,13 @@ def build_purchase_accounting(
 
     years: list[ProFormaYear] = []
     debt = cons.new_debt
-    carryforward = 0.0
     limit = assumptions.dcf.nol.annual_limitation_pct
+    # The deal is the target's ownership change and not the acquirer's, so only
+    # the target's balance is capped, at the price paid times the IRS rate.
+    carryforward = pa.acquirer_carryforward or 0.0
+    capped = pa.target_carryforward or 0.0
+    cap = opening.equity_purchase_price * (pa.long_term_tax_exempt_rate or 0.0)
+    cap_unused = 0.0
     unread = [
         f.ticker for f in (acq_fin, tgt_fin) if f.operating_working_capital is None
     ]
@@ -1378,8 +1428,9 @@ def build_purchase_accounting(
         eps = net_income / shares
 
         taxable = pretax + amortisation
-        used, carryforward, _, _ = (
-            float(x) for x in _shelter(taxable, carryforward, 0.0, 0.0, limit, 0.0)
+        used, carryforward, capped, cap_unused = (
+            float(x)
+            for x in _shelter(taxable, carryforward, capped, cap_unused, limit, cap)
         )
         cash_taxes = tax_rate * max(taxable - used, 0.0)
         working = base_revenue * compounding * (nwc_pct or 0.0)
@@ -1413,8 +1464,9 @@ def build_purchase_accounting(
                 cash_flow=cash_flow,
                 debt_repaid=repaid,
                 cash_taxes=cash_taxes,
-                carryforward=carryforward,
+                carryforward=carryforward + capped,
                 change_in_working_capital=change_in_working_capital,
+                capped_carryforward=capped,
             )
         )
 
@@ -1577,6 +1629,43 @@ def _purchase_accounting_checks(
             f"{pa.intangible_life_years + 1}, and a crossover that far out is a "
             "synergy assumption, not a result."
         )
+
+    held: list[str] = []
+    if pa.acquirer_carryforward:
+        held.append(f"the acquirer's {pa.acquirer_carryforward:,.0f}mm, uncapped")
+    if pa.target_carryforward:
+        cap = price * (pa.long_term_tax_exempt_rate or 0.0)
+        held.append(
+            f"the target's {pa.target_carryforward:,.0f}mm, no faster than "
+            f"{cap:,.0f}mm a year under section 382, the price paid times "
+            f"{pa.long_term_tax_exempt_rate:.2%}"
+        )
+    if held:
+        line = (
+            "Carryforwards at close shelter the sweep's cash taxes: "
+            + ", and ".join(held)
+            + "."
+        )
+        if pa.target_carryforward and horizon.capped_carryforward > 0:
+            line += (
+                f" {horizon.capped_carryforward:,.0f}mm of the target's is still under "
+                f"the cap at the end of year {horizon.year}, "
+                + (
+                    f"about {horizon.capped_carryforward / cap:,.0f} more years of it."
+                    if cap > 0
+                    else "and a zero cap never releases it."
+                )
+            )
+        if pa.target_carryforward:
+            line += (
+                f" The target's is booked as a {opening.deferred_tax_asset:,.0f}mm "
+                "deferred tax asset in the opening balance sheet, which takes goodwill "
+                "down by as much."
+                if opening.deferred_tax_asset
+                else " A zero cap means it is never used, so no deferred tax asset "
+                "is booked for it."
+            )
+        checks.append(line)
 
     losing = [y for y in years if y.taxes < 0]
     if losing:

@@ -714,6 +714,34 @@ def test_merger_with_purchase_accounting_renders_to_the_last_row(tmp_path):
     # The sweep runs on the tax actually paid, so it prints beside the book charge.
     assert "Cash taxes" in result.output and "Free cash flow" in result.output
     assert "Change in working capital" in result.output
+    assert "under its cap" not in result.output
+
+
+def test_the_merger_command_prints_the_targets_capped_carryforward(tmp_path):
+    body = MERGER_BODY + (
+        "    acquirer_carryforward: 1000\n"
+        "    target_carryforward: 3000\n"
+        "    long_term_tax_exempt_rate: 0.034\n"
+    )
+    result = run_merger_command("-c", str(_config(tmp_path, body)))
+    assert result.exit_code == 0
+    flat = " ".join(result.output.split())
+    assert "Of which the target's, under its cap" in flat
+    assert "Carryforwards at close shelter the sweep's cash taxes" in flat
+
+    # The opening balance sheet it prints books the target's balance at the rate.
+    assumptions, client, market = C._setup(_config(tmp_path, body), True, AS_OF)
+    acq_fin, acq_price, acq_bridge = C._load("DDOG", client, market, assumptions)
+    tgt_fin, tgt_price, tgt_bridge = C._load("MDB", client, market, assumptions)
+    opening = run_merger(
+        acq_fin, tgt_fin, acq_bridge, tgt_bridge, acq_price, tgt_price, assumptions
+    ).purchase_accounting.opening
+    assert opening.deferred_tax_asset == pytest.approx(assumptions.tax.marginal_tax_rate * 3000)
+    row = next(
+        line for line in result.output.splitlines()
+        if "Deferred tax asset on the target's carryforward" in line
+    )
+    assert f"({opening.deferred_tax_asset:,.0f})" in row
 
 
 def test_the_accretion_row_prints_the_dollars_the_model_computed(tmp_path):

@@ -390,6 +390,8 @@ def _render_purchase_accounting(pa) -> None:
     ]
     if any(y.carryforward for y in pa.years):
         rows.append(("Loss carried forward", "carryforward", 0))
+    if any(y.capped_carryforward for y in pa.years):
+        rows.append(("Of which the target's, under its cap", "capped_carryforward", 0))
     for label, attr, dp in rows:
         bold = label in ("EPS", "Net income")
         cells = [Text(_money(getattr(y, attr), dp), style="bold" if bold else "")
