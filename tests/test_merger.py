@@ -970,3 +970,23 @@ def test_the_companies_own_carryforwards_shelter_the_sweep_the_target_under_its_
     assert years[1].eps > r.purchase_accounting.years[1].eps
     assert years[2].eps == pytest.approx(r.purchase_accounting.years[2].eps)
     assert free == 0.0 and capped == pytest.approx(2_000.0 - 3 * cap)
+
+
+def test_the_checks_name_each_carryforward_and_the_targets_cap(pa_case):
+    r, a, acq, tgt = pa_case
+    assert not any(c.startswith("Carryforwards at close") for c in r.purchase_accounting.checks)
+
+    pa = a.merger.purchase_accounting
+    pa.acquirer_carryforward = 1_000.0
+    pa.target_carryforward = 2_000.0
+    pa.long_term_tax_exempt_rate = 0.034
+    result = _rerun(acq, tgt, a).purchase_accounting
+    line = next(c for c in result.checks if c.startswith("Carryforwards at close"))
+    left = result.years[-1].capped_carryforward
+    cap = 3_250.0 * 0.034
+    assert "the acquirer's 1,000mm, uncapped, and the target's 2,000mm" in line
+    assert f"no faster than {cap:,.0f}mm a year under section 382" in line
+    assert "the price paid times 3.40%" in line
+    assert f"{left:,.0f}mm of the target's is still under the cap at the end of year 3" in line
+    assert f"about {left / cap:,.0f} more years" in line
+    assert "goodwill is overstated by it" in line
