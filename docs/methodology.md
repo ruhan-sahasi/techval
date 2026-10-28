@@ -1655,6 +1655,25 @@ flow: minus 10.7% for that pair, so year two's growth releases about $144mm.
 Where either balance cannot be read, working capital does not move, and the
 note names the company.
 
+**The companies' own carryforwards.** `purchase_accounting.acquirer_carryforward`
+and `target_carryforward` seed the sweep's carryforward with the federal balances
+at close, which the tax footnotes carry as prose more often than as a usable tag
+(§6.2). The acquirer has no ownership change, so its balance shelters the combined
+company's taxable income uncapped, up to the annual limitation. The deal is the
+target's change, so its balance goes into the capped pool of the DCF's section 382
+rule (§6.2): used first, being the older loss, and no faster than the equity
+purchase price times `long_term_tax_exempt_rate`, with any cap a year leaves
+unused carried to the next. A target balance without the rate is refused, since
+it would come out uncapped. In the opening balance sheet the target's balance is
+an identifiable asset acquired, booked as a deferred tax asset at the rate on the
+whole balance, because section 382 slows its use without shrinking it, and
+goodwill falls by as much; under a zero cap it is never used and nothing is
+booked. On the hand-computed deal a $2,000mm target balance at a 3.4% rate
+releases $110.5mm a year against the $3,250mm price, and books a $480mm asset that
+comes out of goodwill. Year one's EPS does not move, since using a balance already
+on the books changes the tax paid and not the tax charged; later years' rises as
+the cash saved repays the facility sooner.
+
 `Financials` carries the claims a valuation needs rather than a full balance
 sheet, so book equity acquired is assembled from working capital less
 borrowings, preferred and minority interest, and it is understated in a
@@ -1679,12 +1698,12 @@ the pro forma rather than carried as negative goodwill.
 
 No revenue build and no margin path: the top line compounds at one rate and every
 margin is held at its trailing twelve month level, which is generous to an
-acquirer buying a faster-growing, lower-margin target. No section 382 limitation
-on the target's carryforwards here, which would cut whatever NOL shield a deal
-case claims; a DCF of the target can carry the cap (§6.2). The roll-forward
-carries only the losses it makes itself, not either company's opening balance,
-and EPS books a full tax benefit on a pro forma loss with no valuation
-allowance; the sweep counts none of it. No
+acquirer buying a faster-growing, lower-margin target. The companies' opening
+carryforwards come from the assumptions file rather than the filings, and nothing
+tests the deferred tax asset on the target's for a valuation allowance, nor the
+benefit EPS books on a pro forma loss; the sweep counts none of that benefit. The
+parts of section 382 beyond the annual cap, such as the built-in gains that raise
+it, are not modelled here either. No
 retention, integration or restructuring cost beyond the one-time fees in sources
 and uses. No change-of-control repayment of the target's
 borrowings: they are assumed at close on unchanged terms, and where a covenant
