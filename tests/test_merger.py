@@ -759,6 +759,15 @@ def test_a_price_below_book_is_a_bargain_purchase_not_negative_amortisation(pa_c
     assert all(y.intangible_amortisation == 0.0 for y in pa.years)
     assert any("805" in n for n in pa.notes)
 
+    # A deferred tax asset on the target's own losses is an asset acquired too,
+    # so the gain the note quotes grows by it.
+    a.merger.purchase_accounting.target_carryforward = 1_000.0
+    a.merger.purchase_accounting.long_term_tax_exempt_rate = 0.034
+    with_dta = _rerun(acq, rich, a).purchase_accounting
+    gain = -with_dta.opening.goodwill_created
+    assert gain == pytest.approx(6350.0 + a.tax.marginal_tax_rate * 1_000.0)
+    assert any(f"difference of {gain:,.0f}mm, the deferred tax asset" in n for n in with_dta.notes)
+
 
 def test_purchase_accounting_off_changes_nothing(hand_case):
     """The switch adds a result. It must not restate one.
