@@ -1654,6 +1654,34 @@ def _purchase_accounting_checks(
             "synergy assumption, not a result."
         )
 
+    syn = assumptions.merger.synergies
+    if syn.cost_to_achieve:
+        run_rate = syn.pretax_cost_synergies + syn.pretax_revenue_synergies
+        credited = spent = 0.0
+        paid_back = None
+        for y in years:
+            credited += run_rate * (syn.phase_in_year_one if y.year == 1 else 1.0)
+            spent += y.cost_to_achieve
+            if paid_back is None and run_rate and credited >= spent:
+                paid_back = y.year
+        line = f"The {syn.cost_to_achieve:,.0f}mm cost to achieve "
+        if not run_rate:
+            line += "is spent with no synergies configured to pay it back."
+        else:
+            line += (
+                f"is {syn.cost_to_achieve / run_rate:.1f} times a year of run-rate "
+                f"synergies, spent over {syn.cost_to_achieve_years} year"
+                f"{'s' if syn.cost_to_achieve_years > 1 else ''}. "
+                + (
+                    f"The synergies credited have paid it back by year {paid_back}."
+                    if paid_back is not None
+                    else f"The synergies credited have not paid it back inside the "
+                    f"{len(years)} year horizon: {spent - credited:,.0f}mm of it is "
+                    "still ahead of them."
+                )
+            )
+        checks.append(line)
+
     held: list[str] = []
     if pa.acquirer_carryforward:
         held.append(f"the acquirer's {pa.acquirer_carryforward:,.0f}mm, uncapped")
