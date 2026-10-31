@@ -1528,6 +1528,14 @@ def build_purchase_accounting(
         "No fade and no buyback: the only capital action modelled after close is "
         "the debt sweep."
     )
+    beyond = syn.cost_to_achieve_years - pa.projection_years
+    if syn.cost_to_achieve and beyond > 0:
+        notes.append(
+            f"The cost to achieve is spread over {syn.cost_to_achieve_years} years and "
+            f"the roll-forward runs {pa.projection_years}, so "
+            f"{syn.cost_to_achieve * beyond / syn.cost_to_achieve_years:,.0f}mm of it "
+            "falls after the horizon and is not charged here."
+        )
     if nwc_pct is None:
         notes.append(
             "Working capital does not move in the sweep, because "

@@ -1109,3 +1109,16 @@ def test_the_checks_say_when_the_synergies_pay_back_their_cost(pa_case):
     syn.pretax_cost_synergies = 0.0
     line = next(c for c in _rerun(acq, tgt, a).purchase_accounting.checks if "cost to achieve" in c)
     assert "spent with no synergies configured to pay it back" in line
+
+
+def test_a_cost_spread_past_the_horizon_says_how_much_is_not_charged(pa_case):
+    _, a, acq, tgt = pa_case
+    a.merger.synergies.cost_to_achieve = 500.0
+    a.merger.synergies.cost_to_achieve_years = 5
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    assert sum(y.cost_to_achieve for y in pa.years) == pytest.approx(300.0)
+    assert any("200mm of it falls after the horizon" in n for n in pa.notes)
+
+    a.merger.synergies.cost_to_achieve_years = 3
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    assert not any("falls after the horizon" in n for n in pa.notes)
