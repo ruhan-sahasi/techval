@@ -1649,8 +1649,13 @@ def _purchase_accounting_checks(
             f"Dilutive in year one at {accretion_by_year[0][1]:+,.3f} per share and "
             f"crossing into accretion in year {turns} at "
             f"{accretion_by_year[turns - 1][1]:+,.3f}. The crossover is driven by the "
-            "debt sweep taking interest down and by synergies reaching their run rate, "
-            "not by the amortisation, which is flat until the asset is written off."
+            "debt sweep taking interest down and by synergies reaching their run rate"
+            + (
+                ", and by the cost to achieve them running off,"
+                if any(y.cost_to_achieve for y in years[: turns - 1])
+                else ","
+            )
+            + " not by the amortisation, which is flat until the asset is written off."
         )
     else:
         checks.append(
