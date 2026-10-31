@@ -1778,8 +1778,13 @@ def _purchase_accounting_checks(
     # facility or sits in the bank. The sweep decides how much interest is saved,
     # not how levered the company is.
     net_debt_horizon = net_debt_close - sum(y.cash_flow for y in years)
-    open_den = years[0].ebitda + rent
-    horizon_den = horizon.ebitda + rent
+    # The cost to achieve is added back, as a credit agreement adds back one-time
+    # integration cost: a year depressed by it is not the earnings the debt is
+    # serviced from.
+    open_den = years[0].ebitda + years[0].cost_to_achieve + rent
+    horizon_den = horizon.ebitda + horizon.cost_to_achieve + rent
+    if years[0].cost_to_achieve or horizon.cost_to_achieve:
+        label += " before the cost to achieve"
     if not quotable:
         checks.append(
             "Pro forma leverage is not shown: operating leases are counted as debt, so "
