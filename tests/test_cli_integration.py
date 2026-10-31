@@ -715,6 +715,7 @@ def test_merger_with_purchase_accounting_renders_to_the_last_row(tmp_path):
     assert "Cash taxes" in result.output and "Free cash flow" in result.output
     assert "Change in working capital" in result.output
     assert "under its cap" not in result.output
+    assert "Cost to achieve" not in result.output
 
 
 def test_the_merger_command_prints_the_targets_capped_carryforward(tmp_path):
@@ -855,3 +856,13 @@ def test_the_financials_table_shows_working_capital_without_the_financing(tmp_pa
     wc = ddog.operating_working_capital
     row = next(line for line in result.output.splitlines() if "Working capital, ex financing" in line)
     assert f"({abs(wc):,.1f})" in row and f"{wc / ddog.revenue:.1%} of revenue" in row
+
+
+def test_the_merger_command_prints_the_cost_to_achieve(tmp_path):
+    body = MERGER_BODY.replace(
+        "merger:\n", "merger:\n  synergies:\n    cost_to_achieve: 600\n    cost_to_achieve_years: 3\n"
+    )
+    result = run_merger_command("-c", str(_config(tmp_path, body)))
+    assert result.exit_code == 0
+    row = next(line for line in result.output.splitlines() if "Cost to achieve, inside EBITDA" in line)
+    assert row.count("200") == 3

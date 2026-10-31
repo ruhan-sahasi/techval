@@ -1676,6 +1676,22 @@ comes out of goodwill. Year one's EPS does not move, since using a balance alrea
 on the books changes the tax paid and not the tax charged; later years' rises as
 the cash saved repays the facility sooner.
 
+**The cost to achieve.** Synergies are not free. `synergies.cost_to_achieve` is
+the one-time pre-tax cost of reaching them, severance, systems, facilities and
+retention, spread evenly over `cost_to_achieve_years` from year one. In the
+roll-forward it is an operating expense: it comes out of EBITDA and pre-tax
+income, is deducted for cash tax, and comes out of the sweep after the tax it
+saves. The year-one screen leaves it out, as it leaves out the deal fees, because
+the screen quotes run-rate EPS and a cost spent once would understate what the
+deal leaves behind; a note says so. The checks state it as a multiple of a year
+of run-rate synergies and the year the synergies credited have paid it back, or
+how much is still ahead of them at the horizon. A crossover from dilution to
+accretion that comes after it names its running off, and leverage is quoted on
+EBITDA before it, as a credit agreement adds back one-time integration cost. On
+the hand-computed deal, which is accretive from year one, a $1,000mm year-one
+cost turns year one dilutive and accretion returns in year two. A cost spread
+past the horizon is only partly charged, and the note gives the rest.
+
 `Financials` carries the claims a valuation needs rather than a full balance
 sheet, so book equity acquired is assembled from working capital less
 borrowings, preferred and minority interest, and it is understated in a
@@ -1705,9 +1721,10 @@ carryforwards come from the assumptions file rather than the filings, and nothin
 tests the deferred tax asset on the target's for a valuation allowance, nor the
 benefit EPS books on a pro forma loss; the sweep counts none of that benefit. The
 parts of section 382 beyond the annual cap, such as the built-in gains that raise
-it, are not modelled here either. No
-retention, integration or restructuring cost beyond the one-time fees in sources
-and uses. No change-of-control repayment of the target's
+it, are not modelled here either. The cost to achieve the synergies is one
+number spread evenly, not a schedule of severance, systems and retention, and
+nothing ties its size to the synergies it buys. No change-of-control repayment
+of the target's
 borrowings: they are assumed at close on unchanged terms, and where a covenant
 forces repayment instead, that amount has to be added to the acquisition facility
 and the whole walk rerun on the larger balance. No share buyback. No second bid.

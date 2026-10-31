@@ -347,6 +347,7 @@ class ProFormaYear:
     carryforward: float = 0.0
     change_in_working_capital: float = 0.0
     capped_carryforward: float = 0.0
+    cost_to_achieve: float = 0.0
 
 
 @dataclass
@@ -373,6 +374,7 @@ class PurchaseAccounting:
                     "Year": y.year,
                     "Revenue": y.revenue,
                     "EBITDA": y.ebitda,
+                    "Cost to achieve, inside EBITDA": y.cost_to_achieve,
                     "Intangible amortisation": y.intangible_amortisation,
                     "EBIT": y.ebit,
                     "Interest on acquisition debt": y.interest,
@@ -767,6 +769,20 @@ def _run_accretion(
             f"{synergy_pretax:,.0f}mm of run-rate pre-tax synergies are phased in at "
             f"{syn.phase_in_year_one:.0%} in year one, so "
             f"{synergy_pretax * syn.phase_in_year_one:,.0f}mm is credited here"
+        )
+    if syn.cost_to_achieve:
+        notes.append(
+            f"the {syn.cost_to_achieve:,.0f}mm cost to achieve the synergies is kept "
+            "out of this walk, as the deal fees are: it is spent once, and charging it "
+            "against run-rate earnings would understate what the deal leaves behind. "
+            + (
+                "The purchase accounting roll-forward charges it over "
+                f"{syn.cost_to_achieve_years} year"
+                f"{'s' if syn.cost_to_achieve_years > 1 else ''} as an operating expense"
+                if m.purchase_accounting.enabled
+                else "With merger.purchase_accounting on, the roll-forward charges it "
+                "year by year as an operating expense"
+            )
         )
     if m.include_intangible_amortization:
         notes.append(
@@ -1410,13 +1426,20 @@ def build_purchase_accounting(
         revenue = base_revenue * compounding - haircut
         synergy = synergy_pretax * (syn.phase_in_year_one if y == 1 else 1.0)
         amortisation = annual_amortisation if y <= pa.intangible_life_years else 0.0
+        # An operating expense under GAAP, so it comes out of EBITDA, and a
+        # deductible one, so the cash taxes below see it.
+        achieve = (
+            syn.cost_to_achieve / syn.cost_to_achieve_years
+            if y <= syn.cost_to_achieve_years
+            else 0.0
+        )
 
         # Applying the margin to revenue already net of the haircut takes the
         # margin on the destroyed revenue out of EBITDA with it. The blended
         # margin is the mild version of that charge: deferred revenue is written
         # down to cost plus a normal margin, so what the haircut actually removes
         # is close to a full-margin dollar of the target's revenue.
-        ebitda = revenue * ebitda_margin + synergy
+        ebitda = revenue * ebitda_margin + synergy - achieve
         da = revenue * da_pct
         ebit = ebitda - da - amortisation
         interest = debt * m.cost_of_new_debt
@@ -1467,6 +1490,7 @@ def build_purchase_accounting(
                 carryforward=carryforward + capped,
                 change_in_working_capital=change_in_working_capital,
                 capped_carryforward=capped,
+                cost_to_achieve=achieve,
             )
         )
 
@@ -1504,6 +1528,14 @@ def build_purchase_accounting(
         "No fade and no buyback: the only capital action modelled after close is "
         "the debt sweep."
     )
+    beyond = syn.cost_to_achieve_years - pa.projection_years
+    if syn.cost_to_achieve and beyond > 0:
+        notes.append(
+            f"The cost to achieve is spread over {syn.cost_to_achieve_years} years and "
+            f"the roll-forward runs {pa.projection_years}, so "
+            f"{syn.cost_to_achieve * beyond / syn.cost_to_achieve_years:,.0f}mm of it "
+            "falls after the horizon and is not charged here."
+        )
     if nwc_pct is None:
         notes.append(
             "Working capital does not move in the sweep, because "
@@ -1617,8 +1649,13 @@ def _purchase_accounting_checks(
             f"Dilutive in year one at {accretion_by_year[0][1]:+,.3f} per share and "
             f"crossing into accretion in year {turns} at "
             f"{accretion_by_year[turns - 1][1]:+,.3f}. The crossover is driven by the "
-            "debt sweep taking interest down and by synergies reaching their run rate, "
-            "not by the amortisation, which is flat until the asset is written off."
+            "debt sweep taking interest down and by synergies reaching their run rate"
+            + (
+                ", and by the cost to achieve them running off,"
+                if any(y.cost_to_achieve for y in years[: turns - 1])
+                else ","
+            )
+            + " not by the amortisation, which is flat until the asset is written off."
         )
     else:
         checks.append(
@@ -1629,6 +1666,35 @@ def _purchase_accounting_checks(
             f"{pa.intangible_life_years + 1}, and a crossover that far out is a "
             "synergy assumption, not a result."
         )
+
+    syn = assumptions.merger.synergies
+    if syn.cost_to_achieve:
+        run_rate = syn.pretax_cost_synergies + syn.pretax_revenue_synergies
+        # Paid back once the synergies credited cover the whole cost, not just the
+        # part spent so far, so a cost spread past the horizon is not paid back early.
+        credited = 0.0
+        paid_back = None
+        for y in years:
+            credited += run_rate * (syn.phase_in_year_one if y.year == 1 else 1.0)
+            if paid_back is None and run_rate and credited >= syn.cost_to_achieve:
+                paid_back = y.year
+        line = f"The {syn.cost_to_achieve:,.0f}mm cost to achieve "
+        if not run_rate:
+            line += "is spent with no synergies configured to pay it back."
+        else:
+            line += (
+                f"is {syn.cost_to_achieve / run_rate:.1f} times a year of run-rate "
+                f"synergies, spent over {syn.cost_to_achieve_years} year"
+                f"{'s' if syn.cost_to_achieve_years > 1 else ''}. "
+                + (
+                    f"The synergies credited have paid it back by year {paid_back}."
+                    if paid_back is not None
+                    else f"The synergies credited have not paid it back inside the "
+                    f"{len(years)} year horizon: {syn.cost_to_achieve - credited:,.0f}mm "
+                    "of it is still ahead of them."
+                )
+            )
+        checks.append(line)
 
     held: list[str] = []
     if pa.acquirer_carryforward:
@@ -1713,8 +1779,13 @@ def _purchase_accounting_checks(
     # facility or sits in the bank. The sweep decides how much interest is saved,
     # not how levered the company is.
     net_debt_horizon = net_debt_close - sum(y.cash_flow for y in years)
-    open_den = years[0].ebitda + rent
-    horizon_den = horizon.ebitda + rent
+    # The cost to achieve is added back, as a credit agreement adds back one-time
+    # integration cost: a year depressed by it is not the earnings the debt is
+    # serviced from.
+    open_den = years[0].ebitda + years[0].cost_to_achieve + rent
+    horizon_den = horizon.ebitda + horizon.cost_to_achieve + rent
+    if years[0].cost_to_achieve or horizon.cost_to_achieve:
+        label += " before the cost to achieve"
     if not quotable:
         checks.append(
             "Pro forma leverage is not shown: operating leases are counted as debt, so "
