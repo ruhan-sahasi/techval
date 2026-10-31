@@ -1089,3 +1089,23 @@ def test_the_screen_keeps_the_cost_to_achieve_out_of_run_rate_eps(hand_case):
     tgt = replace(tgt, current_assets=1000.0, current_liabilities=400.0)
     note = next(n for n in _rerun(acq, tgt, a).accretion.notes if "300mm cost to achieve" in n)
     assert "charges it over 2 years as an operating expense" in note
+
+
+def test_the_checks_say_when_the_synergies_pay_back_their_cost(pa_case):
+    """150mm a year of synergies against a cost, both pre-tax and deducted alike."""
+    r, a, acq, tgt = pa_case
+    assert not any("cost to achieve" in c for c in r.purchase_accounting.checks)
+    syn = a.merger.synergies
+
+    syn.cost_to_achieve, syn.cost_to_achieve_years = 225.0, 1
+    line = next(c for c in _rerun(acq, tgt, a).purchase_accounting.checks if "cost to achieve" in c)
+    assert "is 1.5 times a year of run-rate synergies, spent over 1 year." in line
+    assert "paid it back by year 2" in line
+
+    syn.cost_to_achieve, syn.cost_to_achieve_years = 600.0, 3
+    line = next(c for c in _rerun(acq, tgt, a).purchase_accounting.checks if "cost to achieve" in c)
+    assert "have not paid it back inside the 3 year horizon: 150mm of it" in line
+
+    syn.pretax_cost_synergies = 0.0
+    line = next(c for c in _rerun(acq, tgt, a).purchase_accounting.checks if "cost to achieve" in c)
+    assert "spent with no synergies configured to pay it back" in line
