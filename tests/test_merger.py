@@ -1110,6 +1110,11 @@ def test_the_checks_say_when_the_synergies_pay_back_their_cost(pa_case):
     line = payback(_rerun(acq, tgt, a).purchase_accounting)
     assert "have not paid it back inside the 3 year horizon: 150mm of it" in line
 
+    # Spread past the horizon, it is not paid back until the whole of it is.
+    syn.cost_to_achieve, syn.cost_to_achieve_years = 500.0, 5
+    line = payback(_rerun(acq, tgt, a).purchase_accounting)
+    assert "have not paid it back inside the 3 year horizon: 50mm of it" in line
+
     syn.pretax_cost_synergies = 0.0
     line = payback(_rerun(acq, tgt, a).purchase_accounting)
     assert "spent with no synergies configured to pay it back" in line
