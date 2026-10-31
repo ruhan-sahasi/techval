@@ -1072,3 +1072,5 @@ def test_the_cost_to_achieve_is_an_operating_charge_spread_from_year_one(pa_case
     assert first.cash_taxes == pytest.approx(base.cash_taxes - 150.0 * rate)
     assert first.cash_flow == pytest.approx(base.cash_flow - 150.0 * (1 - rate))
     assert years[2].ebitda == pytest.approx(before[2].ebitda)
+    frame = _rerun(acq, tgt, a).purchase_accounting.to_frame()
+    assert frame["Cost to achieve, inside EBITDA"].tolist() == [150.0, 150.0, 0.0]

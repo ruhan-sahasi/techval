@@ -378,6 +378,10 @@ def _render_purchase_accounting(pa) -> None:
         t.add_column(f"Year {y.year}", justify="right")
     rows = [
         ("Revenue", "revenue", 0), ("EBITDA", "ebitda", 0),
+    ]
+    if any(y.cost_to_achieve for y in pa.years):
+        rows.append(("Cost to achieve, inside EBITDA", "cost_to_achieve", 0))
+    rows += [
         ("Intangible amortisation", "intangible_amortisation", 0),
         ("EBIT", "ebit", 0), ("Interest", "interest", 0),
         ("Taxes", "taxes", 0), ("Net income", "net_income", 0),
