@@ -1670,12 +1670,13 @@ def _purchase_accounting_checks(
     syn = assumptions.merger.synergies
     if syn.cost_to_achieve:
         run_rate = syn.pretax_cost_synergies + syn.pretax_revenue_synergies
-        credited = spent = 0.0
+        # Paid back once the synergies credited cover the whole cost, not just the
+        # part spent so far, so a cost spread past the horizon is not paid back early.
+        credited = 0.0
         paid_back = None
         for y in years:
             credited += run_rate * (syn.phase_in_year_one if y.year == 1 else 1.0)
-            spent += y.cost_to_achieve
-            if paid_back is None and run_rate and credited >= spent:
+            if paid_back is None and run_rate and credited >= syn.cost_to_achieve:
                 paid_back = y.year
         line = f"The {syn.cost_to_achieve:,.0f}mm cost to achieve "
         if not run_rate:
@@ -1689,8 +1690,8 @@ def _purchase_accounting_checks(
                     f"The synergies credited have paid it back by year {paid_back}."
                     if paid_back is not None
                     else f"The synergies credited have not paid it back inside the "
-                    f"{len(years)} year horizon: {spent - credited:,.0f}mm of it is "
-                    "still ahead of them."
+                    f"{len(years)} year horizon: {syn.cost_to_achieve - credited:,.0f}mm "
+                    "of it is still ahead of them."
                 )
             )
         checks.append(line)
