@@ -1721,9 +1721,10 @@ carryforwards come from the assumptions file rather than the filings, and nothin
 tests the deferred tax asset on the target's for a valuation allowance, nor the
 benefit EPS books on a pro forma loss; the sweep counts none of that benefit. The
 parts of section 382 beyond the annual cap, such as the built-in gains that raise
-it, are not modelled here either. No
-retention, integration or restructuring cost beyond the one-time fees in sources
-and uses. No change-of-control repayment of the target's
+it, are not modelled here either. The cost to achieve the synergies is one
+number spread evenly, not a schedule of severance, systems and retention, and
+nothing ties its size to the synergies it buys. No change-of-control repayment
+of the target's
 borrowings: they are assumed at close on unchanged terms, and where a covenant
 forces repayment instead, that amount has to be added to the acquisition facility
 and the whole walk rerun on the larger balance. No share buyback. No second bid.
