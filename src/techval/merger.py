@@ -374,6 +374,7 @@ class PurchaseAccounting:
                     "Year": y.year,
                     "Revenue": y.revenue,
                     "EBITDA": y.ebitda,
+                    "Cost to achieve, inside EBITDA": y.cost_to_achieve,
                     "Intangible amortisation": y.intangible_amortisation,
                     "EBIT": y.ebit,
                     "Interest on acquisition debt": y.interest,
