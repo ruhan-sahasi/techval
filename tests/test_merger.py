@@ -1138,3 +1138,18 @@ def test_a_crossover_after_the_cost_to_achieve_names_it(pa_case):
     assert pa.accretion_by_year[0][1] < 0 < pa.accretion_by_year[1][1]
     line = next(c for c in pa.checks if "crossing into accretion in year 2" in c)
     assert "and by the cost to achieve them running off, not by the amortisation" in line
+
+
+def test_leverage_is_quoted_on_ebitda_before_the_cost_to_achieve(pa_case):
+    """A year depressed by a one-time charge is not what the debt is serviced from."""
+    r, a, acq, tgt = pa_case
+    a.merger.synergies.cost_to_achieve = 900.0
+    a.merger.synergies.cost_to_achieve_years = 3
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    leverage = next(c for c in pa.checks if "Pro forma net" in c)
+    first, horizon = pa.years[0], pa.years[-1]
+    assert f"at close is {-1375.0 / (first.ebitda + 300.0):,.1f}x EBITDA before the cost to achieve" in leverage
+    assert f"{-(1375.0 + sum(y.cash_flow for y in pa.years)) / (horizon.ebitda + 300.0):,.1f}x by year 3" in leverage
+    assert "before the cost to achieve" not in next(
+        c for c in r.purchase_accounting.checks if "Pro forma net" in c
+    )
