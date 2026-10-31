@@ -1074,3 +1074,18 @@ def test_the_cost_to_achieve_is_an_operating_charge_spread_from_year_one(pa_case
     assert years[2].ebitda == pytest.approx(before[2].ebitda)
     frame = _rerun(acq, tgt, a).purchase_accounting.to_frame()
     assert frame["Cost to achieve, inside EBITDA"].tolist() == [150.0, 150.0, 0.0]
+
+
+def test_the_screen_keeps_the_cost_to_achieve_out_of_run_rate_eps(hand_case):
+    """A one-time cost, like the deal fees, so the headline walk does not move."""
+    r, a, acq, tgt = hand_case
+    a.merger.synergies.cost_to_achieve = 300.0
+    screened = _rerun(acq, tgt, a).accretion
+    assert screened.pro_forma_eps == pytest.approx(r.accretion.pro_forma_eps)
+    note = next(n for n in screened.notes if "300mm cost to achieve" in n)
+    assert "kept out of this walk" in note and "With merger.purchase_accounting on" in note
+
+    a.merger.purchase_accounting.enabled = True
+    tgt = replace(tgt, current_assets=1000.0, current_liabilities=400.0)
+    note = next(n for n in _rerun(acq, tgt, a).accretion.notes if "300mm cost to achieve" in n)
+    assert "charges it over 2 years as an operating expense" in note

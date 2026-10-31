@@ -770,6 +770,20 @@ def _run_accretion(
             f"{syn.phase_in_year_one:.0%} in year one, so "
             f"{synergy_pretax * syn.phase_in_year_one:,.0f}mm is credited here"
         )
+    if syn.cost_to_achieve:
+        notes.append(
+            f"the {syn.cost_to_achieve:,.0f}mm cost to achieve the synergies is kept "
+            "out of this walk, as the deal fees are: it is spent once, and charging it "
+            "against run-rate earnings would understate what the deal leaves behind. "
+            + (
+                "The purchase accounting roll-forward charges it over "
+                f"{syn.cost_to_achieve_years} year"
+                f"{'s' if syn.cost_to_achieve_years > 1 else ''} as an operating expense"
+                if m.purchase_accounting.enabled
+                else "With merger.purchase_accounting on, the roll-forward charges it "
+                "year by year as an operating expense"
+            )
+        )
     if m.include_intangible_amortization:
         notes.append(
             f"intangible step-up of {m.intangible_step_up:,.0f}mm is amortised over "
