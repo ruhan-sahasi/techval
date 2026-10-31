@@ -1264,9 +1264,13 @@ pays tax as though it were never charged. A pro forma loss pays no tax and is
 carried forward against later years, and the benefit EPS books on it is not
 cash, which the checks say. Either company's own carryforward can be carried in
 too: the acquirer's uncapped, the target's under the section 382 cap the price
-paid sets, and booked at close as a deferred tax asset that takes goodwill down. Working capital moves at the two balance sheets'
-combined share of revenue. Acquired deferred revenue is written down to fair
-value, which permanently destroys revenue the target would have recognised.
+paid sets, and booked at close as a deferred tax asset that takes goodwill
+down. Working capital moves at the two balance sheets' combined share of
+revenue. A cost to achieve the synergies is charged as an operating expense
+over its years, kept out of the run-rate screen like the deal fees, and the
+checks say when the synergies pay it back. Acquired deferred revenue is written
+down to fair value, which permanently destroys revenue the target would have
+recognised.
 
 ### Software is two sub-verticals and telecom is two, and both are arguable
 
