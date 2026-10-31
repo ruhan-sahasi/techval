@@ -1095,19 +1095,23 @@ def test_the_checks_say_when_the_synergies_pay_back_their_cost(pa_case):
     """150mm a year of synergies against a cost, both pre-tax and deducted alike."""
     r, a, acq, tgt = pa_case
     assert not any("cost to achieve" in c for c in r.purchase_accounting.checks)
+
+    def payback(pa):
+        return next(c for c in pa.checks if c.startswith(f"The {syn.cost_to_achieve:,.0f}mm cost"))
+
     syn = a.merger.synergies
 
     syn.cost_to_achieve, syn.cost_to_achieve_years = 225.0, 1
-    line = next(c for c in _rerun(acq, tgt, a).purchase_accounting.checks if "cost to achieve" in c)
+    line = payback(_rerun(acq, tgt, a).purchase_accounting)
     assert "is 1.5 times a year of run-rate synergies, spent over 1 year." in line
     assert "paid it back by year 2" in line
 
     syn.cost_to_achieve, syn.cost_to_achieve_years = 600.0, 3
-    line = next(c for c in _rerun(acq, tgt, a).purchase_accounting.checks if "cost to achieve" in c)
+    line = payback(_rerun(acq, tgt, a).purchase_accounting)
     assert "have not paid it back inside the 3 year horizon: 150mm of it" in line
 
     syn.pretax_cost_synergies = 0.0
-    line = next(c for c in _rerun(acq, tgt, a).purchase_accounting.checks if "cost to achieve" in c)
+    line = payback(_rerun(acq, tgt, a).purchase_accounting)
     assert "spent with no synergies configured to pay it back" in line
 
 
@@ -1122,3 +1126,15 @@ def test_a_cost_spread_past_the_horizon_says_how_much_is_not_charged(pa_case):
     a.merger.synergies.cost_to_achieve_years = 3
     pa = _rerun(acq, tgt, a).purchase_accounting
     assert not any("falls after the horizon" in n for n in pa.notes)
+
+
+def test_a_crossover_after_the_cost_to_achieve_names_it(pa_case):
+    """Accretive from year one on these figures, until a year-one cost turns it dilutive."""
+    r, a, acq, tgt = pa_case
+    assert r.purchase_accounting.accretion_by_year[0][1] > 0
+    a.merger.synergies.cost_to_achieve = 1_000.0
+    a.merger.synergies.cost_to_achieve_years = 1
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    assert pa.accretion_by_year[0][1] < 0 < pa.accretion_by_year[1][1]
+    line = next(c for c in pa.checks if "crossing into accretion in year 2" in c)
+    assert "and by the cost to achieve them running off, not by the amortisation" in line
