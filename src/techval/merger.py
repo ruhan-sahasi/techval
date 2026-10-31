@@ -347,6 +347,7 @@ class ProFormaYear:
     carryforward: float = 0.0
     change_in_working_capital: float = 0.0
     capped_carryforward: float = 0.0
+    cost_to_achieve: float = 0.0
 
 
 @dataclass
@@ -1410,13 +1411,20 @@ def build_purchase_accounting(
         revenue = base_revenue * compounding - haircut
         synergy = synergy_pretax * (syn.phase_in_year_one if y == 1 else 1.0)
         amortisation = annual_amortisation if y <= pa.intangible_life_years else 0.0
+        # An operating expense under GAAP, so it comes out of EBITDA, and a
+        # deductible one, so the cash taxes below see it.
+        achieve = (
+            syn.cost_to_achieve / syn.cost_to_achieve_years
+            if y <= syn.cost_to_achieve_years
+            else 0.0
+        )
 
         # Applying the margin to revenue already net of the haircut takes the
         # margin on the destroyed revenue out of EBITDA with it. The blended
         # margin is the mild version of that charge: deferred revenue is written
         # down to cost plus a normal margin, so what the haircut actually removes
         # is close to a full-margin dollar of the target's revenue.
-        ebitda = revenue * ebitda_margin + synergy
+        ebitda = revenue * ebitda_margin + synergy - achieve
         da = revenue * da_pct
         ebit = ebitda - da - amortisation
         interest = debt * m.cost_of_new_debt
@@ -1467,6 +1475,7 @@ def build_purchase_accounting(
                 carryforward=carryforward + capped,
                 change_in_working_capital=change_in_working_capital,
                 capped_carryforward=capped,
+                cost_to_achieve=achieve,
             )
         )
 

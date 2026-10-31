@@ -204,6 +204,11 @@ merger:
     pretax_cost_synergies: 400.0
     pretax_revenue_synergies: 0.0
     phase_in_year_one: 0.60
+    # One-time pre-tax cost of reaching them, USD millions in total, spread
+    # evenly from year one. The purchase accounting roll-forward charges it as an
+    # operating expense; the year-one screen quotes run-rate EPS and leaves it out.
+    cost_to_achieve: 0.0
+    cost_to_achieve_years: 2
 
   # The opening balance sheet a merger model builds. Off, the module stays the
   # year-one screen it is documented as. On, it books goodwill, writes up

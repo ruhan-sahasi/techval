@@ -1048,3 +1048,27 @@ def test_a_loss_year_carries_its_unused_cap_and_a_zero_cap_releases_nothing(hand
     assert "a zero cap never releases it" in line
     assert "no deferred tax asset is booked for it" in line
     assert zero.opening.deferred_tax_asset == 0.0
+
+
+def test_the_cost_to_achieve_is_an_operating_charge_spread_from_year_one(pa_case):
+    """Charged to EBITDA, deducted for tax, paid in cash, and gone after its years.
+
+    300mm over two years is 150mm a year in years one and two. It comes off
+    EBITDA and pre-tax income one for one, off net income after tax, and off the
+    sweep's cash flow after the tax it saves; year three is untouched.
+    """
+    r, a, acq, tgt = pa_case
+    a.merger.synergies.cost_to_achieve = 300.0
+    a.merger.synergies.cost_to_achieve_years = 2
+    years = _rerun(acq, tgt, a).purchase_accounting.years
+    before = r.purchase_accounting.years
+    rate = a.tax.marginal_tax_rate
+
+    assert [y.cost_to_achieve for y in years] == [150.0, 150.0, 0.0]
+    first, base = years[0], before[0]
+    assert first.ebitda == pytest.approx(base.ebitda - 150.0)
+    assert first.pretax_income == pytest.approx(base.pretax_income - 150.0)
+    assert first.net_income == pytest.approx(base.net_income - 150.0 * (1 - rate))
+    assert first.cash_taxes == pytest.approx(base.cash_taxes - 150.0 * rate)
+    assert first.cash_flow == pytest.approx(base.cash_flow - 150.0 * (1 - rate))
+    assert years[2].ebitda == pytest.approx(before[2].ebitda)
