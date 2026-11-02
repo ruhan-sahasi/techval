@@ -1509,6 +1509,7 @@ pro forma NI = acquirer NI
              - after-tax interest foregone on balance sheet cash used
              - after-tax financing fee amortisation
              - after-tax intangible amortisation   (off by default)
+             + after-tax target interest no longer paid   (when refinanced)
 
 pro forma shares = acquirer diluted shares + shares issued as consideration
 ```
@@ -1519,6 +1520,18 @@ capitalises, and including it would make every large deal look dilutive in year
 one for a reason unrelated to whether the businesses fit. Financing fees go the
 other way: they are capitalised and amortised over the life of the facility, so
 their annual charge does belong in the walk.
+
+**The target's borrowings stay in place unless a change of control forces them
+out.** By default they are assumed at close on unchanged terms and their interest
+stays inside the target's net income. `merger.refinance_target_debt` repays them
+instead: the borrowings the EV bridge counts as debt, leases aside, are funded
+like the cash consideration, so the facility and its interest grow, and the
+target's after-tax interest on them is added back, pro rata from its filed
+interest expense. An expense filed with a minus sign, as Disney's is, is read by
+its size; a target that files only net interest is refused, since that figure is
+its coupon less what its cash earns. The checks price the move from the target's
+rate to the facility's, and leverage counts the repaid debt once, in the
+facility, rather than again in the target's net debt.
 
 **Percentage accretion is withheld when the base will not support it.** The
 convention is to quote accretion as a percentage of standalone EPS, and that
