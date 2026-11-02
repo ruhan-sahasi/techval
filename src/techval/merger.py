@@ -708,10 +708,24 @@ def _interest_stopped(tgt_fin: Financials, cons: Consideration) -> float:
     """Pre-tax interest the target no longer pays on the borrowings repaid at close.
 
     Its filed interest expense, pro rata to the share of its borrowings repaid, so
-    the coupon on anything left outstanding stays where it was.
+    the coupon on anything left outstanding stays where it was. An expense concept
+    is read by its size, since Disney, for one, files InterestExpense with a minus
+    sign. A net interest figure is refused: it is the coupon less what the cash
+    earns, and its sign does not say which way it ran.
     """
     if not cons.target_debt_repaid:
         return 0.0
+    source = tgt_fin.provenance.get("interest expense")
+    if source is not None and source.tag == "InterestIncomeExpenseNet":
+        raise MissingDataError(
+            "target interest expense",
+            ticker=tgt_fin.ticker,
+            hint=(
+                "the target files only net interest, InterestIncomeExpenseNet, which is "
+                "its coupon less what its cash earns, so the interest that stops when "
+                "its borrowings are repaid cannot be read from it"
+            ),
+        )
     if tgt_fin.interest_expense is None:
         raise MissingDataError(
             "target interest expense",
@@ -724,7 +738,7 @@ def _interest_stopped(tgt_fin: Financials, cons: Consideration) -> float:
         )
     borrowings = tgt_fin.total_debt_ex_leases
     share = min(cons.target_debt_repaid / borrowings, 1.0) if borrowings > 0 else 0.0
-    return tgt_fin.interest_expense * share
+    return abs(tgt_fin.interest_expense) * share
 
 
 def _run_accretion(

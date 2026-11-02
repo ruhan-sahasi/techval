@@ -1217,3 +1217,22 @@ def test_refinancing_moves_the_interest_in_the_roll_forward_and_counts_the_debt_
     notes = refinanced.purchase_accounting.notes
     assert any(n.startswith("500mm of target borrowings are repaid at close") for n in notes)
     assert any("merger.refinance_target_debt repays them" in n for n in plain.purchase_accounting.notes)
+
+
+def test_the_targets_interest_is_read_by_its_size_and_a_net_figure_refused(hand_case):
+    """Disney files InterestExpense with a minus sign; net interest is not a coupon."""
+    from techval.edgar import Provenance
+
+    r, a, acq, tgt = hand_case
+    a.merger.refinance_target_debt = True
+    rate = a.tax.marginal_tax_rate
+    signed = replace(tgt, straight_debt=500.0, interest_expense=-25.0)
+    components = dict(_rerun(acq, signed, a).accretion.components)
+    assert components["+ After-tax TGT interest no longer paid"] == pytest.approx(25.0 * (1 - rate))
+
+    net = replace(
+        signed,
+        provenance={"interest expense": Provenance("interest expense", "InterestIncomeExpenseNet", "ttm")},
+    )
+    with pytest.raises(MissingDataError, match="target interest expense"):
+        _rerun(acq, net, a)
