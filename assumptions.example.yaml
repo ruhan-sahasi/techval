@@ -189,6 +189,10 @@ merger:
   cost_of_new_debt: 0.055
   foregone_cash_yield: 0.040
   balance_sheet_cash_used: 2000.0
+  # Off, the target's borrowings stay in place on unchanged terms. On, a change
+  # of control clause forces their repayment at close: they are funded like the
+  # cash consideration and the target's interest on them stops. Leases stay.
+  refinance_target_debt: false
 
   deal_fees: 250.0          # one-time, excluded from run-rate EPS
   financing_fees: 90.0
