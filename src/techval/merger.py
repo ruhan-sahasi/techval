@@ -171,6 +171,11 @@ class Consideration:
             ("Premium to unaffected price", self.premium),
             ("Equity purchase price", self.equity_purchase_price),
             ("+ Target net debt assumed", self.target_net_debt),
+        ] + (
+            [("  of which borrowings repaid at close", self.target_debt_repaid)]
+            if self.target_debt_repaid
+            else []
+        ) + [
             ("Enterprise purchase price", self.enterprise_purchase_price),
             ("Cash consideration", self.cash_consideration),
             ("Stock consideration", self.stock_consideration),

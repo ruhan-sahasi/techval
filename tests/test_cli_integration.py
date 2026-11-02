@@ -866,3 +866,22 @@ def test_the_merger_command_prints_the_cost_to_achieve(tmp_path):
     assert result.exit_code == 0
     row = next(line for line in result.output.splitlines() if "Cost to achieve, inside EBITDA" in line)
     assert row.count("200") == 3
+
+
+def test_the_merger_command_repays_the_targets_borrowings_when_told_to(tmp_path):
+    """Disney carries 46bn of borrowings, so a forced repayment is visible end to end."""
+    body = MERGER_BODY.replace("merger:\n", "merger:\n  refinance_target_debt: true\n")
+    result = runner.invoke(
+        C.app, ["merger", "DDOG", "DIS", "--as-of", AS_OF, "-c", str(_config(tmp_path, body))]
+    )
+    if result.exception is not None and not isinstance(result.exception, SystemExit):
+        raise result.exception
+    assert result.exit_code == 0
+    flat = " ".join(result.output.split())
+    for text in (
+        "of which borrowings repaid at close",
+        "Repayment of target borrowings",
+        "DIS interest no longer paid",
+        "of target borrowings are repaid at close",
+    ):
+        assert text in flat, text
