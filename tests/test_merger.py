@@ -1248,3 +1248,13 @@ def test_the_checks_price_the_move_to_the_facilitys_rate(hand_case):
     cheap = _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=40.0), a)
     line = next(c for c in cheap.checks if c.startswith("Refinancing 500mm of TGT"))
     assert "from the 8.00% they cost the target" in line and "10mm a year less" in line
+
+
+def test_refinancing_a_target_with_no_borrowings_says_nothing_was_repaid(hand_case):
+    r, a, acq, tgt = hand_case
+    assert tgt.straight_debt == 0.0
+    a.merger.refinance_target_debt = True
+    result = _rerun(acq, tgt, a)
+    assert result.consideration.target_debt_repaid == 0.0
+    assert result.consideration.new_debt == r.consideration.new_debt
+    assert any("has no borrowings the EV bridge counts as debt" in n for n in result.notes)

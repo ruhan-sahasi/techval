@@ -571,6 +571,11 @@ def build_consideration(
         if m.refinance_target_debt
         else 0.0
     )
+    if m.refinance_target_debt and not repaid:
+        notes.append(
+            f"merger.refinance_target_debt is on, but {tgt_fin.ticker} has no borrowings "
+            "the EV bridge counts as debt, so nothing is repaid at close"
+        )
 
     # Fees and any repayment are funded like the cash portion. Balance sheet cash
     # goes first, new debt takes the remainder, which is what "cash and new debt"
