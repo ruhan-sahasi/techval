@@ -1236,3 +1236,15 @@ def test_the_targets_interest_is_read_by_its_size_and_a_net_figure_refused(hand_
     )
     with pytest.raises(MissingDataError, match="target interest expense"):
         _rerun(acq, net, a)
+
+
+def test_the_checks_price_the_move_to_the_facilitys_rate(hand_case):
+    _, a, acq, tgt = hand_case
+    a.merger.refinance_target_debt = True
+    result = _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=25.0), a)
+    line = next(c for c in result.checks if c.startswith("Refinancing 500mm of TGT"))
+    assert "from the 5.00% they cost the target to the facility's 6.00%, 5mm a year more" in line
+
+    cheap = _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=40.0), a)
+    line = next(c for c in cheap.checks if c.startswith("Refinancing 500mm of TGT"))
+    assert "from the 8.00% they cost the target" in line and "10mm a year less" in line

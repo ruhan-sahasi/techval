@@ -1120,8 +1120,29 @@ def _rule_of_thumb_checks(
                 if predicted == (accretion_dollars > 0)
                 else "disagrees. The difference is what the rule of thumb leaves "
                 "out: after-tax synergies, financing fee amortisation and the yield "
-                "given up on cash spent."
+                "given up on cash spent"
+                + (
+                    ", and the rate on the target's refinanced borrowings."
+                    if cons.target_debt_repaid
+                    else "."
+                )
             )
+        )
+
+    if cons.target_debt_repaid:
+        own = _interest_stopped(tgt_fin, cons) / cons.target_debt_repaid
+        spread = (m.cost_of_new_debt - own) * cons.target_debt_repaid
+        checks.append(
+            f"Refinancing {cons.target_debt_repaid:,.0f}mm of {tgt_fin.ticker} "
+            f"borrowings moves them from the {own:.2%} they cost the target to the "
+            f"facility's {m.cost_of_new_debt:.2%}, "
+            + (
+                f"{spread:,.0f}mm a year more before tax"
+                if spread >= 0
+                else f"{-spread:,.0f}mm a year less before tax"
+            )
+            + ". Where a change of control clause forces the repayment that is a "
+            "cost of the deal; where the debt could have stayed, it is a choice."
         )
 
     return checks
