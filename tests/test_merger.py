@@ -1048,3 +1048,113 @@ def test_a_loss_year_carries_its_unused_cap_and_a_zero_cap_releases_nothing(hand
     assert "a zero cap never releases it" in line
     assert "no deferred tax asset is booked for it" in line
     assert zero.opening.deferred_tax_asset == 0.0
+
+
+def test_the_cost_to_achieve_is_an_operating_charge_spread_from_year_one(pa_case):
+    """Charged to EBITDA, deducted for tax, paid in cash, and gone after its years.
+
+    300mm over two years is 150mm a year in years one and two. It comes off
+    EBITDA and pre-tax income one for one, off net income after tax, and off the
+    sweep's cash flow after the tax it saves; year three is untouched.
+    """
+    r, a, acq, tgt = pa_case
+    a.merger.synergies.cost_to_achieve = 300.0
+    a.merger.synergies.cost_to_achieve_years = 2
+    years = _rerun(acq, tgt, a).purchase_accounting.years
+    before = r.purchase_accounting.years
+    rate = a.tax.marginal_tax_rate
+
+    assert [y.cost_to_achieve for y in years] == [150.0, 150.0, 0.0]
+    first, base = years[0], before[0]
+    assert first.ebitda == pytest.approx(base.ebitda - 150.0)
+    assert first.pretax_income == pytest.approx(base.pretax_income - 150.0)
+    assert first.net_income == pytest.approx(base.net_income - 150.0 * (1 - rate))
+    assert first.cash_taxes == pytest.approx(base.cash_taxes - 150.0 * rate)
+    assert first.cash_flow == pytest.approx(base.cash_flow - 150.0 * (1 - rate))
+    assert years[2].ebitda == pytest.approx(before[2].ebitda)
+    frame = _rerun(acq, tgt, a).purchase_accounting.to_frame()
+    assert frame["Cost to achieve, inside EBITDA"].tolist() == [150.0, 150.0, 0.0]
+
+
+def test_the_screen_keeps_the_cost_to_achieve_out_of_run_rate_eps(hand_case):
+    """A one-time cost, like the deal fees, so the headline walk does not move."""
+    r, a, acq, tgt = hand_case
+    a.merger.synergies.cost_to_achieve = 300.0
+    screened = _rerun(acq, tgt, a).accretion
+    assert screened.pro_forma_eps == pytest.approx(r.accretion.pro_forma_eps)
+    note = next(n for n in screened.notes if "300mm cost to achieve" in n)
+    assert "kept out of this walk" in note and "With merger.purchase_accounting on" in note
+
+    a.merger.purchase_accounting.enabled = True
+    tgt = replace(tgt, current_assets=1000.0, current_liabilities=400.0)
+    note = next(n for n in _rerun(acq, tgt, a).accretion.notes if "300mm cost to achieve" in n)
+    assert "charges it over 2 years as an operating expense" in note
+
+
+def test_the_checks_say_when_the_synergies_pay_back_their_cost(pa_case):
+    """150mm a year of synergies against a cost, both pre-tax and deducted alike."""
+    r, a, acq, tgt = pa_case
+    assert not any("cost to achieve" in c for c in r.purchase_accounting.checks)
+
+    def payback(pa):
+        return next(c for c in pa.checks if c.startswith(f"The {syn.cost_to_achieve:,.0f}mm cost"))
+
+    syn = a.merger.synergies
+
+    syn.cost_to_achieve, syn.cost_to_achieve_years = 225.0, 1
+    line = payback(_rerun(acq, tgt, a).purchase_accounting)
+    assert "is 1.5 times a year of run-rate synergies, spent over 1 year." in line
+    assert "paid it back by year 2" in line
+
+    syn.cost_to_achieve, syn.cost_to_achieve_years = 600.0, 3
+    line = payback(_rerun(acq, tgt, a).purchase_accounting)
+    assert "have not paid it back inside the 3 year horizon: 150mm of it" in line
+
+    # Spread past the horizon, it is not paid back until the whole of it is.
+    syn.cost_to_achieve, syn.cost_to_achieve_years = 500.0, 5
+    line = payback(_rerun(acq, tgt, a).purchase_accounting)
+    assert "have not paid it back inside the 3 year horizon: 50mm of it" in line
+
+    syn.pretax_cost_synergies = 0.0
+    line = payback(_rerun(acq, tgt, a).purchase_accounting)
+    assert "spent with no synergies configured to pay it back" in line
+
+
+def test_a_cost_spread_past_the_horizon_says_how_much_is_not_charged(pa_case):
+    _, a, acq, tgt = pa_case
+    a.merger.synergies.cost_to_achieve = 500.0
+    a.merger.synergies.cost_to_achieve_years = 5
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    assert sum(y.cost_to_achieve for y in pa.years) == pytest.approx(300.0)
+    assert any("200mm of it falls after the horizon" in n for n in pa.notes)
+
+    a.merger.synergies.cost_to_achieve_years = 3
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    assert not any("falls after the horizon" in n for n in pa.notes)
+
+
+def test_a_crossover_after_the_cost_to_achieve_names_it(pa_case):
+    """Accretive from year one on these figures, until a year-one cost turns it dilutive."""
+    r, a, acq, tgt = pa_case
+    assert r.purchase_accounting.accretion_by_year[0][1] > 0
+    a.merger.synergies.cost_to_achieve = 1_000.0
+    a.merger.synergies.cost_to_achieve_years = 1
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    assert pa.accretion_by_year[0][1] < 0 < pa.accretion_by_year[1][1]
+    line = next(c for c in pa.checks if "crossing into accretion in year 2" in c)
+    assert "and by the cost to achieve them running off, not by the amortisation" in line
+
+
+def test_leverage_is_quoted_on_ebitda_before_the_cost_to_achieve(pa_case):
+    """A year depressed by a one-time charge is not what the debt is serviced from."""
+    r, a, acq, tgt = pa_case
+    a.merger.synergies.cost_to_achieve = 900.0
+    a.merger.synergies.cost_to_achieve_years = 3
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    leverage = next(c for c in pa.checks if "Pro forma net" in c)
+    first, horizon = pa.years[0], pa.years[-1]
+    assert f"at close is {-1375.0 / (first.ebitda + 300.0):,.1f}x EBITDA before the cost to achieve" in leverage
+    assert f"{-(1375.0 + sum(y.cash_flow for y in pa.years)) / (horizon.ebitda + 300.0):,.1f}x by year 3" in leverage
+    assert "before the cost to achieve" not in next(
+        c for c in r.purchase_accounting.checks if "Pro forma net" in c
+    )
