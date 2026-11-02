@@ -158,6 +158,8 @@ class Consideration:
     cash_used: float
     pct_cash: float
     pct_stock: float
+    # Repaid at close under merger.refinance_target_debt, and funded with the cash.
+    target_debt_repaid: float = 0.0
 
     @property
     def target_net_debt(self) -> float:
@@ -556,10 +558,19 @@ def build_consideration(
     exchange_ratio = offer_price / acq_price
     new_shares_issued = stock_consideration / acq_price
 
-    # Fees are funded like the cash portion. Balance sheet cash goes first, new
-    # debt takes the remainder, which is what "cash and new debt" means in a
-    # press release.
-    cash_need = cash_consideration + m.deal_fees + m.financing_fees
+    # Borrowings a change of control clause forces out are repaid at close: the
+    # ones the bridge counts as debt. Leases stay, and a convertible the bridge
+    # has turned into shares is already in the price.
+    repaid = (
+        tgt_bridge.straight_debt + tgt_bridge.convertible_in_debt
+        if m.refinance_target_debt
+        else 0.0
+    )
+
+    # Fees and any repayment are funded like the cash portion. Balance sheet cash
+    # goes first, new debt takes the remainder, which is what "cash and new debt"
+    # means in a press release.
+    cash_need = cash_consideration + m.deal_fees + m.financing_fees + repaid
     available = acq_fin.cash + acq_fin.short_term_investments
     if m.balance_sheet_cash_used > available:
         raise ConfigError(
@@ -590,6 +601,7 @@ def build_consideration(
         cash_used=cash_used,
         pct_cash=pct_cash,
         pct_stock=pct_stock,
+        target_debt_repaid=repaid,
     )
 
 
@@ -602,7 +614,11 @@ def _sources_and_uses(
         ("Use", "Purchase of target equity", cons.equity_purchase_price),
         ("Use", "Advisory and other deal fees", m.deal_fees),
         ("Use", "Financing fees", m.financing_fees),
-    ]
+    ] + (
+        [("Use", "Repayment of target borrowings", cons.target_debt_repaid)]
+        if cons.target_debt_repaid
+        else []
+    )
     sources = [
         ("Source", "New debt", cons.new_debt),
         ("Source", "Balance sheet cash", cons.cash_used),
@@ -688,6 +704,29 @@ def _accretion_percent(accretion_dollars: float, standalone_eps: float) -> float
     return accretion_dollars / standalone_eps
 
 
+def _interest_stopped(tgt_fin: Financials, cons: Consideration) -> float:
+    """Pre-tax interest the target no longer pays on the borrowings repaid at close.
+
+    Its filed interest expense, pro rata to the share of its borrowings repaid, so
+    the coupon on anything left outstanding stays where it was.
+    """
+    if not cons.target_debt_repaid:
+        return 0.0
+    if tgt_fin.interest_expense is None:
+        raise MissingDataError(
+            "target interest expense",
+            ticker=tgt_fin.ticker,
+            hint=(
+                "repaying the target's borrowings at close stops its interest on them, "
+                "and without its interest expense that saving cannot be formed. "
+                "Charging the new debt without it would count the borrowing twice"
+            ),
+        )
+    borrowings = tgt_fin.total_debt_ex_leases
+    share = min(cons.target_debt_repaid / borrowings, 1.0) if borrowings > 0 else 0.0
+    return tgt_fin.interest_expense * share
+
+
 def _run_accretion(
     acq_fin: Financials,
     tgt_fin: Financials,
@@ -732,6 +771,7 @@ def _run_accretion(
         if m.include_intangible_amortization
         else 0.0
     )
+    interest_stopped = _interest_stopped(tgt_fin, cons) * after_tax
 
     components: list[tuple[str, float]] = [
         (f"{acq_fin.ticker} net income (standalone)", acq_fin.net_income),
@@ -742,6 +782,12 @@ def _run_accretion(
         ("- After-tax financing fee amortisation", _charge(financing_amort)),
         ("- After-tax intangible amortisation", _charge(intangible_amort)),
     ]
+    if cons.target_debt_repaid:
+        # The new debt above already carries the repayment; this is the interest
+        # the target's own net income was paying on it.
+        components.append(
+            (f"+ After-tax {tgt_fin.ticker} interest no longer paid", interest_stopped)
+        )
     pro_forma_net_income = sum(v for _, v in components)
     pro_forma_shares = acq_fin.diluted_shares + cons.new_shares_issued
 

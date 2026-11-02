@@ -616,6 +616,16 @@ class MergerAssumptions(_Base):
     balance_sheet_cash_used: float = Field(
         0.0, description="USD millions of existing cash funding the cash portion."
     )
+    refinance_target_debt: bool = Field(
+        False,
+        description=(
+            "Off, the target's borrowings are assumed at close on unchanged terms. On, "
+            "a change of control clause is taken to force their repayment: the "
+            "borrowings the EV bridge counts as debt, leases aside, are repaid at "
+            "close and funded like the cash consideration, and the target's interest "
+            "on them stops."
+        ),
+    )
     deal_fees: float = Field(0.0, description="Advisory and other one-time fees, USD mm.")
     financing_fees: float = 0.0
     financing_fee_amort_years: int = 7
