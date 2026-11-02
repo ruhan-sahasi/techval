@@ -1339,14 +1339,19 @@ def _opening_balance_sheet(
         "charged against year-one revenue below."
     )
     if cons.target_debt_repaid:
+        left = refinanced - cons.target_debt_repaid
         notes.append(
             f"{cons.target_debt_repaid:,.0f}mm of target borrowings are repaid at close, "
             "as merger.refinance_target_debt has it, and funded with the cash "
             "consideration in sources and uses. The target's interest on them comes out "
-            "of the non-operating line and the facility charges for them instead. "
-            f"{max(refinanced - cons.target_debt_repaid, 0.0):,.0f}mm of the target's "
-            "debt, its leases and anything the bridge does not count as borrowing, "
-            "stays in place."
+            "of the non-operating line and the facility charges for them instead."
+            + (
+                f" The other {left:,.0f}mm of the target's debt, its leases counted as "
+                "debt and anything the bridge does not treat as borrowing, stays in "
+                "place."
+                if left > 0.5
+                else ""
+            )
         )
     else:
         notes.append(
