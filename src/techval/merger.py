@@ -1293,13 +1293,24 @@ def _opening_balance_sheet(
         "nothing for EPS. Its earnings effect, which does not net to nothing, is "
         "charged against year-one revenue below."
     )
-    notes.append(
-        f"{refinanced:,.0f}mm of target borrowings are assumed at close and carried "
-        "on unchanged terms, so their interest stays inside the non-operating line "
-        "and no funding for them appears in sources and uses. Where a change of "
-        "control clause forces repayment instead, that amount has to be added to the "
-        "acquisition facility and the whole walk rerun on the larger balance."
-    )
+    if cons.target_debt_repaid:
+        notes.append(
+            f"{cons.target_debt_repaid:,.0f}mm of target borrowings are repaid at close, "
+            "as merger.refinance_target_debt has it, and funded with the cash "
+            "consideration in sources and uses. The target's interest on them comes out "
+            "of the non-operating line and the facility charges for them instead. "
+            f"{max(refinanced - cons.target_debt_repaid, 0.0):,.0f}mm of the target's "
+            "debt, its leases and anything the bridge does not count as borrowing, "
+            "stays in place."
+        )
+    else:
+        notes.append(
+            f"{refinanced:,.0f}mm of target borrowings are assumed at close and carried "
+            "on unchanged terms, so their interest stays inside the non-operating line "
+            "and no funding for them appears in sources and uses. Where a change of "
+            "control clause forces repayment instead, merger.refinance_target_debt "
+            "repays them at close and funds them with the facility."
+        )
     if assumptions.tax.use_effective_rate:
         notes.append(
             "The deferred tax liability is measured at the same rate the rest of this "

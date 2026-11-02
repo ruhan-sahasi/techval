@@ -1213,3 +1213,7 @@ def test_refinancing_moves_the_interest_in_the_roll_forward_and_counts_the_debt_
 
     # The 500mm leaves the target's net debt and joins the facility: same total.
     assert at_close(refinanced) == at_close(plain)
+
+    notes = refinanced.purchase_accounting.notes
+    assert any(n.startswith("500mm of target borrowings are repaid at close") for n in notes)
+    assert any("merger.refinance_target_debt repays them" in n for n in plain.purchase_accounting.notes)
