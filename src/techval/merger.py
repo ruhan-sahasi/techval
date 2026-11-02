@@ -1434,6 +1434,9 @@ def build_purchase_accounting(
     )
     basis = _pro_forma_basis(acq_fin, tgt_fin)
     base_revenue, ebitda_margin, ebit_margin, capex_pct, nonoperating = basis
+    # The target's interest on borrowings repaid at close is inside the combined
+    # non-operating line; the facility below charges for them instead.
+    nonoperating += _interest_stopped(tgt_fin, cons)
     da_pct = ebitda_margin - ebit_margin
 
     growth = assumptions.dcf.revenue_growth_start
@@ -1818,8 +1821,14 @@ def _purchase_accounting_checks(
         else:
             rent = acq_fin.operating_lease_cost + tgt_fin.operating_lease_cost
 
+    # Borrowings repaid at close are in the target's net debt and, through the
+    # facility that repaid them, in the new debt too; they are counted once.
     net_debt_close = (
-        _net_debt(acq_bridge) + _net_debt(tgt_bridge) + cons.new_debt + cons.cash_used
+        _net_debt(acq_bridge)
+        + _net_debt(tgt_bridge)
+        + cons.new_debt
+        + cons.cash_used
+        - cons.target_debt_repaid
     )
     # Every dollar of free cash flow reduces net debt, whether it repays the
     # facility or sits in the bank. The sweep decides how much interest is saved,
