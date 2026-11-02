@@ -587,6 +587,20 @@ class SynergyAssumptions(_Base):
     phase_in_year_one: float = Field(
         1.0, ge=0.0, le=1.0, description="Share of run-rate synergies realised in year 1."
     )
+    cost_to_achieve: float = Field(
+        0.0,
+        ge=0.0,
+        description=(
+            "One-time pre-tax cost of reaching the synergies, USD millions in total: "
+            "severance, systems, facilities, retention. Charged evenly over "
+            "cost_to_achieve_years in the purchase accounting roll-forward, where it "
+            "is an operating expense and deductible, and kept out of the year-one "
+            "screen, which quotes run-rate EPS."
+        ),
+    )
+    cost_to_achieve_years: int = Field(
+        2, ge=1, le=10, description="Years the cost to achieve is spread over, from year 1."
+    )
 
 
 class MergerAssumptions(_Base):
