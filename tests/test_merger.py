@@ -1189,3 +1189,27 @@ def test_refinancing_needs_the_targets_interest_expense(hand_case):
     a.merger.refinance_target_debt = True
     with pytest.raises(MissingDataError, match="target interest expense"):
         _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=None), a)
+
+
+def test_refinancing_moves_the_interest_in_the_roll_forward_and_counts_the_debt_once(pa_case):
+    """The roll-forward agrees with the walk, and leverage does not double the repaid debt."""
+    r, a, acq, tgt = pa_case
+    tgt = replace(tgt, straight_debt=500.0, interest_expense=25.0)
+    plain = _rerun(acq, tgt, a)
+    a.merger.refinance_target_debt = True
+    refinanced = _rerun(acq, tgt, a)
+    rate = a.tax.marginal_tax_rate
+
+    first, before = refinanced.purchase_accounting.years[0], plain.purchase_accounting.years[0]
+    assert first.interest == pytest.approx(before.interest + 500.0 * 0.06)
+    assert first.pretax_income == pytest.approx(before.pretax_income - 500.0 * 0.06 + 25.0)
+    assert first.net_income == pytest.approx(
+        before.net_income - (500.0 * 0.06 - 25.0) * (1 - rate)
+    )
+
+    def at_close(result):
+        line = next(c for c in result.purchase_accounting.checks if "Pro forma net" in c)
+        return line.split(" at close")[0]
+
+    # The 500mm leaves the target's net debt and joins the facility: same total.
+    assert at_close(refinanced) == at_close(plain)
