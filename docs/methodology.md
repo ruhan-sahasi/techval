@@ -1736,11 +1736,10 @@ benefit EPS books on a pro forma loss; the sweep counts none of that benefit. Th
 parts of section 382 beyond the annual cap, such as the built-in gains that raise
 it, are not modelled here either. The cost to achieve the synergies is one
 number spread evenly, not a schedule of severance, systems and retention, and
-nothing ties its size to the synergies it buys. No change-of-control repayment
-of the target's
-borrowings: they are assumed at close on unchanged terms, and where a covenant
-forces repayment instead, that amount has to be added to the acquisition facility
-and the whole walk rerun on the larger balance. No share buyback. No second bid.
+nothing ties its size to the synergies it buys. Refinancing the target's
+borrowings is all or nothing: a covenant that forces out one tranche and not
+another, or prices a make-whole premium, is not read from the filings. No share
+buyback. No second bid.
 
 Left at its default the module stops before all of this, and the year-one screen
 is exactly what it says it is: two sets of trailing twelve month figures, telling
