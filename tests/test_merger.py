@@ -1215,7 +1215,13 @@ def test_refinancing_moves_the_interest_in_the_roll_forward_and_counts_the_debt_
     assert at_close(refinanced) == at_close(plain)
 
     notes = refinanced.purchase_accounting.notes
-    assert any(n.startswith("500mm of target borrowings are repaid at close") for n in notes)
+    repaid_note = next(n for n in notes if n.startswith("500mm of target borrowings are repaid"))
+    # Nothing is left behind here, so the note does not say a zero stays in place.
+    assert "stays in place" not in repaid_note
+
+    leased = _rerun(acq, replace(tgt, finance_lease_liability=80.0), a).purchase_accounting
+    repaid_note = next(n for n in leased.notes if "of target borrowings are repaid" in n)
+    assert "The other 80mm of the target's debt" in repaid_note
     assert any("merger.refinance_target_debt repays them" in n for n in plain.purchase_accounting.notes)
 
 
