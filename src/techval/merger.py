@@ -836,6 +836,13 @@ def _run_accretion(
         accretion_pct = None
         notes.append(str(exc))
 
+    if cons.refinancing_premium_paid:
+        notes.append(
+            f"the {cons.refinancing_premium_paid:,.0f}mm prepayment premium on the "
+            "target's refinanced borrowings is paid at close and funded in sources and "
+            "uses, and kept out of this walk with the deal fees: it is a loss on "
+            "extinguishment booked once, at close, not a run-rate cost"
+        )
     notes.append(
         f"deal fees of {m.deal_fees:,.0f}mm are funded in sources and uses but are "
         "excluded from this walk. They are incurred once at close, so charging them "
@@ -1151,6 +1158,12 @@ def _rule_of_thumb_checks(
     if cons.target_debt_repaid:
         own = _interest_stopped(tgt_fin, cons) / cons.target_debt_repaid
         spread = (m.cost_of_new_debt - own) * cons.target_debt_repaid
+        paid = cons.refinancing_premium_paid
+        premium = ""
+        if paid:
+            premium = f", on top of a {paid:,.0f}mm prepayment premium paid once at close"
+            if spread < 0:
+                premium += f", which the lower rate takes {paid / -spread:,.1f} years to earn back"
         checks.append(
             f"Refinancing {cons.target_debt_repaid:,.0f}mm of {tgt_fin.ticker} "
             f"borrowings moves them from the {own:.2%} they cost the target to the "
@@ -1160,6 +1173,7 @@ def _rule_of_thumb_checks(
                 if spread >= 0
                 else f"{-spread:,.0f}mm a year less before tax"
             )
+            + premium
             + ". Where a change of control clause forces the repayment that is a "
             "cost of the deal; where the debt could have stayed, it is a choice."
         )

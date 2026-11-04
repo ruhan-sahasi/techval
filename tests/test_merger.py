@@ -1301,3 +1301,22 @@ def test_a_prepayment_premium_is_funded_with_the_repayment(hand_case):
 def test_a_prepayment_premium_without_refinancing_is_refused():
     with pytest.raises(ConfigError, match="refinance_target_debt is off"):
         Assumptions.model_validate({"merger": {"refinancing_premium": 0.02}})
+
+
+def test_the_premium_stays_out_of_the_walk_and_the_check_prices_it(hand_case):
+    r, a, acq, tgt = hand_case
+    a.merger.refinance_target_debt = True
+    plain = _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=40.0), a)
+    a.merger.refinancing_premium = 0.02
+    result = _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=40.0), a)
+
+    # The walk moves only by the interest on the 10mm more the facility raised.
+    rate = a.tax.marginal_tax_rate
+    assert result.accretion.pro_forma_net_income == pytest.approx(
+        plain.accretion.pro_forma_net_income - 10.0 * 0.06 * (1 - rate)
+    )
+    assert any("prepayment premium on the target's refinanced" in n for n in result.accretion.notes)
+    # 8% refinanced at 6% saves 10mm a year, so the 10mm premium is a year of it.
+    line = next(c for c in result.checks if c.startswith("Refinancing 500mm of TGT"))
+    assert "on top of a 10mm prepayment premium paid once at close" in line
+    assert "takes 1.0 years to earn back" in line
