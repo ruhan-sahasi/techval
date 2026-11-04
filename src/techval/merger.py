@@ -1041,9 +1041,13 @@ def _rule_of_thumb_checks(
     acq_yield = acq_ni / acq_equity if acq_ni > 0 and acq_equity > 0 else None
     tgt_yield = tgt_ni / cons.equity_purchase_price if tgt_ni > 0 else None
 
-    funded = cons.new_debt + cons.cash_used
+    # Borrowings repaid at close are funded too but buy nothing, so they come out
+    # of the mix first, from the facility at the margin, then from the cash.
+    debt_for_deal = max(cons.new_debt - cons.target_debt_repaid, 0.0)
+    cash_for_deal = cons.cash_used - max(cons.target_debt_repaid - cons.new_debt, 0.0)
+    funded = debt_for_deal + cash_for_deal
     pretax_cash_cost = (
-        (cons.new_debt * m.cost_of_new_debt + cons.cash_used * m.foregone_cash_yield)
+        (debt_for_deal * m.cost_of_new_debt + cash_for_deal * m.foregone_cash_yield)
         / funded
         if funded > 0
         else m.cost_of_new_debt

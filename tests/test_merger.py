@@ -1264,3 +1264,23 @@ def test_refinancing_a_target_with_no_borrowings_says_nothing_was_repaid(hand_ca
     assert result.consideration.target_debt_repaid == 0.0
     assert result.consideration.new_debt == r.consideration.new_debt
     assert any("has no borrowings the EV bridge counts as debt" in n for n in result.notes)
+
+
+def test_the_rule_of_thumb_prices_the_consideration_not_the_refinancing(hand_case):
+    """1,000mm of cash and 625mm of debt fund the cash leg; a repayment does not change that mix.
+
+    Refinancing 500mm more through the facility used to tilt the blended cost
+    of the cash leg toward the 6% debt; the borrowings buy nothing, so they are
+    taken out of the mix before it is blended.
+    """
+    _, a, acq, tgt = hand_case
+    a.merger.balance_sheet_cash_used = 1_000.0
+    tgt = replace(tgt, straight_debt=500.0, interest_expense=25.0)
+
+    def blended(result):
+        line = next(c for c in result.checks if "blended cost of the consideration" in c)
+        return line.split("blended cost of the consideration is ")[1].split(" ")[0]
+
+    plain = blended(_rerun(acq, tgt, a))
+    a.merger.refinance_target_debt = True
+    assert blended(_rerun(acq, tgt, a)) == plain
