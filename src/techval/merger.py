@@ -1062,10 +1062,12 @@ def _rule_of_thumb_checks(
     acq_yield = acq_ni / acq_equity if acq_ni > 0 and acq_equity > 0 else None
     tgt_yield = tgt_ni / cons.equity_purchase_price if tgt_ni > 0 else None
 
-    # Borrowings repaid at close are funded too but buy nothing, so they come out
-    # of the mix first, from the facility at the margin, then from the cash.
-    debt_for_deal = max(cons.new_debt - cons.target_debt_repaid, 0.0)
-    cash_for_deal = cons.cash_used - max(cons.target_debt_repaid - cons.new_debt, 0.0)
+    # Borrowings repaid at close, and any premium on them, are funded too but buy
+    # nothing, so they come out of the mix first, from the facility at the margin,
+    # then from the cash.
+    refinancing = cons.target_debt_repaid + cons.refinancing_premium_paid
+    debt_for_deal = max(cons.new_debt - refinancing, 0.0)
+    cash_for_deal = cons.cash_used - max(refinancing - cons.new_debt, 0.0)
     funded = debt_for_deal + cash_for_deal
     pretax_cash_cost = (
         (debt_for_deal * m.cost_of_new_debt + cash_for_deal * m.foregone_cash_yield)
@@ -1167,7 +1169,8 @@ def _rule_of_thumb_checks(
         if paid:
             premium = f", on top of a {paid:,.0f}mm prepayment premium paid once at close"
             if spread < 0:
-                premium += f", which the lower rate takes {paid / -spread:,.1f} years to earn back"
+                years = paid / -spread
+                premium += f", which the lower rate takes {years:,.1f} years to earn back"
         checks.append(
             f"Refinancing {cons.target_debt_repaid:,.0f}mm of {tgt_fin.ticker} "
             f"borrowings moves them from the {own:.2%} they cost the target to the "
