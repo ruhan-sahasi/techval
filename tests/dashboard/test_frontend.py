@@ -960,6 +960,13 @@ def drawn(gallery, tmp_path_factory):
         "--hide-scrollbars",
         "--window-size=1440,900",
         "--virtual-time-budget=15000",
+        # Late in a long run Chrome's updater has woken during the launch and the
+        # page never came back. These keep the dump from reaching for the network
+        # or the updater at all; what the probe measures does not change.
+        "--disable-background-networking",
+        "--disable-component-update",
+        "--no-first-run",
+        "--no-default-browser-check",
         "--dump-dom",
         page.as_uri() + "?theme=light",
     ]
