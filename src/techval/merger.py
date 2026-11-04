@@ -177,6 +177,10 @@ class Consideration:
             [("  of which borrowings repaid at close", self.target_debt_repaid)]
             if self.target_debt_repaid
             else []
+        ) + (
+            [("  prepayment premium paid on them", self.refinancing_premium_paid)]
+            if self.refinancing_premium_paid
+            else []
         ) + [
             ("Enterprise purchase price", self.enterprise_purchase_price),
             ("Cash consideration", self.cash_consideration),
