@@ -1320,3 +1320,15 @@ def test_the_premium_stays_out_of_the_walk_and_the_check_prices_it(hand_case):
     line = next(c for c in result.checks if c.startswith("Refinancing 500mm of TGT"))
     assert "on top of a 10mm prepayment premium paid once at close" in line
     assert "takes 1.0 years to earn back" in line
+
+
+def test_the_premium_is_expensed_at_close_not_allocated(pa_case):
+    r, a, acq, tgt = pa_case
+    tgt = replace(tgt, straight_debt=500.0, interest_expense=25.0)
+    a.merger.refinance_target_debt = True
+    plain = _rerun(acq, tgt, a).purchase_accounting
+    a.merger.refinancing_premium = 0.02
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    assert pa.opening.goodwill_created == pytest.approx(plain.opening.goodwill_created)
+    note = next(n for n in pa.notes if "of target borrowings are repaid" in n)
+    assert "The 10mm prepayment premium on them is a loss on extinguishment" in note

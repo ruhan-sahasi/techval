@@ -1378,6 +1378,13 @@ def _opening_balance_sheet(
             "consideration in sources and uses. The target's interest on them comes out "
             "of the non-operating line and the facility charges for them instead."
             + (
+                f" The {cons.refinancing_premium_paid:,.0f}mm prepayment premium on them "
+                "is a loss on extinguishment, expensed at close rather than allocated, so "
+                "it touches neither book equity nor goodwill."
+                if cons.refinancing_premium_paid
+                else ""
+            )
+            + (
                 f" The other {left:,.0f}mm of the target's debt, its leases counted as "
                 "debt and anything the bridge does not treat as borrowing, stays in "
                 "place."
