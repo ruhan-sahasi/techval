@@ -158,6 +158,8 @@ class Consideration:
     cash_used: float
     pct_cash: float
     pct_stock: float
+    # Repaid at close under merger.refinance_target_debt, and funded with the cash.
+    target_debt_repaid: float = 0.0
 
     @property
     def target_net_debt(self) -> float:
@@ -169,6 +171,11 @@ class Consideration:
             ("Premium to unaffected price", self.premium),
             ("Equity purchase price", self.equity_purchase_price),
             ("+ Target net debt assumed", self.target_net_debt),
+        ] + (
+            [("  of which borrowings repaid at close", self.target_debt_repaid)]
+            if self.target_debt_repaid
+            else []
+        ) + [
             ("Enterprise purchase price", self.enterprise_purchase_price),
             ("Cash consideration", self.cash_consideration),
             ("Stock consideration", self.stock_consideration),
@@ -556,10 +563,24 @@ def build_consideration(
     exchange_ratio = offer_price / acq_price
     new_shares_issued = stock_consideration / acq_price
 
-    # Fees are funded like the cash portion. Balance sheet cash goes first, new
-    # debt takes the remainder, which is what "cash and new debt" means in a
-    # press release.
-    cash_need = cash_consideration + m.deal_fees + m.financing_fees
+    # Borrowings a change of control clause forces out are repaid at close: the
+    # ones the bridge counts as debt. Leases stay, and a convertible the bridge
+    # has turned into shares is already in the price.
+    repaid = (
+        tgt_bridge.straight_debt + tgt_bridge.convertible_in_debt
+        if m.refinance_target_debt
+        else 0.0
+    )
+    if m.refinance_target_debt and not repaid:
+        notes.append(
+            f"merger.refinance_target_debt is on, but {tgt_fin.ticker} has no borrowings "
+            "the EV bridge counts as debt, so nothing is repaid at close"
+        )
+
+    # Fees and any repayment are funded like the cash portion. Balance sheet cash
+    # goes first, new debt takes the remainder, which is what "cash and new debt"
+    # means in a press release.
+    cash_need = cash_consideration + m.deal_fees + m.financing_fees + repaid
     available = acq_fin.cash + acq_fin.short_term_investments
     if m.balance_sheet_cash_used > available:
         raise ConfigError(
@@ -590,6 +611,7 @@ def build_consideration(
         cash_used=cash_used,
         pct_cash=pct_cash,
         pct_stock=pct_stock,
+        target_debt_repaid=repaid,
     )
 
 
@@ -602,7 +624,11 @@ def _sources_and_uses(
         ("Use", "Purchase of target equity", cons.equity_purchase_price),
         ("Use", "Advisory and other deal fees", m.deal_fees),
         ("Use", "Financing fees", m.financing_fees),
-    ]
+    ] + (
+        [("Use", "Repayment of target borrowings", cons.target_debt_repaid)]
+        if cons.target_debt_repaid
+        else []
+    )
     sources = [
         ("Source", "New debt", cons.new_debt),
         ("Source", "Balance sheet cash", cons.cash_used),
@@ -688,6 +714,43 @@ def _accretion_percent(accretion_dollars: float, standalone_eps: float) -> float
     return accretion_dollars / standalone_eps
 
 
+def _interest_stopped(tgt_fin: Financials, cons: Consideration) -> float:
+    """Pre-tax interest the target no longer pays on the borrowings repaid at close.
+
+    Its filed interest expense, pro rata to the share of its borrowings repaid, so
+    the coupon on anything left outstanding stays where it was. An expense concept
+    is read by its size, since Disney, for one, files InterestExpense with a minus
+    sign. A net interest figure is refused: it is the coupon less what the cash
+    earns, and its sign does not say which way it ran.
+    """
+    if not cons.target_debt_repaid:
+        return 0.0
+    source = tgt_fin.provenance.get("interest expense")
+    if source is not None and source.tag == "InterestIncomeExpenseNet":
+        raise MissingDataError(
+            "target interest expense",
+            ticker=tgt_fin.ticker,
+            hint=(
+                "the target files only net interest, InterestIncomeExpenseNet, which is "
+                "its coupon less what its cash earns, so the interest that stops when "
+                "its borrowings are repaid cannot be read from it"
+            ),
+        )
+    if tgt_fin.interest_expense is None:
+        raise MissingDataError(
+            "target interest expense",
+            ticker=tgt_fin.ticker,
+            hint=(
+                "repaying the target's borrowings at close stops its interest on them, "
+                "and without its interest expense that saving cannot be formed. "
+                "Charging the new debt without it would count the borrowing twice"
+            ),
+        )
+    borrowings = tgt_fin.total_debt_ex_leases
+    share = min(cons.target_debt_repaid / borrowings, 1.0) if borrowings > 0 else 0.0
+    return abs(tgt_fin.interest_expense) * share
+
+
 def _run_accretion(
     acq_fin: Financials,
     tgt_fin: Financials,
@@ -732,6 +795,7 @@ def _run_accretion(
         if m.include_intangible_amortization
         else 0.0
     )
+    interest_stopped = _interest_stopped(tgt_fin, cons) * after_tax
 
     components: list[tuple[str, float]] = [
         (f"{acq_fin.ticker} net income (standalone)", acq_fin.net_income),
@@ -742,6 +806,12 @@ def _run_accretion(
         ("- After-tax financing fee amortisation", _charge(financing_amort)),
         ("- After-tax intangible amortisation", _charge(intangible_amort)),
     ]
+    if cons.target_debt_repaid:
+        # The new debt above already carries the repayment; this is the interest
+        # the target's own net income was paying on it.
+        components.append(
+            (f"+ After-tax {tgt_fin.ticker} interest no longer paid", interest_stopped)
+        )
     pro_forma_net_income = sum(v for _, v in components)
     pro_forma_shares = acq_fin.diluted_shares + cons.new_shares_issued
 
@@ -1055,8 +1125,29 @@ def _rule_of_thumb_checks(
                 if predicted == (accretion_dollars > 0)
                 else "disagrees. The difference is what the rule of thumb leaves "
                 "out: after-tax synergies, financing fee amortisation and the yield "
-                "given up on cash spent."
+                "given up on cash spent"
+                + (
+                    ", and the rate on the target's refinanced borrowings."
+                    if cons.target_debt_repaid
+                    else "."
+                )
             )
+        )
+
+    if cons.target_debt_repaid:
+        own = _interest_stopped(tgt_fin, cons) / cons.target_debt_repaid
+        spread = (m.cost_of_new_debt - own) * cons.target_debt_repaid
+        checks.append(
+            f"Refinancing {cons.target_debt_repaid:,.0f}mm of {tgt_fin.ticker} "
+            f"borrowings moves them from the {own:.2%} they cost the target to the "
+            f"facility's {m.cost_of_new_debt:.2%}, "
+            + (
+                f"{spread:,.0f}mm a year more before tax"
+                if spread >= 0
+                else f"{-spread:,.0f}mm a year less before tax"
+            )
+            + ". Where a change of control clause forces the repayment that is a "
+            "cost of the deal; where the debt could have stayed, it is a choice."
         )
 
     return checks
@@ -1247,13 +1338,29 @@ def _opening_balance_sheet(
         "nothing for EPS. Its earnings effect, which does not net to nothing, is "
         "charged against year-one revenue below."
     )
-    notes.append(
-        f"{refinanced:,.0f}mm of target borrowings are assumed at close and carried "
-        "on unchanged terms, so their interest stays inside the non-operating line "
-        "and no funding for them appears in sources and uses. Where a change of "
-        "control clause forces repayment instead, that amount has to be added to the "
-        "acquisition facility and the whole walk rerun on the larger balance."
-    )
+    if cons.target_debt_repaid:
+        left = refinanced - cons.target_debt_repaid
+        notes.append(
+            f"{cons.target_debt_repaid:,.0f}mm of target borrowings are repaid at close, "
+            "as merger.refinance_target_debt has it, and funded with the cash "
+            "consideration in sources and uses. The target's interest on them comes out "
+            "of the non-operating line and the facility charges for them instead."
+            + (
+                f" The other {left:,.0f}mm of the target's debt, its leases counted as "
+                "debt and anything the bridge does not treat as borrowing, stays in "
+                "place."
+                if left > 0.5
+                else ""
+            )
+        )
+    else:
+        notes.append(
+            f"{refinanced:,.0f}mm of target borrowings are assumed at close and carried "
+            "on unchanged terms, so their interest stays inside the non-operating line "
+            "and no funding for them appears in sources and uses. Where a change of "
+            "control clause forces repayment instead, merger.refinance_target_debt "
+            "repays them at close and funds them with the facility."
+        )
     if assumptions.tax.use_effective_rate:
         notes.append(
             "The deferred tax liability is measured at the same rate the rest of this "
@@ -1388,6 +1495,9 @@ def build_purchase_accounting(
     )
     basis = _pro_forma_basis(acq_fin, tgt_fin)
     base_revenue, ebitda_margin, ebit_margin, capex_pct, nonoperating = basis
+    # The target's interest on borrowings repaid at close is inside the combined
+    # non-operating line; the facility below charges for them instead.
+    nonoperating += _interest_stopped(tgt_fin, cons)
     da_pct = ebitda_margin - ebit_margin
 
     growth = assumptions.dcf.revenue_growth_start
@@ -1772,8 +1882,14 @@ def _purchase_accounting_checks(
         else:
             rent = acq_fin.operating_lease_cost + tgt_fin.operating_lease_cost
 
+    # Borrowings repaid at close are in the target's net debt and, through the
+    # facility that repaid them, in the new debt too; they are counted once.
     net_debt_close = (
-        _net_debt(acq_bridge) + _net_debt(tgt_bridge) + cons.new_debt + cons.cash_used
+        _net_debt(acq_bridge)
+        + _net_debt(tgt_bridge)
+        + cons.new_debt
+        + cons.cash_used
+        - cons.target_debt_repaid
     )
     # Every dollar of free cash flow reduces net debt, whether it repays the
     # facility or sits in the bank. The sweep decides how much interest is saved,

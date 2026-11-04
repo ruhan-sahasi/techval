@@ -1939,11 +1939,17 @@ with the current debt and leases inside current liabilities taken back out so a
 borrowing is deducted once; lease liabilities are left out because their
 right-of-use assets are not carried here and deducting one side alone would
 invent goodwill, and non-current operating assets are missing for the same
-reason. The deal
-therefore looks more dilutive here than it should, not less. The multi-year
-roll-forward needs D&A, capex and pre-tax income and refuses where a filer does
-not tag them: CrowdStrike as an acquirer fails on the D&A tag, the same gap
-that makes its EV/EBITDA non-meaningful in the comp table.
+reason. The deal therefore looks more dilutive here than it should, not less.
+The multi-year roll-forward needs D&A, capex and pre-tax income and refuses
+where a filer does not tag them: CrowdStrike as an acquirer fails on the D&A
+tag, the same gap that makes its EV/EBITDA non-meaningful in the comp table.
+
+The target's borrowings are assumed at close unless
+`merger.refinance_target_debt` says a change of control forces them out, and
+then all of them are: a covenant that catches one tranche and not another, or a
+make-whole premium, has to be worked out by hand. The repayment needs the
+target's interest expense to add its interest back, so a filer that reports only
+net interest is refused.
 
 Left at its default the merger module is a screen: no opening balance sheet, no
 goodwill, no deferred tax on the step-up, no deferred revenue haircut, no debt
