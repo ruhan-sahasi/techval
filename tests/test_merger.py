@@ -1284,3 +1284,20 @@ def test_the_rule_of_thumb_prices_the_consideration_not_the_refinancing(hand_cas
     plain = blended(_rerun(acq, tgt, a))
     a.merger.refinance_target_debt = True
     assert blended(_rerun(acq, tgt, a)) == plain
+
+
+def test_a_prepayment_premium_is_funded_with_the_repayment(hand_case):
+    """2% on 500mm is 10mm more to raise at close, and a line of its own in the uses."""
+    r, a, acq, tgt = hand_case
+    a.merger.refinance_target_debt = True
+    a.merger.refinancing_premium = 0.02
+    result = _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=25.0), a)
+    assert result.consideration.refinancing_premium_paid == pytest.approx(10.0)
+    assert result.consideration.new_debt == pytest.approx(r.consideration.new_debt + 510.0)
+    uses = {label: v for kind, label, v in result.sources_uses if kind == "Use"}
+    assert uses["Prepayment premium on them"] == pytest.approx(10.0)
+
+
+def test_a_prepayment_premium_without_refinancing_is_refused():
+    with pytest.raises(ConfigError, match="refinance_target_debt is off"):
+        Assumptions.model_validate({"merger": {"refinancing_premium": 0.02}})

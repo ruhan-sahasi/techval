@@ -158,8 +158,10 @@ class Consideration:
     cash_used: float
     pct_cash: float
     pct_stock: float
-    # Repaid at close under merger.refinance_target_debt, and funded with the cash.
+    # Repaid at close under merger.refinance_target_debt, and funded with the cash,
+    # with any prepayment premium paid on them.
     target_debt_repaid: float = 0.0
+    refinancing_premium_paid: float = 0.0
 
     @property
     def target_net_debt(self) -> float:
@@ -580,7 +582,10 @@ def build_consideration(
     # Fees and any repayment are funded like the cash portion. Balance sheet cash
     # goes first, new debt takes the remainder, which is what "cash and new debt"
     # means in a press release.
-    cash_need = cash_consideration + m.deal_fees + m.financing_fees + repaid
+    premium_paid = repaid * m.refinancing_premium
+    cash_need = (
+        cash_consideration + m.deal_fees + m.financing_fees + repaid + premium_paid
+    )
     available = acq_fin.cash + acq_fin.short_term_investments
     if m.balance_sheet_cash_used > available:
         raise ConfigError(
@@ -612,6 +617,7 @@ def build_consideration(
         pct_cash=pct_cash,
         pct_stock=pct_stock,
         target_debt_repaid=repaid,
+        refinancing_premium_paid=premium_paid,
     )
 
 
@@ -627,6 +633,10 @@ def _sources_and_uses(
     ] + (
         [("Use", "Repayment of target borrowings", cons.target_debt_repaid)]
         if cons.target_debt_repaid
+        else []
+    ) + (
+        [("Use", "Prepayment premium on them", cons.refinancing_premium_paid)]
+        if cons.refinancing_premium_paid
         else []
     )
     sources = [
