@@ -1531,7 +1531,14 @@ interest expense. An expense filed with a minus sign, as Disney's is, is read by
 its size; a target that files only net interest is refused, since that figure is
 its coupon less what its cash earns. The checks price the move from the target's
 rate to the facility's, and leverage counts the repaid debt once, in the
-facility, rather than again in the target's net debt.
+facility, rather than again in the target's net debt. The rule of thumb in §8.1
+prices the cash leg of the consideration only, so the repayment comes out of its
+funding mix first. `merger.refinancing_premium` adds a make-whole or call premium
+as a share of what is repaid: funded at close with the repayment, kept out of the
+run-rate walk with the deal fees because it is a loss on extinguishment booked
+once, and expensed rather than allocated, so goodwill does not move. Where the
+facility is cheaper than the debt it replaces, the check says how many years the
+saving takes to earn the premium back.
 
 **Percentage accretion is withheld when the base will not support it.** The
 convention is to quote accretion as a percentage of standalone EPS, and that
