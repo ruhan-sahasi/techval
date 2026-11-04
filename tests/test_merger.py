@@ -1158,3 +1158,109 @@ def test_leverage_is_quoted_on_ebitda_before_the_cost_to_achieve(pa_case):
     assert "before the cost to achieve" not in next(
         c for c in r.purchase_accounting.checks if "Pro forma net" in c
     )
+
+
+def test_refinancing_the_target_funds_its_borrowings_and_stops_their_interest(hand_case):
+    """A change of control clause forces 500mm out; the facility takes it on.
+
+    The target pays 25mm a year on it, 5%, and the facility charges 6%, so the
+    walk carries 30mm more interest and 25mm less, both after tax.
+    """
+    r, a, acq, tgt = hand_case
+    tgt = replace(tgt, straight_debt=500.0, interest_expense=25.0)
+    a.merger.refinance_target_debt = True
+    after = _rerun(acq, tgt, a)
+    rate = a.tax.marginal_tax_rate
+
+    assert after.consideration.target_debt_repaid == 500.0
+    assert after.consideration.new_debt == pytest.approx(r.consideration.new_debt + 500.0)
+    uses = {label: v for kind, label, v in after.sources_uses if kind == "Use"}
+    assert uses["Repayment of target borrowings"] == 500.0
+    components = dict(after.accretion.components)
+    assert components["+ After-tax TGT interest no longer paid"] == pytest.approx(25.0 * (1 - rate))
+    assert after.accretion.pro_forma_net_income == pytest.approx(
+        r.accretion.pro_forma_net_income - 500.0 * 0.06 * (1 - rate) + 25.0 * (1 - rate)
+    )
+    assert "Repayment of target borrowings" not in {l for _, l, _ in r.sources_uses}
+
+
+def test_refinancing_needs_the_targets_interest_expense(hand_case):
+    _, a, acq, tgt = hand_case
+    a.merger.refinance_target_debt = True
+    with pytest.raises(MissingDataError, match="target interest expense"):
+        _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=None), a)
+
+
+def test_refinancing_moves_the_interest_in_the_roll_forward_and_counts_the_debt_once(pa_case):
+    """The roll-forward agrees with the walk, and leverage does not double the repaid debt."""
+    r, a, acq, tgt = pa_case
+    tgt = replace(tgt, straight_debt=500.0, interest_expense=25.0)
+    plain = _rerun(acq, tgt, a)
+    a.merger.refinance_target_debt = True
+    refinanced = _rerun(acq, tgt, a)
+    rate = a.tax.marginal_tax_rate
+
+    first, before = refinanced.purchase_accounting.years[0], plain.purchase_accounting.years[0]
+    assert first.interest == pytest.approx(before.interest + 500.0 * 0.06)
+    assert first.pretax_income == pytest.approx(before.pretax_income - 500.0 * 0.06 + 25.0)
+    assert first.net_income == pytest.approx(
+        before.net_income - (500.0 * 0.06 - 25.0) * (1 - rate)
+    )
+
+    def at_close(result):
+        line = next(c for c in result.purchase_accounting.checks if "Pro forma net" in c)
+        return line.split(" at close")[0]
+
+    # The 500mm leaves the target's net debt and joins the facility: same total.
+    assert at_close(refinanced) == at_close(plain)
+
+    notes = refinanced.purchase_accounting.notes
+    repaid_note = next(n for n in notes if n.startswith("500mm of target borrowings are repaid"))
+    # Nothing is left behind here, so the note does not say a zero stays in place.
+    assert "stays in place" not in repaid_note
+
+    leased = _rerun(acq, replace(tgt, finance_lease_liability=80.0), a).purchase_accounting
+    repaid_note = next(n for n in leased.notes if "of target borrowings are repaid" in n)
+    assert "The other 80mm of the target's debt" in repaid_note
+    assert any("merger.refinance_target_debt repays them" in n for n in plain.purchase_accounting.notes)
+
+
+def test_the_targets_interest_is_read_by_its_size_and_a_net_figure_refused(hand_case):
+    """Disney files InterestExpense with a minus sign; net interest is not a coupon."""
+    from techval.edgar import Provenance
+
+    r, a, acq, tgt = hand_case
+    a.merger.refinance_target_debt = True
+    rate = a.tax.marginal_tax_rate
+    signed = replace(tgt, straight_debt=500.0, interest_expense=-25.0)
+    components = dict(_rerun(acq, signed, a).accretion.components)
+    assert components["+ After-tax TGT interest no longer paid"] == pytest.approx(25.0 * (1 - rate))
+
+    net = replace(
+        signed,
+        provenance={"interest expense": Provenance("interest expense", "InterestIncomeExpenseNet", "ttm")},
+    )
+    with pytest.raises(MissingDataError, match="target interest expense"):
+        _rerun(acq, net, a)
+
+
+def test_the_checks_price_the_move_to_the_facilitys_rate(hand_case):
+    _, a, acq, tgt = hand_case
+    a.merger.refinance_target_debt = True
+    result = _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=25.0), a)
+    line = next(c for c in result.checks if c.startswith("Refinancing 500mm of TGT"))
+    assert "from the 5.00% they cost the target to the facility's 6.00%, 5mm a year more" in line
+
+    cheap = _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=40.0), a)
+    line = next(c for c in cheap.checks if c.startswith("Refinancing 500mm of TGT"))
+    assert "from the 8.00% they cost the target" in line and "10mm a year less" in line
+
+
+def test_refinancing_a_target_with_no_borrowings_says_nothing_was_repaid(hand_case):
+    r, a, acq, tgt = hand_case
+    assert tgt.straight_debt == 0.0
+    a.merger.refinance_target_debt = True
+    result = _rerun(acq, tgt, a)
+    assert result.consideration.target_debt_repaid == 0.0
+    assert result.consideration.new_debt == r.consideration.new_debt
+    assert any("has no borrowings the EV bridge counts as debt" in n for n in result.notes)
