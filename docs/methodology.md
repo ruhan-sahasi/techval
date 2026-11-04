@@ -1744,9 +1744,9 @@ parts of section 382 beyond the annual cap, such as the built-in gains that rais
 it, are not modelled here either. The cost to achieve the synergies is one
 number spread evenly, not a schedule of severance, systems and retention, and
 nothing ties its size to the synergies it buys. Refinancing the target's
-borrowings is all or nothing: a covenant that forces out one tranche and not
-another, or prices a make-whole premium, is not read from the filings. No share
-buyback. No second bid.
+borrowings is all or nothing, at one premium: a covenant that forces out one
+tranche and not another, or a make-whole that differs by note, is not read from
+the filings. No share buyback. No second bid.
 
 Left at its default the module stops before all of this, and the year-one screen
 is exactly what it says it is: two sets of trailing twelve month figures, telling
