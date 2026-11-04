@@ -1284,6 +1284,9 @@ def test_the_rule_of_thumb_prices_the_consideration_not_the_refinancing(hand_cas
     plain = blended(_rerun(acq, tgt, a))
     a.merger.refinance_target_debt = True
     assert blended(_rerun(acq, tgt, a)) == plain
+    # The premium on them buys nothing either.
+    a.merger.refinancing_premium = 0.05
+    assert blended(_rerun(acq, tgt, a)) == plain
 
 
 def test_a_prepayment_premium_is_funded_with_the_repayment(hand_case):
