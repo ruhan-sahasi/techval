@@ -143,7 +143,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import Assumptions
-from ..errors import ConfigError, NotMeaningfulError, TechvalError
+from ..errors import ConfigError, NotMeaningfulError
 from .evaluation import (
     Fold,
     calibration_table,
@@ -151,7 +151,7 @@ from .evaluation import (
     precision_recall_at_k,
     walk_forward_folds,
 )
-from .features import FEATURE_NAMES, FeaturePanel, FeatureRow
+from .features import FeaturePanel, FeatureRow
 from .nn import Adam, Linear, bce_with_logits
 from .protocol import EvalResult, ModelCard
 
