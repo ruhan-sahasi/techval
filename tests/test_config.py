@@ -168,22 +168,6 @@ def test_a_target_carryforward_needs_its_section_382_rate_and_the_rate_its_balan
     assert (pa.target_carryforward, pa.long_term_tax_exempt_rate) == (2000.0, 0.034)
 
 
-def test_require_same_sub_vertical_refuses_rather_than_being_ignored(tmp_path):
-    """It was the only field in the file that read as a setting and did nothing.
-
-    The peer encoder gates its candidate list on market capitalisation and size
-    ratio and on nothing else. A reader who set this got a ranking that was not
-    what the assumptions file said it was, and got it silently, which is the
-    exact failure mode this package refuses.
-    """
-    path = _write(tmp_path, "ml:\n  peers:\n    require_same_sub_vertical: true\n")
-    with pytest.raises(ConfigError) as exc:
-        Assumptions.load(path)
-    message = str(exc.value)
-    assert "not implemented" in message
-    assert "max_size_ratio" in message
-
-
 def test_overlapping_windows_refuses_to_be_switched_off(tmp_path):
     """Its own description promised behaviour behind a false that does not exist.
 
@@ -197,10 +181,17 @@ def test_overlapping_windows_refuses_to_be_switched_off(tmp_path):
     assert "cannot be set false" in str(exc.value)
 
 
+def test_a_retired_setting_is_refused_as_unknown(tmp_path):
+    """A file that still names a removed setting is told so, not quietly obeyed."""
+    path = _write(tmp_path, "ml:\n  peers:\n    require_same_sub_vertical: true\n")
+    with pytest.raises(ConfigError) as exc:
+        Assumptions.load(path)
+    assert "ml.peers.require_same_sub_vertical" in str(exc.value)
+
+
 @pytest.mark.parametrize(
     "body",
     [
-        "ml:\n  peers:\n    require_same_sub_vertical: false\n",
         "ml:\n  signals:\n    overlapping_windows: true\n",
     ],
 )
@@ -260,7 +251,7 @@ _COMMENTED = {"price_csv_dir", "as_of"}
 # because the gate it names does not exist and one because the overlap it
 # describes is a fact the harness always corrects for. Offering either in the
 # example would offer a switch that does nothing.
-_NOT_A_CHOICE = {"ml.peers.require_same_sub_vertical", "ml.signals.overlapping_windows"}
+_NOT_A_CHOICE = {"ml.signals.overlapping_windows"}
 
 _ABSENT = object()
 
