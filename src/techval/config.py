@@ -816,36 +816,6 @@ class SignalAssumptions(_Base):
             "fewer names are dropped from the information coefficient series."
         ),
     )
-    overlapping_windows: bool = Field(
-        True,
-        description=(
-            "Twelve month returns sampled quarterly share eleven months of their "
-            "path, so the coefficients are autocorrelated and a naive t-statistic "
-            "on them is roughly double what it should be. The harness computes "
-            "the Newey-West standard error unconditionally and prints it beside "
-            "the naive one with the inflation ratio between them, so this is a "
-            "statement of fact about the sampling scheme rather than a switch. "
-            "It refuses if set false, because the correction cannot be turned "
-            "off and a reader who asked for it off should be told so rather than "
-            "left to believe a naive t-statistic is what came back."
-        ),
-    )
-
-    @field_validator("overlapping_windows")
-    @classmethod
-    def _refuse_to_pretend_the_windows_do_not_overlap(cls, value: bool) -> bool:
-        if not value:
-            raise ConfigError(
-                "ml.signals.overlapping_windows cannot be set false. The windows "
-                "overlap whatever this file says: twelve month returns sampled "
-                "quarterly share eleven months of their path, and the harness "
-                "always reports the Newey-West standard error, the naive one and "
-                "the ratio between them. Setting this false would quietly change "
-                "nothing. If the intent is non-overlapping windows, sample the "
-                "scores annually instead, which changes the data rather than the "
-                "label on it."
-            )
-        return value
 
 
 class MLAssumptions(_Base):
