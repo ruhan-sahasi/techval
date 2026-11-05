@@ -168,36 +168,18 @@ def test_a_target_carryforward_needs_its_section_382_rate_and_the_rate_its_balan
     assert (pa.target_carryforward, pa.long_term_tax_exempt_rate) == (2000.0, 0.034)
 
 
-def test_overlapping_windows_refuses_to_be_switched_off(tmp_path):
-    """Its own description promised behaviour behind a false that does not exist.
-
-    ``signals.py`` computes the Newey-West standard error unconditionally and
-    prints it beside the naive one, so false changed nothing. A reader who set
-    it would have believed a naive t-statistic was what came back.
-    """
-    path = _write(tmp_path, "ml:\n  signals:\n    overlapping_windows: false\n")
-    with pytest.raises(ConfigError) as exc:
-        Assumptions.load(path)
-    assert "cannot be set false" in str(exc.value)
-
-
-def test_a_retired_setting_is_refused_as_unknown(tmp_path):
-    """A file that still names a removed setting is told so, not quietly obeyed."""
-    path = _write(tmp_path, "ml:\n  peers:\n    require_same_sub_vertical: true\n")
-    with pytest.raises(ConfigError) as exc:
-        Assumptions.load(path)
-    assert "ml.peers.require_same_sub_vertical" in str(exc.value)
-
-
 @pytest.mark.parametrize(
-    "body",
+    "body, name",
     [
-        "ml:\n  signals:\n    overlapping_windows: true\n",
+        ("ml:\n  peers:\n    require_same_sub_vertical: true\n", "ml.peers.require_same_sub_vertical"),
+        ("ml:\n  signals:\n    overlapping_windows: false\n", "ml.signals.overlapping_windows"),
     ],
 )
-def test_the_default_value_of_each_is_still_writable(body, tmp_path):
-    """Refusing a non-default must not refuse a file that spells out the default."""
-    assert Assumptions.load(_write(tmp_path, body)) is not None
+def test_a_retired_setting_is_refused_as_unknown(body, name, tmp_path):
+    """A file that still names a removed setting is told so, not quietly obeyed."""
+    with pytest.raises(ConfigError) as exc:
+        Assumptions.load(_write(tmp_path, body))
+    assert name in str(exc.value)
 
 
 # --------------------------------------------------------------------------- #
@@ -251,7 +233,7 @@ _COMMENTED = {"price_csv_dir", "as_of"}
 # because the gate it names does not exist and one because the overlap it
 # describes is a fact the harness always corrects for. Offering either in the
 # example would offer a switch that does nothing.
-_NOT_A_CHOICE = {"ml.signals.overlapping_windows"}
+_NOT_A_CHOICE: set[str] = set()
 
 _ABSENT = object()
 
