@@ -11,8 +11,8 @@ engine's three terminal values; the third prints in the run below.*
 
 A valuation engine for technology, media and telecommunications, built entirely
 on free data. SEC EDGAR for fundamentals, Nasdaq's public quote API for prices,
-the US Treasury daily curve for the risk-free rate. Twenty-one commands, 2,255
-tests, and no paid terminal anywhere in the stack.
+the US Treasury daily curve for the risk-free rate. Twenty-one commands, a test
+suite that runs offline, and no paid terminal anywhere in the stack.
 
 One half is the analyst work, meant to be defensible line by line. Normalized
 trailing statements out of raw XBRL. An enterprise value bridge. A CAPM cost of
@@ -2120,10 +2120,10 @@ filers.
 uv run pytest
 ```
 
-2,255 tests in about five minutes: 496 over `techval.tmt`, 523 over
-`techval.ml`, 399 over the dashboard, 70 over the reverse DCF and its scenarios
-and 20 over the tearsheet and the comparison. GitHub Actions runs the whole
-suite on Python 3.11 and 3.12 for every push to `main` and every pull request.
+The suite runs in about five minutes, over the engine, `techval.tmt`,
+`techval.ml`, the dashboard, the reverse DCF and its scenarios, and the
+tearsheet and the comparison. GitHub Actions runs the whole suite on Python 3.11
+and 3.12 for every push to `main` and every pull request.
 No test touches the network, and none touches your home directory: the suite
 runs with a throwaway one, so no fit or response a real run cached under
 `~/.techval` is read or overwritten. The 15MB of fixtures are frozen SEC payloads,
