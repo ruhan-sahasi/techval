@@ -1264,3 +1264,74 @@ def test_refinancing_a_target_with_no_borrowings_says_nothing_was_repaid(hand_ca
     assert result.consideration.target_debt_repaid == 0.0
     assert result.consideration.new_debt == r.consideration.new_debt
     assert any("has no borrowings the EV bridge counts as debt" in n for n in result.notes)
+
+
+def test_the_rule_of_thumb_prices_the_consideration_not_the_refinancing(hand_case):
+    """1,000mm of cash and 625mm of debt fund the cash leg; a repayment does not change that mix.
+
+    Refinancing 500mm more through the facility used to tilt the blended cost
+    of the cash leg toward the 6% debt; the borrowings buy nothing, so they are
+    taken out of the mix before it is blended.
+    """
+    _, a, acq, tgt = hand_case
+    a.merger.balance_sheet_cash_used = 1_000.0
+    tgt = replace(tgt, straight_debt=500.0, interest_expense=25.0)
+
+    def blended(result):
+        line = next(c for c in result.checks if "blended cost of the consideration" in c)
+        return line.split("blended cost of the consideration is ")[1].split(" ")[0]
+
+    plain = blended(_rerun(acq, tgt, a))
+    a.merger.refinance_target_debt = True
+    assert blended(_rerun(acq, tgt, a)) == plain
+    # The premium on them buys nothing either.
+    a.merger.refinancing_premium = 0.05
+    assert blended(_rerun(acq, tgt, a)) == plain
+
+
+def test_a_prepayment_premium_is_funded_with_the_repayment(hand_case):
+    """2% on 500mm is 10mm more to raise at close, and a line of its own in the uses."""
+    r, a, acq, tgt = hand_case
+    a.merger.refinance_target_debt = True
+    a.merger.refinancing_premium = 0.02
+    result = _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=25.0), a)
+    assert result.consideration.refinancing_premium_paid == pytest.approx(10.0)
+    assert result.consideration.new_debt == pytest.approx(r.consideration.new_debt + 510.0)
+    uses = {label: v for kind, label, v in result.sources_uses if kind == "Use"}
+    assert uses["Prepayment premium on them"] == pytest.approx(10.0)
+
+
+def test_a_prepayment_premium_without_refinancing_is_refused():
+    with pytest.raises(ConfigError, match="refinance_target_debt is off"):
+        Assumptions.model_validate({"merger": {"refinancing_premium": 0.02}})
+
+
+def test_the_premium_stays_out_of_the_walk_and_the_check_prices_it(hand_case):
+    r, a, acq, tgt = hand_case
+    a.merger.refinance_target_debt = True
+    plain = _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=40.0), a)
+    a.merger.refinancing_premium = 0.02
+    result = _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=40.0), a)
+
+    # The walk moves only by the interest on the 10mm more the facility raised.
+    rate = a.tax.marginal_tax_rate
+    assert result.accretion.pro_forma_net_income == pytest.approx(
+        plain.accretion.pro_forma_net_income - 10.0 * 0.06 * (1 - rate)
+    )
+    assert any("prepayment premium on the target's refinanced" in n for n in result.accretion.notes)
+    # 8% refinanced at 6% saves 10mm a year, so the 10mm premium is a year of it.
+    line = next(c for c in result.checks if c.startswith("Refinancing 500mm of TGT"))
+    assert "on top of a 10mm prepayment premium paid once at close" in line
+    assert "takes 1.0 years to earn back" in line
+
+
+def test_the_premium_is_expensed_at_close_not_allocated(pa_case):
+    r, a, acq, tgt = pa_case
+    tgt = replace(tgt, straight_debt=500.0, interest_expense=25.0)
+    a.merger.refinance_target_debt = True
+    plain = _rerun(acq, tgt, a).purchase_accounting
+    a.merger.refinancing_premium = 0.02
+    pa = _rerun(acq, tgt, a).purchase_accounting
+    assert pa.opening.goodwill_created == pytest.approx(plain.opening.goodwill_created)
+    note = next(n for n in pa.notes if "of target borrowings are repaid" in n)
+    assert "The 10mm prepayment premium on them is a loss on extinguishment" in note

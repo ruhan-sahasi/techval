@@ -626,6 +626,17 @@ class MergerAssumptions(_Base):
             "on them stops."
         ),
     )
+    refinancing_premium: float = Field(
+        0.0,
+        ge=0.0,
+        le=0.5,
+        description=(
+            "Prepayment premium on the borrowings repaid at close, as a share of them: "
+            "a make-whole or call premium. Paid at close and funded with the "
+            "repayment, it is a loss on extinguishment and is kept out of the run-rate "
+            "walk as the deal fees are. Only read with refinance_target_debt on."
+        ),
+    )
     deal_fees: float = Field(0.0, description="Advisory and other one-time fees, USD mm.")
     financing_fees: float = 0.0
     financing_fee_amort_years: int = 7
@@ -642,6 +653,17 @@ class MergerAssumptions(_Base):
     purchase_accounting: PurchaseAccountingAssumptions = Field(
         default_factory=PurchaseAccountingAssumptions
     )
+
+    @model_validator(mode="after")
+    def _check(self) -> "MergerAssumptions":
+        if self.refinancing_premium and not self.refinance_target_debt:
+            raise ConfigError(
+                "merger.refinancing_premium is a premium on borrowings repaid at close, "
+                "but merger.refinance_target_debt is off, so nothing is repaid and the "
+                "premium would change nothing. Turn refinancing on, or leave the premium "
+                "at zero."
+            )
+        return self
 
 
 # --------------------------------------------------------------------------- #

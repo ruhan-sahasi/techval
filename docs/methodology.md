@@ -1531,7 +1531,14 @@ interest expense. An expense filed with a minus sign, as Disney's is, is read by
 its size; a target that files only net interest is refused, since that figure is
 its coupon less what its cash earns. The checks price the move from the target's
 rate to the facility's, and leverage counts the repaid debt once, in the
-facility, rather than again in the target's net debt.
+facility, rather than again in the target's net debt. The rule of thumb in §8.1
+prices the cash leg of the consideration only, so the repayment comes out of its
+funding mix first. `merger.refinancing_premium` adds a make-whole or call premium
+as a share of what is repaid: funded at close with the repayment, kept out of the
+run-rate walk with the deal fees because it is a loss on extinguishment booked
+once, and expensed rather than allocated, so goodwill does not move. Where the
+facility is cheaper than the debt it replaces, the check says how many years the
+saving takes to earn the premium back.
 
 **Percentage accretion is withheld when the base will not support it.** The
 convention is to quote accretion as a percentage of standalone EPS, and that
@@ -1737,9 +1744,9 @@ parts of section 382 beyond the annual cap, such as the built-in gains that rais
 it, are not modelled here either. The cost to achieve the synergies is one
 number spread evenly, not a schedule of severance, systems and retention, and
 nothing ties its size to the synergies it buys. Refinancing the target's
-borrowings is all or nothing: a covenant that forces out one tranche and not
-another, or prices a make-whole premium, is not read from the filings. No share
-buyback. No second bid.
+borrowings is all or nothing, at one premium: a covenant that forces out one
+tranche and not another, or a make-whole that differs by note, is not read from
+the filings. No share buyback. No second bid.
 
 Left at its default the module stops before all of this, and the year-one screen
 is exactly what it says it is: two sets of trailing twelve month figures, telling
