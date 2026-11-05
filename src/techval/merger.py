@@ -158,8 +158,10 @@ class Consideration:
     cash_used: float
     pct_cash: float
     pct_stock: float
-    # Repaid at close under merger.refinance_target_debt, and funded with the cash.
+    # Repaid at close under merger.refinance_target_debt, and funded with the cash,
+    # with any prepayment premium paid on them.
     target_debt_repaid: float = 0.0
+    refinancing_premium_paid: float = 0.0
 
     @property
     def target_net_debt(self) -> float:
@@ -174,6 +176,10 @@ class Consideration:
         ] + (
             [("  of which borrowings repaid at close", self.target_debt_repaid)]
             if self.target_debt_repaid
+            else []
+        ) + (
+            [("  prepayment premium paid on them", self.refinancing_premium_paid)]
+            if self.refinancing_premium_paid
             else []
         ) + [
             ("Enterprise purchase price", self.enterprise_purchase_price),
@@ -580,7 +586,10 @@ def build_consideration(
     # Fees and any repayment are funded like the cash portion. Balance sheet cash
     # goes first, new debt takes the remainder, which is what "cash and new debt"
     # means in a press release.
-    cash_need = cash_consideration + m.deal_fees + m.financing_fees + repaid
+    premium_paid = repaid * m.refinancing_premium
+    cash_need = (
+        cash_consideration + m.deal_fees + m.financing_fees + repaid + premium_paid
+    )
     available = acq_fin.cash + acq_fin.short_term_investments
     if m.balance_sheet_cash_used > available:
         raise ConfigError(
@@ -612,6 +621,7 @@ def build_consideration(
         pct_cash=pct_cash,
         pct_stock=pct_stock,
         target_debt_repaid=repaid,
+        refinancing_premium_paid=premium_paid,
     )
 
 
@@ -627,6 +637,10 @@ def _sources_and_uses(
     ] + (
         [("Use", "Repayment of target borrowings", cons.target_debt_repaid)]
         if cons.target_debt_repaid
+        else []
+    ) + (
+        [("Use", "Prepayment premium on them", cons.refinancing_premium_paid)]
+        if cons.refinancing_premium_paid
         else []
     )
     sources = [
@@ -826,6 +840,13 @@ def _run_accretion(
         accretion_pct = None
         notes.append(str(exc))
 
+    if cons.refinancing_premium_paid:
+        notes.append(
+            f"the {cons.refinancing_premium_paid:,.0f}mm prepayment premium on the "
+            "target's refinanced borrowings is paid at close and funded in sources and "
+            "uses, and kept out of this walk with the deal fees: it is a loss on "
+            "extinguishment booked once, at close, not a run-rate cost"
+        )
     notes.append(
         f"deal fees of {m.deal_fees:,.0f}mm are funded in sources and uses but are "
         "excluded from this walk. They are incurred once at close, so charging them "
@@ -1041,9 +1062,15 @@ def _rule_of_thumb_checks(
     acq_yield = acq_ni / acq_equity if acq_ni > 0 and acq_equity > 0 else None
     tgt_yield = tgt_ni / cons.equity_purchase_price if tgt_ni > 0 else None
 
-    funded = cons.new_debt + cons.cash_used
+    # Borrowings repaid at close, and any premium on them, are funded too but buy
+    # nothing, so they come out of the mix first, from the facility at the margin,
+    # then from the cash.
+    refinancing = cons.target_debt_repaid + cons.refinancing_premium_paid
+    debt_for_deal = max(cons.new_debt - refinancing, 0.0)
+    cash_for_deal = cons.cash_used - max(refinancing - cons.new_debt, 0.0)
+    funded = debt_for_deal + cash_for_deal
     pretax_cash_cost = (
-        (cons.new_debt * m.cost_of_new_debt + cons.cash_used * m.foregone_cash_yield)
+        (debt_for_deal * m.cost_of_new_debt + cash_for_deal * m.foregone_cash_yield)
         / funded
         if funded > 0
         else m.cost_of_new_debt
@@ -1137,6 +1164,13 @@ def _rule_of_thumb_checks(
     if cons.target_debt_repaid:
         own = _interest_stopped(tgt_fin, cons) / cons.target_debt_repaid
         spread = (m.cost_of_new_debt - own) * cons.target_debt_repaid
+        paid = cons.refinancing_premium_paid
+        premium = ""
+        if paid:
+            premium = f", on top of a {paid:,.0f}mm prepayment premium paid once at close"
+            if spread < 0:
+                years = paid / -spread
+                premium += f", which the lower rate takes {years:,.1f} years to earn back"
         checks.append(
             f"Refinancing {cons.target_debt_repaid:,.0f}mm of {tgt_fin.ticker} "
             f"borrowings moves them from the {own:.2%} they cost the target to the "
@@ -1146,6 +1180,7 @@ def _rule_of_thumb_checks(
                 if spread >= 0
                 else f"{-spread:,.0f}mm a year less before tax"
             )
+            + premium
             + ". Where a change of control clause forces the repayment that is a "
             "cost of the deal; where the debt could have stayed, it is a choice."
         )
@@ -1345,6 +1380,13 @@ def _opening_balance_sheet(
             "as merger.refinance_target_debt has it, and funded with the cash "
             "consideration in sources and uses. The target's interest on them comes out "
             "of the non-operating line and the facility charges for them instead."
+            + (
+                f" The {cons.refinancing_premium_paid:,.0f}mm prepayment premium on them "
+                "is a loss on extinguishment, expensed at close rather than allocated, so "
+                "it touches neither book equity nor goodwill."
+                if cons.refinancing_premium_paid
+                else ""
+            )
             + (
                 f" The other {left:,.0f}mm of the target's debt, its leases counted as "
                 "debt and anything the bridge does not treat as borrowing, stays in "

@@ -960,21 +960,50 @@ def drawn(gallery, tmp_path_factory):
         "--hide-scrollbars",
         "--window-size=1440,900",
         "--virtual-time-budget=15000",
+        # Late in a long run Chrome's updater has woken during the launch and the
+        # page never came back. These keep the dump from reaching for the network
+        # or the updater at all; what the probe measures does not change.
+        "--disable-background-networking",
+        "--disable-component-update",
+        "--no-first-run",
+        "--no-default-browser-check",
         "--dump-dom",
         page.as_uri() + "?theme=light",
     ]
     # A private --user-data-dir makes Chrome on macOS dump the page and then never
-    # exit, so the run uses headless Chrome's own throwaway profile. Should a run
-    # still hang after the dump, what it printed is enough.
-    try:
-        result = subprocess.run(command, capture_output=True, timeout=180)
-        out, err = result.stdout, result.stderr
-    except subprocess.TimeoutExpired as hung:
-        out, err = hung.stdout or b"", hung.stderr or b""
-    out = out.decode("utf-8", "replace")
-    match = re.search(r'<pre id="tv-probe">(.*?)</pre>', out, flags=re.S)
-    assert match, f"the probe did not report: {err.decode('utf-8', 'replace')[-2000:]}"
-    return json.loads(html.unescape(match.group(1)))
+    # exit, so the run uses headless Chrome's own throwaway profile.
+    return _draw(command)
+
+
+# Launches of the same page before an empty dump is taken as the page's fault.
+_DRAW_ATTEMPTS = 3
+
+
+def _draw(command: list[str], attempts: int = _DRAW_ATTEMPTS, run=subprocess.run) -> dict:
+    """What the probe reported, launching Chrome again if a dump came back without it.
+
+    Every launch draws the same page, so a retry cannot pass a page that does not
+    draw: one that never reports fails after the last attempt with every
+    attempt's stderr. What a retry absorbs is the browser's own environment,
+    which has returned an empty dump while the page itself was fine. Should a
+    launch hang after the dump, what it printed is enough.
+    """
+    failures = []
+    for _ in range(attempts):
+        try:
+            result = run(command, capture_output=True, timeout=180)
+            out, err = result.stdout, result.stderr
+        except subprocess.TimeoutExpired as hung:
+            out, err = hung.stdout or b"", hung.stderr or b""
+        text = out.decode("utf-8", "replace")
+        match = re.search(r'<pre id="tv-probe">(.*?)</pre>', text, flags=re.S)
+        if match:
+            return json.loads(html.unescape(match.group(1)))
+        failures.append((err or b"").decode("utf-8", "replace")[-2000:])
+    raise AssertionError(
+        f"the probe did not report in {attempts} launches: "
+        + "\n---\n".join(failures)
+    )
 
 
 def _checked(drawn, name):
@@ -1162,3 +1191,25 @@ def test_a_deep_link_is_held_while_the_charts_above_it_draw():
     assert "watcher.observe(document.body)" in text
     for name in ("wheel", "touchstart", "keydown", "pointerdown"):
         assert f'"{name}"' in text
+
+
+def test_an_empty_dump_is_drawn_again_and_a_page_that_never_reports_still_fails():
+    """No Chrome needed: the launcher is a stand-in that returns what it is told to."""
+    from types import SimpleNamespace
+
+    probed = b'<pre id="tv-probe">{&quot;ok&quot;: 1}</pre>'
+    dumps = [b"", probed]
+    calls = []
+
+    def flaky(command, **kwargs):
+        calls.append(command)
+        return SimpleNamespace(stdout=dumps[len(calls) - 1], stderr=b"updater woke")
+
+    assert _draw(["chrome"], run=flaky) == {"ok": 1}
+    assert len(calls) == 2
+
+    def never(command, **kwargs):
+        return SimpleNamespace(stdout=b"", stderr=b"updater woke")
+
+    with pytest.raises(AssertionError, match="did not report in 3 launches: updater woke"):
+        _draw(["chrome"], run=never)

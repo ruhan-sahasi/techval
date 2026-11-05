@@ -193,6 +193,9 @@ merger:
   # of control clause forces their repayment at close: they are funded like the
   # cash consideration and the target's interest on them stops. Leases stay.
   refinance_target_debt: false
+  # Prepayment premium on the borrowings repaid, as a share of them: a make-whole
+  # or call premium. Paid at close and kept out of run-rate EPS like the deal fees.
+  refinancing_premium: 0.0
 
   deal_fees: 250.0          # one-time, excluded from run-rate EPS
   financing_fees: 90.0

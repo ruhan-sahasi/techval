@@ -1946,10 +1946,11 @@ tag, the same gap that makes its EV/EBITDA non-meaningful in the comp table.
 
 The target's borrowings are assumed at close unless
 `merger.refinance_target_debt` says a change of control forces them out, and
-then all of them are: a covenant that catches one tranche and not another, or a
-make-whole premium, has to be worked out by hand. The repayment needs the
-target's interest expense to add its interest back, so a filer that reports only
-net interest is refused.
+then all of them are, at the one premium `merger.refinancing_premium` sets: a
+covenant that catches one tranche and not another, or a make-whole that differs
+by note, has to be worked out by hand. The repayment needs the target's interest
+expense to add its interest back, so a filer that reports only net interest is
+refused.
 
 Left at its default the merger module is a screen: no opening balance sheet, no
 goodwill, no deferred tax on the step-up, no deferred revenue haircut, no debt

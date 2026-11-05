@@ -870,7 +870,9 @@ def test_the_merger_command_prints_the_cost_to_achieve(tmp_path):
 
 def test_the_merger_command_repays_the_targets_borrowings_when_told_to(tmp_path):
     """Disney carries 46bn of borrowings, so a forced repayment is visible end to end."""
-    body = MERGER_BODY.replace("merger:\n", "merger:\n  refinance_target_debt: true\n")
+    body = MERGER_BODY.replace(
+        "merger:\n", "merger:\n  refinance_target_debt: true\n  refinancing_premium: 0.01\n"
+    )
     result = runner.invoke(
         C.app, ["merger", "DDOG", "DIS", "--as-of", AS_OF, "-c", str(_config(tmp_path, body))]
     )
@@ -883,5 +885,7 @@ def test_the_merger_command_repays_the_targets_borrowings_when_told_to(tmp_path)
         "Repayment of target borrowings",
         "DIS interest no longer paid",
         "of target borrowings are repaid at close",
+        "prepayment premium paid on them 460.41",
+        "Prepayment premium on them 460",
     ):
         assert text in flat, text
