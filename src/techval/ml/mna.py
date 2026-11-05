@@ -134,7 +134,7 @@ exactly.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Any
@@ -875,29 +875,6 @@ def balance_sheet_extras(
         - fin.finance_lease_liability
     )
     return {"mna_net_cash_to_assets": float(net_cash / (assets / 1e6))}
-
-
-def collect_extras(
-    tickers: Sequence[str],
-    dates: Sequence[date],
-    client_factory: Callable[[date], Any],
-) -> dict[tuple[str, date], dict[str, float | None]]:
-    """``balance_sheet_extras`` across a panel, one pinned client per date.
-
-    Shaped like ``features.build_panel`` and for the same reason: one client can
-    only be pinned to one date, so a panel spanning many needs a factory. A
-    company that cannot be resolved on a date is recorded as missing rather than
-    skipped, so the gap reaches ``mna_missing_share`` instead of vanishing.
-    """
-    out: dict[tuple[str, date], dict[str, float | None]] = {}
-    for when in dates:
-        client = client_factory(when)
-        for ticker in tickers:
-            try:
-                out[(ticker, when)] = balance_sheet_extras(ticker, when, client)
-            except (TechvalError, OSError):
-                out[(ticker, when)] = {"mna_net_cash_to_assets": None}
-    return out
 
 
 def derive_features(
