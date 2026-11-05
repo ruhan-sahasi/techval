@@ -746,33 +746,6 @@ class PeerModelAssumptions(_Base):
             "in a 200bn company's comp set however similar the prose."
         ),
     )
-    require_same_sub_vertical: bool = Field(
-        False,
-        description=(
-            "NOT IMPLEMENTED, and it refuses rather than being ignored. The "
-            "encoder gates its candidate list on min_market_cap and "
-            "max_size_ratio and on nothing else; there is no sub-vertical gate "
-            "behind this name. Left as the only field in this file that read as "
-            "a setting and reached no code, it would be a written claim the "
-            "engine does not keep, which is the failure this package is built "
-            "around avoiding."
-        ),
-    )
-
-    @field_validator("require_same_sub_vertical")
-    @classmethod
-    def _refuse_an_unimplemented_gate(cls, value: bool) -> bool:
-        if value:
-            raise ConfigError(
-                "ml.peers.require_same_sub_vertical is not implemented. The "
-                "encoder applies min_market_cap and max_size_ratio to its "
-                "candidate list and no sub-vertical gate, so setting this true "
-                "would change nothing and the ranking would not be what the "
-                "assumptions file says it is. Restrict the ranking by hand from "
-                "the Company column of `techval peers TICKER`, or set "
-                "tmt.sub_vertical to correct a misclassified target."
-            )
-        return value
 
 
 class ForecastAssumptions(_Base):
