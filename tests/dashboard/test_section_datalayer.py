@@ -564,10 +564,6 @@ def pinned() -> dict[str, Any]:
     return section
 
 
-def _tiles(section: dict[str, Any], fid: str) -> dict[str, dict[str, Any]]:
-    return {t["label"]: t for t in section["figures"][fid]["data"]["tiles"]}
-
-
 def test_pinned_debt_reach(pinned):
     counts = pinned["figures"]["debt_reach"]["data"]["counts"]
     assert (counts["long_term"]["reached"], counts["long_term"]["reporting"]) == (80, 81)

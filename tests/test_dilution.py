@@ -43,7 +43,6 @@ BAND_AXIS = (
     "us-gaap:ShareBasedCompensationSharesAuthorizedUnderStockOptionPlans"
     "ExercisePriceRangeAxis"
 )
-CLASS_AXIS = "us-gaap:StatementClassOfStockAxis"
 COVER = "EntityCommonStockSharesOutstanding"
 
 
