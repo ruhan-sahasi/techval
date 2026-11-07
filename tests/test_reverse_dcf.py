@@ -14,7 +14,6 @@ from pathlib import Path
 import pytest
 
 from techval.config import Assumptions
-from techval.dcf import run_dcf
 from techval.edgar import CompanyFacts, HttpCache
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials

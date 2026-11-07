@@ -20,8 +20,6 @@ from techval.wacc import (
     vasicek_adjust,
 )
 
-from conftest import AS_OF
-
 
 # --------------------------------------------------------------------------- #
 # Hamada
