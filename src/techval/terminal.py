@@ -1,5 +1,5 @@
 """What the commands print with: a console, the rule over each section, the notes
-under it, and how money and percentages read in a table.
+under it, and how money, percentages and multiples read in a table.
 
 The commands are spread over cli.py and the commands_* modules that cli.py
 imports, so none of those modules can import these back from cli.py. They import
