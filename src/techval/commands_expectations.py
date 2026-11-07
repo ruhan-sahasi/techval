@@ -13,23 +13,22 @@ bear, base and bull case valued through the same DCF.
 from __future__ import annotations
 
 import json
-import sys
 from datetime import date
 from pathlib import Path
 
 import typer
-from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
 from .anchors import summary as record_summary
 from .config import Assumptions, ml_cache_root
 from .errors import TechvalError
+from .terminal import make_console
 
 app = typer.Typer()
 # As in cli.py: a piped or redirected run gets a width that fits the tables
 # rather than Rich's eighty columns.
-console = Console(width=None if sys.stdout.isatty() else 120)
+console = make_console(120)
 
 CHECKOUT_PANELS = Path(__file__).resolve().parent.parent.parent / "tests" / "fixtures"
 
