@@ -95,9 +95,7 @@ AS_OF = date(2026, 9, 11)
 #: and that is a fact about the filing record rather than a shortcut here.
 SPLUNK = "CIK1353283"
 SLACK = "CIK1764925"
-MANDIANT = "CIK1370880"
 ROKU = "ROKU"
-DATADOG = "DDOG"
 DATADOG_CIK = "CIK1561550"
 
 

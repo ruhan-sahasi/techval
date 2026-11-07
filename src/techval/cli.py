@@ -33,13 +33,11 @@ rather than merely intended.
 
 from __future__ import annotations
 
-import sys
 from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
 import typer
-from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
@@ -85,6 +83,14 @@ from .ml.forecast import compare_fade
 from .ml.mna import fit_propensity
 from .ml.signals import Score, test_signal
 from .ml.warranted import fit_warranted
+from .terminal import (
+    format_money,
+    format_multiple,
+    format_pct,
+    make_console,
+    print_notes,
+    print_rule,
+)
 from .tmt.precedents import build_precedents
 from .tmt.segments import build_segments
 from .tmt.sotp import run_sotp
@@ -116,7 +122,7 @@ app = typer.Typer(
 # A comp table is thirteen columns wide. Rich falls back to eighty when stdout
 # is not a terminal, which crushes every column to three characters in a piped
 # or redirected run, so a redirected run is given a width that fits the tables.
-console = Console(width=None if sys.stdout.isatty() else 120)
+console = make_console(120)
 
 
 def _print_version(value: bool) -> None:
@@ -185,25 +191,6 @@ _ASOF = typer.Option(
 # --------------------------------------------------------------------------- #
 
 
-def _rule(title: str) -> None:
-    console.print()
-    console.rule(Text(title, style="bold"), style="dim")
-
-
-def _money(v: float | None, dp: int = 0) -> str:
-    if v is None:
-        return "n/a"
-    return f"({abs(v):,.{dp}f})" if v < 0 else f"{v:,.{dp}f}"
-
-
-def _pct(v: float | None, dp: int = 1) -> str:
-    return "n/a" if v is None else f"{v:.{dp}%}"
-
-
-def _mult(v: float | None) -> str:
-    return "NM" if v is None else f"{v:,.1f}x"
-
-
 # Rows whose value is a fraction, not an amount. Printing 0.176 where the label
 # says "%" understates the figure by a hundred and reads as seventeen cents.
 _PERCENT_ROWS = (
@@ -221,7 +208,9 @@ def _kv_table(rows: list[tuple[str, float]], *, title: str, dp: int = 1) -> Tabl
     for label, value in rows:
         style = "bold" if label.lower().startswith(("enterprise", "pro forma eps")) else ""
         shown = (
-            _pct(value) if label.lower() in _PERCENT_ROWS else _money(value, dp)
+            format_pct(value)
+            if label.lower() in _PERCENT_ROWS
+            else format_money(value, dp)
         )
         t.add_row(Text(label, style=style), Text(shown, style=style))
     return t
@@ -243,15 +232,6 @@ def _frame_table(df: pd.DataFrame, *, title: str, index_label: str = "") -> Tabl
                 cells.append(str(v))
         t.add_row(str(idx), *cells)
     return t
-
-
-def _notes(items: list[str], *, heading: str = "Notes") -> None:
-    if not items:
-        return
-    console.print(f"\n[bold]{heading}[/bold]")
-    for n in items:
-        style = "yellow" if n.upper().startswith(("FLAG", "WARN")) else "dim"
-        console.print(Text(f"  - {n}", style=style))
 
 
 def _setup(config: Path | None, no_cache: bool, as_of: str | None = None):
@@ -286,7 +266,7 @@ def _load(ticker: str, client, market, assumptions):
 
 
 def _render_financials(fin) -> None:
-    _rule(f"{fin.entity_name} ({fin.ticker})  normalized TTM, USD millions")
+    print_rule(console, f"{fin.entity_name} ({fin.ticker})  normalized TTM, USD millions")
     console.print(
         f"[dim]CIK {fin.cik}   twelve months ended {fin.as_of}[/dim]\n"
     )
@@ -318,14 +298,14 @@ def _render_financials(fin) -> None:
             "Working capital, ex financing",
         ):
             margin = f"{v / fin.revenue:.1%} of revenue"
-        t.add_row(label, _money(v, 1), margin)
+        t.add_row(label, format_money(v, 1), margin)
     console.print(t)
-    _notes(fin.warnings, heading="Data quality")
+    print_notes(console, fin.warnings, heading="Data quality")
 
 
 def _render_share_count(sc) -> None:
     """The walk from shares outstanding to a fully diluted count."""
-    _rule("Share count")
+    print_rule(console, "Share count")
     t = Table(box=None, pad_edge=False)
     t.add_column("")
     t.add_column("", justify="right")
@@ -337,13 +317,13 @@ def _render_share_count(sc) -> None:
     console.print(f"\n[dim]Method: {sc.method}"
                   + (f", from {sc.accession}" if sc.accession else "")
                   + (f" as of {sc.as_of}" if sc.as_of else "") + ".[/dim]")
-    _notes(list(sc.flags), heading="Flags")
-    _notes(list(sc.notes))
+    print_notes(console, list(sc.flags), heading="Flags")
+    print_notes(console, list(sc.notes))
 
 
 def _render_regression(fit) -> None:
     """The multiple the target's own fundamentals warrant, and the residual."""
-    _rule("Warranted multiple from fundamentals")
+    print_rule(console, "Warranted multiple from fundamentals")
     t = Table(box=None, pad_edge=False)
     t.add_column("")
     t.add_column("", justify="right")
@@ -354,7 +334,7 @@ def _render_regression(fit) -> None:
         elif "multiple" in low or "residual" in low:
             shown = f"{value:,.2f}x"
         elif "price" in low or "implied ev" in low:
-            shown = _money(value)
+            shown = format_money(value)
         elif "r-squared" in low:
             shown = f"{value:.3f}"
         else:
@@ -363,15 +343,15 @@ def _render_regression(fit) -> None:
         t.add_row(Text(label, style="bold" if bold else ""),
                   Text(shown, style="bold" if bold else ""))
     console.print(t)
-    _notes(list(fit.notes))
+    print_notes(console, list(fit.notes))
 
 
 def _render_purchase_accounting(pa) -> None:
     """Opening balance sheet and the pro forma years it feeds."""
-    _rule("Purchase accounting: opening balance sheet")
+    print_rule(console, "Purchase accounting: opening balance sheet")
     console.print(_kv_table(pa.opening.rows(), title="", dp=0))
 
-    _rule("Pro forma")
+    print_rule(console, "Pro forma")
     t = Table(box=None, pad_edge=False)
     t.add_column("")
     for y in pa.years:
@@ -398,7 +378,7 @@ def _render_purchase_accounting(pa) -> None:
         rows.append(("Of which the target's, under its cap", "capped_carryforward", 0))
     for label, attr, dp in rows:
         bold = label in ("EPS", "Net income")
-        cells = [Text(_money(getattr(y, attr), dp), style="bold" if bold else "")
+        cells = [Text(format_money(getattr(y, attr), dp), style="bold" if bold else "")
                  for y in pa.years]
         t.add_row(Text(label, style="bold" if bold else ""), *cells)
     # ``accretion_by_year`` holds (year, dollars per share, percent or None):
@@ -408,24 +388,24 @@ def _render_purchase_accounting(pa) -> None:
     # percent row prints NM in exactly the years the model refused to quote one.
     t.add_row(
         Text("Accretion / (dilution), $", style="bold"),
-        *[Text(_money(dollars, 3)) for _, dollars, _ in pa.accretion_by_year],
+        *[Text(format_money(dollars, 3)) for _, dollars, _ in pa.accretion_by_year],
     )
     if any(pct is not None for _, _, pct in pa.accretion_by_year):
         t.add_row(
             Text("Accretion / (dilution), %", style="bold"),
             *[
-                Text(_pct(pct) if pct is not None else "NM")
+                Text(format_pct(pct) if pct is not None else "NM")
                 for _, _, pct in pa.accretion_by_year
             ],
         )
     console.print(t)
-    _notes(list(pa.checks), heading="Cross-checks")
-    _notes(list(pa.notes))
+    print_notes(console, list(pa.checks), heading="Cross-checks")
+    print_notes(console, list(pa.notes))
 
 
 def _render_simulation(sim) -> None:
     """The distribution, and what it is and is not a probability about."""
-    _rule("Monte Carlo")
+    print_rule(console, "Monte Carlo")
     t = Table(box=None, pad_edge=False)
     t.add_column("")
     for c in ("5th", "25th", "Median", "75th", "95th", "Mean", "SD"):
@@ -451,7 +431,7 @@ def _render_simulation(sim) -> None:
         "a tight distribution around a wrong central case is confidently wrong.[/dim]"
     )
 
-    _rule("Tornado")
+    print_rule(console, "Tornado")
     t = Table(box=None, pad_edge=False)
     t.add_column("Driver")
     t.add_column("Low", justify="right")
@@ -464,13 +444,13 @@ def _render_simulation(sim) -> None:
                   f"{d.low_price:,.2f}", f"{d.high_price:,.2f}",
                   Text(f"{d.swing:,.2f}", style="bold"))
     console.print(t)
-    _notes(list(sim.checks), heading="Cross-checks")
-    _notes(list(sim.notes))
+    print_notes(console, list(sim.checks), heading="Cross-checks")
+    print_notes(console, list(sim.notes))
 
 
 def _render_apv(a) -> None:
     """Unlevered value plus financing side effects, reconciled to the WACC answer."""
-    _rule("Adjusted present value")
+    print_rule(console, "Adjusted present value")
     rows = [
         ("Unlevered cost of equity", a.unlevered_cost_of_equity),
         ("Unlevered value", a.unlevered_value),
@@ -485,7 +465,7 @@ def _render_apv(a) -> None:
     t.add_column("", justify="right")
     for label, v in rows:
         bold = label.startswith(("Total value", "Difference"))
-        shown = f"{v:.2%}" if "cost of equity" in label.lower() else _money(v)
+        shown = f"{v:.2%}" if "cost of equity" in label.lower() else format_money(v)
         t.add_row(Text(label, style="bold" if bold else ""),
                   Text(shown, style="bold" if bold else ""))
     console.print(t)
@@ -494,27 +474,27 @@ def _render_apv(a) -> None:
         f"Shield discounted at the {a.shield_discount_rate.replace('_', ' ')} "
         f"({a.shield_rate:.2%}).[/dim]"
     )
-    _notes(list(a.checks), heading="Reconciliation")
-    _notes(list(a.notes))
+    print_notes(console, list(a.checks), heading="Reconciliation")
+    print_notes(console, list(a.notes))
 
 
 def _render_bridge(bridge, fin) -> None:
-    _rule("Enterprise value bridge")
+    print_rule(console, "Enterprise value bridge")
     console.print(_kv_table(bridge.rows(), title="", dp=1))
     den, label = bridge.multiple_denominator(fin)
     console.print(
         f"\n[dim]Convention: {bridge.lease_convention}. "
-        f"Multiples pair this EV with {label} = {_money(den, 1)}.[/dim]"
+        f"Multiples pair this EV with {label} = {format_money(den, 1)}.[/dim]"
     )
     console.print(
-        f"[dim]EV excluding operating leases {_money(bridge.ev_excluding_leases)}   "
-        f"including {_money(bridge.ev_including_leases)}[/dim]"
+        f"[dim]EV excluding operating leases {format_money(bridge.ev_excluding_leases)}   "
+        f"including {format_money(bridge.ev_including_leases)}[/dim]"
     )
-    _notes(bridge.notes)
+    print_notes(console, bridge.notes)
 
 
 def _render_wacc(w) -> None:
-    _rule("WACC buildup")
+    print_rule(console, "WACC buildup")
     t = Table(box=None, pad_edge=False)
     t.add_column("Input")
     t.add_column("Value", justify="right")
@@ -527,7 +507,7 @@ def _render_wacc(w) -> None:
         elif kind == "beta":
             shown = f"{v:,.3f}"
         elif kind == "usd_mm":
-            shown = _money(v)
+            shown = format_money(v)
         else:
             shown = f"{v:,.0f}"
         bold = r["label"] in ("WACC", "Cost of equity")
@@ -537,24 +517,25 @@ def _render_wacc(w) -> None:
             r["source"],
         )
     console.print(t)
-    _notes(w.notes)
+    print_notes(console, w.notes)
 
 
 def _render_record_case(anchors) -> None:
     """The DCF assumptions the filings set, beside what the assumptions file had."""
-    _rule("The record case: the DCF from the filings")
+    print_rule(console, "The record case: the DCF from the filings")
     t = Table(box=None, pad_edge=False)
     for name, justify in (("Assumption", "left"), ("Assumptions file", "right"), ("From the record", "right"), ("Source", "left")):
         t.add_column(name, justify=justify)
     for a in anchors:
-        t.add_row(RECORD_LABELS[a.field], _pct(a.assumed) if a.assumed is not None else "-", _pct(a.value), a.source)
+        assumed = format_pct(a.assumed) if a.assumed is not None else "-"
+        t.add_row(RECORD_LABELS[a.field], assumed, format_pct(a.value), a.source)
     console.print(t)
     for field in unanchored(a.field for a in anchors):
         console.print(f"  [yellow]{RECORD_LABELS[field]} is not in the filings, so it stays at the assumption.[/yellow]")
 
 
 def _render_dcf(d) -> None:
-    _rule("Discounted cash flow")
+    print_rule(console, "Discounted cash flow")
     # Transposed: line items down the side, years across the top. That is how a
     # projection is read, and it also keeps thirteen metrics inside a terminal
     # width that would otherwise crush every column to three characters.
@@ -614,12 +595,12 @@ def _render_dcf(d) -> None:
     console.print(
         f"\n[dim]Per-share figures divide by {d.shares_for_value:,.1f}mm shares.[/dim]"
     )
-    _notes(d.checks, heading="Cross-checks")
-    _notes(d.notes)
+    print_notes(console, d.checks, heading="Cross-checks")
+    print_notes(console, d.notes)
 
 
 def _render_comps(result) -> None:
-    _rule(f"Trading comparables: {result.target.ticker}")
+    print_rule(console, f"Trading comparables: {result.target.ticker}")
     df = result.table()
     show = df[
         [
@@ -644,16 +625,16 @@ def _render_comps(result) -> None:
     ].copy()
     for c in ("Rev growth", "EBITDA margin"):
         if c in show:
-            show[c] = show[c].map(lambda v: _pct(v) if pd.notna(v) else "NM")
+            show[c] = show[c].map(lambda v: format_pct(v) if pd.notna(v) else "NM")
     for c in ("EV/Revenue", "EV/Gross Profit", "EV/EBITDA", "EV/EBIT", "P/E"):
         if c in show:
-            show[c] = show[c].map(lambda v: _mult(v) if pd.notna(v) else "NM")
+            show[c] = show[c].map(lambda v: format_multiple(v) if pd.notna(v) else "NM")
     for c in ("Price", "Rule of 40"):
         if c in show:
             show[c] = show[c].map(lambda v: f"{v:,.1f}" if pd.notna(v) else "NM")
     for c in ("Market cap", "EV", "Revenue"):
         if c in show:
-            show[c] = show[c].map(lambda v: _money(v) if pd.notna(v) else "NM")
+            show[c] = show[c].map(lambda v: format_money(v) if pd.notna(v) else "NM")
     console.print(_frame_table(show.set_index("Ticker"), title="", index_label="Ticker"))
 
     console.print()
@@ -673,8 +654,8 @@ def _render_comps(result) -> None:
     flags = [
         f"{p.ticker}: {f}" for p in result.peers for f in p.flags
     ]
-    _notes(flags, heading="Suppressed multiples")
-    _notes(result.notes)
+    print_notes(console, flags, heading="Suppressed multiples")
+    print_notes(console, result.notes)
 
 
 # --------------------------------------------------------------------------- #
@@ -1019,7 +1000,7 @@ def _render_model_card(card, *, source: str, extra=()) -> None:
     console.print("\n[bold]The model behind that number[/bold]")
     console.print(t)
     console.print(Text(f"  Fitted on {source}", style="dim"))
-    _notes(list(card.limitations), heading="What this model cannot do")
+    print_notes(console, list(card.limitations), heading="What this model cannot do")
 
 
 def _card_value(value) -> str:
@@ -1093,7 +1074,7 @@ def _render_optional_signal(assumptions, model, root) -> None:
     # missing rather than being told nothing is.
     flags = [line for line in result.checks if line.startswith("FLAG:")]
     census = [line for line in result.checks if "holding periods ran their course" in line]
-    _notes(census + flags, heading="What the sample was")
+    print_notes(console, census + flags, heading="What the sample was")
     console.print(
         "\n[dim]No deal terms and no delisting return were supplied, so a name "
         "acquired or delisted inside a holding period is excluded rather than "
@@ -1151,8 +1132,8 @@ def _render_optional_propensity(ticker, assumptions, root) -> None:
     t = Table(box=None, pad_edge=False)
     t.add_column("", no_wrap=True)
     t.add_column("", justify="right")
-    t.add_row(f"{ticker.upper()} probability, {when}", _pct(probability))
-    t.add_row("Universe base rate", _pct(base))
+    t.add_row(f"{ticker.upper()} probability, {when}", format_pct(probability))
+    t.add_row("Universe base rate", format_pct(base))
     t.add_row("Ratio to base rate", f"{probability / base:,.2f}x" if base else "NM")
     t.add_row(f"Rank of {len(frame):,}", str(int(row.iloc[0]["rank"])))
     console.print(t)
@@ -1238,7 +1219,7 @@ def _render_optional_fade(ticker, fin, bridge, wacc_result, assumptions, root) -
     # Includes the point-in-time cut where one was made, which says how many
     # observations and how many forward labels were removed. A pinned run whose
     # panel was silently left at full depth would be the worst kind of wrong.
-    _notes(list(panel.notes), heading="Panel")
+    print_notes(console, list(panel.notes), heading="Panel")
     _render_model_card(
         model.card,
         source=(
@@ -1314,9 +1295,9 @@ def _render_optional_precedents(assumptions, client, market, candidates) -> None
             Text(str(deal.ticker), style="bold"),
             str(getattr(deal, "acquirer", "") or ""),
             str(getattr(deal, "announced", "") or ""),
-            _money(getattr(deal, "equity_value", None)),
-            _mult(getattr(deal, "ev_revenue", None)),
-            _pct(getattr(deal, "premium", None)),
+            format_money(getattr(deal, "equity_value", None)),
+            format_multiple(getattr(deal, "ev_revenue", None)),
+            format_pct(getattr(deal, "premium", None)),
         )
     console.print(t)
     console.print(
@@ -1381,7 +1362,7 @@ def value(
                 _render_share_count(sc)
                 fin.valuation_shares = sc.fully_diluted
             except TechvalError as exc:
-                _rule("Share count")
+                print_rule(console, "Share count")
                 console.print(
                     f"[yellow]Treasury stock count unavailable, falling back to "
                     f"diluted WASO: {exc}[/yellow]"
@@ -1425,7 +1406,7 @@ def value(
             )
             _render_dcf(d)
 
-            _rule("Sensitivities")
+            print_rule(console, "Sensitivities")
             # Centred on the discount rate the DCF actually used, which is the
             # override when one is set, not the computed WACC beside it.
             growth_grid = sensitivity_wacc_growth(fin, bridge, assumptions, d.wacc)
@@ -1449,7 +1430,7 @@ def value(
                     )
                 )
         except TechvalError as exc:
-            _rule("Discounted cash flow")
+            print_rule(console, "Discounted cash flow")
             console.print(
                 f"[yellow]The DCF could not be formed and is omitted: {exc}[/yellow]"
             )
@@ -1465,14 +1446,14 @@ def value(
                     )
                 )
             except TechvalError as exc:
-                _rule("Monte Carlo")
+                print_rule(console, "Monte Carlo")
                 console.print(f"[yellow]Simulation not run: {exc}[/yellow]")
 
         if d is not None and assumptions.apv.enabled:
             try:
                 _render_apv(run_apv(fin, bridge, w, d, assumptions))
             except TechvalError as exc:
-                _rule("Adjusted present value")
+                print_rule(console, "Adjusted present value")
                 console.print(f"[yellow]APV not run: {exc}[/yellow]")
 
         # Where the recorded model artifacts live, resolved once and shared by
@@ -1487,7 +1468,7 @@ def value(
         # because it forms its own valuations, and a DCF that could not be made
         # will refuse again here with the same reason.
         if assumptions.ml.forecast.enabled:
-            _rule("Growth: the assumed fade against a fitted one")
+            print_rule(console, "Growth: the assumed fade against a fitted one")
             try:
                 _render_optional_fade(ticker, fin, bridge, w, assumptions, root)
             except TechvalError as exc:
@@ -1501,7 +1482,7 @@ def value(
             # section that refuses is still a section: it appears in the report
             # under its own name with the reason underneath, rather than either
             # vanishing or printing its title twice.
-            _rule("Sum of the parts")
+            print_rule(console, "Sum of the parts")
             try:
                 _render_optional_sotp(
                     ticker, fin, bridge, assumptions, client, sotp_plan
@@ -1518,7 +1499,7 @@ def value(
         # panel should cost a reader that section and nothing else.
         proposed_peers: list[str] = []
         if assumptions.ml.peers.enabled:
-            _rule("Learned comp set")
+            print_rule(console, "Learned comp set")
             try:
                 proposed_peers = _render_optional_peers(ticker, assumptions, root)
             except TechvalError as exc:
@@ -1540,7 +1521,7 @@ def value(
                 warranted_error = exc
 
         if assumptions.ml.warranted.enabled:
-            _rule("Warranted multiple")
+            print_rule(console, "Warranted multiple")
             if warranted_error is not None:
                 console.print(
                     f"[yellow]Warranted multiple not fitted: {warranted_error}[/yellow]"
@@ -1556,7 +1537,7 @@ def value(
                     )
 
         if assumptions.ml.signals.enabled:
-            _rule("Has that residual ever predicted anything?")
+            print_rule(console, "Has that residual ever predicted anything?")
             if warranted_error is not None:
                 console.print(
                     "[yellow]Signal test not run: the warranted fit whose residual "
@@ -1569,14 +1550,14 @@ def value(
                     console.print(f"[yellow]Signal test not run: {exc}[/yellow]")
 
         if assumptions.ml.mna.propensity_enabled:
-            _rule("Acquisition propensity")
+            print_rule(console, "Acquisition propensity")
             try:
                 _render_optional_propensity(ticker, assumptions, root)
             except TechvalError as exc:
                 console.print(f"[yellow]Propensity not run: {exc}[/yellow]")
 
         if assumptions.ml.mna.precedents_enabled:
-            _rule("Precedent transactions")
+            print_rule(console, "Precedent transactions")
             try:
                 hand = [p.upper() for p in assumptions.comps.peers]
                 _render_optional_precedents(
@@ -1589,7 +1570,7 @@ def value(
             ticker, fin, market, d, comps_result, price, out,
             growth_grid=growth_grid, exit_grid=exit_grid,
         )
-        _rule("Output")
+        print_rule(console, "Output")
         console.print(f"Football field written to [bold]{path}[/bold]")
     except TechvalError as exc:
         console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
@@ -1718,10 +1699,10 @@ def merger(
             acq_fin, tgt_fin, acq_bridge, tgt_bridge, acq_price, tgt_price, assumptions
         )
 
-        _rule(f"{acq_fin.ticker} acquires {tgt_fin.ticker}")
+        print_rule(console, f"{acq_fin.ticker} acquires {tgt_fin.ticker}")
         console.print(_kv_table(r.consideration.rows(), title="Consideration", dp=2))
 
-        _rule("Sources and uses")
+        print_rule(console, "Sources and uses")
         t = Table(box=None, pad_edge=False)
         t.add_column("")
         t.add_column("")
@@ -1729,18 +1710,18 @@ def merger(
         for side, label, amount in r.sources_uses:
             style = "bold" if side == "Total" else ""
             t.add_row(Text(side, style=style), Text(label, style=style),
-                      Text(_money(amount), style=style))
+                      Text(format_money(amount), style=style))
         console.print(t)
 
-        _rule("Accretion / (dilution), year one on TTM figures")
+        print_rule(console, "Accretion / (dilution), year one on TTM figures")
         console.print(_kv_table(r.accretion.rows(), title="", dp=3))
         if r.accretion.breakeven_synergies is not None:
             console.print(
                 f"\n  Pre-tax synergies to break even: "
-                f"[bold]{_money(r.accretion.breakeven_synergies)}mm[/bold]"
+                f"[bold]{format_money(r.accretion.breakeven_synergies)}mm[/bold]"
             )
 
-        _rule("Contribution versus ownership")
+        print_rule(console, "Contribution versus ownership")
         t = Table(box=None, pad_edge=False)
         t.add_column("Metric")
         t.add_column(acq_fin.ticker, justify="right")
@@ -1750,21 +1731,21 @@ def merger(
         for row in r.contribution:
             t.add_row(
                 row.metric,
-                _money(row.acquirer),
-                _pct(row.acquirer_pct) if row.acquirer_pct is not None else "NM",
-                _money(row.target),
-                _pct(row.target_pct) if row.target_pct is not None else "NM",
+                format_money(row.acquirer),
+                format_pct(row.acquirer_pct) if row.acquirer_pct is not None else "NM",
+                format_money(row.target),
+                format_pct(row.target_pct) if row.target_pct is not None else "NM",
             )
         t.add_row(
             Text("Pro forma ownership", style="bold"),
             "",
-            Text(_pct(r.pro_forma_ownership["acquirer"]), style="bold"),
+            Text(format_pct(r.pro_forma_ownership["acquirer"]), style="bold"),
             "",
-            Text(_pct(r.pro_forma_ownership["target"]), style="bold"),
+            Text(format_pct(r.pro_forma_ownership["target"]), style="bold"),
         )
         console.print(t)
 
-        _rule("Sensitivity")
+        print_rule(console, "Sensitivity")
         # The grid reports percent accretion or cents per share depending on
         # whether standalone EPS is a base worth dividing by. The module says
         # which in .attrs, and the heading has to carry it or the numbers are
@@ -1778,8 +1759,8 @@ def merger(
                 index_label="Premium",
             )
         )
-        _notes(r.checks, heading="Cross-checks")
-        _notes(r.accretion.notes + r.notes)
+        print_notes(console, r.checks, heading="Cross-checks")
+        print_notes(console, r.accretion.notes + r.notes)
 
         if getattr(r, "purchase_accounting", None) is not None:
             _render_purchase_accounting(r.purchase_accounting)
@@ -1855,7 +1836,7 @@ def backtest(
             horizon_days=horizon,
         )
 
-        _rule(f"Backtest: {len(names)} names over {len(when)} dates")
+        print_rule(console, f"Backtest: {len(names)} names over {len(when)} dates")
         df = result.to_frame()
         if not df.empty:
             console.print(_frame_table(df.head(40), title="Observations", index_label=""))
@@ -1890,8 +1871,8 @@ def backtest(
                     index_label="Quintile",
                 )
             )
-        _notes(list(result.checks), heading="Cross-checks")
-        _notes(list(result.notes))
+        print_notes(console, list(result.checks), heading="Cross-checks")
+        print_notes(console, list(result.notes))
     except TechvalError as exc:
         console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
         raise typer.Exit(1)
@@ -1910,7 +1891,7 @@ def fetch(
         fin = build_financials(ticker, client=client)
         _render_financials(fin)
 
-        _rule("Provenance")
+        print_rule(console, "Provenance")
         t = Table(box=None, pad_edge=False)
         for col in ("concept", "tag", "method", "period", "form", "filed"):
             t.add_column(col, overflow="fold")
@@ -1919,7 +1900,7 @@ def fetch(
         console.print(t)
 
         notes = [r["note"] for r in fin.provenance_rows() if r["note"]]
-        _notes(sorted(set(notes)), heading="Provenance notes")
+        print_notes(console, sorted(set(notes)), heading="Provenance notes")
         console.print(
             f"\n[dim]Price {market.spot(ticker):,.2f} from "
             f"{market.prices(ticker).source}, close of "
@@ -2032,7 +2013,7 @@ def dashboard(
                 f"{snapshot}. Collect one first by leaving the flag off."
             )
 
-        _rule("Dashboard")
+        print_rule(console, "Dashboard")
         if collect:
             stamp = collected_at or date.today().isoformat()
             assumptions = Assumptions.load(config)
@@ -2065,7 +2046,7 @@ def dashboard(
             )
             dump_snapshot(snap, snapshot)
             refused = [s for s in snap.sections.values() if s["status"] == "refused"]
-            _notes(
+            print_notes(console, 
                 [
                     f"{s['id']}: {r['what']}: {r['why']}"
                     for s in refused

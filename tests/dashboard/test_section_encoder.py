@@ -46,6 +46,7 @@ from techval.ml.protocol import EvalResult, PairedDelta
 from techval.ml.text import TextCorpus
 
 from dashboard.test_frontend import KIT, _object_keys
+from .walk import numbers_at
 
 ROOT = Path(__file__).resolve().parents[2]
 SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
@@ -164,19 +165,6 @@ def _schema_checked(section: dict) -> dict:
     return full
 
 
-def _numbers(value, path="data"):
-    if isinstance(value, bool) or value is None or isinstance(value, str):
-        return
-    if isinstance(value, (int, float)):
-        yield path, value
-    elif isinstance(value, dict):
-        for k, v in value.items():
-            yield from _numbers(v, f"{path}.{k}")
-    elif isinstance(value, list):
-        for i, v in enumerate(value):
-            yield from _numbers(v, f"{path}[{i}]")
-
-
 # --------------------------------------------------------------------------- #
 # shaping
 # --------------------------------------------------------------------------- #
@@ -195,7 +183,7 @@ def test_every_figure_is_a_kit_chart_with_finite_values_and_labels():
         if fig["kind"] != "tiles":
             assert fig["subtitle"].strip(), fid
         # Before serialisation, which would quietly write a NaN as null.
-        for path, number in _numbers(raw["figures"][fid]["data"]):
+        for path, number in numbers_at(raw["figures"][fid]["data"]):
             assert math.isfinite(number), f"{fid} {path}"
         for row in fig["data"].get("rows", []):
             assert str(row["label"]).strip(), fid
