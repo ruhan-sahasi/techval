@@ -119,7 +119,6 @@ from __future__ import annotations
 import gzip
 import hashlib
 import json
-import sys
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -128,7 +127,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import typer
-from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
@@ -158,6 +156,7 @@ from .ml.warranted import (
     WarrantedModel,
     fit_warranted,
 )
+from .terminal import make_console, print_notes, print_rule
 
 app = typer.Typer(
     add_completion=False,
@@ -168,17 +167,11 @@ app = typer.Typer(
 # Same reasoning as cli.py: rich falls back to eighty columns when stdout is not
 # a terminal, and a redirected run would otherwise crush a nine-column table into
 # three characters a column.
-console = Console(width=None if sys.stdout.isatty() else 120)
+console = make_console(120)
 
-# These four helpers are deliberately copies of the ones in cli.py rather than
-# imports from it. cli.py mounts this module, so importing back into it would be
-# a cycle, and four lines of formatting is a cheaper price than an import that
-# only works in one direction.
-
-
-def _rule(title: str) -> None:
-    console.print()
-    console.rule(Text(title, style="bold"), style="dim")
+# The multiple and number formats here also read a non-finite value as missing,
+# so they stay local. The section rule and the notes come from techval.terminal:
+# cli.py mounts this module, so importing them from cli.py would close a cycle.
 
 
 def _mult(v: float | None) -> str:
@@ -189,15 +182,6 @@ def _num(v: float | None, dp: int = 3) -> str:
     return "n/a" if v is None or not np.isfinite(v) else f"{v:,.{dp}f}"
 
 
-def _notes(items: list[str], *, heading: str = "Notes") -> None:
-    if not items:
-        return
-    console.print(f"\n[bold]{heading}[/bold]")
-    for n in items:
-        style = "yellow" if n.upper().startswith(("FLAG", "WARN")) else "dim"
-        console.print(Text(f"  - {n}", style=style))
-
-
 def _echo_assumptions(rows: list[tuple[str, Any]]) -> None:
     """Every setting that moved a number on this page, printed under it.
 
@@ -205,7 +189,7 @@ def _echo_assumptions(rows: list[tuple[str, Any]]) -> None:
     reader did not see chosen. The engine's convention is that they appear at the
     bottom of the run that used them rather than only in the file they came from.
     """
-    _rule("Assumptions that drove these numbers")
+    print_rule(console, "Assumptions that drove these numbers")
     t = Table(box=None, pad_edge=False)
     t.add_column("", style="dim", no_wrap=True)
     # Folded rather than truncated: one of these rows is the path to the recorded
@@ -909,7 +893,7 @@ def _render_hand_set(
 
 def _render_evaluation(evaluation: PeerEvaluation) -> None:
     """The walk-forward score, the cold split, and every baseline on one table."""
-    _rule(f"What the model scored, walk-forward, NDCG@{evaluation.k}")
+    print_rule(console, f"What the model scored, walk-forward, NDCG@{evaluation.k}")
     t = Table(box=None, pad_edge=False)
     t.add_column("")
     t.add_column("", justify="right")
@@ -968,7 +952,7 @@ def _render_evaluation(evaluation: PeerEvaluation) -> None:
     console.print(t)
     console.print(f"\n[dim]{evaluation.headline.verdict()}[/dim]")
 
-    _rule("Every ranking method on the same queries")
+    print_rule(console, "Every ranking method on the same queries")
     console.print(
         "[dim]Three of these are plain cosine in the encoder's own input spaces, "
         "with no learning on top, so the table says how far the raw features get "
@@ -1001,7 +985,7 @@ def _render_ablation(frame: pd.DataFrame) -> None:
     verdict in that column is the whole point of running this: a model card
     listing two towers invites a reader to assume both are earning their place.
     """
-    _rule("What each tower is worth, refitted without it")
+    print_rule(console, "What each tower is worth, refitted without it")
     t = Table(box=None, pad_edge=False)
     t.add_column("Configuration", no_wrap=True)
     t.add_column("Columns", justify="right")
@@ -1144,7 +1128,7 @@ def peers(
             names.update(corpus.entity_names)
 
         trained_through = _training_cut(bundle.dataset, cut)
-        _rule(f"Learned comp set: {target}")
+        print_rule(console, f"Learned comp set: {target}")
         console.print(
             f"[dim]{names.get(target, '')}   {len(encoder.tickers)} companies in the "
             f"fitted universe, embedded at {encoder.fit_date} on proxies filed through "
@@ -1194,7 +1178,7 @@ def peers(
                 "rather than the model.[/dim]"
             )
 
-        _rule("The hand-written comp set, and where the model put it")
+        print_rule(console, "The hand-written comp set, and where the model put it")
         _render_hand_set(encoder, target, hand, shown)
 
         model_top = [p for p, _s in ranked]
@@ -1226,7 +1210,7 @@ def peers(
 
         if bundle.evaluation is not None:
             _render_evaluation(bundle.evaluation)
-            _notes(list(bundle.evaluation.notes), heading="What the evaluation found")
+            print_notes(console, list(bundle.evaluation.notes), heading="What the evaluation found")
         else:
             console.print(
                 "\n[yellow]The walk-forward evaluation was not run, so the warm and "
@@ -1245,8 +1229,8 @@ def peers(
                 "that, at about a minute.[/dim]"
             )
 
-        _notes(list(encoder.card.limitations), heading="Limitations")
-        _notes(list(encoder.notes) + list(bundle.dataset.notes))
+        print_notes(console, list(encoder.card.limitations), heading="Limitations")
+        print_notes(console, list(encoder.notes) + list(bundle.dataset.notes))
 
         _echo_assumptions(
             [
@@ -1310,7 +1294,7 @@ def _render_score(model: WarrantedModel) -> None:
     what is actually being added.
     """
     result = model.card.evaluation
-    _rule("What the model scored, walk-forward")
+    print_rule(console, "What the model scored, walk-forward")
     t = Table(box=None, pad_edge=False)
     t.add_column("")
     t.add_column("", justify="right")
@@ -1358,7 +1342,7 @@ def _render_score(model: WarrantedModel) -> None:
 
 
 def _render_rerating(model: WarrantedModel) -> None:
-    _rule("The re-rating, and the scale a residual is read against")
+    print_rule(console, "The re-rating, and the scale a residual is read against")
     t = Table(box=None, pad_edge=False)
     t.add_column("")
     t.add_column("", justify="right")
@@ -1413,7 +1397,7 @@ def _render_refusals(panel: ObservationPanel, when: date) -> None:
     periods before a company listed. A reader who cannot see them will read the
     ranking as covering the universe.
     """
-    _rule("Refused, not absent")
+    print_rule(console, "Refused, not absent")
     console.print(_frame(panel.selection(), "The whole panel, by outcome"))
 
     on_date = sorted(
@@ -1502,7 +1486,7 @@ def screen(
         fitted = fit_warranted(observations, assumptions, model=model)
         as_of = date.fromisoformat(when) if when else fitted.latest
 
-        _rule(f"Warranted {TARGETS[observations.target][1]} screen: {as_of}")
+        print_rule(console, f"Warranted {TARGETS[observations.target][1]} screen: {as_of}")
         console.print(Text(_REFLEXIVITY, style="yellow"))
         console.print(
             f"\n[dim]{len(observations.observations):,} observations over "
@@ -1548,15 +1532,15 @@ def screen(
 
         if ticker:
             read = fitted.warranted(ticker, as_of)
-            _rule(f"{read.ticker} on {read.as_of}")
+            print_rule(console, f"{read.ticker} on {read.as_of}")
             console.print(Text(read.sentence(), style="bold"))
 
         _render_score(fitted)
         _render_rerating(fitted)
         _render_refusals(observations, as_of)
 
-        _notes(list(fitted.card.limitations), heading="Limitations")
-        _notes(list(fitted.notes))
+        print_notes(console, list(fitted.card.limitations), heading="Limitations")
+        print_notes(console, list(fitted.notes))
 
         _echo_assumptions(
             [
