@@ -23,19 +23,10 @@ import pytest
 from techval.dashboard.sections import propensity as P
 from techval.dashboard.snapshot import to_jsonable, validate_section
 from techval.errors import MissingDataError
-from .walk import numbers_at
+from .walk import committed_section, kit_charts, numbers_at
 
 ROOT = Path(__file__).resolve().parents[2]
-KIT = ROOT / "src" / "techval" / "dashboard" / "assets" / "kit.js"
-SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
 MNA = ROOT / "tests" / "fixtures" / "mna"
-
-
-def _kit_kinds() -> set[str]:
-    source = KIT.read_text(encoding="utf-8")
-    body = source[source.index("TV.charts = {") : ]
-    body = body[: body.index("};")]
-    return set(re.findall(r"^\s*(\w+)\s*:", body, flags=re.M))
 
 
 # --------------------------------------------------------------------------- #
@@ -175,7 +166,7 @@ def _as_section(returned: dict) -> dict:
 
 def test_every_figure_is_drawable_and_the_section_meets_the_schema():
     returned = P.shape(_facts())
-    kinds = _kit_kinds()
+    kinds = kit_charts()
     assert set(returned["figures"]) == set(P.FIGURES)
     for fid, fig in returned["figures"].items():
         assert fig["kind"] in kinds, f"{fid} has kind {fig['kind']!r}"
@@ -401,13 +392,7 @@ def test_the_recovered_deals_are_refused_when_the_audit_or_events_disagree():
 
 @pytest.fixture(scope="module")
 def section() -> dict:
-    if not SNAPSHOT.is_file():
-        pytest.skip("docs/dashboard/snapshot.json is not committed yet")
-    snap = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
-    got = snap["sections"].get(P.ID)
-    if got is None or got["status"] != "ok":
-        pytest.fail(f"the committed snapshot holds no collected {P.ID} section")
-    return got
+    return committed_section(P.ID)
 
 
 def test_pinned_headline(section):

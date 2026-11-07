@@ -43,9 +43,7 @@ from techval.ml.evaluation import Fold
 from techval.ml.protocol import EvalResult, PairedDelta
 from techval.ml.text import TextCorpus
 
-from dashboard.test_frontend import KIT, _object_keys
-from .walk import committed_section, numbers_at
-
+from .walk import committed_section, kit_charts, numbers_at
 
 
 # --------------------------------------------------------------------------- #
@@ -167,7 +165,7 @@ def _schema_checked(section: dict) -> dict:
 
 
 def test_every_figure_is_a_kit_chart_with_finite_values_and_labels():
-    kinds = _object_keys(KIT.read_text(encoding="utf-8"), "TV.charts")
+    kinds = kit_charts()
     raw = S.shape(results())
     section = _schema_checked(copy.deepcopy(raw))
     assert set(section["figures"]) == {
