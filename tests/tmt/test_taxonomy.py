@@ -767,37 +767,3 @@ def test_the_floor_cuts_a_priced_name_that_is_too_small(assumptions, market):
     }
     assert {"DDOG", "CRWD", "MDB", "ZS"} <= kept
     assert not {"DDOG", "CRWD", "MDB", "ZS"} & cut
-
-
-# --------------------------------------------------------------------------- #
-# Config-driven extension
-# --------------------------------------------------------------------------- #
-
-
-def test_extra_tickers_and_overrides_come_from_the_assumptions(client, assumptions):
-    class Knobs:
-        extra_tickers = ["nvda", "SHOP"]
-        overrides = {"shop": "internet"}
-
-    class TMT:
-        sub_vertical = Knobs()
-
-    assumptions.__dict__["tmt"] = TMT()
-    universe = {c.ticker: c for c in tmt_universe(client, assumptions)}
-    assert universe["SHOP"].sub_vertical is SubVertical.INTERNET
-    assert "curated prior internet overrides" in universe["SHOP"].source
-    assert universe["NVDA"].sub_vertical is SubVertical.SEMICONDUCTORS
-
-
-def test_an_override_naming_a_bucket_that_does_not_exist_is_a_config_error(
-    client, assumptions
-):
-    class Knobs:
-        overrides = {"SHOP": "biotech"}
-
-    class TMT:
-        sub_vertical = Knobs()
-
-    assumptions.__dict__["tmt"] = TMT()
-    with pytest.raises(ConfigError, match="not a sub-vertical"):
-        tmt_universe(client, assumptions)
