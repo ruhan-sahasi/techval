@@ -68,7 +68,6 @@ from __future__ import annotations
 import csv
 import gzip
 import json
-import sys
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -76,7 +75,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import typer
-from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
@@ -86,6 +84,7 @@ from .errors import ConfigError, MissingDataError, TechvalError
 from .market import make_price_source
 from .ml.features import FEATURE_NAMES, FeaturePanel, FeatureRow
 from .ml.mna import DealEvent, PropensityResult, build_universe, fit_propensity
+from .terminal import make_console, print_notes, print_rule
 from .tmt.precedents import (
     LEAK_FLAG_POINTS,
     MIN_DEALS_FOR_STATS,
@@ -112,7 +111,7 @@ app = typer.Typer(
 # still reads as a price. A truncated numeral is a wrong number that looks like
 # a right one, so the width is chosen to fit the figures and the prose columns
 # are the ones capped with an ellipsis instead.
-console = Console(width=None if sys.stdout.isatty() else 160)
+console = make_console(160)
 
 _CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
 _NOCACHE = typer.Option(False, "--no-cache", help="Bypass the HTTP cache.")
@@ -130,9 +129,10 @@ _ASOF = typer.Option(
 # --------------------------------------------------------------------------- #
 # rendering helpers
 #
-# Deliberately local rather than imported from cli.py. cli.py mounts this module
-# with add_typer, so importing back out of it would close a cycle at import
-# time, and the two files are the same handful of formatters either way.
+# These formatters also read a NaN as missing, which the deal tables need and the
+# shared ones in techval.terminal do not, so they stay local. The section rule
+# and the notes come from techval.terminal: cli.py mounts this module with
+# add_typer, so importing them from cli.py would close a cycle.
 # --------------------------------------------------------------------------- #
 
 
@@ -158,20 +158,6 @@ def _price(v: float | None) -> str:
     if v is None or (isinstance(v, float) and pd.isna(v)):
         return "n/a"
     return f"{v:,.2f}"
-
-
-def _rule(title: str) -> None:
-    console.print()
-    console.rule(Text(title, style="bold"), style="dim")
-
-
-def _notes(items: list[str], *, heading: str = "Notes") -> None:
-    if not items:
-        return
-    console.print(f"\n[bold]{heading}[/bold]")
-    for n in items:
-        style = "yellow" if n.upper().startswith(("FLAG", "WARN")) else "dim"
-        console.print(Text(f"  - {n}", style=style))
 
 
 def _warn_block(paragraphs: list[str], *, heading: str) -> None:
@@ -342,7 +328,7 @@ def _render_unpriced(result: PrecedentSet) -> None:
     unpriced = [t for t in result.transactions if t.offer_price is None]
     if not unpriced:
         return
-    _rule("Deals with no offer price, and why that is the right answer")
+    print_rule(console, "Deals with no offer price, and why that is the right answer")
     for txn in unpriced:
         console.print(
             f"\n[bold]{txn.target_ticker}[/bold]  {txn.target_name or ''}"
@@ -390,7 +376,7 @@ def _render_premium_disagreement(result: PrecedentSet) -> None:
     ]
     if not flagged:
         return
-    _rule(f"Premium: the two conventions disagree by more than {LEAK_FLAG_POINTS:.0f} points")
+    print_rule(console, f"Premium: the two conventions disagree by more than {LEAK_FLAG_POINTS:.0f} points")
     t = Table(box=None, pad_edge=False)
     t.add_column("Target", no_wrap=True)
     t.add_column("Offer", justify="right")
@@ -429,7 +415,7 @@ def _render_premium_disagreement(result: PrecedentSet) -> None:
 
 def _render_sub_vertical_stats(result: PrecedentSet) -> None:
     """Statistics per sub-vertical, and a plain list of the buckets refused."""
-    _rule("By sub-vertical")
+    print_rule(console, "By sub-vertical")
     if result.sub_vertical_stats:
         counts = {}
         for txn in result.transactions:
@@ -669,7 +655,7 @@ def precedents(
             result = result.filter(sub_vertical=sub_vertical, min_size=min_size)
 
         mna = assumptions.ml.mna
-        _rule(
+        print_rule(console, 
             f"Precedent transactions: {len(result.transactions)} of "
             f"{len(names)} ticker(s), as of {result.as_of}"
         )
@@ -690,13 +676,13 @@ def precedents(
                 "acquired, so an empty precedent set is an ordinary answer and not "
                 "an error. The flags below say what was dropped and why.[/yellow]"
             )
-            _notes(list(result.flags), heading="Flags")
+            print_notes(console, list(result.flags), heading="Flags")
             return
 
         console.print()
         _render_deal_table(result)
 
-        _rule("Statistics")
+        print_rule(console, "Statistics")
         _render_stats(
             result.stats,
             result.min_deals_for_stats,
@@ -711,7 +697,7 @@ def precedents(
         # Deal size sits here rather than in the table above. A fifteenth column
         # there made rich shrink the price columns until 143.66 rendered as
         # 143.…, and a truncated numeral still reads as a number.
-        _rule("Deal size and provenance")
+        print_rule(console, "Deal size and provenance")
         t = Table(box=None, pad_edge=False)
         t.add_column("Target", no_wrap=True)
         t.add_column("Equity, mm", justify="right")
@@ -746,8 +732,8 @@ def precedents(
             "agreement with no consideration parsed.[/dim]"
         )
 
-        _notes(list(result.flags), heading="Flags and refusals")
-        _notes(list(result.notes), heading="Standing notes")
+        print_notes(console, list(result.flags), heading="Flags and refusals")
+        print_notes(console, list(result.notes), heading="Standing notes")
     except TechvalError as exc:
         console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
         raise typer.Exit(1)
@@ -991,7 +977,7 @@ def _render_screen(frame: pd.DataFrame, result: PropensityResult, screen_on: dat
     on a different page from the names is a caveat nobody carries with them.
     """
     ev = result.evaluation
-    _rule(f"Acquisition target screen, {screen_on}")
+    print_rule(console, f"Acquisition target screen, {screen_on}")
     console.print(
         Text(
             f"  Walk-forward AUC {ev.score:.4f} against {ev.baseline_score:.4f} for the "
@@ -1044,7 +1030,7 @@ def _render_base_rates(result: PropensityResult) -> None:
     frame = result.base_rates
     if frame is None or frame.empty:
         return
-    _rule("Base rate by year")
+    print_rule(console, "Base rate by year")
     t = Table(box=None, pad_edge=False)
     t.add_column("Year", no_wrap=True)
     t.add_column("Observations", justify="right")
@@ -1080,7 +1066,7 @@ def _render_stability(result: PropensityResult) -> None:
     frame = result.coefficient_stability()
     if frame.empty:
         return
-    _rule("Coefficient stability across folds")
+    print_rule(console, "Coefficient stability across folds")
     t = Table(box=None, pad_edge=False)
     t.add_column("Feature", no_wrap=True)
     t.add_column("Mean", justify="right")
@@ -1123,7 +1109,7 @@ def _render_precision(result: PropensityResult, top_k: int) -> None:
     frame = result.precision_at_k
     if frame is None or frame.empty:
         return
-    _rule(f"Precision and recall at k={top_k}, by screen date")
+    print_rule(console, f"Precision and recall at k={top_k}, by screen date")
     t = Table(box=None, pad_edge=False)
     t.add_column("Date", no_wrap=True)
     t.add_column("n", justify="right")
@@ -1170,7 +1156,7 @@ def _render_calibration(result: PropensityResult) -> None:
             "floor, so the probabilities above may be ranked but not quoted.[/yellow]"
         )
         return
-    _rule("Calibration of the out-of-sample probabilities")
+    print_rule(console, "Calibration of the out-of-sample probabilities")
     t = Table(box=None, pad_edge=False)
     t.add_column("Bucket", no_wrap=True)
     t.add_column("n", justify="right")
@@ -1307,7 +1293,7 @@ def targets(
         )
 
         card = result.model.card
-        _rule(f"Acquisition propensity: {card.name}, as of {resolved_as_of}")
+        print_rule(console, f"Acquisition propensity: {card.name}, as of {resolved_as_of}")
         console.print(
             f"[dim]{len(universe.members):,} registrants, of which "
             f"{len(universe.departed_members()):,} have left the filing record. "
@@ -1348,7 +1334,7 @@ def targets(
         _render_stability(result)
         _render_calibration(result)
 
-        _rule("Label sample")
+        print_rule(console, "Label sample")
         t = Table(box=None, pad_edge=False)
         t.add_column("")
         t.add_column("", justify="right")
@@ -1373,8 +1359,8 @@ def targets(
             "the truth.[/dim]"
         )
 
-        _notes(list(card.limitations), heading="Limitations")
-        _notes(list(result.notes) + list(panel.notes), heading="Notes")
+        print_notes(console, list(card.limitations), heading="Limitations")
+        print_notes(console, list(result.notes) + list(panel.notes), heading="Notes")
     except TechvalError as exc:
         console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
         raise typer.Exit(1)
