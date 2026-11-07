@@ -88,7 +88,6 @@ import csv
 import gzip
 import io
 import json
-import sys
 from collections.abc import Sequence
 from datetime import date, timedelta
 from pathlib import Path
@@ -96,7 +95,6 @@ from typing import Any
 
 import numpy as np
 import typer
-from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
@@ -127,6 +125,7 @@ from .ml.signals import (
     SignalResult,
     ev_revenue_scores,
 )
+from .terminal import format_money, make_console, print_rule
 from .wacc import compute_wacc
 
 app = typer.Typer(
@@ -138,28 +137,16 @@ app = typer.Typer(
 # Same width rule as ``cli.py``: rich falls back to eighty columns when stdout is
 # not a terminal, which crushes a seven column table into something unreadable in
 # a piped or redirected run.
-console = Console(width=None if sys.stdout.isatty() else 120)
+console = make_console(120)
 
 
 # --------------------------------------------------------------------------- #
 # Rendering helpers
 #
-# Deliberately duplicated from ``cli.py`` rather than imported from it. A later
-# agent mounts this module into ``cli.py`` with ``add_typer``, so an import in the
-# other direction would close a cycle. They are twenty lines of formatting and the
-# cycle is not worth paying to avoid them.
+# The ones particular to these commands. The section rule and the money format
+# every command shares come from ``techval.terminal``, since ``cli.py`` mounts
+# this module with ``add_typer`` and an import from it would close a cycle.
 # --------------------------------------------------------------------------- #
-
-
-def _rule(title: str) -> None:
-    console.print()
-    console.rule(Text(title, style="bold"), style="dim")
-
-
-def _money(v: float | None, dp: int = 0) -> str:
-    if v is None:
-        return "n/a"
-    return f"({abs(v):,.{dp}f})" if v < 0 else f"{v:,.{dp}f}"
 
 
 def _pct(v: float | None, dp: int = 1) -> str:
@@ -455,7 +442,7 @@ def _render_curve(model: FadeModel, panel: FadePanel) -> None:
     closes toward. Everything else in this module is a refinement of those three
     numbers, and they fit in a sentence.
     """
-    _rule("The fade curve")
+    print_rule(console, "The fade curve")
     console.print(
         _kv(
             [
@@ -505,7 +492,7 @@ def _horizon_table(model: FadeModel) -> None:
     walk-forward folds, which is the convention ``EvalResult.verdict`` already uses
     for this comparison.
     """
-    _rule("Model against the baselines, every horizon")
+    print_rule(console, "Model against the baselines, every horizon")
     t = Table(box=None, pad_edge=False)
     t.add_column("Horizon", no_wrap=True)
     t.add_column("Model MAE", justify="right")
@@ -629,7 +616,7 @@ def _sub_vertical_fade(panel: FadePanel, sub_vertical: str, horizon: int) -> dic
 def _render_paths(comparison, model: FadeModel, panel: FadePanel, ticker: str) -> None:
     """The assumed path, the fitted path, the band, and the sub-vertical beside it."""
     observation = model.latest[ticker]
-    _rule(f"Growth path: assumed against fitted, {ticker}")
+    print_rule(console, f"Growth path: assumed against fitted, {ticker}")
 
     t = Table(box=None, pad_edge=False)
     t.add_column("Year", no_wrap=True)
@@ -707,7 +694,7 @@ def _render_valuation(comparison) -> None:
     replaces invites the reader to believe the fitted number is the answer, and it
     is the middle of a band whose ends are different companies.
     """
-    _rule(f"What the difference is worth: {comparison.ticker}")
+    print_rule(console, f"What the difference is worth: {comparison.ticker}")
     frame = comparison.to_frame()
     t = Table(box=None, pad_edge=False)
     t.add_column("Case", no_wrap=True)
@@ -722,9 +709,9 @@ def _render_valuation(comparison) -> None:
         style = "bold" if bold else "dim"
         cells = [Text(_pct(row[c], 0), style=style) for c in year_columns]
         cells += [
-            Text(_money(row["Terminal revenue"]), style=style),
-            Text(_money(row["Enterprise value"]), style=style),
-            Text(_money(row["Equity value"]), style=style),
+            Text(format_money(row["Terminal revenue"]), style=style),
+            Text(format_money(row["Enterprise value"]), style=style),
+            Text(format_money(row["Equity value"]), style=style),
             Text(f"{row['Per share']:,.2f}", style=style),
         ]
         t.add_row(Text(str(case), style=style), *cells)
@@ -757,7 +744,7 @@ def _render_survivorship(model: FadeModel, panel: FadePanel) -> None:
     survivorship = model.survivorship
     if not survivorship:
         return
-    _rule("Survivorship: the direction this is wrong in")
+    print_rule(console, "Survivorship: the direction this is wrong in")
     leavers = sorted(name for name in panel.tickers if is_delisted(name))
     t = Table(box=None, pad_edge=False)
     t.add_column("Horizon", no_wrap=True)
@@ -827,7 +814,7 @@ def _render_survivorship(model: FadeModel, panel: FadePanel) -> None:
 def _render_assumptions(
     assumptions: Assumptions, extra: Sequence[tuple[str, str]], *, configured_years: int
 ) -> None:
-    _rule("Assumptions in force")
+    print_rule(console, "Assumptions in force")
     years = assumptions.dcf.projection_years
     rows = [
         (
@@ -946,7 +933,7 @@ def fade(
         _horizon_table(model)
 
         if show_panel:
-            _rule("Reversion table: no functional form at all")
+            print_rule(console, "Reversion table: no functional form at all")
             table = panel.reversion_table(1)
             t = Table(box=None, pad_edge=False)
             t.add_column("Decile", no_wrap=True)
@@ -1268,7 +1255,7 @@ def _render_headline(result: SignalResult) -> None:
     naive_clears = abs(ic.t_naive) >= 1.96
     corrected_clears = abs(ic.t_newey_west) >= 1.96
 
-    _rule(f"Verdict: {result.label}")
+    print_rule(console, f"Verdict: {result.label}")
     if naive_clears and not corrected_clears:
         console.print(
             "  [red bold]NOT SIGNIFICANT.[/red bold] The naive t-statistic of "
@@ -1306,7 +1293,7 @@ def _render_counts(result: SignalResult) -> None:
     """
     ic = result.ic
     counts = result.exit_counts()
-    _rule("How much data this actually is")
+    print_rule(console, "How much data this actually is")
     console.print(
         _kv(
             [
@@ -1332,7 +1319,7 @@ def _render_counts(result: SignalResult) -> None:
 def _render_ic(result: SignalResult, show_series: bool) -> None:
     """The coefficient statistics, both standard errors, and the series itself."""
     ic = result.ic
-    _rule("Information coefficient")
+    print_rule(console, "Information coefficient")
     console.print(
         _kv(
             [
@@ -1367,7 +1354,7 @@ def _render_ic(result: SignalResult, show_series: bool) -> None:
 
     if not show_series:
         return
-    _rule("The coefficient series")
+    print_rule(console, "The coefficient series")
     t = Table(box=None, pad_edge=False)
     t.add_column("Date", no_wrap=True)
     t.add_column("Names", justify="right")
@@ -1447,7 +1434,7 @@ def _render_buckets(result: SignalResult) -> None:
     shorter life expectancy, and the monotonicity columns are what tell them apart.
     """
     buckets = result.buckets
-    _rule("Returns by score bucket")
+    print_rule(console, "Returns by score bucket")
     frame = buckets.frame
     if frame.empty or not frame["Mean return"].notna().any():
         console.print(
@@ -1522,7 +1509,7 @@ def _render_signal_assumptions(
     thin would read the wrong number and conclude the flag had not taken. Where a
     flag is in force the row says so.
     """
-    _rule("Assumptions in force")
+    print_rule(console, "Assumptions in force")
 
     def setting(label: str, value: Any, default: Any) -> tuple[str, str]:
         shown = str(value)
@@ -1745,7 +1732,7 @@ def signal(
 
         if csv_out is not None:
             result.frame().to_csv(csv_out, index=False)
-            _rule("Output")
+            print_rule(console, "Output")
             console.print(f"Company-date detail written to [bold]{csv_out}[/bold]")
     except TechvalError as exc:
         _fail(exc)
