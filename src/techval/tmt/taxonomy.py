@@ -603,10 +603,6 @@ def score_business_text(text: str | None, name: str = "") -> Evidence:
 # --------------------------------------------------------------------------- #
 
 
-def _sub_vertical_config(assumptions):
-    return getattr(getattr(assumptions, "tmt", None), "sub_vertical", None)
-
-
 def _strength(margin: float, threshold: float) -> float:
     """Where inside a rung a win sits: 0 at the threshold, 1 at twice it."""
     if threshold <= 0.0:
@@ -1060,21 +1056,9 @@ def tmt_universe(
         )
 
     knowledge = _knowledge_date(client, assumptions, as_of)
-    cfg = _sub_vertical_config(assumptions)
-    overrides: dict[str, SubVertical] = {}
-    for raw_ticker, raw_vertical in (getattr(cfg, "overrides", None) or {}).items():
-        try:
-            overrides[str(raw_ticker).upper()] = SubVertical(raw_vertical)
-        except ValueError as exc:
-            raise ConfigError(
-                f"tmt.sub_vertical.overrides[{raw_ticker!r}] is {raw_vertical!r}, "
-                "which is not a sub-vertical. Valid values: "
-                + ", ".join(v.value for v in SubVertical)
-            ) from exc
-    extra = [str(t).upper() for t in (getattr(cfg, "extra_tickers", None) or [])]
 
     universe: list[Company] = []
-    for ticker in sorted(set(SEED) | set(extra) | set(overrides)):
+    for ticker in sorted(SEED):
         try:
             payload = client.submissions(ticker)
         except (MissingDataError, DataSourceError) as exc:
@@ -1125,7 +1109,7 @@ def tmt_universe(
         if description:
             source = f"{source} [{description}]"
 
-        prior = overrides.get(ticker, SEED.get(ticker))
+        prior = SEED[ticker]
         sub_vertical = derived
         if prior is not None and derived is None:
             sub_vertical = prior
