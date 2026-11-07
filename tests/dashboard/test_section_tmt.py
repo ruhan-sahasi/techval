@@ -23,7 +23,6 @@ import json
 import math
 import re
 from datetime import date
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -32,11 +31,9 @@ from techval.dashboard.collect import CollectContext, collect_section
 from techval.dashboard.sections import section_module
 from techval.dashboard.sections import tmt as T
 from techval.dashboard.snapshot import to_jsonable, validate_section
-from .walk import kit_charts, numbers_at
+from conftest import FIXTURES
+from .walk import ROOT, SNAPSHOT, kit_charts, numbers_at
 
-ROOT = Path(__file__).resolve().parents[2]
-FIXTURES = ROOT / "tests" / "fixtures"
-SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
 RENDERER = ROOT / "src" / "techval" / "dashboard" / "assets" / "sections" / "tmt.js"
 # Spelled as a code point, so this file obeys the rule it checks.
 EM_DASH = chr(0x2014)

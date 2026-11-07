@@ -38,12 +38,8 @@ from techval.dashboard.sections.fade import (
     verdict_status,
 )
 from techval.dashboard.snapshot import HEADLINE_KEYS, to_jsonable, validate_section
-from .walk import numbers_at
-
-ROOT = Path(__file__).resolve().parents[2]
-FIXTURES = ROOT / "tests" / "fixtures"
-SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
-KIT_CHARTS = {"hbar", "column", "dot", "line", "heat", "hist", "range", "waterfall", "tiles"}
+from conftest import FIXTURES
+from .walk import SNAPSHOT, kit_charts, numbers_at
 
 
 # --------------------------------------------------------------------------- #
@@ -161,6 +157,7 @@ def test_a_lift_inside_the_fold_spread_is_a_tie_whichever_way_it_points(lift, sd
 
 
 def test_every_figure_is_one_the_kit_draws_with_finite_numbers_and_labels():
+    kinds = kit_charts()
     out = shape(_results())
     section = _as_section(out)
     assert set(section["figures"]) == {
@@ -172,7 +169,7 @@ def test_every_figure_is_one_the_kit_draws_with_finite_numbers_and_labels():
         "depth",
     }
     for fid, fig in section["figures"].items():
-        assert fig["kind"] in KIT_CHARTS, fid
+        assert fig["kind"] in kinds, fid
         assert fig["title"].strip(), fid
         assert chr(0x2014) not in json.dumps(fig, ensure_ascii=False), fid
         for where, number in numbers_at(fig["data"]):

@@ -152,7 +152,7 @@ from .evaluation import (
     walk_forward_folds,
 )
 from .features import FeaturePanel, FeatureRow
-from .nn import Adam, Linear, bce_with_logits
+from .nn import Adam, Linear, bce_with_logits, sigmoid
 from .protocol import EvalResult, ModelCard
 
 # --------------------------------------------------------------------------- #
@@ -1127,7 +1127,7 @@ class PropensityModel:
 
     def probabilities(self, X: np.ndarray) -> np.ndarray:
         """Prior-corrected probabilities. Check ``calibration_table`` before quoting one."""
-        return _sigmoid(self.scores(X) - self.prior_shift)
+        return sigmoid(self.scores(X) - self.prior_shift)
 
     def attribute(
         self, X: np.ndarray, tickers: Sequence[str], dates: Sequence[date]
@@ -1684,7 +1684,7 @@ def _calibration(
     because a missing calibration table is a smaller problem than a fit that
     stops because it could not draw one.
     """
-    probs = _sigmoid(scores[mask] - model.prior_shift)
+    probs = sigmoid(scores[mask] - model.prior_shift)
     try:
         return calibration_table(matrix.y[mask], probs, bins=bins)
     except (NotMeaningfulError, ConfigError):
@@ -1721,14 +1721,3 @@ def _limitations(
         "-day embargo. Fold-level AUC on a window holding two or three events is "
         "noise, and the fold standard deviation on the result says how much.",
     ]
-
-
-def _sigmoid(z: np.ndarray) -> np.ndarray:
-    """Stable logistic, evaluated on whichever side of zero does not overflow."""
-    z = np.asarray(z, dtype=float)
-    out = np.empty_like(z)
-    pos = z >= 0
-    out[pos] = 1.0 / (1.0 + np.exp(-z[pos]))
-    ez = np.exp(z[~pos])
-    out[~pos] = ez / (1.0 + ez)
-    return out

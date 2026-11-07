@@ -9,6 +9,8 @@ import pytest
 from techval.edgar import HttpCache
 from techval.market import TREASURY_URL, CsvSource, MarketData
 
+from conftest import FIXTURES, PRICES
+
 HEADER = "Date,1 Mo,2 Mo,3 Mo,6 Mo,1 Yr,2 Yr,3 Yr,5 Yr,7 Yr,10 Yr,20 Yr,30 Yr\n"
 
 
@@ -63,9 +65,6 @@ class Counting:
         return self.inner.fetch(symbol, start, end)
 
 
-PRICES = __import__("pathlib").Path(__file__).parent / "fixtures" / "prices"
-
-
 def test_a_span_fetches_each_symbol_once_and_serves_every_window_inside_it():
     from techval.market import SpanSource
 
@@ -102,7 +101,6 @@ def test_a_symbol_the_source_cannot_price_is_refused_every_time_without_asking_a
 def test_a_history_reads_each_treasury_year_once(monkeypatch):
     """Twelve quarters across three years are three yield files, not twelve."""
     import json
-    from pathlib import Path
 
     import techval.market as M
     from techval.config import Assumptions
@@ -121,10 +119,9 @@ def test_a_history_reads_each_treasury_year_once(monkeypatch):
         return body
 
     monkeypatch.setattr(M, "http_get", fake_get)
-    fixtures = Path(__file__).parent / "fixtures"
-    payload = json.loads((fixtures / "companyfacts_DDOG.json").read_text())
+    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     rows = expectations_history(
-        payload, "DDOG", CsvSource(fixtures / "prices"), Assumptions(), quarter_ends(date(2024, 1, 1), date(2026, 9, 9))
+        payload, "DDOG", CsvSource(PRICES), Assumptions(), quarter_ends(date(2024, 1, 1), date(2026, 9, 9))
     )
     assert sum(1 for r in rows if not r["refused"]) >= 8
     years = sorted(int(u.split("daily-treasury-rates.csv/")[1].split("/")[0]) for u in asked)

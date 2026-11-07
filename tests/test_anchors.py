@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -12,7 +11,7 @@ from techval.config import Assumptions
 from techval.edgar import CompanyFacts
 from techval.financials import build_financials
 
-FIXTURES = Path(__file__).parent / "fixtures"
+from conftest import FIXTURES
 
 
 def company(ticker):
@@ -109,8 +108,6 @@ def test_with_the_switch_off_the_assumptions_come_back_as_given():
 
 def test_with_the_switch_on_the_dcf_takes_the_record_and_the_original_is_untouched():
     from techval.anchors import record_case
-    from techval.dcf import run_dcf
-    from techval.ev_bridge import build_ev_bridge
 
     fin, facts = company("DDOG")
     a = Assumptions()

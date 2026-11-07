@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
+from conftest import FIXTURES
 
 
 def test_a_cached_fit_is_built_once_and_loaded_after(tmp_path):

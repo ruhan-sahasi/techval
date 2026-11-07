@@ -125,7 +125,13 @@ from ..edgar import CompanyFacts, EdgarClient, Provenance
 from ..errors import ConfigError, MissingDataError, NotMeaningfulError
 from ..tmt.taxonomy import SEED, SubVertical
 from .evaluation import evaluate_regression, walk_forward_folds
-from .features import RND_EXPENSE, SNM_EXPENSE, FeatureRow, assert_point_in_time
+from .features import (
+    RND_EXPENSE,
+    SNM_EXPENSE,
+    FeatureRow,
+    anniversary,
+    assert_point_in_time,
+)
 from .protocol import EvalResult, ModelCard
 
 _MM = 1e6
@@ -580,24 +586,6 @@ def _growth(new: float | None, old: float | None) -> float | None:
     if not (_MIN_GROWTH_RATIO < ratio < _MAX_GROWTH_RATIO):
         return None
     return ratio - 1.0
-
-
-def _anniversary(
-    ends: Sequence[date], anchor: date, years: int
-) -> date | None:
-    """The period end ``years`` fiscal years from ``anchor``, or None.
-
-    Negative ``years`` walks forward, which is how a label reaches the fiscal
-    year whose growth it is going to become.
-    """
-    target = anchor - timedelta(days=round(365.25 * years))
-    best: date | None = None
-    gap = _ANNIVERSARY_TOLERANCE_DAYS + 1
-    for end in ends:
-        d = abs((end - target).days)
-        if d <= _ANNIVERSARY_TOLERANCE_DAYS and d < gap:
-            best, gap = end, d
-    return best
 
 
 def _annual_series(
@@ -1090,9 +1078,9 @@ def _build_company(
             continue
 
         ends = list(revenue)
-        prior = _anniversary(ends, fiscal_year_end, 1)
-        prior2 = _anniversary(ends, fiscal_year_end, 2)
-        prior3 = _anniversary(ends, fiscal_year_end, 3)
+        prior = anniversary(ends, fiscal_year_end, 1, _ANNIVERSARY_TOLERANCE_DAYS)
+        prior2 = anniversary(ends, fiscal_year_end, 2, _ANNIVERSARY_TOLERANCE_DAYS)
+        prior3 = anniversary(ends, fiscal_year_end, 3, _ANNIVERSARY_TOLERANCE_DAYS)
 
         gross_profit, _, gp_filed = _annual_series(pinned, tags.GROSS_PROFIT)
         cost_of_revenue, _, cor_filed = _annual_series(pinned, tags.COST_OF_REVENUE)
@@ -1258,7 +1246,9 @@ def _attach_labels(
         ends = list(years)
         for fiscal_year_end, observation in years.items():
             for horizon in range(1, horizons + 1):
-                target = _anniversary(ends, fiscal_year_end, -horizon)
+                target = anniversary(
+                    ends, fiscal_year_end, -horizon, _ANNIVERSARY_TOLERANCE_DAYS
+                )
                 if target is None:
                     continue
                 later = years[target]

@@ -1904,7 +1904,7 @@ def evaluate_peer_encoder(
 
         trained_filers = {e.a for e in train_examples}
         train_groups = _groups_before(dataset, cut)
-        sectors = _sectors(dataset, space.fit_date, assumptions, sic_by_ticker)
+        sectors = _sectors(dataset, space.fit_date, sic_by_ticker)
         # Embed every company-date once for the fold rather than once per query.
         # The encoder is in evaluation mode and the space does not change inside
         # a fold, so a forward per query would be the same arithmetic repeated a
@@ -2058,7 +2058,6 @@ def _groups_before(dataset: PeerDataset, cut: date) -> list[PeerGroup]:
 def _sectors(
     dataset: PeerDataset,
     fit_date: date,
-    assumptions: Assumptions,
     sic_by_ticker: Mapping[str, str | None] | None,
 ) -> dict[str, Any]:
     """Classify the universe from the training window's own business descriptions.
@@ -2081,7 +2080,7 @@ def _sectors(
         if corpus is not None and ticker in corpus.tickers:
             text = corpus.document(ticker)
             name = corpus.entity_names.get(ticker, "")
-        vertical, _confidence, _source = classify(sic, name, text, assumptions)
+        vertical, _confidence, _source = classify(sic, name, text)
         out[ticker] = vertical
     return out
 

@@ -41,7 +41,7 @@ from techval.ml.text import (
     transform,
 )
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
+from conftest import FIXTURES
 
 SOFTWARE = ("DDOG", "CRWD", "ZS", "MDB")
 CARRIERS = ("VZ", "TMUS")

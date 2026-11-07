@@ -47,7 +47,8 @@ from techval.edgar import CompanyFacts
 from techval.errors import ConfigError
 from techval.ml.forecast import build_fade_panel
 
-FIXTURES = Path(__file__).parent / "fixtures"
+from conftest import FIXTURES
+
 FADE_PANEL = FIXTURES / "fade_companyfacts.json.gz"
 DDOG_FACTS = FIXTURES / "companyfacts_DDOG.json"
 SIGNAL_SCORES = FIXTURES / "signals" / "ev_revenue.csv.gz"

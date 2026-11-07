@@ -22,7 +22,6 @@ import json
 import math
 import re
 from datetime import date
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -30,12 +29,10 @@ import pytest
 from techval.dashboard.collect import entry_module
 from techval.dashboard.sections import datalayer as D
 from techval.dashboard.snapshot import to_jsonable, validate_section
-from .walk import kit_charts, numbers, strings
+from conftest import FIXTURES
+from .walk import ROOT, committed_section, kit_charts, numbers, strings
 
-ROOT = Path(__file__).resolve().parents[2]
 RENDERER = ROOT / "src" / "techval" / "dashboard" / "assets" / "sections" / "datalayer.js"
-SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
-FIXTURES = ROOT / "tests" / "fixtures"
 
 
 def _as_snapshot_section(shaped: dict[str, Any]) -> dict[str, Any]:
@@ -525,11 +522,7 @@ def test_the_entry_points_resolve_and_the_inputs_are_committed():
 
 @pytest.fixture(scope="module")
 def pinned() -> dict[str, Any]:
-    if not SNAPSHOT.is_file():
-        pytest.skip("docs/dashboard/snapshot.json is not committed yet")
-    section = json.loads(SNAPSHOT.read_text(encoding="utf-8"))["sections"][D.ID]
-    assert section["status"] == "ok", section["refusals"]
-    return section
+    return committed_section(D.ID)
 
 
 def test_pinned_debt_reach(pinned):

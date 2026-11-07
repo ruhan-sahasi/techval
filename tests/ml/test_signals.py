@@ -45,7 +45,6 @@ import numpy as np
 import pytest
 
 from techval.backtest import LookaheadError, forward_return
-from techval.config import Assumptions
 from techval.edgar import Provenance
 from techval.errors import ConfigError, NotMeaningfulError
 from techval.market import PriceSeries

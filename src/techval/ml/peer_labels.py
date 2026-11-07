@@ -715,7 +715,6 @@ def _segment(
 
     rich = index if isinstance(index, NameIndex) else None
     bounds = _boundaries(text)
-    bound_set = set(bounds) | {len(text)}
     n = len(text)
 
     tickers: list[str] = []

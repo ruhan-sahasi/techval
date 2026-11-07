@@ -22,10 +22,8 @@ committed fixtures. Until then those tests skip.
 from __future__ import annotations
 
 import copy
-import json
 import math
 from datetime import date
-from pathlib import Path
 from types import SimpleNamespace
 
 import pandas as pd
@@ -45,11 +43,7 @@ from techval.ml.evaluation import Fold
 from techval.ml.protocol import EvalResult, PairedDelta
 from techval.ml.text import TextCorpus
 
-from dashboard.test_frontend import KIT, _object_keys
-from .walk import numbers_at
-
-ROOT = Path(__file__).resolve().parents[2]
-SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
+from .walk import committed_section, kit_charts, numbers_at
 
 
 # --------------------------------------------------------------------------- #
@@ -171,7 +165,7 @@ def _schema_checked(section: dict) -> dict:
 
 
 def test_every_figure_is_a_kit_chart_with_finite_values_and_labels():
-    kinds = _object_keys(KIT.read_text(encoding="utf-8"), "TV.charts")
+    kinds = kit_charts()
     raw = S.shape(results())
     section = _schema_checked(copy.deepcopy(raw))
     assert set(section["figures"]) == {
@@ -457,11 +451,7 @@ def test_a_refused_evaluation_refuses_the_whole_section(stubbed):
 
 @pytest.fixture(scope="module")
 def committed() -> dict:
-    if not SNAPSHOT.is_file():
-        pytest.skip("docs/dashboard/snapshot.json is not committed yet")
-    section = json.loads(SNAPSHOT.read_text(encoding="utf-8"))["sections"]["encoder"]
-    assert section["status"] == "ok", section["refusals"]
-    return copy.deepcopy(section)
+    return copy.deepcopy(committed_section("encoder"))
 
 
 def _by(rows, key, value):

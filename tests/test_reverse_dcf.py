@@ -9,12 +9,10 @@ from __future__ import annotations
 
 import json
 from datetime import date
-from pathlib import Path
 
 import pytest
 
 from techval.config import Assumptions
-from techval.dcf import run_dcf
 from techval.edgar import CompanyFacts, HttpCache
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
@@ -22,7 +20,8 @@ from techval.market import CsvSource, MarketData
 from techval.reverse_dcf import Case, implied_discount_rate, solve_monotone
 from techval.wacc import compute_wacc
 
-FIXTURES = Path(__file__).parent / "fixtures"
+from conftest import FIXTURES
+
 PRICE = 225.27
 
 

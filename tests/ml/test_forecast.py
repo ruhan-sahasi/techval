@@ -29,7 +29,6 @@ from __future__ import annotations
 import gzip
 import json
 from datetime import date, timedelta
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -62,9 +61,7 @@ from techval.ml.forecast import (
 from techval.ml.protocol import EvalResult, ModelCard
 from techval.wacc import compute_wacc
 
-FIXTURES = Path(__file__).parent.parent / "fixtures"
-PRICES = FIXTURES / "prices"
-AS_OF = date(2026, 9, 10)
+from conftest import AS_OF, FIXTURES, PRICES
 
 
 def _blob() -> dict:
