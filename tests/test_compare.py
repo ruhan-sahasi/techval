@@ -14,7 +14,8 @@ from techval.dashboard.sections import engine as E
 from techval.market import CsvSource
 from techval.tearsheet import RecordedFacts
 
-FIXTURES = Path(__file__).parent / "fixtures"
+from conftest import FIXTURES
+
 AS_OF = date(2026, 9, 9)
 
 

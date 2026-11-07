@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 from datetime import date
-from pathlib import Path
 
 from techval.edgar import CompanyFacts
 
-FIXTURES = Path(__file__).parent / "fixtures"
+from conftest import FIXTURES
+
 PAYLOAD = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text(encoding="utf-8"))
 TAG = "RevenueFromContractWithCustomerExcludingAssessedTax"
 

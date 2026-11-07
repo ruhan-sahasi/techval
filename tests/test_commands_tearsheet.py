@@ -10,7 +10,8 @@ from typer.testing import CliRunner
 
 from techval.cli import app
 
-FIXTURES = Path(__file__).parent / "fixtures"
+from conftest import FIXTURES
+
 runner = CliRunner()
 
 

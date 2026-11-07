@@ -13,7 +13,8 @@ from techval.dashboard.snapshot import Snapshot
 from techval.market import CsvSource
 from techval.tearsheet import RecordedFacts, build_tearsheet
 
-FIXTURES = Path(__file__).parent / "fixtures"
+from conftest import FIXTURES
+
 AS_OF = date(2026, 9, 9)
 
 

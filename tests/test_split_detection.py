@@ -32,13 +32,13 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from datetime import date
-from pathlib import Path
 
 import pytest
 
 from techval.edgar import CompanyFacts
 
-FIXTURES = Path(__file__).parent / "fixtures"
+from conftest import FIXTURES
+
 FIXTURE = FIXTURES / "companyfacts_NVDA_shares.json"
 
 SHARE_TAGS = CompanyFacts._SHARE_COUNT_TAGS

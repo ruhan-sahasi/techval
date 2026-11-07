@@ -55,7 +55,8 @@ from techval.edgar import (
     HttpCache,
 )
 
-FIXTURES = Path(__file__).resolve().parent / "fixtures"
+from conftest import FIXTURES
+
 MERGER = FIXTURES / "merger"
 MNA = FIXTURES / "mna"
 
