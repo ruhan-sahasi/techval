@@ -9,14 +9,10 @@ from typer.testing import CliRunner
 
 from techval.cli import app
 
+from conftest import flat
+
 FIXTURES = Path(__file__).parent / "fixtures"
 runner = CliRunner()
-
-
-def flat(text: str) -> str:
-    import re
-
-    return " ".join(re.sub(r"\x1b\[[0-9;]*m", "", text).split())
 
 
 def config(tmp_path: Path) -> Path:

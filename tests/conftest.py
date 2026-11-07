@@ -82,6 +82,13 @@ def load_instance(ticker: str) -> tuple[list[DimensionedFact], str, date]:
     return load_instance_file(FIXTURES / f"instance_facts_{ticker}.json")
 
 
+def flat(text: str) -> str:
+    """Command output with its colour codes stripped and its whitespace collapsed."""
+    import re
+
+    return " ".join(re.sub(r"\x1b\[[0-9;]*m", "", text).split())
+
+
 class FixtureClient:
     """Stands in for EdgarClient, reading the committed payloads."""
 
