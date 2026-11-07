@@ -83,7 +83,7 @@ from .ev_bridge import build_ev_bridge
 from .financials import build_financials
 from .market import MarketData, make_price_source
 from .nlp.sections import load_sections
-from .terminal import format_pct, make_console, print_rule
+from .terminal import format_money, format_pct, make_console, print_notes, print_rule
 from .tmt import kpis as kpi_module
 from .tmt import metrics as metric_module
 from .tmt.metrics import build_metrics
@@ -913,32 +913,11 @@ def _parse_kpi_overrides(raw: list[str] | None) -> tuple[dict[str, float], list[
 # --------------------------------------------------------------------------- #
 
 
-def _money(v: float | None, dp: int = 0) -> str:
-    if v is None:
-        return "n/a"
-    # Rounded to nothing prints as nothing. Without this, a discount of exactly
-    # zero arrives as -0.0 from the module's sign convention and renders "-0",
-    # which reads as a rounding artefact rather than as a line that was not used.
-    if abs(v) < 0.5 / (10**dp):
-        return f"{0.0:,.{dp}f}"
-    return f"({abs(v):,.{dp}f})" if v < 0 else f"{v:,.{dp}f}"
-
-
 def _dollars(v: float | None, dp: int = 2) -> str:
     """A per-share figure. The sign goes outside the dollar sign, not inside it."""
     if v is None:
         return "n/a"
     return f"$({abs(v):,.{dp}f})" if v < 0 else f"${v:,.{dp}f}"
-
-
-def _notes(items, *, heading: str = "Notes") -> None:
-    items = [i for i in items if i]
-    if not items:
-        return
-    console.print(f"\n[bold]{heading}[/bold]")
-    for n in items:
-        style = "yellow" if str(n).upper().startswith(("FLAG", "WARN")) else "dim"
-        console.print(Text(f"  - {n}", style=style))
 
 
 # How the printed value is formatted, read off the first words of the metric's
@@ -954,7 +933,7 @@ def _format_metric(value: float | None, definition: str) -> str:
     if head.startswith("percentage points"):
         return f"{value:,.1f}"
     if head.startswith("usd millions"):
-        return _money(value, 1)
+        return format_money(value, 1)
     if head.startswith("millions"):
         return f"{value:,.2f}mm"
     if head.startswith("multiple"):
@@ -1005,7 +984,7 @@ def _evidence_label(row: dict) -> str:
 
 def _format_kpi_value(value: float, unit: str) -> str:
     if unit == "usd_mm":
-        return _money(value, 1)
+        return format_money(value, 1)
     if unit == "ratio":
         return format_pct(value, 2)
     if unit == "count":
@@ -1354,13 +1333,13 @@ def kpis(
             _render_pack_inputs(
                 _pack_input_evidence(kpi_set, merged, statement_rows, override_rows)
             )
-            _notes(pack.flags, heading="Not computed")
-            _notes(([price_note] if price_note else []) + pack.notes)
+            print_notes(console, pack.flags, heading="Not computed")
+            print_notes(console, ([price_note] if price_note else []) + pack.notes)
 
-        _notes(bridge_lines, heading="How the disclosed figures reached the pack")
-        _notes(bridge_caveats(fin), heading="Data quality")
-        _notes([mdna_note] + kpi_set.notes, heading="Sources")
-        _notes(kpi_set.flags, heading="Extraction flags")
+        print_notes(console, bridge_lines, heading="How the disclosed figures reached the pack")
+        print_notes(console, bridge_caveats(fin), heading="Data quality")
+        print_notes(console, [mdna_note] + kpi_set.notes, heading="Sources")
+        print_notes(console, kpi_set.flags, heading="Extraction flags")
     except TechvalError as exc:
         console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
         raise typer.Exit(1)
@@ -1384,27 +1363,27 @@ def _segment_table(rows, *, title: str, residual_label: str, consolidated: float
         t.add_column("Capex", justify="right")
     t.add_column("Assets" if not geography else "Long-lived assets", justify="right")
     for s in rows:
-        cells = [s.name, _money(s.revenue), format_pct(s.revenue_share)]
+        cells = [s.name, format_money(s.revenue), format_pct(s.revenue_share)]
         if not geography:
             cells += [
-                _money(s.operating_income),
+                format_money(s.operating_income),
                 format_pct(s.margin),
-                _money(s.da),
-                _money(s.capex),
+                format_money(s.da),
+                format_money(s.capex),
             ]
-        cells.append(_money(s.assets))
+        cells.append(format_money(s.assets))
         t.add_row(*cells)
     blanks = [""] * (4 if not geography else 0)
     t.add_row(
         Text(residual_label, style="yellow"),
-        Text(_money(residual), style="yellow"),
+        Text(format_money(residual), style="yellow"),
         "",
         *blanks,
         "",
     )
     t.add_row(
         Text("Consolidated revenue", style="bold"),
-        Text(_money(consolidated), style="bold"),
+        Text(format_money(consolidated), style="bold"),
         "",
         *blanks,
         "",
@@ -1427,8 +1406,8 @@ def _render_reconciliation(report) -> None:
     t.add_column("")
     t.add_column("", justify="right")
     t.add_column("", style="dim", overflow="fold")
-    t.add_row("Sum of reported segments", _money(total), "")
-    t.add_row("Consolidated revenue", _money(report.consolidated_revenue), "")
+    t.add_row("Sum of reported segments", format_money(total), "")
+    t.add_row("Consolidated revenue", format_money(report.consolidated_revenue), "")
     share = (
         report.unallocated / report.consolidated_revenue
         if report.consolidated_revenue
@@ -1436,7 +1415,7 @@ def _render_reconciliation(report) -> None:
     )
     t.add_row(
         Text("Residual", style="bold"),
-        Text(_money(report.unallocated), style="bold"),
+        Text(format_money(report.unallocated), style="bold"),
         (
             f"{format_pct(share, 2)} of consolidated revenue"
             if share is not None
@@ -1550,8 +1529,8 @@ def segments(
                     "column here would be a figure no filer reports.[/dim]"
                 )
 
-        _notes(report.notes, heading="How the table was read")
-        _notes(report.flags, heading="Flags")
+        print_notes(console, report.notes, heading="How the table was read")
+        print_notes(console, report.flags, heading="Flags")
     except TechvalError as exc:
         console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
         raise typer.Exit(1)
@@ -1760,10 +1739,10 @@ def _render_sotp(result, fin, report) -> None:
         t.add_row(
             s.name,
             s.metric_name,
-            _money(s.metric_value),
+            format_money(s.metric_value),
             f"{s.multiple:,.1f}x",
             s.multiple_label,
-            Text(_money(s.enterprise_value), style="bold"),
+            Text(format_money(s.enterprise_value), style="bold"),
             format_pct(s.share_of_total),
         )
     console.print(t)
@@ -1798,7 +1777,7 @@ def _render_sotp(result, fin, report) -> None:
     else:
         t.add_row(
             "Annual unallocated corporate cost",
-            _money(result.corporate_cost),
+            format_money(result.corporate_cost),
             "as supplied in the plan, as a positive cost. Segment operating "
             "income is struck before it, which is why it is a deduction here "
             "rather than already inside the parts",
@@ -1810,7 +1789,7 @@ def _render_sotp(result, fin, report) -> None:
         )
         t.add_row(
             Text("Deducted from the parts", style="bold"),
-            Text(_money(result.unallocated_corporate), style="bold"),
+            Text(format_money(result.unallocated_corporate), style="bold"),
             "overhead is a perpetual charge in exactly the way segment earnings "
             "are a perpetual credit",
         )
@@ -1834,7 +1813,7 @@ def _render_sotp(result, fin, report) -> None:
         elif low.startswith("gap, %"):
             shown = format_pct(value)
         else:
-            shown = _money(value)
+            shown = format_money(value)
         bold = low.startswith(
             (
                 "gross value",
@@ -1851,7 +1830,7 @@ def _render_sotp(result, fin, report) -> None:
     gap = result.implied_vs_consolidated
     direction = "above" if gap.gap > 0 else "below"
     console.print(
-        f"\n[dim]The parts come out {_money(abs(gap.gap))}mm {direction} what the "
+        f"\n[dim]The parts come out {format_money(abs(gap.gap))}mm {direction} what the "
         "market pays for the whole. That gap is the break-up argument and it is "
         "also the first place to look for an error: a wide gap is usually a wrong "
         "multiple or a missing corporate line long before it is a mispricing. The "
@@ -1878,9 +1857,9 @@ def _render_sotp(result, fin, report) -> None:
         f"months to {fin.as_of}. Where those two periods differ, the parts and the "
         "whole are measured over different windows.[/dim]"
     )
-    _notes(result.checks, heading="Cross-checks")
-    _notes(result.flags, heading="Flags")
-    _notes(result.notes)
+    print_notes(console, result.checks, heading="Cross-checks")
+    print_notes(console, result.flags, heading="Flags")
+    print_notes(console, result.notes)
 
 
 @app.command()

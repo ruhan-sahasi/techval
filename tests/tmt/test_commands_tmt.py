@@ -1184,7 +1184,9 @@ def test_a_zero_discount_prints_as_zero_rather_than_as_minus_zero(tmp_path):
     Printed raw that reads as a rounding artefact on a line that was in fact not
     used at all.
     """
-    assert C._money(-0.0) == "0"
+    from techval.terminal import format_money
+
+    assert format_money(-0.0) == "0"
     result = sotp(tmp_path)
     row = next(
         line for line in result.stdout.splitlines() if "Conglomerate discount" in line
