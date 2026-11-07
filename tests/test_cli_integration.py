@@ -42,10 +42,11 @@ from typer.testing import CliRunner
 from techval import cli as C
 from techval import commands_forecast, commands_mna, commands_peers, commands_tmt
 from techval.config import Assumptions
-from techval.edgar import CompanyFacts, DimensionedFact
+from techval.edgar import CompanyFacts
 from techval.errors import MissingDataError
 from techval.market import CsvSource
 from techval.merger import run_merger
+from conftest import load_instance_file
 
 FIXTURES = Path(__file__).parent / "fixtures"
 PRICES = FIXTURES / "prices"
@@ -103,22 +104,6 @@ CAPABILITY_SWITCHES = (
 SUBMISSIONS = json.loads((FIXTURES / "submissions_tmt.json").read_text())["companies"]
 
 
-def _instance(path: Path) -> tuple[list[DimensionedFact], str, date]:
-    payload = json.loads(path.read_text())
-    facts = [
-        DimensionedFact(
-            tag=row["tag"],
-            value=row["value"],
-            unit=row["unit"],
-            start=date.fromisoformat(row["start"]) if row["start"] else None,
-            end=date.fromisoformat(row["end"]),
-            dimensions=row["dimensions"],
-        )
-        for row in payload["facts"]
-    ]
-    return facts, payload["_accession"], date.fromisoformat(payload["_filed"])
-
-
 class FixtureClient:
     """The committed payloads, standing in for a network client.
 
@@ -144,7 +129,7 @@ class FixtureClient:
         return dict(SUBMISSIONS.get(ticker.upper(), {}))
 
     def instance_facts(self, ticker, forms=("10-K", "10-Q")):
-        return _instance(FIXTURES / f"instance_facts_{ticker.upper()}.json")
+        return load_instance_file(FIXTURES / f"instance_facts_{ticker.upper()}.json")
 
     def filings(self, ticker, forms=("10-K",), since=None, limit=20):
         """No merger agreements on file for any fixture company.
@@ -750,7 +735,7 @@ def test_the_accretion_row_prints_the_dollars_the_model_computed(tmp_path):
 
     The section could print SOMETHING and still lie, so the same fixtures are run
     through ``run_merger`` directly and every per-share figure the model computed
-    is asserted to appear in the rendered row, formatted exactly as ``_money``
+    is asserted to appear in the rendered row, formatted exactly as ``format_money``
     formats it. The percent half follows the PurchaseAccounting contract: shown
     where the model quoted one, NM where standalone EPS was too thin to divide by.
     """

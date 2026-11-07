@@ -43,7 +43,7 @@ atexit.register(shutil.rmtree, _HOME, True)
 import pytest  # noqa: E402
 
 from techval.config import Assumptions  # noqa: E402
-from techval.edgar import CompanyFacts, HttpCache
+from techval.edgar import CompanyFacts, DimensionedFact, HttpCache
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
 from techval.market import CsvSource, MarketData
@@ -59,6 +59,27 @@ AS_OF = date(2026, 9, 10)
 def load_facts(ticker: str) -> CompanyFacts:
     path = FIXTURES / f"companyfacts_{ticker.upper()}.json"
     return CompanyFacts(json.loads(path.read_text()), ticker)
+
+
+def load_instance_file(path: Path) -> tuple[list[DimensionedFact], str, date]:
+    """A pruned XBRL instance document: its facts, accession number and filing date."""
+    payload = json.loads(path.read_text())
+    facts = [
+        DimensionedFact(
+            tag=row["tag"],
+            value=row["value"],
+            unit=row["unit"],
+            start=date.fromisoformat(row["start"]) if row["start"] else None,
+            end=date.fromisoformat(row["end"]),
+            dimensions=row["dimensions"],
+        )
+        for row in payload["facts"]
+    ]
+    return facts, payload["_accession"], date.fromisoformat(payload["_filed"])
+
+
+def load_instance(ticker: str) -> tuple[list[DimensionedFact], str, date]:
+    return load_instance_file(FIXTURES / f"instance_facts_{ticker}.json")
 
 
 class FixtureClient:

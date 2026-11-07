@@ -7,18 +7,17 @@ payloads with --facts-dir. See ``techval.tearsheet``.
 
 from __future__ import annotations
 
-import sys
 from datetime import date
 from pathlib import Path
 
 import typer
-from rich.console import Console
 from rich.markup import escape
 
 from .errors import TechvalError
+from .terminal import make_console
 
 app = typer.Typer()
-console = Console(width=None if sys.stdout.isatty() else 120)
+console = make_console(120)
 
 CHECKOUT = Path(__file__).resolve().parent.parent.parent
 

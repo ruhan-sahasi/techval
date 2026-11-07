@@ -105,15 +105,6 @@ def prices(source) -> ForwardPrices:
     return ForwardPrices(source, start=date(2023, 1, 1), end=date(2026, 9, 10))
 
 
-@pytest.fixture
-def bt_assumptions() -> Assumptions:
-    """Defaults with the risk-free rate pinned, so nothing reaches the Treasury."""
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
-    a.comps.peers = ["CRWD", "MDB", "ZS"]
-    return a
-
-
 # --------------------------------------------------------------------------- #
 # The premise: a knowledge date changes the company being valued
 # --------------------------------------------------------------------------- #
@@ -192,7 +183,7 @@ def test_assert_no_lookahead_ignores_defaulted_line_items():
 
 
 def test_lookahead_error_is_not_swallowed_by_the_per_observation_handler(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     """A leak must stop the run, not become one more row in the output.
 
@@ -202,21 +193,21 @@ def test_lookahead_error_is_not_swallowed_by_the_per_observation_handler(
     """
     with pytest.raises(LookaheadError):
         value_at(
-            "DDOG", D_2025_H1, bt_assumptions, blind_client_factory, market_factory
+            "DDOG", D_2025_H1, assumptions, blind_client_factory, market_factory
         )
 
     with pytest.raises(LookaheadError):
         run_backtest(
             ["DDOG"],
             [D_2025_H1],
-            bt_assumptions,
+            assumptions,
             blind_client_factory,
             market_factory,
             prices,
         )
 
 
-def test_lookahead_is_caught_on_the_price_side_too(bt_assumptions, source, cache):
+def test_lookahead_is_caught_on_the_price_side_too(assumptions, source, cache):
     """A market feed that was never capped is a leak the provenance walk cannot see.
 
     ``Financials`` carries filing dates. A price series does not appear in it at
@@ -234,16 +225,16 @@ def test_lookahead_is_caught_on_the_price_side_too(bt_assumptions, source, cache
     # The correctly capped factory values the same name without complaint, so
     # the failure below is the cap and nothing else.
     assert value_at(
-        "DDOG", D_2025_H1, bt_assumptions, dated_client_factory, capped
+        "DDOG", D_2025_H1, assumptions, dated_client_factory, capped
     ).valued
 
     with pytest.raises(LookaheadError) as exc:
-        value_at("DDOG", D_2025_H1, bt_assumptions, dated_client_factory, uncapped)
+        value_at("DDOG", D_2025_H1, assumptions, dated_client_factory, uncapped)
     assert "not capped" in str(exc.value)
 
 
 def test_every_observation_in_a_run_passed_the_assertion(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     """The run itself is the proof, so re-derive it here rather than trusting it.
 
@@ -254,7 +245,7 @@ def test_every_observation_in_a_run_passed_the_assertion(
     result = run_backtest(
         TICKERS,
         [D_2024, D_2025_H1],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -280,7 +271,7 @@ def test_every_observation_in_a_run_passed_the_assertion(
 
 
 def test_a_company_with_no_filings_is_skipped_and_kept(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     """A name that had not filed is recorded with the reason, never dropped.
 
@@ -291,7 +282,7 @@ def test_a_company_with_no_filings_is_skipped_and_kept(
     result = run_backtest(
         TICKERS,
         [BEFORE_FIRST_FILING, D_2025_H1],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -311,7 +302,7 @@ def test_a_company_with_no_filings_is_skipped_and_kept(
 
 
 def test_skipped_and_failed_are_counted_separately(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     """Not filed and could not be parsed are different facts about the world.
 
@@ -323,7 +314,7 @@ def test_skipped_and_failed_are_counted_separately(
     result = run_backtest(
         TICKERS,
         [BEFORE_FIRST_FILING, D_2024, D_2025_H1],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -343,13 +334,13 @@ def test_skipped_and_failed_are_counted_separately(
 
 
 def test_a_parse_failure_does_not_abort_the_run(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     """The names after the broken one still get valued."""
     result = run_backtest(
         ["MDB", "DDOG", "ZS"],
         [D_2025_H1],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -361,12 +352,12 @@ def test_a_parse_failure_does_not_abort_the_run(
 
 
 def test_the_survivorship_caveat_is_stated_in_every_result(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     result = run_backtest(
         ["DDOG"],
         [D_2025_H1],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -402,7 +393,7 @@ def test_forward_return_enters_at_the_valuation_date_and_exits_past_the_horizon(
 
 
 def test_a_horizon_past_the_end_of_the_series_records_none_and_is_excluded(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     """Truncating the horizon would mix holding periods inside one coefficient.
 
@@ -420,7 +411,7 @@ def test_a_horizon_past_the_end_of_the_series_records_none_and_is_excluded(
     result = run_backtest(
         ["DDOG", "ZS"],
         [D_2025_H1, D_2026],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -445,7 +436,7 @@ def test_the_horizon_is_counted_in_calendar_days(prices):
 
 
 def test_the_entry_price_is_the_price_the_valuation_used(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     """The call and the return must start from the same mark.
 
@@ -453,7 +444,7 @@ def test_the_entry_price_is_the_price_the_valuation_used(
     measuring a trade nobody could have made.
     """
     obs = value_at(
-        "ZS", D_2025_H1, bt_assumptions, dated_client_factory, market_factory
+        "ZS", D_2025_H1, assumptions, dated_client_factory, market_factory
     )
     fr = forward_return("ZS", D_2025_H1, prices("ZS"), 252)
     assert obs.price == pytest.approx(fr.entry_price)
@@ -513,12 +504,12 @@ def test_spearman_declines_to_answer_when_it_cannot():
 
 
 def test_hit_rate_and_quintiles_on_a_constructed_sample(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     result = run_backtest(
         TICKERS,
         [D_2024, D_2025_H1, D_2025_H2],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -548,12 +539,12 @@ def test_hit_rate_and_quintiles_on_a_constructed_sample(
 
 
 def test_a_thin_sample_is_flagged_and_n_travels_with_the_coefficient(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     result = run_backtest(
         TICKERS,
         [D_2024, D_2025_H1],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -570,12 +561,12 @@ def test_a_thin_sample_is_flagged_and_n_travels_with_the_coefficient(
 
 
 def test_the_threshold_for_a_thin_sample_is_the_callers(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     result = run_backtest(
         TICKERS,
         [D_2024, D_2025_H1],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -585,7 +576,7 @@ def test_the_threshold_for_a_thin_sample_is_the_callers(
 
 
 def test_overlapping_windows_are_counted_and_flagged(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     """Quarterly valuations on a 252-day horizon are not independent draws.
 
@@ -597,7 +588,7 @@ def test_overlapping_windows_are_counted_and_flagged(
     result = run_backtest(
         ["DDOG", "ZS"],
         [D_2024, D_2025_H1, D_2025_H2],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -612,12 +603,12 @@ def test_overlapping_windows_are_counted_and_flagged(
 
 
 def test_dates_spaced_beyond_the_horizon_are_all_independent(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     result = run_backtest(
         ["DDOG"],
         [D_2024, D_2025_H2],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -660,13 +651,13 @@ def test_an_unpinned_rate_is_the_treasury_yield_of_each_valuation_date(market_fa
 
 
 def test_a_per_date_risk_free_rate_reaches_the_discount_rate(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     rates = {D_2024: 0.0380, D_2025_H1: 0.0700}
     result = run_backtest(
         ["DDOG"],
         [D_2024, D_2025_H1],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -677,8 +668,8 @@ def test_a_per_date_risk_free_rate_reaches_the_discount_rate(
     assert any("prevailed when it was made" in n for n in result.notes)
 
     # The caller's own object is untouched, so a second run is not contaminated.
-    assert bt_assumptions.market.risk_free_rate == pytest.approx(0.0483)
-    assert bt_assumptions.as_of is None
+    assert assumptions.market.risk_free_rate == pytest.approx(0.0483)
+    assert assumptions.as_of is None
 
 
 def test_the_per_date_mapping_is_enough_on_its_own(market_factory, prices):
@@ -702,13 +693,13 @@ def test_the_per_date_mapping_is_enough_on_its_own(market_factory, prices):
 
 
 def test_a_missing_rate_is_an_error_not_a_fallback(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     with pytest.raises(ConfigError) as exc:
         run_backtest(
             ["DDOG"],
             [D_2024, D_2025_H1],
-            bt_assumptions,
+            assumptions,
             dated_client_factory,
             market_factory,
             prices,
@@ -722,7 +713,7 @@ def test_a_missing_rate_is_an_error_not_a_fallback(
 # --------------------------------------------------------------------------- #
 
 
-def test_two_identical_runs_agree_exactly(bt_assumptions, source, cache):
+def test_two_identical_runs_agree_exactly(assumptions, source, cache):
     """Same inputs, same output, down to the last basis point.
 
     Fresh feeds on each run rather than shared ones, so the answer cannot be
@@ -734,7 +725,7 @@ def test_two_identical_runs_agree_exactly(bt_assumptions, source, cache):
         return run_backtest(
             TICKERS,
             dates,
-            bt_assumptions,
+            assumptions,
             dated_client_factory,
             market_factory_from(source, cache),
             ForwardPrices(source, start=date(2023, 1, 1), end=date(2026, 9, 10)),
@@ -760,17 +751,17 @@ def test_two_identical_runs_agree_exactly(bt_assumptions, source, cache):
 
 
 def test_the_order_of_the_ticker_list_does_not_move_the_statistics(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     """Ranking with tied midranks and a stable sort makes the answer order free."""
     dates = [D_2024, D_2025_H1]
     forward = run_backtest(
-        TICKERS, dates, bt_assumptions, dated_client_factory, market_factory, prices
+        TICKERS, dates, assumptions, dated_client_factory, market_factory, prices
     )
     backward = run_backtest(
         list(reversed(TICKERS)),
         dates,
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -789,12 +780,12 @@ def test_the_order_of_the_ticker_list_does_not_move_the_statistics(
 
 
 def test_the_frame_carries_one_row_per_attempt_with_its_return(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     result = run_backtest(
         TICKERS,
         [BEFORE_FIRST_FILING, D_2025_H1],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -830,7 +821,7 @@ def test_the_frame_carries_one_row_per_attempt_with_its_return(
 
 
 def test_the_observation_records_which_terminal_method_made_the_call(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     """A Gordon call and a value-driver call are two different predictions.
 
@@ -838,11 +829,11 @@ def test_the_observation_records_which_terminal_method_made_the_call(
     correlation for a model that was never run as one model.
     """
     gordon = value_at(
-        "DDOG", D_2025_H1, bt_assumptions, dated_client_factory, market_factory
+        "DDOG", D_2025_H1, assumptions, dated_client_factory, market_factory
     )
     assert gordon.method == "gordon"
 
-    driven = bt_assumptions.model_copy(deep=True)
+    driven = assumptions.model_copy(deep=True)
     driven.dcf.terminal.method = "value_driver"
     driven.dcf.terminal.terminal_roic = 0.14
     other = value_at("DDOG", D_2025_H1, driven, dated_client_factory, market_factory)
@@ -853,13 +844,13 @@ def test_the_observation_records_which_terminal_method_made_the_call(
 
 
 def test_an_empty_run_reports_nothing_rather_than_a_coefficient(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     """No observations means no statistic, and the checks say why."""
     result = run_backtest(
         TICKERS,
         [BEFORE_FIRST_FILING],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,
@@ -873,12 +864,12 @@ def test_an_empty_run_reports_nothing_rather_than_a_coefficient(
 
 
 def test_the_notes_state_the_return_convention(
-    bt_assumptions, market_factory, prices
+    assumptions, market_factory, prices
 ):
     result = run_backtest(
         ["DDOG"],
         [D_2025_H1],
-        bt_assumptions,
+        assumptions,
         dated_client_factory,
         market_factory,
         prices,

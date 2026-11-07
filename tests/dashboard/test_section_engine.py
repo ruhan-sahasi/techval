@@ -20,6 +20,7 @@ import pytest
 
 from techval.dashboard.sections import engine as E
 from techval.dashboard.snapshot import to_jsonable, validate_section
+from .walk import kit_charts, numbers_at
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -147,27 +148,6 @@ def _measured(**over) -> E.Measured:
     return E.Measured(**base)
 
 
-def _kit_charts() -> set[str]:
-    source = (ASSETS / "kit.js").read_text(encoding="utf-8")
-    body = source[source.index("TV.charts = {") :]
-    body = body[: body.index("}")]
-    return set(re.findall(r"(\w+)\s*:", body))
-
-
-def _numbers(value, path="data"):
-    """Every number in a figure's data, with where it sits."""
-    if isinstance(value, bool) or value is None or isinstance(value, str):
-        return
-    if isinstance(value, (int, float)):
-        yield path, value
-    elif isinstance(value, dict):
-        for k, v in value.items():
-            yield from _numbers(v, f"{path}.{k}")
-    elif isinstance(value, (list, tuple)):
-        for i, v in enumerate(value):
-            yield from _numbers(v, f"{path}[{i}]")
-
-
 def _labels(fig) -> list[str]:
     d = fig["data"]
     kind = fig["kind"]
@@ -191,7 +171,7 @@ def _labels(fig) -> list[str]:
 
 def test_every_figure_is_a_kit_chart_with_finite_values_and_labels():
     section = E.shape(_measured())
-    charts = _kit_charts()
+    charts = kit_charts()
     assert set(E.KINDS) <= charts
     assert set(section["figures"]) == {
         "cost_of_capital", "football", "bridge", "sensitivity", "montecarlo", "apv"
@@ -199,7 +179,7 @@ def test_every_figure_is_a_kit_chart_with_finite_values_and_labels():
     for fid, fig in section["figures"].items():
         assert fig["kind"] in charts, fid
         assert fig["title"].strip(), fid
-        for where, number in _numbers(fig["data"]):
+        for where, number in numbers_at(fig["data"]):
             assert math.isfinite(number), f"{fid} {where} is {number}"
         labels = _labels(fig)
         assert labels and all(isinstance(x, str) and x.strip() for x in labels), fid

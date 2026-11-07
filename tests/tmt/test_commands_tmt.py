@@ -36,12 +36,13 @@ import pytest
 from typer.testing import CliRunner
 
 from techval import commands_tmt as C
-from techval.edgar import CompanyFacts, DimensionedFact, Provenance
+from techval.edgar import CompanyFacts, Provenance
 from techval.errors import ConfigError
 from techval.market import CsvSource
 from techval.tmt import kpis as kpi_module
 from techval.tmt import metrics as metric_module
 from techval.tmt.taxonomy import SubVertical
+from conftest import load_instance_file
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 PRICES = FIXTURES / "prices"
@@ -57,22 +58,6 @@ runner = CliRunner()
 # --------------------------------------------------------------------------- #
 # an offline client
 # --------------------------------------------------------------------------- #
-
-
-def _instance(path: Path) -> tuple[list[DimensionedFact], str, date]:
-    payload = json.loads(path.read_text())
-    facts = [
-        DimensionedFact(
-            tag=row["tag"],
-            value=row["value"],
-            unit=row["unit"],
-            start=date.fromisoformat(row["start"]) if row["start"] else None,
-            end=date.fromisoformat(row["end"]),
-            dimensions=row["dimensions"],
-        )
-        for row in payload["facts"]
-    ]
-    return facts, payload["_accession"], date.fromisoformat(payload["_filed"])
 
 
 SUBMISSIONS = json.loads((FIXTURES / "submissions_tmt.json").read_text())["companies"]
@@ -108,7 +93,7 @@ class FixtureClient:
         return dict(SUBMISSIONS[ticker.upper()])
 
     def instance_facts(self, ticker, forms=("10-K", "10-Q")):
-        return _instance(self.instance[ticker.upper()])
+        return load_instance_file(self.instance[ticker.upper()])
 
     #: The 10-K behind each ticker's fixtures, with the date it reached EDGAR.
     #: Disney's is here because ``sotp`` reads the filing date to work out the
@@ -1184,7 +1169,9 @@ def test_a_zero_discount_prints_as_zero_rather_than_as_minus_zero(tmp_path):
     Printed raw that reads as a rounding artefact on a line that was in fact not
     used at all.
     """
-    assert C._money(-0.0) == "0"
+    from techval.terminal import format_money
+
+    assert format_money(-0.0) == "0"
     result = sotp(tmp_path)
     row = next(
         line for line in result.stdout.splitlines() if "Conglomerate discount" in line
