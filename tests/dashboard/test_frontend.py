@@ -23,9 +23,9 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
+from .walk import KIT, ROOT
+
 ASSETS = ROOT / "src" / "techval" / "dashboard" / "assets"
-KIT = ASSETS / "kit.js"
 
 SECTION_IDS = (
     "overview",

@@ -19,7 +19,6 @@ from __future__ import annotations
 import copy
 import json
 import math
-from pathlib import Path
 
 import pytest
 
@@ -28,11 +27,8 @@ from techval.dashboard.collect import CollectContext, entry_module
 from techval.dashboard.sections import sample
 from techval.dashboard.sections.sample import read, shape
 from techval.dashboard.snapshot import to_jsonable, validate_section
-from .walk import numbers_at
-
-ROOT = Path(__file__).resolve().parents[2]
-FIXTURES = ROOT / "tests" / "fixtures"
-SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
+from conftest import FIXTURES
+from .walk import ROOT, SNAPSHOT, numbers_at
 
 
 # --------------------------------------------------------------------------- #

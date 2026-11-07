@@ -20,16 +20,14 @@ import json
 import math
 from contextlib import contextmanager
 from datetime import date
-from pathlib import Path
 
 import pytest
 
 from techval.dashboard.collect import entry_module
 from techval.dashboard.sections import warranted as S
 from techval.dashboard.snapshot import to_jsonable, validate_section
+from conftest import FIXTURES
 from .walk import committed_section, kit_charts, numbers_at
-
-ROOT = Path(__file__).resolve().parents[2]
 
 CARD = "comps.py OLS refit on the date, sub-vertical peers"
 UNIVERSE = "comps.py OLS refit on the date, whole TMT cross-section"
@@ -407,9 +405,8 @@ def test_the_caution_quotes_the_partial_refit_and_names_the_fix():
 def committed_audit() -> S.Audit:
     from techval.commands_peers import _load_observations
 
-    fixtures = ROOT / "tests" / "fixtures"
-    panel = _load_observations(fixtures / S.PANEL)
-    audit, problem = S.read_audit(fixtures / S.AUDIT, panel)
+    panel = _load_observations(FIXTURES / S.PANEL)
+    audit, problem = S.read_audit(FIXTURES / S.AUDIT, panel)
     assert problem is None
     return audit
 
@@ -428,8 +425,8 @@ def test_an_audit_of_another_recording_is_not_read_as_evidence(committed_audit, 
 
     from techval.commands_peers import _load_observations
 
-    panel = _load_observations(ROOT / "tests" / "fixtures" / S.PANEL)
-    with gzip.open(ROOT / "tests" / "fixtures" / S.AUDIT, "rt") as handle:
+    panel = _load_observations(FIXTURES / S.PANEL)
+    with gzip.open(FIXTURES / S.AUDIT, "rt") as handle:
         raw = json.load(handle)
     raw["observations"][0]["ev_recorded"] += 50.0
     moved = tmp_path / "ev_audit.json.gz"

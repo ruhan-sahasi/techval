@@ -15,7 +15,6 @@ import json
 import math
 import re
 from datetime import date
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -23,10 +22,10 @@ import pytest
 from techval.dashboard.sections import propensity as P
 from techval.dashboard.snapshot import to_jsonable, validate_section
 from techval.errors import MissingDataError
+from conftest import FIXTURES
 from .walk import committed_section, kit_charts, numbers_at
 
-ROOT = Path(__file__).resolve().parents[2]
-MNA = ROOT / "tests" / "fixtures" / "mna"
+MNA = FIXTURES / "mna"
 
 
 # --------------------------------------------------------------------------- #

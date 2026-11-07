@@ -14,18 +14,15 @@ from __future__ import annotations
 import json
 import math
 import re
-from pathlib import Path
 
 import pytest
 
 from techval.dashboard.sections import engine as E
 from techval.dashboard.snapshot import to_jsonable, validate_section
-from .walk import kit_charts, numbers_at
+from conftest import FIXTURES, PRICES
+from .walk import ROOT, SNAPSHOT, kit_charts, numbers_at
 
-ROOT = Path(__file__).resolve().parents[2]
-FIXTURES = ROOT / "tests" / "fixtures"
 ASSETS = ROOT / "src" / "techval" / "dashboard" / "assets"
-SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
 
 
 # --------------------------------------------------------------------------- #
@@ -509,7 +506,7 @@ def fixture_sources(observations=None):
 
     return E.Sources(
         client=Files(),
-        prices=CsvSource(FIXTURES / "prices"),
+        prices=CsvSource(PRICES),
         record=lambda *args, **kwargs: nullcontext(),
         facts_name=lambda t: f"companyfacts_{t}.json",
         prices_name=lambda t: f"prices/{t}.csv",

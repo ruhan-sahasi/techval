@@ -22,7 +22,6 @@ import json
 import math
 import re
 from datetime import date
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -30,11 +29,10 @@ import pytest
 from techval.dashboard.collect import entry_module
 from techval.dashboard.sections import datalayer as D
 from techval.dashboard.snapshot import to_jsonable, validate_section
-from .walk import committed_section, kit_charts, numbers, strings
+from conftest import FIXTURES
+from .walk import ROOT, committed_section, kit_charts, numbers, strings
 
-ROOT = Path(__file__).resolve().parents[2]
 RENDERER = ROOT / "src" / "techval" / "dashboard" / "assets" / "sections" / "datalayer.js"
-FIXTURES = ROOT / "tests" / "fixtures"
 
 
 def _as_snapshot_section(shaped: dict[str, Any]) -> dict[str, Any]:

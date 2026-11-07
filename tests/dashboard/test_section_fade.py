@@ -38,11 +38,8 @@ from techval.dashboard.sections.fade import (
     verdict_status,
 )
 from techval.dashboard.snapshot import HEADLINE_KEYS, to_jsonable, validate_section
-from .walk import kit_charts, numbers_at
-
-ROOT = Path(__file__).resolve().parents[2]
-FIXTURES = ROOT / "tests" / "fixtures"
-SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
+from conftest import FIXTURES
+from .walk import SNAPSHOT, kit_charts, numbers_at
 
 
 # --------------------------------------------------------------------------- #
