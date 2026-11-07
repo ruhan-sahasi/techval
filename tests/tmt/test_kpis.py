@@ -27,7 +27,6 @@ from __future__ import annotations
 import json
 import re
 from datetime import date
-from pathlib import Path
 
 import pytest
 
@@ -51,11 +50,7 @@ from techval.tmt.kpis import (
     settings_from_assumptions,
 )
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
-
-# The date the instance fixtures were retrieved, and the date every assertion
-# below is made as of. Pinning it keeps "latest" fixed for good.
-AS_OF = date(2026, 9, 10)
+from conftest import AS_OF, FIXTURES
 
 # A filer with no company facts at all. Used where the point of the test is the
 # instance document, so that anything the assertion sees demonstrably came from

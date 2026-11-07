@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import json
 from datetime import date
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -52,7 +51,8 @@ from techval.ml.nn import gradient_check
 from techval.ml.peer_labels import PeerGroup
 from techval.ml.text import TextCorpus
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
+from conftest import FIXTURES
+
 PEER_FIXTURE = FIXTURES / "peer_groups_tmt.json"
 PANEL_FIXTURE = FIXTURES / "peer_panel_tmt.json"
 ITEM1_FIXTURE = FIXTURES / "peer_item1_tmt.json"

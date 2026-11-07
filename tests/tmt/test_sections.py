@@ -18,7 +18,6 @@ from __future__ import annotations
 import gzip
 import json
 from datetime import date
-from pathlib import Path
 
 import pytest
 
@@ -26,7 +25,7 @@ from techval.errors import ConfigError, MissingDataError
 from techval.nlp import sections as sections_module
 from techval.nlp.sections import FilingSections, Section, load_sections, split_items
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
+from conftest import FIXTURES
 
 # Items the platform actually reads, plus the ones the assignment requires be
 # covered. Item 1 feeds the peer model, 1A the risk diff, 7 the KPI extractor.

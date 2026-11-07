@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import json
 from datetime import date
-from pathlib import Path
 
 import pytest
 
@@ -38,7 +37,8 @@ from techval.ml.peer_labels import (
     segment_names,
 )
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
+from conftest import FIXTURES
+
 TICKER_FIXTURE = FIXTURES / "sec_tickers_tmt.json"
 PROXY_FIXTURE = FIXTURES / "proxy_peer_groups.json"
 
