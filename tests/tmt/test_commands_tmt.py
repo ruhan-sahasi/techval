@@ -42,10 +42,7 @@ from techval.market import CsvSource
 from techval.tmt import kpis as kpi_module
 from techval.tmt import metrics as metric_module
 from techval.tmt.taxonomy import SubVertical
-from conftest import load_instance_file
-
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
-PRICES = FIXTURES / "prices"
+from conftest import FIXTURES, PRICES, load_instance_file
 
 # The date every fixture was retrieved, and the date every run below is pinned
 # to. Without it ``build_kpis`` dates its prose metrics to today and the printed

@@ -26,7 +26,6 @@ from __future__ import annotations
 import copy
 import json
 from datetime import date, timedelta
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -52,8 +51,7 @@ from techval.ml.features import (
     winsorize,
 )
 
-FIXTURES = Path(__file__).parent.parent / "fixtures"
-PRICES = FIXTURES / "prices"
+from conftest import FIXTURES, PRICES
 
 # Dates chosen inside the window the fixtures cover. The price CSVs run
 # 2023-09-01 to 2026-09-09 and the earliest filing in any payload is 2024-03-06,

@@ -27,7 +27,6 @@ from __future__ import annotations
 import gzip
 import json
 from datetime import date
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -50,8 +49,8 @@ from techval.ml.warranted import (
 from techval.tmt.metrics import build_metrics
 from techval.tmt.taxonomy import SubVertical
 
-FIXTURES = Path(__file__).parent.parent / "fixtures"
-PRICES = FIXTURES / "prices"
+from conftest import FIXTURES, PRICES
+
 PANEL_FIXTURE = FIXTURES / "warranted" / "observations.json.gz"
 
 # Quarter ends inside the committed price history, which starts 2023-09-01.
