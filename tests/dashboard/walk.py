@@ -1,17 +1,22 @@
-"""Reading what a section hands the kit: the charts the kit knows, and every
-number or string inside a figure's data.
+"""Reading what a section hands the kit: the charts the kit knows, every number
+or string inside a figure's data, and a section as the committed snapshot holds it.
 
 Shared by the section tests, which each carried their own copy.
 """
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-KIT = Path(__file__).resolve().parents[2] / "src" / "techval" / "dashboard" / "assets" / "kit.js"
+import pytest
+
+ROOT = Path(__file__).resolve().parents[2]
+KIT = ROOT / "src" / "techval" / "dashboard" / "assets" / "kit.js"
+SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
 
 
 def kit_charts() -> set[str]:
@@ -53,3 +58,16 @@ def strings(value: Any) -> Iterator[str]:
     elif isinstance(value, (list, tuple)):
         for v in value:
             yield from strings(v)
+
+
+def committed_section(section_id: str) -> dict[str, Any]:
+    """A section as the committed snapshot holds it, collected without a refusal.
+
+    Skips until a snapshot is committed. A snapshot that lacks the section fails
+    rather than skips, since that is a page that lost one of its parts.
+    """
+    if not SNAPSHOT.is_file():
+        pytest.skip("docs/dashboard/snapshot.json is not committed yet")
+    section = json.loads(SNAPSHOT.read_text(encoding="utf-8"))["sections"][section_id]
+    assert section["status"] == "ok", section["refusals"]
+    return section
