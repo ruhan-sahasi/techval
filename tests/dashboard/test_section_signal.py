@@ -21,7 +21,6 @@ import math
 import re
 from dataclasses import replace
 from datetime import date
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -29,11 +28,10 @@ import pytest
 from techval.dashboard.collect import entry_module
 from techval.dashboard.sections import signal as S
 from techval.dashboard.snapshot import HEADLINE_KEYS, to_jsonable, validate_section
-from .walk import committed_section, kit_charts, numbers, strings
+from conftest import FIXTURES
+from .walk import ROOT, committed_section, kit_charts, numbers, strings
 
-ROOT = Path(__file__).resolve().parents[2]
 RENDERER = ROOT / "src" / "techval" / "dashboard" / "assets" / "sections" / "signal.js"
-FIXTURES = ROOT / "tests" / "fixtures"
 
 MINUS = "\u2212"
 

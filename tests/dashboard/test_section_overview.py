@@ -16,7 +16,6 @@ import json
 import math
 import shutil
 import subprocess
-from pathlib import Path
 
 import pytest
 
@@ -34,10 +33,9 @@ from techval.dashboard.sections.overview import (
 )
 from techval.dashboard.snapshot import validate_section
 from techval.errors import NotMeaningfulError
-from .walk import numbers_at
+from conftest import FIXTURES
+from .walk import ROOT, SNAPSHOT, numbers_at
 
-ROOT = Path(__file__).resolve().parents[2]
-SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
 RENDERER = ROOT / "src" / "techval" / "dashboard" / "assets" / "sections" / "overview.js"
 
 TITLES = {
@@ -333,7 +331,7 @@ def test_the_assumptions_figure_lists_what_differs_from_the_defaults_and_not_the
 
 
 def _collect(results: dict, assumptions: Assumptions | None = None) -> dict:
-    ctx = CollectContext(ROOT / "tests" / "fixtures", ROOT, assumptions or Assumptions(), results)
+    ctx = CollectContext(FIXTURES, ROOT, assumptions or Assumptions(), results)
     section, _ = collect_section(overview, ctx, use_cache=False)
     return section
 
