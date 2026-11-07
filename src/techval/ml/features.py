@@ -744,17 +744,26 @@ def _period_ends(facts: CompanyFacts) -> list[date]:
     )
 
 
-def _anniversary(ends: Sequence[date], anchor: date, years: float) -> date | None:
-    """The filer's own period end closest to ``years`` before ``anchor``.
+def anniversary(
+    ends: Sequence[date],
+    anchor: date,
+    years: float,
+    tolerance_days: int = _ANNIVERSARY_TOLERANCE_DAYS,
+) -> date | None:
+    """The filer's own period end closest to ``years`` before ``anchor``, or None.
 
     Subtracting 365 days from a quarter end lands between two fiscal quarters for
     a filer whose quarters are thirteen weeks, and lands a week out after a
     53-week year. Snapping to a reported period end instead means the trailing
-    window that follows can actually be tiled from filed periods.
+    window that follows can actually be tiled from filed periods. Only an end
+    within ``tolerance_days`` of the plain arithmetic counts; the default is the
+    quarterly one, and the fade passes its wider fiscal-year tolerance. Negative
+    ``years`` walks forward, which is how a fade label reaches the fiscal year
+    whose growth it is going to become.
     """
     target = anchor - timedelta(days=round(365.25 * years))
     candidates = [
-        e for e in ends if abs((e - target).days) <= _ANNIVERSARY_TOLERANCE_DAYS
+        e for e in ends if abs((e - target).days) <= tolerance_days
     ]
     if not candidates:
         return None
@@ -810,7 +819,7 @@ def _yoy_pairs(series: dict[date, float]) -> list[tuple[date, float, float]]:
     ends = sorted(series)
     pairs: list[tuple[date, float, float]] = []
     for e in ends:
-        prior = _anniversary(ends, e, 1.0)
+        prior = anniversary(ends, e, 1.0)
         if prior is not None and prior != e:
             pairs.append((e, series[e], series[prior]))
     return pairs
@@ -953,9 +962,9 @@ def build_features(
 
     # -- history: the same concepts, resolved at earlier anchors ------------ #
     ends = _period_ends(facts)
-    a1 = _anniversary(ends, fin.as_of, 1.0)
-    a2 = _anniversary(ends, fin.as_of, 2.0)
-    a3 = _anniversary(ends, fin.as_of, 3.0)
+    a1 = anniversary(ends, fin.as_of, 1.0)
+    a2 = anniversary(ends, fin.as_of, 2.0)
+    a3 = anniversary(ends, fin.as_of, 3.0)
 
     def ttm_at(label: str, concept: str, ladder, anchor: date | None, *, kind="flow"):
         if anchor is None:
