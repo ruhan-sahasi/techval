@@ -19,7 +19,7 @@ import pytest
 
 from techval.dashboard.sections import engine as E
 from techval.dashboard.snapshot import to_jsonable, validate_section
-from conftest import FIXTURES, PRICES
+from conftest import FIXTURES, PRICES, FixtureClient
 from .walk import ROOT, SNAPSHOT, kit_charts, numbers_at
 
 ASSETS = ROOT / "src" / "techval" / "dashboard" / "assets"
@@ -493,19 +493,10 @@ def fixture_sources(observations=None):
     """The committed fixtures read straight off disk, with nothing recorded."""
     from contextlib import nullcontext
 
-    from techval.edgar import CompanyFacts
     from techval.market import CsvSource
 
-    class Files:
-        def company_facts(self, ticker):
-            path = FIXTURES / f"companyfacts_{ticker.upper()}.json"
-            return CompanyFacts(json.loads(path.read_text(encoding="utf-8")), ticker)
-
-        def ticker_to_cik(self, ticker):
-            return self.company_facts(ticker).cik
-
     return E.Sources(
-        client=Files(),
+        client=FixtureClient(),
         prices=CsvSource(PRICES),
         record=lambda *args, **kwargs: nullcontext(),
         facts_name=lambda t: f"companyfacts_{t}.json",
