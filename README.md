@@ -631,7 +631,7 @@ symbol, so every price-derived feature is missing for exactly the companies that
 were acquired and present for the companies that were not. An indicator that is
 simply "this company has since left the filing record" scores an AUC of 0.82 on
 its own, against 0.57 for the real model, and
-`test_the_absence_of_a_price_would_separate_the_classes_perfectly` measures it.
+`test_the_absence_of_a_price_alone_scores_an_auc_above_three_quarters` measures it.
 A panel carrying market capitalisation would have produced a spectacular score
 and learned that companies without a share price get bought. The cost is real
 and is not hidden: **the valuation channel is untested here, and this model

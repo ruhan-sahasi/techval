@@ -5,11 +5,12 @@ there is debt and equal to it when there is none, the Modigliani-Miller shield
 above the Harris-Pringle shield whenever debt is cheaper than the assets, a net
 cash filer reconciling to nothing.
 
-The test that actually proves the module is ``test_constant_leverage_firm``. It
-builds a firm for which APV and the WACC DCF must give the same number to the
-last decimal, so any error in the discounting, the terminal shield or the
-recovery of the terminal flow shows up as a failure rather than as a plausible
-looking difference. The algebra is in that test's docstring.
+The test that actually proves the module is
+``test_constant_leverage_firm_reconciles_exactly``. It builds a firm for which
+APV and the WACC DCF must give the same number to the last decimal, so any error
+in the discounting, the terminal shield or the recovery of the terminal flow
+shows up as a failure rather than as a plausible looking difference. The algebra
+is in that test's docstring.
 """
 
 from __future__ import annotations

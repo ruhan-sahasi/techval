@@ -63,7 +63,7 @@ runner = CliRunner()
 # ml.forecast.enabled reached no valuation, printed neither a heading nor a
 # refusal, and nothing here could notice. A flag that is inert is worse than a
 # flag that refuses, because a reader who sets it concludes the engine agreed.
-# test_the_census_below_covers_every_switch_in_the_config closes that door: it
+# test_every_capability_switch_is_covered_by_this_file closes that door: it
 # walks the assumptions model rather than this list.
 OPTIONAL_SECTIONS = {
     "tmt.sotp": "Sum of the parts",
