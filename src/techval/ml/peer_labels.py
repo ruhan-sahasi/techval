@@ -1229,16 +1229,6 @@ class PeerGroup:
         )
 
 
-def groups_to_frame(groups: Sequence[PeerGroup]) -> pd.DataFrame:
-    """Every group's peers stacked, for eyeballing a universe-wide build."""
-    frames = [g.to_frame() for g in groups if g.peers]
-    if not frames:
-        return pd.DataFrame(
-            columns=["filer", "peer", "fiscal_year", "accession", "confidence"]
-        )
-    return pd.concat(frames, ignore_index=True)
-
-
 # --------------------------------------------------------------------------- #
 # Extraction
 # --------------------------------------------------------------------------- #
@@ -1671,11 +1661,6 @@ def peer_pairs(
                     seen.add((a, b, year))
                     seen.add((b, a, year))
     return sorted(seen)
-
-
-def pairs_to_frame(pairs: Sequence[tuple[str, str, int]]) -> pd.DataFrame:
-    """The pair list as a frame, ready to be split by date for walk-forward."""
-    return pd.DataFrame(list(pairs), columns=["a", "b", "fiscal_year"])
 
 
 # --------------------------------------------------------------------------- #

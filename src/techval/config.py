@@ -746,33 +746,6 @@ class PeerModelAssumptions(_Base):
             "in a 200bn company's comp set however similar the prose."
         ),
     )
-    require_same_sub_vertical: bool = Field(
-        False,
-        description=(
-            "NOT IMPLEMENTED, and it refuses rather than being ignored. The "
-            "encoder gates its candidate list on min_market_cap and "
-            "max_size_ratio and on nothing else; there is no sub-vertical gate "
-            "behind this name. Left as the only field in this file that read as "
-            "a setting and reached no code, it would be a written claim the "
-            "engine does not keep, which is the failure this package is built "
-            "around avoiding."
-        ),
-    )
-
-    @field_validator("require_same_sub_vertical")
-    @classmethod
-    def _refuse_an_unimplemented_gate(cls, value: bool) -> bool:
-        if value:
-            raise ConfigError(
-                "ml.peers.require_same_sub_vertical is not implemented. The "
-                "encoder applies min_market_cap and max_size_ratio to its "
-                "candidate list and no sub-vertical gate, so setting this true "
-                "would change nothing and the ranking would not be what the "
-                "assumptions file says it is. Restrict the ranking by hand from "
-                "the Company column of `techval peers TICKER`, or set "
-                "tmt.sub_vertical to correct a misclassified target."
-            )
-        return value
 
 
 class ForecastAssumptions(_Base):
@@ -843,36 +816,6 @@ class SignalAssumptions(_Base):
             "fewer names are dropped from the information coefficient series."
         ),
     )
-    overlapping_windows: bool = Field(
-        True,
-        description=(
-            "Twelve month returns sampled quarterly share eleven months of their "
-            "path, so the coefficients are autocorrelated and a naive t-statistic "
-            "on them is roughly double what it should be. The harness computes "
-            "the Newey-West standard error unconditionally and prints it beside "
-            "the naive one with the inflation ratio between them, so this is a "
-            "statement of fact about the sampling scheme rather than a switch. "
-            "It refuses if set false, because the correction cannot be turned "
-            "off and a reader who asked for it off should be told so rather than "
-            "left to believe a naive t-statistic is what came back."
-        ),
-    )
-
-    @field_validator("overlapping_windows")
-    @classmethod
-    def _refuse_to_pretend_the_windows_do_not_overlap(cls, value: bool) -> bool:
-        if not value:
-            raise ConfigError(
-                "ml.signals.overlapping_windows cannot be set false. The windows "
-                "overlap whatever this file says: twelve month returns sampled "
-                "quarterly share eleven months of their path, and the harness "
-                "always reports the Newey-West standard error, the naive one and "
-                "the ratio between them. Setting this false would quietly change "
-                "nothing. If the intent is non-overlapping windows, sample the "
-                "scores annually instead, which changes the data rather than the "
-                "label on it."
-            )
-        return value
 
 
 class MLAssumptions(_Base):
