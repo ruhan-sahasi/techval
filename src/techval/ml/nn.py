@@ -543,8 +543,9 @@ def huber_loss(
     return loss, grad
 
 
-def _sigmoid(z: np.ndarray) -> np.ndarray:
+def sigmoid(z: np.ndarray) -> np.ndarray:
     """Logistic function computed on whichever side of zero does not overflow."""
+    z = np.asarray(z, dtype=float)
     out = np.empty_like(z)
     positive = z >= 0.0
     ez = np.exp(-np.abs(z))
@@ -600,7 +601,7 @@ def bce_with_logits(
     scale = 1.0 + (weight - 1.0) * t
     per_element = (1.0 - t) * z + scale * softplus_negz
     loss = float(np.mean(per_element))
-    grad = ((1.0 - t) - scale * _sigmoid(-z)) / z.size
+    grad = ((1.0 - t) - scale * sigmoid(-z)) / z.size
     return loss, grad
 
 
