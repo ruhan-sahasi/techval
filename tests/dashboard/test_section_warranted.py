@@ -27,10 +27,9 @@ import pytest
 from techval.dashboard.collect import entry_module
 from techval.dashboard.sections import warranted as S
 from techval.dashboard.snapshot import to_jsonable, validate_section
-from .walk import kit_charts, numbers_at
+from .walk import committed_section, kit_charts, numbers_at
 
 ROOT = Path(__file__).resolve().parents[2]
-SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
 
 CARD = "comps.py OLS refit on the date, sub-vertical peers"
 UNIVERSE = "comps.py OLS refit on the date, whole TMT cross-section"
@@ -447,11 +446,7 @@ def test_an_audit_of_another_recording_is_not_read_as_evidence(committed_audit, 
 
 @pytest.fixture(scope="module")
 def committed() -> dict:
-    if not SNAPSHOT.is_file():
-        pytest.skip("docs/dashboard/snapshot.json is not committed yet")
-    section = json.loads(SNAPSHOT.read_text(encoding="utf-8"))["sections"][S.ID]
-    assert section["status"] == "ok", section["refusals"]
-    return section
+    return committed_section(S.ID)
 
 
 def _at4(value, expected):
