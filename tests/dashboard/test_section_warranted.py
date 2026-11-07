@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import json
 import math
-import re
 from contextlib import contextmanager
 from datetime import date
 from pathlib import Path
@@ -28,9 +27,9 @@ import pytest
 from techval.dashboard.collect import entry_module
 from techval.dashboard.sections import warranted as S
 from techval.dashboard.snapshot import to_jsonable, validate_section
+from .walk import kit_charts, numbers_at
 
 ROOT = Path(__file__).resolve().parents[2]
-KIT = ROOT / "src" / "techval" / "dashboard" / "assets" / "kit.js"
 SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
 
 CARD = "comps.py OLS refit on the date, sub-vertical peers"
@@ -40,12 +39,6 @@ PERSISTENCE = (
     "the company's own multiple last quarter (persistence: NOT a warranted "
     "multiple, it reads the answer)"
 )
-
-
-def _kit_charts() -> set[str]:
-    source = KIT.read_text(encoding="utf-8")
-    body = re.search(r"TV\.charts = \{(.*?)\};", source, flags=re.S).group(1)
-    return set(re.findall(r"(\w+)\s*:", body))
 
 
 # The names a refusal carries on the page, keyed by the figure it stands in for.
@@ -149,19 +142,6 @@ def _inputs(**overrides) -> S.Inputs:
     return S.Inputs(**values)
 
 
-def _numbers(value, path="data"):
-    if isinstance(value, bool) or value is None or isinstance(value, str):
-        return
-    if isinstance(value, (int, float)):
-        yield path, value
-    elif isinstance(value, dict):
-        for k, v in value.items():
-            yield from _numbers(v, f"{path}.{k}")
-    elif isinstance(value, (list, tuple)):
-        for i, v in enumerate(value):
-            yield from _numbers(v, f"{path}[{i}]")
-
-
 # --------------------------------------------------------------------------- #
 # Shaping, on fakes
 # --------------------------------------------------------------------------- #
@@ -169,7 +149,7 @@ def _numbers(value, path="data"):
 
 def test_every_figure_has_a_kind_the_kit_draws_finite_values_and_labels():
     section = S.shape(_inputs())
-    charts = _kit_charts()
+    charts = kit_charts()
     assert section["status"] == "ok"
     assert section["refusals"] == []
     assert list(section["figures"]) == [fid for fid, _, _ in S.FIGURES]
@@ -178,7 +158,7 @@ def test_every_figure_has_a_kind_the_kit_draws_finite_values_and_labels():
         assert fig["title"].strip(), fid
         if fig["kind"] != "tiles":
             assert fig["subtitle"].strip(), fid
-        for where, number in _numbers(fig["data"]):
+        for where, number in numbers_at(fig["data"]):
             assert math.isfinite(number), f"{fid} {where}"
         data = fig["data"]
         for row in data.get("rows", []):

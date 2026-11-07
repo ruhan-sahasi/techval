@@ -23,6 +23,7 @@ import pytest
 from techval.dashboard.sections import propensity as P
 from techval.dashboard.snapshot import to_jsonable, validate_section
 from techval.errors import MissingDataError
+from .walk import numbers_at
 
 ROOT = Path(__file__).resolve().parents[2]
 KIT = ROOT / "src" / "techval" / "dashboard" / "assets" / "kit.js"
@@ -152,19 +153,6 @@ def _facts(**over) -> P.Facts:
     return P.Facts(**base)
 
 
-def _numbers(value, path="data"):
-    if isinstance(value, bool) or value is None or isinstance(value, str):
-        return
-    if isinstance(value, (int, float)):
-        yield path, value
-    elif isinstance(value, dict):
-        for k, v in value.items():
-            yield from _numbers(v, f"{path}.{k}")
-    elif isinstance(value, (list, tuple)):
-        for i, v in enumerate(value):
-            yield from _numbers(v, f"{path}[{i}]")
-
-
 def _as_section(returned: dict) -> dict:
     """What the collector would store, with a provenance row per figure."""
     return to_jsonable(
@@ -192,7 +180,7 @@ def test_every_figure_is_drawable_and_the_section_meets_the_schema():
     for fid, fig in returned["figures"].items():
         assert fig["kind"] in kinds, f"{fid} has kind {fig['kind']!r}"
         assert fig["title"].strip(), fid
-        for where, v in _numbers(fig["data"]):
+        for where, v in numbers_at(fig["data"]):
             assert math.isfinite(v), f"{fid} {where} is {v}"
         data = fig["data"]
         if fig["kind"] in ("dot", "hbar", "column"):

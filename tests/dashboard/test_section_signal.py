@@ -23,28 +23,21 @@ import re
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 import pytest
 
 from techval.dashboard.collect import entry_module
 from techval.dashboard.sections import signal as S
 from techval.dashboard.snapshot import HEADLINE_KEYS, to_jsonable, validate_section
+from .walk import kit_charts, numbers, strings
 
 ROOT = Path(__file__).resolve().parents[2]
-KIT = ROOT / "src" / "techval" / "dashboard" / "assets" / "kit.js"
 RENDERER = ROOT / "src" / "techval" / "dashboard" / "assets" / "sections" / "signal.js"
 SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
 FIXTURES = ROOT / "tests" / "fixtures"
 
 MINUS = "\u2212"
-
-
-def _kit_charts() -> set[str]:
-    source = KIT.read_text(encoding="utf-8")
-    body = re.search(r"TV\.charts = \{(.*?)\};", source, flags=re.S)
-    assert body, "kit.js no longer assigns TV.charts"
-    return set(re.findall(r"(\w+)\s*:", body.group(1)))
 
 
 def _facts(**changes: Any) -> S.SignalFacts:
@@ -86,31 +79,6 @@ def _facts(**changes: Any) -> S.SignalFacts:
     return replace(base, **changes)
 
 
-def _strings(value: Any) -> Iterator[str]:
-    if isinstance(value, str):
-        yield value
-    elif isinstance(value, dict):
-        for k, v in value.items():
-            yield str(k)
-            yield from _strings(v)
-    elif isinstance(value, (list, tuple)):
-        for v in value:
-            yield from _strings(v)
-
-
-def _numbers(value: Any) -> Iterator[float]:
-    if isinstance(value, bool):
-        return
-    if isinstance(value, (int, float)):
-        yield value
-    elif isinstance(value, dict):
-        for v in value.values():
-            yield from _numbers(v)
-    elif isinstance(value, (list, tuple)):
-        for v in value:
-            yield from _numbers(v)
-
-
 def _as_snapshot_section(shaped: dict[str, Any]) -> dict[str, Any]:
     """What the collector would store, with one provenance row per figure."""
     return to_jsonable(
@@ -133,12 +101,12 @@ def _as_snapshot_section(shaped: dict[str, Any]) -> dict[str, Any]:
 
 def test_every_figure_is_a_kind_the_kit_draws_with_finite_values_and_labels():
     shaped = S.shape(_facts())
-    charts = _kit_charts()
+    charts = kit_charts()
     assert set(shaped["figures"]) == set(S.FIGURE_IDS)
     for fid, fig in shaped["figures"].items():
         assert fig["kind"] in charts, fid
         assert fig["title"].strip(), fid
-        assert all(math.isfinite(v) for v in _numbers(fig["data"])), fid
+        assert all(math.isfinite(v) for v in numbers(fig["data"])), fid
         data = fig["data"]
         for row in data.get("rows", []):
             assert isinstance(row["label"], str) and row["label"].strip(), fid
@@ -160,7 +128,7 @@ def test_the_shaped_section_passes_the_snapshot_schema():
 
 def test_no_copy_on_the_page_carries_an_em_dash():
     for facts in (_facts(), _facts(lag=0, autocorrelations=(), bucket_dates=0)):
-        assert not [s for s in _strings(S.shape(facts)) if "\u2014" in s]
+        assert not [s for s in strings(S.shape(facts)) if "\u2014" in s]
 
 
 def test_the_takeaway_is_built_from_the_values_it_was_given():

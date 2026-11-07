@@ -34,6 +34,7 @@ from techval.dashboard.sections.overview import (
 )
 from techval.dashboard.snapshot import validate_section
 from techval.errors import NotMeaningfulError
+from .walk import numbers_at
 
 ROOT = Path(__file__).resolve().parents[2]
 SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
@@ -124,19 +125,6 @@ def _with_verdicts(**verdicts) -> dict:
     return _results(**{sid: _section(sid, headline=_headline(v)) for sid, v in verdicts.items()})
 
 
-def _numbers(value, path="tile"):
-    if isinstance(value, bool):
-        return
-    if isinstance(value, (int, float)):
-        yield path, value
-    elif isinstance(value, dict):
-        for k, v in value.items():
-            yield from _numbers(v, f"{path}.{k}")
-    elif isinstance(value, list):
-        for i, v in enumerate(value):
-            yield from _numbers(v, f"{path}[{i}]")
-
-
 def _shape(results: dict, assumptions: Assumptions | None = None) -> dict:
     return shape(
         scoreboard(results),
@@ -178,7 +166,7 @@ def test_a_refused_model_section_yields_a_state_tile_and_no_number():
     assert tile["status"] == "refused"
     assert tile["reason"] == {"what": "Revenue fade", "why": why}
     assert isinstance(tile["value"], str) and tile["value"] == "Refused"
-    assert list(_numbers(tile)) == []
+    assert list(numbers_at(tile, "tile")) == []
     assert not {"score", "baseline_score", "lift", "n", "delta", "format"} & set(tile)
 
 
@@ -191,7 +179,7 @@ def test_a_model_section_without_a_score_says_which_state_it_is_in_and_prints_no
     tile = scoreboard(results)[4]
     assert tile["state"] == state
     assert tile["label"] == "M&A propensity"
-    assert list(_numbers(tile)) == []
+    assert list(numbers_at(tile, "tile")) == []
     assert "status" not in tile
 
 
@@ -365,7 +353,7 @@ def test_the_collected_section_holds_to_the_schema_with_every_figure_recorded():
     assert cited == [overview.ASSUMPTIONS_ENTRY, "techval.config.Assumptions"]
     text = json.dumps(section, ensure_ascii=False)
     assert chr(0x2014) not in text
-    for where, number in _numbers(section["figures"]):
+    for where, number in numbers_at(section["figures"], "tile"):
         assert math.isfinite(number), where
 
 
