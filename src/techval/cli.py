@@ -83,7 +83,14 @@ from .ml.forecast import compare_fade
 from .ml.mna import fit_propensity
 from .ml.signals import Score, test_signal
 from .ml.warranted import fit_warranted
-from .terminal import format_money, format_pct, make_console, print_notes, print_rule
+from .terminal import (
+    format_money,
+    format_multiple,
+    format_pct,
+    make_console,
+    print_notes,
+    print_rule,
+)
 from .tmt.precedents import build_precedents
 from .tmt.segments import build_segments
 from .tmt.sotp import run_sotp
@@ -182,10 +189,6 @@ _ASOF = typer.Option(
 # --------------------------------------------------------------------------- #
 # rendering helpers
 # --------------------------------------------------------------------------- #
-
-
-def _mult(v: float | None) -> str:
-    return "NM" if v is None else f"{v:,.1f}x"
 
 
 # Rows whose value is a fraction, not an amount. Printing 0.176 where the label
@@ -625,7 +628,7 @@ def _render_comps(result) -> None:
             show[c] = show[c].map(lambda v: format_pct(v) if pd.notna(v) else "NM")
     for c in ("EV/Revenue", "EV/Gross Profit", "EV/EBITDA", "EV/EBIT", "P/E"):
         if c in show:
-            show[c] = show[c].map(lambda v: _mult(v) if pd.notna(v) else "NM")
+            show[c] = show[c].map(lambda v: format_multiple(v) if pd.notna(v) else "NM")
     for c in ("Price", "Rule of 40"):
         if c in show:
             show[c] = show[c].map(lambda v: f"{v:,.1f}" if pd.notna(v) else "NM")
@@ -1293,7 +1296,7 @@ def _render_optional_precedents(assumptions, client, market, candidates) -> None
             str(getattr(deal, "acquirer", "") or ""),
             str(getattr(deal, "announced", "") or ""),
             format_money(getattr(deal, "equity_value", None)),
-            _mult(getattr(deal, "ev_revenue", None)),
+            format_multiple(getattr(deal, "ev_revenue", None)),
             format_pct(getattr(deal, "premium", None)),
         )
     console.print(t)
