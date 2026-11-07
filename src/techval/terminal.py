@@ -25,18 +25,28 @@ def print_rule(console: Console, title: str) -> None:
     console.rule(Text(title, style="bold"), style="dim")
 
 
-def print_notes(console: Console, items: list[str], *, heading: str = "Notes") -> None:
+def print_notes(console: Console, items, *, heading: str = "Notes") -> None:
+    """Each item on its own line, a flag or warning in yellow; empty items are skipped."""
+    items = [i for i in items if i]
     if not items:
         return
     console.print(f"\n[bold]{heading}[/bold]")
     for n in items:
-        style = "yellow" if n.upper().startswith(("FLAG", "WARN")) else "dim"
+        style = "yellow" if str(n).upper().startswith(("FLAG", "WARN")) else "dim"
         console.print(Text(f"  - {n}", style=style))
 
 
 def format_money(v: float | None, dp: int = 0) -> str:
+    """Negatives in brackets, and a value rounded to nothing as a plain zero.
+
+    A figure that rounds to zero would otherwise print as (0), or as -0 when it
+    is a negative zero from a sign convention, both of which read as a rounding
+    artefact rather than as a line that is not used.
+    """
     if v is None:
         return "n/a"
+    if abs(v) < 0.5 / (10**dp):
+        return f"{0.0:,.{dp}f}"
     return f"({abs(v):,.{dp}f})" if v < 0 else f"{v:,.{dp}f}"
 
 

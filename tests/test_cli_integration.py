@@ -750,7 +750,7 @@ def test_the_accretion_row_prints_the_dollars_the_model_computed(tmp_path):
 
     The section could print SOMETHING and still lie, so the same fixtures are run
     through ``run_merger`` directly and every per-share figure the model computed
-    is asserted to appear in the rendered row, formatted exactly as ``_money``
+    is asserted to appear in the rendered row, formatted exactly as ``format_money``
     formats it. The percent half follows the PurchaseAccounting contract: shown
     where the model quoted one, NM where standalone EPS was too thin to divide by.
     """
