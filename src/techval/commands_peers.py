@@ -156,7 +156,7 @@ from .ml.warranted import (
     WarrantedModel,
     fit_warranted,
 )
-from .terminal import make_console, print_notes, print_rule
+from .terminal import format_multiple, make_console, print_notes, print_rule
 
 app = typer.Typer(
     add_completion=False,
@@ -169,13 +169,9 @@ app = typer.Typer(
 # three characters a column.
 console = make_console(120)
 
-# The multiple and number formats here also read a non-finite value as missing,
-# so they stay local. The section rule and the notes come from techval.terminal:
-# cli.py mounts this module, so importing them from cli.py would close a cycle.
-
-
-def _mult(v: float | None) -> str:
-    return "NM" if v is None or not np.isfinite(v) else f"{v:,.1f}x"
+# The number format is particular to these pages. The section rule, the notes
+# and the multiple format come from techval.terminal: cli.py mounts this module,
+# so importing them from cli.py would close a cycle.
 
 
 def _num(v: float | None, dp: int = 3) -> str:
@@ -1371,8 +1367,8 @@ def _render_screen(frame: pd.DataFrame, when: date, sd: float) -> None:
         t.add_row(
             Text(str(row["ticker"]), style="bold"),
             str(row["sub_vertical"]).replace("_", " "),
-            _mult(row["actual"]),
-            _mult(row["warranted"]),
+            format_multiple(row["actual"]),
+            format_multiple(row["warranted"]),
             Text(f"{row['residual_turns']:+,.1f}x", style=style),
             f"{row['residual_log']:+.3f}",
             Text(f"{row['z']:+.2f}", style=style),
