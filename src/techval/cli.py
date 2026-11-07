@@ -1887,7 +1887,7 @@ def fetch(
 ) -> None:
     """Warm the cache and print where every figure came from."""
     try:
-        assumptions, client, market = _setup(config, no_cache, as_of)
+        _, client, market = _setup(config, no_cache, as_of)
         fin = build_financials(ticker, client=client)
         _render_financials(fin)
 
