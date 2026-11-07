@@ -125,7 +125,7 @@ from .ml.signals import (
     SignalResult,
     ev_revenue_scores,
 )
-from .terminal import format_money, make_console, print_rule
+from .terminal import format_money, format_pct, make_console, print_rule
 from .wacc import compute_wacc
 
 app = typer.Typer(
@@ -143,16 +143,11 @@ console = make_console(120)
 # --------------------------------------------------------------------------- #
 # Rendering helpers
 #
-# The ones particular to these commands. The section rule and the money format
-# every command shares come from ``techval.terminal``, since ``cli.py`` mounts
-# this module with ``add_typer`` and an import from it would close a cycle.
+# The ones particular to these commands. The section rule and the money and
+# percentage formats every command shares come from ``techval.terminal``, since
+# ``cli.py`` mounts this module with ``add_typer`` and an import from it would
+# close a cycle.
 # --------------------------------------------------------------------------- #
-
-
-def _pct(v: float | None, dp: int = 1) -> str:
-    if v is None or (isinstance(v, float) and not np.isfinite(v)):
-        return "n/a"
-    return f"{v:.{dp}%}"
 
 
 def _num(v: float | None, dp: int = 4) -> str:
@@ -448,8 +443,8 @@ def _render_curve(model: FadeModel, panel: FadePanel) -> None:
             [
                 ("Persistence slope", _num(model.persistence_slope, 4)),
                 ("Persistence intercept", _num(model.persistence_intercept, 4)),
-                ("Fade per year, share of the gap closed", _pct(model.fade_per_year, 0)),
-                ("Reverts toward", _pct(model.reversion_level)),
+                ("Fade per year, share of the gap closed", format_pct(model.fade_per_year, 0)),
+                ("Reverts toward", format_pct(model.reversion_level)),
                 ("Half-life, years", _num(model.half_life_years, 2)),
                 ("Panel observations", f"{len(panel.observations):,}"),
                 ("Filers with at least one fiscal year", f"{len(panel.tickers):,}"),
@@ -643,12 +638,12 @@ def _render_paths(comparison, model: FadeModel, panel: FadePanel, ticker: str) -
         style = "" if basis == "fitted" else "dim"
         t.add_row(
             Text(f"Year {year}", style=style),
-            Text(_pct(comparison.assumed_path[i]), style=style),
-            Text(_pct(g), style="bold" if basis == "fitted" else "dim"),
-            Text(_pct(lo), style=style),
-            Text(_pct(hi), style=style),
-            Text(_pct(sub), style=style),
-            Text(_pct(pooled), style=style),
+            Text(format_pct(comparison.assumed_path[i]), style=style),
+            Text(format_pct(g), style="bold" if basis == "fitted" else "dim"),
+            Text(format_pct(lo), style=style),
+            Text(format_pct(hi), style=style),
+            Text(format_pct(sub), style=style),
+            Text(format_pct(pooled), style=style),
             Text(basis, style=style),
         )
     console.print(t)
@@ -656,7 +651,7 @@ def _render_paths(comparison, model: FadeModel, panel: FadePanel, ticker: str) -
     trailing = observation.growth
     console.print(
         f"\n  Trailing growth, as filed on {observation.as_of} for the fiscal year "
-        f"ended {observation.fiscal_year_end}: [bold]{_pct(trailing)}[/bold]"
+        f"ended {observation.fiscal_year_end}: [bold]{format_pct(trailing)}[/bold]"
     )
     typical = _sub_vertical_fade(panel, str(observation.sub_vertical), 1)
     if typical is not None and trailing is not None:
@@ -707,7 +702,7 @@ def _render_valuation(comparison) -> None:
     for case, row in frame.iterrows():
         bold = case in ("Assumed fade", "Fitted fade")
         style = "bold" if bold else "dim"
-        cells = [Text(_pct(row[c], 0), style=style) for c in year_columns]
+        cells = [Text(format_pct(row[c], 0), style=style) for c in year_columns]
         cells += [
             Text(format_money(row["Terminal revenue"]), style=style),
             Text(format_money(row["Enterprise value"]), style=style),
@@ -760,8 +755,8 @@ def _render_survivorship(model: FadeModel, panel: FadePanel) -> None:
             continue
         t.add_row(
             f"{horizon} year",
-            _pct(full),
-            _pct(survivors),
+            format_pct(full),
+            format_pct(survivors),
             Text(_signed(gap, "+.2%"), style="yellow"),
             f"{int(survivorship.get(f'n_full_{horizon}y', 0)):,} / "
             f"{int(survivorship.get(f'n_survivors_{horizon}y', 0)):,}",
@@ -822,8 +817,8 @@ def _render_assumptions(
             str(years)
             + ("" if years == configured_years else f" (flag, {configured_years} in the assumptions)"),
         ),
-        ("dcf.revenue_growth_start", _pct(assumptions.dcf.revenue_growth_start)),
-        ("dcf.revenue_growth_terminal", _pct(assumptions.dcf.revenue_growth_terminal)),
+        ("dcf.revenue_growth_start", format_pct(assumptions.dcf.revenue_growth_start)),
+        ("dcf.revenue_growth_terminal", format_pct(assumptions.dcf.revenue_growth_terminal)),
         ("ml.forecast.model", assumptions.ml.forecast.model),
         ("ml.forecast.horizon_years", str(assumptions.ml.forecast.horizon_years)),
         ("ml.random_seed", str(assumptions.ml.random_seed)),
@@ -943,9 +938,9 @@ def fade(
                 t.add_row(
                     str(index),
                     f"{int(row['Observations']):,}",
-                    _pct(row["Trailing growth"]),
-                    _pct(row["Forward growth"]),
-                    _pct(row["Forward median"]),
+                    format_pct(row["Trailing growth"]),
+                    format_pct(row["Forward growth"]),
+                    format_pct(row["Forward median"]),
                     f"{row['Fade']:+.1%}",
                 )
             console.print(t)
@@ -991,7 +986,7 @@ def fade(
             [
                 ("ml.forecast.enabled", "true for this run"),
                 ("panel", str(panel_file) if panel_file else "live SEC filings"),
-                ("wacc used by the DCF", _pct(comparison.assumed.wacc, 2)),
+                ("wacc used by the DCF", format_pct(comparison.assumed.wacc, 2)),
             ],
             configured_years=configured_years,
         )
@@ -1325,7 +1320,7 @@ def _render_ic(result: SignalResult, show_series: bool) -> None:
             [
                 ("Mean IC", _signed(ic.mean, "+.4f")),
                 ("Standard deviation across dates", _num(ic.sd)),
-                ("Share of dates positive", _pct(ic.share_positive, 0)),
+                ("Share of dates positive", format_pct(ic.share_positive, 0)),
                 ("Naive standard error", _num(ic.naive_se)),
                 ("Newey-West standard error", _num(ic.newey_west_se)),
                 ("Standard error inflation", _signed(ic.inflation, ".2f") + "x"),
@@ -1457,9 +1452,9 @@ def _render_buckets(result: SignalResult) -> None:
                           " (highest score)" if index == frame.index[-1] else ""),
             _num(row["Names per date"], 1),
             _num(row["Mean score"], 3),
-            _pct(row["Mean return"]),
-            _pct(row["Median of date means"]),
-            _pct(row["Share of dates positive"], 0),
+            format_pct(row["Mean return"]),
+            format_pct(row["Median of date means"]),
+            format_pct(row["Share of dates positive"], 0),
         )
     console.print(t)
     console.print(
@@ -1479,9 +1474,9 @@ def _render_buckets(result: SignalResult) -> None:
                     "Monotonicity, bucket number against mean return",
                     _num(buckets.monotonicity, 2) if buckets.monotonicity is not None else "n/a",
                 ),
-                ("Share of adjacent steps that rise", _pct(buckets.monotone_steps, 0)),
-                ("Turnover per rebalance, mean of the extremes", _pct(result.turnover.mean, 0)),
-                ("Universe churn between rebalances", _pct(result.turnover.churn, 0)),
+                ("Share of adjacent steps that rise", format_pct(buckets.monotone_steps, 0)),
+                ("Turnover per rebalance, mean of the extremes", format_pct(result.turnover.mean, 0)),
+                ("Universe churn between rebalances", format_pct(result.turnover.churn, 0)),
                 (
                     "Break-even one-way cost",
                     f"{result.turnover.breakeven_cost_bps:.0f}bp"
