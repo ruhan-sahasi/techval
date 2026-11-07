@@ -15,11 +15,10 @@ from datetime import date
 
 import pytest
 
-from conftest import AS_OF, FIXTURES, PRICES
+from conftest import AS_OF, FIXTURES, PRICES, load_instance
 from techval.config import Assumptions
 from techval.edgar import DimensionedFact, HttpCache
 from techval.errors import MissingDataError, NotMeaningfulError
-from techval.financials import build_financials
 from techval.market import CsvSource, MarketData
 from techval.dilution import (
     AwardBlock,
@@ -49,22 +48,6 @@ COVER = "EntityCommonStockSharesOutstanding"
 # --------------------------------------------------------------------------- #
 # Fixtures
 # --------------------------------------------------------------------------- #
-
-
-def load_instance(ticker: str) -> tuple[list[DimensionedFact], str, date]:
-    payload = json.loads((FIXTURES / f"instance_facts_{ticker}.json").read_text())
-    facts = [
-        DimensionedFact(
-            tag=row["tag"],
-            value=row["value"],
-            unit=row["unit"],
-            start=date.fromisoformat(row["start"]) if row["start"] else None,
-            end=date.fromisoformat(row["end"]),
-            dimensions=row["dimensions"],
-        )
-        for row in payload["facts"]
-    ]
-    return facts, payload["_accession"], date.fromisoformat(payload["_filed"])
 
 
 class InstanceClient:
