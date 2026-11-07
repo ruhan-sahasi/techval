@@ -1063,7 +1063,7 @@ def _classify_filer(ticker: str, client, assumptions, override: str | None):
     except TechvalError as exc:
         caveat = f"; Item 1 could not be read, so the code decided alone: {exc}"
     picked, confidence, source = classify(
-        payload.get("sic"), (payload.get("name") or ticker).strip(), business, assumptions
+        payload.get("sic"), (payload.get("name") or ticker).strip(), business
     )
     return picked, confidence, source + caveat
 
