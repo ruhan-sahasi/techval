@@ -570,7 +570,7 @@ def taxonomy_placement(companies: Mapping[str, dict], assumptions) -> dict[str, 
             how["unresolved"] += 1
             unresolved.append(company.ticker)
             continue
-        derived, _, _ = classify(company.sic, company.name, None, assumptions)
+        derived, _, _ = classify(company.sic, company.name, None)
         if derived is company.sub_vertical:
             kind = "code_agrees"
         elif derived is None:

@@ -295,11 +295,11 @@ def test_empty_text_scores_nothing():
 # --------------------------------------------------------------------------- #
 
 
-def test_american_tower_is_admitted_from_a_reit_code_on_evidence(assumptions):
+def test_american_tower_is_admitted_from_a_reit_code_on_evidence():
     """6798 is a tax election, not an industry. The evidence has to carry it, and
     the source string has to show the code abstaining rather than agreeing."""
     vertical, confidence, source = classify(
-        sic_of("AMT"), SUBMISSIONS["AMT"]["name"], AMT_TEXT, assumptions
+        sic_of("AMT"), SUBMISSIONS["AMT"]["name"], AMT_TEXT
     )
     assert vertical is SubVertical.TOWERS_FIBER
     assert confidence >= CONFIDENCE_OVERRIDE_BASE
@@ -308,9 +308,9 @@ def test_american_tower_is_admitted_from_a_reit_code_on_evidence(assumptions):
     assert "business text alone" in source
 
 
-def test_amazon_is_admitted_from_a_catalogue_retail_code_on_evidence(assumptions):
+def test_amazon_is_admitted_from_a_catalogue_retail_code_on_evidence():
     vertical, confidence, source = classify(
-        sic_of("AMZN"), SUBMISSIONS["AMZN"]["name"], AMZN_TEXT, assumptions
+        sic_of("AMZN"), SUBMISSIONS["AMZN"]["name"], AMZN_TEXT
     )
     assert vertical is SubVertical.INTERNET
     assert confidence >= CONFIDENCE_OVERRIDE_BASE
@@ -318,12 +318,12 @@ def test_amazon_is_admitted_from_a_catalogue_retail_code_on_evidence(assumptions
     assert "business text alone" in source
 
 
-def test_evidence_overrides_a_mapped_code_and_names_what_it_beat(assumptions):
+def test_evidence_overrides_a_mapped_code_and_names_what_it_beat():
     """Palo Alto Networks: the code says hardware and the business says security
     software. The override must be stated, with the losing answer named, because a
     peer set built on a silent relabel is one nobody can defend."""
     vertical, confidence, source = classify(
-        sic_of("PANW"), SUBMISSIONS["PANW"]["name"], PANW_TEXT, assumptions
+        sic_of("PANW"), SUBMISSIONS["PANW"]["name"], PANW_TEXT
     )
     assert vertical is SubVertical.INFRASTRUCTURE_SOFTWARE
     assert "overrides" in source
@@ -336,19 +336,18 @@ def test_evidence_overrides_a_mapped_code_and_names_what_it_beat(assumptions):
     )
 
 
-def test_an_override_starts_out_less_confident_than_accepting_the_code(assumptions):
+def test_an_override_starts_out_less_confident_than_accepting_the_code():
     """Overturning the registrant's own filing code is a bigger claim than taking
     it, so the override floor sits below the SIC-only rung."""
     assert CONFIDENCE_OVERRIDE_BASE < CONFIDENCE_SIC_ONLY
 
 
-def test_code_and_evidence_agreeing_outranks_either_alone(assumptions):
+def test_code_and_evidence_agreeing_outranks_either_alone():
     vertical, confidence, source = classify(
         "3674",
         "NVIDIA CORP",
         "We are a fabless semiconductor company shipping integrated circuits from a "
         "foundry at an advanced process technology node.",
-        assumptions,
     )
     assert vertical is SubVertical.SEMICONDUCTORS
     assert confidence >= CONFIDENCE_AGREE_BASE
@@ -360,11 +359,11 @@ def test_code_and_evidence_agreeing_outranks_either_alone(assumptions):
 # --------------------------------------------------------------------------- #
 
 
-def test_a_single_stray_phrase_is_not_a_business_description(assumptions):
+def test_a_single_stray_phrase_is_not_a_business_description():
     """One matched phrase sits under the evidence floor, so the code keeps the
     name and the source says the text was too thin rather than that it agreed."""
     vertical, confidence, source = classify(
-        "3674", "Some Semi Inc", "Our board discussed a marketplace.", assumptions
+        "3674", "Some Semi Inc", "Our board discussed a marketplace."
     )
     assert vertical is SubVertical.SEMICONDUCTORS
     assert confidence == CONFIDENCE_SIC_ONLY
@@ -372,7 +371,6 @@ def test_a_single_stray_phrase_is_not_a_business_description(assumptions):
 
 
 def test_evidence_under_the_margin_leaves_the_code_in_place_and_records_the_contest(
-    assumptions,
 ):
     """A narrow lean is not an override. The code keeps the name, at a confidence
     below SIC-only, and the source names the answer that nearly won."""
@@ -382,7 +380,7 @@ def test_evidence_under_the_margin_leaves_the_code_in_place_and_records_the_cont
         "We run a marketplace with a take rate, monthly active users and online "
         "advertising. We also sell semiconductors, wafers and silicon."
     )
-    vertical, confidence, source = classify("3674", "Mixed Co", text, assumptions)
+    vertical, confidence, source = classify("3674", "Mixed Co", text)
     assert vertical is SubVertical.SEMICONDUCTORS
     assert confidence == CONFIDENCE_SIC_CONTESTED
     assert confidence < CONFIDENCE_SIC_ONLY
@@ -390,7 +388,7 @@ def test_evidence_under_the_margin_leaves_the_code_in_place_and_records_the_cont
     assert "under the" in source
 
 
-def test_a_wide_code_is_cheaper_to_overturn_than_a_specific_one(assumptions):
+def test_a_wide_code_is_cheaper_to_overturn_than_a_specific_one():
     """The same evidence should move a filer off "all software" more readily than
     off "semiconductors", because 7372 is one code for the whole industry."""
     # A 14% margin: over the 5% a wide code demands, under the 15% a specific one
@@ -399,14 +397,14 @@ def test_a_wide_code_is_cheaper_to_overturn_than_a_specific_one(assumptions):
         "We provide observability, log management, kubernetes and cloud "
         "infrastructure. We also sell semiconductors, wafers and silicon."
     )
-    weak_pick, _, _ = classify("7372", "Ambiguous Inc", text, assumptions)
-    strong_pick, _, _ = classify("3674", "Ambiguous Inc", text, assumptions)
+    weak_pick, _, _ = classify("7372", "Ambiguous Inc", text)
+    strong_pick, _, _ = classify("3674", "Ambiguous Inc", text)
     assert "7372" in WEAK_SIC and "3674" not in WEAK_SIC
     assert weak_pick is SubVertical.INFRASTRUCTURE_SOFTWARE
     assert strong_pick is SubVertical.SEMICONDUCTORS
 
 
-def test_confidence_rises_with_the_margin_inside_a_rung(assumptions):
+def test_confidence_rises_with_the_margin_inside_a_rung():
     narrow = (
         "We provide observability and cloud infrastructure. We also run a "
         "marketplace with a take rate and monthly active users."
@@ -415,54 +413,54 @@ def test_confidence_rises_with_the_margin_inside_a_rung(assumptions):
         "We provide observability, cloud infrastructure, log management, "
         "kubernetes, containers and a developer platform."
     )
-    _, narrow_conf, _ = classify("6798", "Infra Co", narrow, assumptions)
-    _, wide_conf, _ = classify("6798", "Infra Co", wide, assumptions)
+    _, narrow_conf, _ = classify("6798", "Infra Co", narrow)
+    _, wide_conf, _ = classify("6798", "Infra Co", wide)
     assert wide_conf > narrow_conf
 
 
-def test_a_tie_is_reported_as_a_tie_and_not_resolved_by_dictionary_order(assumptions):
+def test_a_tie_is_reported_as_a_tie_and_not_resolved_by_dictionary_order():
     """Two buckets level on the evidence and no code to break it. Answering
     "internet" because i sorts before s would be inventing a decision."""
     text = "We sell wafers and silicon. We run a marketplace with a take rate."
-    vertical, confidence, source = classify(None, "Tied Corp", text, assumptions)
+    vertical, confidence, source = classify(None, "Tied Corp", text)
     assert vertical is None
     assert confidence == CONFIDENCE_AMBIGUOUS
     assert "ambiguous" in source
     assert "internet" in source and "semiconductors" in source
 
 
-def test_a_tie_names_every_candidate_not_just_two(assumptions):
+def test_a_tie_names_every_candidate_not_just_two():
     text = (
         "We sell wafers and silicon. We run a marketplace with a take rate. We "
         "provide observability and a developer platform."
     )
-    vertical, _, source = classify(None, "Three Way", text, assumptions)
+    vertical, _, source = classify(None, "Three Way", text)
     assert vertical is None
     for name in ("internet", "semiconductors", "infrastructure_software"):
         assert name in source
 
 
-def test_a_code_that_is_one_of_the_tied_candidates_breaks_the_tie(assumptions):
+def test_a_code_that_is_one_of_the_tied_candidates_breaks_the_tie():
     """This is the one job SIC can still do when the evidence is level."""
     text = "We sell wafers and silicon. We run a marketplace with a take rate."
-    vertical, confidence, source = classify("3674", "Tied Corp", text, assumptions)
+    vertical, confidence, source = classify("3674", "Tied Corp", text)
     assert vertical is SubVertical.SEMICONDUCTORS
     assert confidence == CONFIDENCE_AGREE_BASE
     assert "broke a tie" in source
 
 
-def test_a_tie_a_mapped_code_cannot_resolve_keeps_the_code_and_records_it(assumptions):
+def test_a_tie_a_mapped_code_cannot_resolve_keeps_the_code_and_records_it():
     text = "We sell wafers and silicon. We run a marketplace with a take rate."
-    vertical, confidence, source = classify("7841", "Tied Corp", text, assumptions)
+    vertical, confidence, source = classify("7841", "Tied Corp", text)
     assert vertical is SubVertical.MEDIA_ENTERTAINMENT
     assert confidence == CONFIDENCE_SIC_CONTESTED
     assert "does not resolve it" in source
 
 
-def test_a_company_that_is_not_tmt_is_returned_unclassified(assumptions):
+def test_a_company_that_is_not_tmt_is_returned_unclassified():
     """No code, no evidence, no answer. Returning a bucket anyway would put a
     cement company in a software comp set."""
-    vertical, confidence, source = classify("3241", "Cement Co", None, assumptions)
+    vertical, confidence, source = classify("3241", "Cement Co", None)
     assert vertical is None
     assert confidence == 0.0
     assert "unclassified" in source
@@ -480,33 +478,6 @@ def test_a_company_that_is_not_tmt_is_returned_unclassified(assumptions):
 )
 def test_normalize_sic(raw, expected):
     assert normalize_sic(raw) == expected
-
-
-def test_out_of_range_margin_is_a_config_error(assumptions):
-    """A margin of 1.0 can never be met, so every company would silently pin to
-    its code while the output claimed the evidence had been weighed."""
-
-    class Knobs:
-        keyword_margin = 1.0
-
-    class TMT:
-        sub_vertical = Knobs()
-
-    assumptions.__dict__["tmt"] = TMT()
-    with pytest.raises(ConfigError, match="never be met"):
-        classify("7372", "X", None, assumptions)
-
-
-def test_zero_evidence_floor_is_a_config_error(assumptions):
-    class Knobs:
-        min_keyword_hits = 0
-
-    class TMT:
-        sub_vertical = Knobs()
-
-    assumptions.__dict__["tmt"] = TMT()
-    with pytest.raises(ConfigError, match="at least 1"):
-        classify("7372", "X", None, assumptions)
 
 
 def test_company_row_is_flat_and_keeps_the_audit_trail():

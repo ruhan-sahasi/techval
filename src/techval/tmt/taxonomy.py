@@ -478,24 +478,17 @@ STRENGTH_BONUS = 0.15
 """Added on a sliding scale within a rung: zero when the winning margin is exactly
 at the threshold, full at twice the threshold or better."""
 
-DEFAULT_KEYWORD_MARGIN = 0.15
+KEYWORD_MARGIN = 0.15
 """Share of total evidence the winner must hold over the runner-up before it may
 overturn a mapped SIC code."""
 
-DEFAULT_WEAK_SIC_MARGIN = 0.05
+WEAK_SIC_MARGIN = 0.05
 """The margin demanded against a code in WEAK_SIC. Overturning "all software"
 should not take the same weight of evidence as overturning "semiconductors"."""
 
-DEFAULT_MIN_KEYWORD_HITS = 2
+MIN_KEYWORD_HITS = 2
 """Distinct phrases the winner must match before evidence counts at all. One
 stray word in a risk factor is not a business description."""
-
-# The three knobs above are read from ``assumptions.tmt.sub_vertical`` under the
-# names ``keyword_margin``, ``weak_sic_margin`` and ``min_keyword_hits`` when that
-# block is present in the schema, and fall back to the documented default when it
-# is not. The fallback is deliberate rather than lazy: the TMT assumption block is
-# owned by config.py, this module has to stay usable against a bare Assumptions(),
-# and a default written down beside the value it defends is not a hidden number.
 
 # Forms that prove a filer was a reporting company. Form D, S-1 and the rest of
 # the registration and exempt-offering paperwork do not, which is the whole point
@@ -614,34 +607,6 @@ def _sub_vertical_config(assumptions):
     return getattr(getattr(assumptions, "tmt", None), "sub_vertical", None)
 
 
-def _tuning(assumptions) -> tuple[float, float, int]:
-    """Margins and the evidence floor, from ``assumptions.tmt.sub_vertical``.
-
-    Read by name and defensively, for the reason set out beside the defaults. A
-    knob that is present and out of range is a different matter and raises: a
-    margin of 1.0 can never be met, which would pin every company to its SIC code
-    while appearing to reconcile it against evidence.
-    """
-    cfg = _sub_vertical_config(assumptions)
-    margin = float(getattr(cfg, "keyword_margin", DEFAULT_KEYWORD_MARGIN))
-    weak_margin = float(getattr(cfg, "weak_sic_margin", DEFAULT_WEAK_SIC_MARGIN))
-    min_hits = int(getattr(cfg, "min_keyword_hits", DEFAULT_MIN_KEYWORD_HITS))
-
-    if not 0.0 <= margin < 1.0 or not 0.0 <= weak_margin < 1.0:
-        raise ConfigError(
-            f"tmt.sub_vertical keyword margins must sit in [0, 1); got {margin} and "
-            f"{weak_margin}. A margin of 1.0 or more can never be met, which would "
-            "pin every company to its SIC code without saying so."
-        )
-    if min_hits < 1:
-        raise ConfigError(
-            f"tmt.sub_vertical.min_keyword_hits must be at least 1; got {min_hits}. "
-            "Zero would let a company with no matched phrase at all be classified "
-            "from its business text."
-        )
-    return margin, weak_margin, min_hits
-
-
 def _strength(margin: float, threshold: float) -> float:
     """Where inside a rung a win sits: 0 at the threshold, 1 at twice it."""
     if threshold <= 0.0:
@@ -670,7 +635,6 @@ def classify(
     sic: str | int | None,
     name: str,
     business_text: str | None,
-    assumptions,
 ) -> tuple[SubVertical | None, float, str]:
     """Reconcile the SEC's code with the company's own description of itself.
 
@@ -696,8 +660,6 @@ def classify(
        the evidence decides alone at a lower rung. This is the path that admits
        American Tower from 6798 and Amazon from 5961.
     """
-    margin_floor, weak_floor, min_hits = _tuning(assumptions)
-
     code = normalize_sic(sic)
     sic_pick = SIC_TO_SUB_VERTICAL.get(code) if code else None
     if code is None:
@@ -712,10 +674,10 @@ def classify(
     top, top_hits = ranked[0] if ranked else (None, 0)
     runner = ranked[1][0] if len(ranked) > 1 else None
 
-    if top is None or top_hits < min_hits:
+    if top is None or top_hits < MIN_KEYWORD_HITS:
         why = (
             f"business text matched {top_hits} phrase(s), below the evidence floor "
-            f"of {min_hits}"
+            f"of {MIN_KEYWORD_HITS}"
             if top is not None
             else "no business text was read"
         )
@@ -727,7 +689,7 @@ def classify(
             f"unclassified: {code_label} maps to no TMT sub-vertical and {why}",
         )
 
-    threshold = weak_floor if code in WEAK_SIC else margin_floor
+    threshold = WEAK_SIC_MARGIN if code in WEAK_SIC else KEYWORD_MARGIN
     margin = evidence.share(top) - evidence.share(runner)
     matched_note = ", ".join(evidence.matched[top][:3])
 
@@ -1159,7 +1121,7 @@ def tmt_universe(
             except (MissingDataError, DataSourceError) as exc:
                 notes.append(f"business text unavailable, classified on code alone: {exc}")
 
-        derived, confidence, source = classify(code, name, text, assumptions)
+        derived, confidence, source = classify(code, name, text)
         if description:
             source = f"{source} [{description}]"
 
