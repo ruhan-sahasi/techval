@@ -2054,7 +2054,7 @@ def run_merger(
         accretion.accretion_dollars,
     )
 
-    total_uses = next(v for side, label, v in sources_uses if label == "Total uses")
+    total_uses = next(v for _, label, v in sources_uses if label == "Total uses")
     checks.append(
         f"Sources and uses balance at {total_uses:,.0f}mm: "
         f"{cons.new_debt:,.0f}mm of new debt, {cons.cash_used:,.0f}mm of balance "

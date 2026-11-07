@@ -1381,7 +1381,6 @@ def test_signal(
         by_date.setdefault(o.as_of, []).append(o)
 
     notes: list[str] = []
-    checks: list[str] = []
     kept: list[date] = []
     thin = 0
     for d in sorted(by_date):
