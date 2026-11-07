@@ -9,6 +9,7 @@ commands print wider than the rest.
 
 from __future__ import annotations
 
+import math
 import sys
 
 from rich.console import Console
@@ -36,6 +37,11 @@ def print_notes(console: Console, items, *, heading: str = "Notes") -> None:
         console.print(Text(f"  - {n}", style=style))
 
 
+def _missing(v: float | None) -> bool:
+    """None, or a float that is not a number: NaN or an infinity from a division."""
+    return v is None or (isinstance(v, float) and not math.isfinite(v))
+
+
 def format_money(v: float | None, dp: int = 0) -> str:
     """Negatives in brackets, and a value rounded to nothing as a plain zero.
 
@@ -43,7 +49,7 @@ def format_money(v: float | None, dp: int = 0) -> str:
     is a negative zero from a sign convention, both of which read as a rounding
     artefact rather than as a line that is not used.
     """
-    if v is None:
+    if _missing(v):
         return "n/a"
     if abs(v) < 0.5 / (10**dp):
         return f"{0.0:,.{dp}f}"
@@ -51,4 +57,9 @@ def format_money(v: float | None, dp: int = 0) -> str:
 
 
 def format_pct(v: float | None, dp: int = 1) -> str:
-    return "n/a" if v is None else f"{v:.{dp}%}"
+    return "n/a" if _missing(v) else f"{v:.{dp}%}"
+
+
+def format_multiple(v: float | None) -> str:
+    """A valuation multiple; one that cannot be formed reads as not meaningful."""
+    return "NM" if _missing(v) else f"{v:,.1f}x"
