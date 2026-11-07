@@ -66,14 +66,12 @@ Nothing here imports ``cli``.
 from __future__ import annotations
 
 import re
-import sys
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
 import typer
 import yaml
-from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
@@ -85,6 +83,7 @@ from .ev_bridge import build_ev_bridge
 from .financials import build_financials
 from .market import MarketData, make_price_source
 from .nlp.sections import load_sections
+from .terminal import format_pct, make_console, print_rule
 from .tmt import kpis as kpi_module
 from .tmt import metrics as metric_module
 from .tmt.metrics import build_metrics
@@ -101,7 +100,7 @@ app = typer.Typer(
 # Same reasoning as cli.py: a segment table is nine columns wide and rich falls
 # back to eighty when stdout is not a terminal, which crushes every column to
 # three characters in a piped or redirected run.
-console = Console(width=None if sys.stdout.isatty() else 120)
+console = make_console(120)
 
 _CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
 _NOCACHE = typer.Option(False, "--no-cache", help="Bypass the HTTP cache.")
@@ -914,11 +913,6 @@ def _parse_kpi_overrides(raw: list[str] | None) -> tuple[dict[str, float], list[
 # --------------------------------------------------------------------------- #
 
 
-def _rule(title: str) -> None:
-    console.print()
-    console.rule(Text(title, style="bold"), style="dim")
-
-
 def _money(v: float | None, dp: int = 0) -> str:
     if v is None:
         return "n/a"
@@ -935,10 +929,6 @@ def _dollars(v: float | None, dp: int = 2) -> str:
     if v is None:
         return "n/a"
     return f"$({abs(v):,.{dp}f})" if v < 0 else f"${v:,.{dp}f}"
-
-
-def _pct(v: float | None, dp: int = 1) -> str:
-    return "n/a" if v is None else f"{v:.{dp}%}"
 
 
 def _notes(items, *, heading: str = "Notes") -> None:
@@ -960,7 +950,7 @@ def _format_metric(value: float | None, definition: str) -> str:
         return "n/a"
     head = definition.strip().lower()
     if head.startswith("decimal"):
-        return _pct(value)
+        return format_pct(value)
     if head.startswith("percentage points"):
         return f"{value:,.1f}"
     if head.startswith("usd millions"):
@@ -1017,7 +1007,7 @@ def _format_kpi_value(value: float, unit: str) -> str:
     if unit == "usd_mm":
         return _money(value, 1)
     if unit == "ratio":
-        return _pct(value, 2)
+        return format_pct(value, 2)
     if unit == "count":
         return f"{value:,.0f}"
     if unit.startswith("usd_per"):
@@ -1129,7 +1119,7 @@ def _mdna(ticker: str, client) -> tuple[str | None, str]:
 
 
 def _render_classification(ticker, fin, sub_vertical, confidence, source, pack, why):
-    _rule(f"{fin.entity_name} ({ticker.upper()})  operating metrics")
+    print_rule(console, f"{fin.entity_name} ({ticker.upper()})  operating metrics")
     console.print(
         f"[dim]CIK {fin.cik}   twelve months ended {fin.as_of}   USD millions[/dim]\n"
     )
@@ -1153,7 +1143,7 @@ def _render_evidence(rows: list[dict]) -> None:
     first so a reader scanning down the page is reading down the quality of the
     evidence as well.
     """
-    _rule("Disclosed operating metrics, and where each came from")
+    print_rule(console, "Disclosed operating metrics, and where each came from")
     if not rows:
         console.print("[dim]Nothing was found. See the table below for why.[/dim]")
         return
@@ -1206,7 +1196,7 @@ def _render_evidence(rows: list[dict]) -> None:
 def _render_missing(missing: dict[str, str]) -> None:
     if not missing:
         return
-    _rule("Looked for and not disclosed")
+    print_rule(console, "Looked for and not disclosed")
     t = Table(box=None, pad_edge=False)
     t.add_column("Metric", no_wrap=True)
     t.add_column("Why", overflow="fold", style="dim")
@@ -1221,7 +1211,7 @@ def _render_missing(missing: dict[str, str]) -> None:
 
 
 def _render_pack(pack, *, definitions: bool) -> None:
-    _rule(f"Computed operating metrics: the {pack.sub_vertical} pack")
+    print_rule(console, f"Computed operating metrics: the {pack.sub_vertical} pack")
     t = Table(box=None, pad_edge=False)
     t.add_column("Metric", no_wrap=True)
     t.add_column("Value", justify="right")
@@ -1355,7 +1345,7 @@ def kpis(
         merged = {**bridged, **statement_values, **overrides}
 
         if pack_refusal is not None:
-            _rule("No computed metric pack")
+            print_rule(console, "No computed metric pack")
             console.print(f"[yellow]{pack_refusal}[/yellow]")
         else:
             bridge, _price, price_note = _priced_bridge(ticker, fin, market, assumptions)
@@ -1394,11 +1384,11 @@ def _segment_table(rows, *, title: str, residual_label: str, consolidated: float
         t.add_column("Capex", justify="right")
     t.add_column("Assets" if not geography else "Long-lived assets", justify="right")
     for s in rows:
-        cells = [s.name, _money(s.revenue), _pct(s.revenue_share)]
+        cells = [s.name, _money(s.revenue), format_pct(s.revenue_share)]
         if not geography:
             cells += [
                 _money(s.operating_income),
-                _pct(s.margin),
+                format_pct(s.margin),
                 _money(s.da),
                 _money(s.capex),
             ]
@@ -1432,7 +1422,7 @@ def _render_reconciliation(report) -> None:
     nobody has measured.
     """
     total = sum(s.revenue for s in report.segments if s.revenue is not None)
-    _rule("Reconciliation")
+    print_rule(console, "Reconciliation")
     t = Table(box=None, pad_edge=False)
     t.add_column("")
     t.add_column("", justify="right")
@@ -1448,7 +1438,7 @@ def _render_reconciliation(report) -> None:
         Text("Residual", style="bold"),
         Text(_money(report.unallocated), style="bold"),
         (
-            f"{_pct(share, 2)} of consolidated revenue"
+            f"{format_pct(share, 2)} of consolidated revenue"
             if share is not None
             else "consolidated revenue is not positive"
         ),
@@ -1491,7 +1481,7 @@ def segments(
         assumptions, client, _market = _setup(config, no_cache, as_of)
         report = build_segments(ticker, client, assumptions)
 
-        _rule(f"{ticker.upper()}  segment economics, USD millions")
+        print_rule(console, f"{ticker.upper()}  segment economics, USD millions")
         period = report.segments[0].period_start if report.segments else None
         console.print(
             f"[dim]Year ended {report.as_of}"
@@ -1533,7 +1523,7 @@ def segments(
 
         if geography:
             geo_total = sum(g.revenue for g in report.geographies if g.revenue is not None)
-            _rule("By geography")
+            print_rule(console, "By geography")
             if not report.geographies:
                 console.print(
                     "[yellow]The filing tags no single-axis geography total. ASC 280 "
@@ -1757,7 +1747,7 @@ def _period_gap_flag(client, ticker: str, report, fin) -> str:
 
 
 def _render_sotp(result, fin, report) -> None:
-    _rule("The parts")
+    print_rule(console, "The parts")
     t = Table(box=None, pad_edge=False)
     t.add_column("Segment", overflow="fold")
     t.add_column("Metric", no_wrap=True)
@@ -1774,11 +1764,11 @@ def _render_sotp(result, fin, report) -> None:
             f"{s.multiple:,.1f}x",
             s.multiple_label,
             Text(_money(s.enterprise_value), style="bold"),
-            _pct(s.share_of_total),
+            format_pct(s.share_of_total),
         )
     console.print(t)
 
-    _rule("Where each multiple came from")
+    print_rule(console, "Where each multiple came from")
     t = Table(box=None, pad_edge=False)
     t.add_column("Segment", no_wrap=True)
     t.add_column("Applied", justify="right", no_wrap=True)
@@ -1793,7 +1783,7 @@ def _render_sotp(result, fin, report) -> None:
         )
     console.print(t)
 
-    _rule("The holding company")
+    print_rule(console, "The holding company")
     t = Table(box=None, pad_edge=False)
     t.add_column("")
     t.add_column("", justify="right")
@@ -1830,10 +1820,10 @@ def _render_sotp(result, fin, report) -> None:
             else None
         )
         if share is not None:
-            t.add_row("As a share of the parts", _pct(share), "")
+            t.add_row("As a share of the parts", format_pct(share), "")
     console.print(t)
 
-    _rule("Bridge to equity value per share")
+    print_rule(console, "Bridge to equity value per share")
     t = Table(box=None, pad_edge=False)
     t.add_column("")
     t.add_column("", justify="right")
@@ -1842,7 +1832,7 @@ def _render_sotp(result, fin, report) -> None:
         if low.startswith(("value per share", "share price", "gap per share")):
             shown = _dollars(value)
         elif low.startswith("gap, %"):
-            shown = _pct(value)
+            shown = format_pct(value)
         else:
             shown = _money(value)
         bold = low.startswith(
@@ -1977,7 +1967,7 @@ def sotp(
                 ),
             )
 
-        _rule(f"{fin.entity_name} ({fin.ticker})  sum of the parts, USD millions")
+        print_rule(console, f"{fin.entity_name} ({fin.ticker})  sum of the parts, USD millions")
         console.print(
             f"[dim]Segments from {report.accession or 'the filing'}, year ended "
             f"{report.as_of}. Consolidated figures are the trailing twelve months "
