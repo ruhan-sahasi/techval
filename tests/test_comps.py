@@ -204,7 +204,6 @@ def test_growth_works_for_a_52_53_week_filer(assumptions, market, monkeypatch):
     what makes growth available for this calendar at all. Cisco, Broadcom,
     Marvell, NetApp and Dell all use it, and all are plausible comp-set members.
     """
-    import json
     from datetime import date, timedelta
 
     from techval.edgar import CompanyFacts

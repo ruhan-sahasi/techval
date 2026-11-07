@@ -108,8 +108,6 @@ def test_with_the_switch_off_the_assumptions_come_back_as_given():
 
 def test_with_the_switch_on_the_dcf_takes_the_record_and_the_original_is_untouched():
     from techval.anchors import record_case
-    from techval.dcf import run_dcf
-    from techval.ev_bridge import build_ev_bridge
 
     fin, facts = company("DDOG")
     a = Assumptions()
