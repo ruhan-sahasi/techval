@@ -168,45 +168,18 @@ def test_a_target_carryforward_needs_its_section_382_rate_and_the_rate_its_balan
     assert (pa.target_carryforward, pa.long_term_tax_exempt_rate) == (2000.0, 0.034)
 
 
-def test_require_same_sub_vertical_refuses_rather_than_being_ignored(tmp_path):
-    """It was the only field in the file that read as a setting and did nothing.
-
-    The peer encoder gates its candidate list on market capitalisation and size
-    ratio and on nothing else. A reader who set this got a ranking that was not
-    what the assumptions file said it was, and got it silently, which is the
-    exact failure mode this package refuses.
-    """
-    path = _write(tmp_path, "ml:\n  peers:\n    require_same_sub_vertical: true\n")
-    with pytest.raises(ConfigError) as exc:
-        Assumptions.load(path)
-    message = str(exc.value)
-    assert "not implemented" in message
-    assert "max_size_ratio" in message
-
-
-def test_overlapping_windows_refuses_to_be_switched_off(tmp_path):
-    """Its own description promised behaviour behind a false that does not exist.
-
-    ``signals.py`` computes the Newey-West standard error unconditionally and
-    prints it beside the naive one, so false changed nothing. A reader who set
-    it would have believed a naive t-statistic was what came back.
-    """
-    path = _write(tmp_path, "ml:\n  signals:\n    overlapping_windows: false\n")
-    with pytest.raises(ConfigError) as exc:
-        Assumptions.load(path)
-    assert "cannot be set false" in str(exc.value)
-
-
 @pytest.mark.parametrize(
-    "body",
+    "body, name",
     [
-        "ml:\n  peers:\n    require_same_sub_vertical: false\n",
-        "ml:\n  signals:\n    overlapping_windows: true\n",
+        ("ml:\n  peers:\n    require_same_sub_vertical: true\n", "ml.peers.require_same_sub_vertical"),
+        ("ml:\n  signals:\n    overlapping_windows: false\n", "ml.signals.overlapping_windows"),
     ],
 )
-def test_the_default_value_of_each_is_still_writable(body, tmp_path):
-    """Refusing a non-default must not refuse a file that spells out the default."""
-    assert Assumptions.load(_write(tmp_path, body)) is not None
+def test_a_retired_setting_is_refused_as_unknown(body, name, tmp_path):
+    """A file that still names a removed setting is told so, not quietly obeyed."""
+    with pytest.raises(ConfigError) as exc:
+        Assumptions.load(_write(tmp_path, body))
+    assert name in str(exc.value)
 
 
 # --------------------------------------------------------------------------- #
@@ -256,12 +229,6 @@ def test_the_example_states_the_carryforward_and_the_simulation_at_their_default
 # filing to a date.
 _COMMENTED = {"price_csv_dir", "as_of"}
 
-# Not judgments: each accepts only its default and refuses anything else, one
-# because the gate it names does not exist and one because the overlap it
-# describes is a fact the harness always corrects for. Offering either in the
-# example would offer a switch that does nothing.
-_NOT_A_CHOICE = {"ml.peers.require_same_sub_vertical", "ml.signals.overlapping_windows"}
-
 _ABSENT = object()
 
 
@@ -285,9 +252,9 @@ def _lookup(raw, path):
 def test_the_example_names_every_setting():
     """The header says every judgment that moves a valuation is in the file.
 
-    So every setting that is a choice is in it, at a value or as a commented
-    line, and a setting added to the engine without a line in the example
-    fails here rather than going undiscovered.
+    So every setting is in it, at a value or as a commented line, and a setting
+    added to the engine without a line in the example fails here rather than
+    going undiscovered.
     """
     text = EXAMPLE.read_text()
     raw = yaml.safe_load(text)
@@ -296,29 +263,8 @@ def test_the_example_names_every_setting():
         for path in _settings(Assumptions)
         if _lookup(raw, path) is _ABSENT
         and not (path in _COMMENTED and f"# {path}:" in text)
-        and path not in _NOT_A_CHOICE
     ]
     assert not absent, f"missing from the worked example: {', '.join(absent)}"
-    for path in _NOT_A_CHOICE:
-        assert _lookup(raw, path) is _ABSENT, f"{path} offers a choice it refuses"
-
-
-def test_a_setting_kept_out_of_the_example_still_refuses_any_other_value():
-    """The exemption lasts only while the setting is not a choice.
-
-    Implement either one and it accepts its other value, this fails, and the
-    setting belongs in the example with the rest.
-    """
-    for path in _NOT_A_CHOICE:
-        *blocks, name = path.split(".")
-        model, data = Assumptions, {}
-        node = data
-        for block in blocks:
-            model = model.model_fields[block].annotation
-            node = node.setdefault(block, {})
-        node[name] = not model.model_fields[name].default
-        with pytest.raises(ConfigError):
-            Assumptions.model_validate(data)
 
 
 def test_the_example_does_not_switch_a_fitted_section_on():

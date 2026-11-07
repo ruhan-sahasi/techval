@@ -33,9 +33,7 @@ from techval.ml.peer_labels import (
     cache_dir,
     collect_peer_groups,
     extract_peer_group,
-    groups_to_frame,
     normalise_name,
-    pairs_to_frame,
     peer_pairs,
     segment_names,
 )
@@ -772,13 +770,6 @@ def test_pairs_are_sorted_and_de_duplicated():
     assert pairs == sorted(set(pairs))
 
 
-def test_pairs_to_frame_is_ready_for_a_walk_forward_split():
-    peers = [f"P{i}" for i in range(MIN_PLAUSIBLE_PEERS)]
-    frame = pairs_to_frame(peer_pairs([_group("DDOG", peers, 2025)]))
-    assert list(frame.columns) == ["a", "b", "fiscal_year"]
-    assert len(frame) == 2 * MIN_PLAUSIBLE_PEERS
-
-
 # --------------------------------------------------------------------------- #
 # Collection, caching and determinism
 # --------------------------------------------------------------------------- #
@@ -901,19 +892,6 @@ def test_rows_and_frames_expose_what_a_reader_needs(client, index):
         "confidence",
     }
     assert (frame["filer"] == "DDOG").all()
-    assert groups_to_frame([group]).equals(frame)
-
-
-def test_groups_to_frame_of_nothing_still_has_its_columns():
-    frame = groups_to_frame([])
-    assert list(frame.columns) == [
-        "filer",
-        "peer",
-        "fiscal_year",
-        "accession",
-        "confidence",
-    ]
-    assert frame.empty
 
 
 # --------------------------------------------------------------------------- #
