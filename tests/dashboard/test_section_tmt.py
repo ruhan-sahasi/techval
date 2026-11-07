@@ -32,11 +32,11 @@ from techval.dashboard.collect import CollectContext, collect_section
 from techval.dashboard.sections import section_module
 from techval.dashboard.sections import tmt as T
 from techval.dashboard.snapshot import to_jsonable, validate_section
+from .walk import kit_charts, numbers_at
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "tests" / "fixtures"
 SNAPSHOT = ROOT / "docs" / "dashboard" / "snapshot.json"
-KIT = ROOT / "src" / "techval" / "dashboard" / "assets" / "kit.js"
 RENDERER = ROOT / "src" / "techval" / "dashboard" / "assets" / "sections" / "tmt.js"
 # Spelled as a code point, so this file obeys the rule it checks.
 EM_DASH = chr(0x2014)
@@ -47,12 +47,6 @@ COLUMNS = (
     ("premium_1d", "Premium to 1-day"),
     ("premium_30d", "Premium to 30-day"),
 )
-
-
-def _kit_charts() -> set[str]:
-    source = KIT.read_text(encoding="utf-8")
-    block = re.search(r"TV\.charts = \{(.*?)\};", source, flags=re.S).group(1)
-    return set(re.findall(r"(\w+)\s*:", block))
 
 
 def _renderer_tables() -> set[str]:
@@ -109,21 +103,8 @@ def _shape(transactions, stats=None, **kw):
     )
 
 
-def _walk_numbers(value, path="data"):
-    if isinstance(value, bool) or value is None:
-        return
-    if isinstance(value, (int, float)):
-        yield path, value
-    elif isinstance(value, dict):
-        for k, v in value.items():
-            yield from _walk_numbers(v, f"{path}.{k}")
-    elif isinstance(value, (list, tuple)):
-        for i, v in enumerate(value):
-            yield from _walk_numbers(v, f"{path}[{i}]")
-
-
 def _assert_well_formed(figures):
-    kit, tables = _kit_charts(), _renderer_tables()
+    kit, tables = kit_charts(), _renderer_tables()
     for fid, fig in figures.items():
         assert fig["kind"] in kit or (fig["kind"] == "table" and fid in tables), fid
         assert isinstance(fig["title"], str) and isinstance(fig["subtitle"], str)
@@ -131,7 +112,7 @@ def _assert_well_formed(figures):
             assert fig["title"].strip(), f"{fid} has no title"
         # The snapshot writes NaN as null, which the kit draws as a missing mark,
         # so a non-finite value reaching a figure is a gap nobody chose.
-        for path, number in _walk_numbers(fig["data"], fid):
+        for path, number in numbers_at(fig["data"], fid):
             assert math.isfinite(number), path
         data = fig["data"]
         for row in data.get("rows", []):

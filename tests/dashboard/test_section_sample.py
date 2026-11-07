@@ -28,6 +28,7 @@ from techval.dashboard.collect import CollectContext, entry_module
 from techval.dashboard.sections import sample
 from techval.dashboard.sections.sample import read, shape
 from techval.dashboard.snapshot import to_jsonable, validate_section
+from .walk import numbers_at
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = ROOT / "tests" / "fixtures"
@@ -178,19 +179,6 @@ def _rows(out: dict) -> dict:
     return {r["key"]: r for r in out["figures"]["counts"]["data"]["rows"]}
 
 
-def _numbers(value, path="data"):
-    if isinstance(value, bool):
-        return
-    if isinstance(value, (int, float)):
-        yield path, value
-    elif isinstance(value, dict):
-        for k, v in value.items():
-            yield from _numbers(v, f"{path}.{k}")
-    elif isinstance(value, (list, tuple)):
-        for i, v in enumerate(value):
-            yield from _numbers(v, f"{path}[{i}]")
-
-
 # --------------------------------------------------------------------------- #
 # counts flow through unchanged
 # --------------------------------------------------------------------------- #
@@ -305,7 +293,7 @@ def test_the_section_meets_the_schema_with_finite_numbers_and_no_em_dash():
     for fid, fig in section["figures"].items():
         assert fig["title"].strip(), fid
         assert chr(0x2014) not in json.dumps(fig, ensure_ascii=False), fid
-        for where, number in _numbers(fig["data"]):
+        for where, number in numbers_at(fig["data"]):
             assert math.isfinite(number), f"{fid} {where}"
 
 
