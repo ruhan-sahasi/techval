@@ -46,10 +46,8 @@ from techval.edgar import CompanyFacts
 from techval.errors import MissingDataError
 from techval.market import CsvSource
 from techval.merger import run_merger
-from conftest import load_instance_file
+from conftest import FIXTURES, PRICES, load_instance_file
 
-FIXTURES = Path(__file__).parent / "fixtures"
-PRICES = FIXTURES / "prices"
 AS_OF = "2026-09-10"
 
 runner = CliRunner()

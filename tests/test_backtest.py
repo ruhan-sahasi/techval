@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import json
 from datetime import date, timedelta
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -41,8 +40,8 @@ from techval.errors import ConfigError
 from techval.financials import build_financials
 from techval.market import CsvSource
 
-FIXTURES = Path(__file__).parent / "fixtures"
-PRICES = FIXTURES / "prices"
+from conftest import FIXTURES, PRICES
+
 
 # The fixture price CSVs run 2023-09-01 to 2026-09-09. Dates are picked so that
 # the 252-day horizons of the first three complete inside that window and the

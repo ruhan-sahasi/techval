@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import pytest
 
@@ -12,7 +11,7 @@ from techval.config import Assumptions
 from techval.edgar import CompanyFacts
 from techval.financials import build_financials
 
-FIXTURES = Path(__file__).parent / "fixtures"
+from conftest import FIXTURES
 
 
 def company(ticker):

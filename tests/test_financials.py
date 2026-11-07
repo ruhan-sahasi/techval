@@ -387,11 +387,7 @@ def test_knowledge_date_hides_facts_filed_later():
 
     from techval.edgar import CompanyFacts
 
-    from pathlib import Path
-
-    raw = json.loads(
-        (Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text()
-    )
+    raw = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     tag = "RevenueFromContractWithCustomerExcludingAssessedTax"
 
     full = CompanyFacts(raw, "DDOG")
@@ -415,10 +411,7 @@ def test_knowledge_date_falls_back_to_the_filing_of_record(crwd):
 
     from techval.edgar import CompanyFacts
 
-    raw = json.loads(
-        (__import__("pathlib").Path(__file__).parent / "fixtures"
-         / "companyfacts_CRWD.json").read_text()
-    )
+    raw = json.loads((FIXTURES / "companyfacts_CRWD.json").read_text())
     period = (date(2023, 2, 1), date(2024, 1, 31))
 
     then = CompanyFacts(raw, "CRWD", knowledge_date=date(2025, 6, 30))
@@ -436,10 +429,7 @@ def test_a_point_in_time_statement_is_internally_consistent():
 
     from techval.edgar import CompanyFacts
 
-    raw = json.loads(
-        (__import__("pathlib").Path(__file__).parent / "fixtures"
-         / "companyfacts_DDOG.json").read_text()
-    )
+    raw = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     fin = build_financials(
         "DDOG", facts=CompanyFacts(raw, "DDOG", knowledge_date=date(2026, 3, 1))
     )
@@ -949,12 +939,11 @@ def test_a_filer_with_no_operating_income_tag_gets_ebit_from_pre_tax_income():
     """IBM files income before tax and interest expense, and no OperatingIncomeLoss at all."""
     import copy
     import json
-    from pathlib import Path
 
     from techval.edgar import CompanyFacts
     from techval.financials import build_financials
 
-    payload = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     whole = build_financials("DDOG", facts=CompanyFacts(payload, "DDOG"))
     stripped = copy.deepcopy(payload)
     del stripped["facts"]["us-gaap"]["OperatingIncomeLoss"]
@@ -967,13 +956,12 @@ def test_a_filer_with_no_operating_income_tag_gets_ebit_from_pre_tax_income():
 def test_operating_income_that_is_filed_but_cannot_be_tiled_is_still_refused():
     import copy
     import json
-    from pathlib import Path
 
     from techval.edgar import CompanyFacts
     from techval.errors import MissingDataError
     from techval.financials import build_financials
 
-    payload = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     thin = copy.deepcopy(payload)
     rows = thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"]
     thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"] = [r for r in rows if r["end"] < "2026-01-01"]
@@ -985,12 +973,11 @@ def test_a_filer_that_stopped_tagging_operating_income_gets_it_derived_too():
     """KLA's last OperatingIncomeLoss fact is from 2015."""
     import copy
     import json
-    from pathlib import Path
 
     from techval.edgar import CompanyFacts
     from techval.financials import build_financials
 
-    payload = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     lapsed = copy.deepcopy(payload)
     rows = lapsed["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"]
     lapsed["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"] = [r for r in rows if r["end"] < "2024-01-01"]
@@ -1001,9 +988,8 @@ def test_a_filer_that_stopped_tagging_operating_income_gets_it_derived_too():
 def _without_diluted(loss: bool):
     import copy
     import json
-    from pathlib import Path
 
-    payload = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     out = copy.deepcopy(payload)
     del out["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"]
     if loss:
@@ -1036,14 +1022,13 @@ def test_a_diluted_count_filed_too_thinly_to_tile_is_refused_not_replaced():
     """MongoDB files a diluted count it cannot tile at some dates; the basic count is no substitute."""
     import copy
     import json
-    from pathlib import Path
 
     from techval.edgar import CompanyFacts
     from techval.errors import MissingDataError
     from techval.financials import build_financials
 
     payload = _without_diluted(loss=True)
-    original = json.loads((Path(__file__).parent / "fixtures" / "companyfacts_DDOG.json").read_text())
+    original = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     rows = copy.deepcopy(original["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"])
     rows["units"]["shares"] = [r for r in rows["units"]["shares"] if r["end"] < "2026-01-01"]
     payload["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"] = rows

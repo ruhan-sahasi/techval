@@ -48,7 +48,8 @@ from techval.ml.encoder import MIN_TRAIN_PAIRS, ablation_folds, build_dataset
 from techval.ml.features import FEATURE_NAMES
 from techval.ml.peer_labels import PeerGroup
 
-FIXTURES = Path(__file__).parent / "fixtures"
+from conftest import FIXTURES
+
 REAL_PANEL = FIXTURES / "warranted" / "observations.json.gz"
 
 runner = CliRunner()

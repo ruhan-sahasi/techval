@@ -12,6 +12,8 @@ import pytest
 
 from techval.scenarios import quantile_paths, realised_paths
 
+from conftest import FIXTURES, PRICES
+
 
 class Obs:
     """A stand-in panel row: trailing growth, revenue and forward growth by horizon."""
@@ -73,11 +75,9 @@ def test_no_paths_means_no_scenarios():
 
 
 def test_datadogs_similar_starters_run_from_stalling_to_a_third_a_year():
-    from pathlib import Path
-
     from techval.ml.panels import fade_panel
 
-    panel = fade_panel(Path(__file__).parent / "fixtures")
+    panel = fade_panel(FIXTURES)
     pool = realised_paths(panel.observations, trailing=0.276754)
     assert pool.similar and pool.n == 307
     bear, base, bull = quantile_paths(pool.paths)
@@ -98,7 +98,6 @@ def test_a_path_is_cut_to_a_short_projection_and_faded_beyond_the_panel():
 def case():
     import json
     from datetime import date
-    from pathlib import Path
 
     from techval.config import Assumptions
     from techval.edgar import CompanyFacts, HttpCache
@@ -108,23 +107,20 @@ def case():
     from techval.reverse_dcf import Case
     from techval.wacc import compute_wacc
 
-    fixtures = Path(__file__).parent / "fixtures"
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
-    facts = CompanyFacts(json.loads((fixtures / "companyfacts_DDOG.json").read_text()), "DDOG")
+    facts = CompanyFacts(json.loads((FIXTURES / "companyfacts_DDOG.json").read_text()), "DDOG")
     fin = build_financials("DDOG", facts=facts)
-    market = MarketData(CsvSource(fixtures / "prices"), HttpCache(enabled=False), today=date(2026, 9, 10))
+    market = MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=date(2026, 9, 10))
     bridge = build_ev_bridge(fin, market.spot("DDOG"), a)
     return Case(fin=fin, bridge=bridge, wacc=compute_wacc(fin, bridge, market, a), assumptions=a)
 
 
 @pytest.fixture(scope="module")
 def panel():
-    from pathlib import Path
-
     from techval.ml.panels import fade_panel
 
-    return fade_panel(Path(__file__).parent / "fixtures")
+    return fade_panel(FIXTURES)
 
 
 PRICE = 225.27

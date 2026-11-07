@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import json
 from datetime import date
-from pathlib import Path
 
 import pytest
 
@@ -29,7 +28,8 @@ from techval.edgar import SEC_TICKERS_URL, EdgarClient, HttpCache
 from techval.errors import MissingDataError
 from techval.former_tickers import FORMER_TICKERS, FormerListing, resolve
 
-FIXTURES = Path(__file__).parent / "fixtures"
+from conftest import FIXTURES
+
 TICKER_FILE = FIXTURES / "merger" / "company_tickers.json"
 INDEX = FIXTURES / "former_tickers" / "index.json"
 
