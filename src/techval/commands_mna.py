@@ -84,7 +84,14 @@ from .errors import ConfigError, MissingDataError, TechvalError
 from .market import make_price_source
 from .ml.features import FEATURE_NAMES, FeaturePanel, FeatureRow
 from .ml.mna import DealEvent, PropensityResult, build_universe, fit_propensity
-from .terminal import make_console, print_notes, print_rule
+from .terminal import (
+    format_money,
+    format_multiple,
+    format_pct,
+    make_console,
+    print_notes,
+    print_rule,
+)
 from .tmt.precedents import (
     LEAK_FLAG_POINTS,
     MIN_DEALS_FOR_STATS,
@@ -129,29 +136,10 @@ _ASOF = typer.Option(
 # --------------------------------------------------------------------------- #
 # rendering helpers
 #
-# These formatters also read a NaN as missing, which the deal tables need and the
-# shared ones in techval.terminal do not, so they stay local. The section rule
-# and the notes come from techval.terminal: cli.py mounts this module with
-# add_typer, so importing them from cli.py would close a cycle.
+# The per-share price format is particular to the deal tables. Everything else
+# they print with comes from techval.terminal: cli.py mounts this module with
+# add_typer, so importing it from cli.py would close a cycle.
 # --------------------------------------------------------------------------- #
-
-
-def _money(v: float | None, dp: int = 0) -> str:
-    if v is None or (isinstance(v, float) and pd.isna(v)):
-        return "n/a"
-    return f"({abs(v):,.{dp}f})" if v < 0 else f"{v:,.{dp}f}"
-
-
-def _pct(v: float | None, dp: int = 1) -> str:
-    if v is None or (isinstance(v, float) and pd.isna(v)):
-        return "n/a"
-    return f"{v:.{dp}%}"
-
-
-def _mult(v: float | None) -> str:
-    if v is None or (isinstance(v, float) and pd.isna(v)):
-        return "NM"
-    return f"{v:,.1f}x"
 
 
 def _price(v: float | None) -> str:
@@ -254,14 +242,14 @@ def _render_deal_table(result: PrecedentSet) -> None:
             txn.acquirer_name or "n/a",
             txn.status,
             txn.consideration or "n/a",
-            _pct(txn.pct_cash, 0),
+            format_pct(txn.pct_cash, 0),
             Text(offer, style="" if txn.offer_price is not None else "yellow"),
             _price(txn.unaffected_1d),
-            Text(_pct(txn.premium_1d), style=style),
-            Text(_pct(txn.premium_30d), style=style),
+            Text(format_pct(txn.premium_1d), style=style),
+            Text(format_pct(txn.premium_30d), style=style),
             Text("n/a" if gap is None else f"{gap:+,.1f}", style=style),
-            _mult(txn.ev_revenue),
-            _mult(txn.ev_ebitda),
+            format_multiple(txn.ev_revenue),
+            format_multiple(txn.ev_ebitda),
             txn.sub_vertical or "unclassified",
         )
     console.print(t)
@@ -294,9 +282,9 @@ def _render_stats(
             elif pd.isna(v):
                 cells.append(Text("NM", style="dim"))
             elif "Premium" in str(c):
-                cells.append(Text(_pct(float(v)), style="bold" if row_label == "Median" else ""))
+                cells.append(Text(format_pct(float(v)), style="bold" if row_label == "Median" else ""))
             else:
-                cells.append(Text(_mult(float(v)), style="bold" if row_label == "Median" else ""))
+                cells.append(Text(format_multiple(float(v)), style="bold" if row_label == "Median" else ""))
         t.add_row(Text(str(row_label), style="bold" if row_label in ("n", "Median") else ""), *cells)
     console.print(t)
     refused = [c for c in stats.columns if counts[c] < minimum]
@@ -397,9 +385,9 @@ def _render_premium_disagreement(result: PrecedentSet) -> None:
             Text(txn.target_ticker, style="bold"),
             _price(txn.offer_price),
             _price(txn.unaffected_1d),
-            Text(_pct(txn.premium_1d), style="yellow"),
+            Text(format_pct(txn.premium_1d), style="yellow"),
             _price(txn.unaffected_30d),
-            Text(_pct(txn.premium_30d), style="yellow"),
+            Text(format_pct(txn.premium_30d), style="yellow"),
             Text(f"{gap:+,.1f}", style="yellow bold"),
             reading,
         )
@@ -709,8 +697,8 @@ def precedents(
         for txn in result.transactions:
             t.add_row(
                 txn.target_ticker,
-                _money(txn.equity_value),
-                _money(txn.enterprise_value),
+                format_money(txn.equity_value),
+                format_money(txn.enterprise_value),
                 txn.source_form or "n/a",
                 txn.source_accession or "n/a",
                 f"{txn.confidence:.2f}",
@@ -1012,7 +1000,7 @@ def _render_screen(frame: pd.DataFrame, result: PropensityResult, screen_on: dat
             Text(str(row["ticker"]), style="bold"),
             str(row["name"]),
             str(row["sub_vertical"] or "unclassified"),
-            _pct(float(row["probability"])),
+            format_pct(float(row["probability"])),
             f"{float(row['score']):+.2f}",
             ", ".join(str(d) for d in drivers),
         )
@@ -1041,7 +1029,7 @@ def _render_base_rates(result: PropensityResult) -> None:
             str(int(row["year"])),
             f"{int(row['n']):,}",
             f"{int(row['positives']):,}",
-            Text(_pct(float(row["base_rate"]), 2), style="bold"),
+            Text(format_pct(float(row["base_rate"]), 2), style="bold"),
         )
     console.print(t)
     rates = frame["base_rate"].astype(float)
@@ -1126,11 +1114,11 @@ def _render_precision(result: PropensityResult, top_k: int) -> None:
             str(row["as_of"]),
             f"{int(row['n']):,}",
             f"{int(row['positives']):,}",
-            _pct(float(row["base_rate"]), 2),
-            Text(_pct(model_p, 1), style="bold" if model_p > size_p else ""),
-            _pct(size_p, 1),
-            _pct(float(row["recall_at_k_model"]), 1),
-            _pct(float(row["recall_at_k_size"]), 1),
+            format_pct(float(row["base_rate"]), 2),
+            Text(format_pct(model_p, 1), style="bold" if model_p > size_p else ""),
+            format_pct(size_p, 1),
+            format_pct(float(row["recall_at_k_model"]), 1),
+            format_pct(float(row["recall_at_k_size"]), 1),
         )
     console.print(t)
     beats = int(
@@ -1169,8 +1157,8 @@ def _render_calibration(result: PropensityResult) -> None:
         t.add_row(
             Text(f"{float(row['low']):.0%} to {float(row['high']):.0%}", style=style),
             Text(f"{int(row['n']):,}" + (" thin" if thin else ""), style=style),
-            Text(_pct(float(row["predicted"]), 1), style=style),
-            Text(_pct(float(row["realised"]), 1), style=style),
+            Text(format_pct(float(row["predicted"]), 1), style=style),
+            Text(format_pct(float(row["realised"]), 1), style=style),
             Text(f"{float(row['gap']):+.1%}", style="yellow" if abs(float(row["gap"])) > 0.1 else style),
         )
     console.print(t)
@@ -1340,7 +1328,7 @@ def targets(
         t.add_column("", justify="right")
         for label, value in result.labels.rows():
             shown = (
-                _pct(float(value), 2)
+                format_pct(float(value), 2)
                 if label == "Base rate"
                 else (f"{value:,}" if isinstance(value, (int, np.integer)) else str(value))
             )
