@@ -20,8 +20,7 @@ from datetime import date
 
 import pytest
 
-from conftest import FIXTURES
-from techval.config import Assumptions
+from conftest import FIXTURES, load_instance
 from techval.edgar import CompanyFacts, DimensionedFact
 from techval.errors import ConfigError, MissingDataError
 from techval.tmt.segments import (
@@ -43,22 +42,6 @@ ONE = {SEGMENT_AXIS: "x:OneMember"}
 # --------------------------------------------------------------------------- #
 # Fixtures
 # --------------------------------------------------------------------------- #
-
-
-def load_instance(ticker: str):
-    payload = json.loads((FIXTURES / f"instance_facts_{ticker}.json").read_text())
-    facts = [
-        DimensionedFact(
-            tag=row["tag"],
-            value=row["value"],
-            unit=row["unit"],
-            start=date.fromisoformat(row["start"]) if row["start"] else None,
-            end=date.fromisoformat(row["end"]),
-            dimensions=row["dimensions"],
-        )
-        for row in payload["facts"]
-    ]
-    return facts, payload["_accession"], date.fromisoformat(payload["_filed"])
 
 
 class FilingClient:
