@@ -129,6 +129,7 @@ from .features import (
     RND_EXPENSE,
     SNM_EXPENSE,
     FeatureRow,
+    _ratio,
     anniversary,
     assert_point_in_time,
 )
@@ -569,13 +570,6 @@ DELISTED_CIKS: dict[str, int] = {
 # --------------------------------------------------------------------------- #
 # Small guarded arithmetic
 # --------------------------------------------------------------------------- #
-
-
-def _ratio(num: float | None, den: float | None) -> float | None:
-    """A share of revenue. Revenue at or below zero has no shares to take."""
-    if num is None or den is None or den <= 0:
-        return None
-    return num / den
 
 
 def _growth(new: float | None, old: float | None) -> float | None:
