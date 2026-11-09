@@ -109,6 +109,17 @@ def _same_shape(a: np.ndarray, b: np.ndarray, first: str, second: str) -> None:
         )
 
 
+def _temperature(temperature: float) -> float:
+    """The InfoNCE temperature as a float, refused at or below zero."""
+    tau = float(temperature)
+    if tau <= 0.0:
+        raise ConfigError(
+            f"InfoNCE temperature must be positive, got {temperature}. At zero "
+            "the softmax becomes an argmax and has no gradient"
+        )
+    return tau
+
+
 # ---------------------------------------------------------------------------
 # Layers
 # ---------------------------------------------------------------------------
@@ -647,12 +658,7 @@ def info_nce(
     0.05 the logits span 40 units and the softmax separates cleanly, while above
     roughly 0.5 they span less than four and it can barely separate anything.
     """
-    tau = float(temperature)
-    if tau <= 0.0:
-        raise ConfigError(
-            f"InfoNCE temperature must be positive, got {temperature}. At zero "
-            "the softmax becomes an argmax and has no gradient"
-        )
+    tau = _temperature(temperature)
     a = np.asarray(anchor, dtype=DTYPE)
     p = np.asarray(positive, dtype=DTYPE)
     n = np.asarray(negatives, dtype=DTYPE)
@@ -758,12 +764,7 @@ def info_nce_in_batch(
     Returns the loss and the gradients with respect to the anchors and to the
     positives, in that order.
     """
-    tau = float(temperature)
-    if tau <= 0.0:
-        raise ConfigError(
-            f"InfoNCE temperature must be positive, got {temperature}. At zero "
-            "the softmax becomes an argmax and has no gradient"
-        )
+    tau = _temperature(temperature)
     a = _matrix(anchors, "anchors")
     p = _matrix(positives, "positives")
     _same_shape(a, p, "anchors", "positives")
