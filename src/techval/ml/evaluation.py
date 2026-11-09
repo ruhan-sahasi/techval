@@ -303,11 +303,7 @@ def evaluate_regression(
     notes: list[str] = []
     higher = _REGRESSION_METRICS[metric]
 
-    if folds is not None and dates is None:
-        raise ConfigError(
-            "folds were supplied without dates, so there is no way to tell which "
-            "observation belongs to which fold"
-        )
+    _refuse_folds_without_dates(folds, dates)
 
     if dates is None:
         # No dates means no fold structure, and no fold structure means this
@@ -642,12 +638,8 @@ def evaluate_classification(
         raise ConfigError(f"baseline_rate must lie strictly between 0 and 1, got {rate}")
 
     fold_scores: list[float] = []
+    _refuse_folds_without_dates(folds, dates)
     if dates is None:
-        if folds is not None:
-            raise ConfigError(
-                "folds were supplied without dates, so there is no way to tell which "
-                "observation belongs to which fold"
-            )
         notes.append(
             "No dates supplied, so this is one pooled AUC with no fold structure: "
             "nothing here demonstrates that the scores were produced out of sample."
@@ -1131,6 +1123,15 @@ def _expected_random_ndcg(
             "no relevant candidate appears in the ranking, so NDCG is undefined"
         )
     return float(expected_dcg / idcg)
+
+
+def _refuse_folds_without_dates(folds: Sequence[Fold] | None, dates: Sequence[Any] | None) -> None:
+    """Folds are cut by date, so folds handed over without the dates cannot be applied."""
+    if folds is not None and dates is None:
+        raise ConfigError(
+            "folds were supplied without dates, so there is no way to tell which "
+            "observation belongs to which fold"
+        )
 
 
 def _fold_slices(d: np.ndarray, folds: Sequence[Fold]) -> list[tuple[Fold, np.ndarray]]:
