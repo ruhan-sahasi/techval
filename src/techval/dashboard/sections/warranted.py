@@ -266,7 +266,6 @@ class PartialRefit:
 
     score: float
     n: int
-    swapped: int
     screen: tuple[tuple[str, bool], ...]  # (ticker, rich) on the screen's date
 
 
@@ -1658,7 +1657,6 @@ def partial_refit(panel, audit: Audit, assumptions, model_kind: str, when: date 
 
     rebuilt = {(r.ticker, r.as_of): r for r in audit.observations}
     observations = []
-    swapped = 0
     for o in panel.observations:
         row = rebuilt[(o.ticker, o.as_of)]
         if row.ev_rebuilt is None or row.identical:
@@ -1678,7 +1676,6 @@ def partial_refit(panel, audit: Audit, assumptions, model_kind: str, when: date 
                 log_multiple=math.log(multiple),
             )
         )
-        swapped += 1
     refit_panel = replace(panel, observations=observations, _comps_memo={})
     model = fit_warranted(refit_panel, assumptions, model=model_kind)
     card = model.card.evaluation
@@ -1690,7 +1687,7 @@ def partial_refit(panel, audit: Audit, assumptions, model_kind: str, when: date 
         screen = tuple(
             (str(r["ticker"]), float(r["residual_log"]) > 0) for r in frame.to_dict("records")
         )
-    return PartialRefit(score=card.score, n=card.n_observations, swapped=swapped, screen=screen)
+    return PartialRefit(score=card.score, n=card.n_observations, screen=screen)
 
 
 def collect(ctx) -> dict:
