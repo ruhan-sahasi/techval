@@ -156,6 +156,7 @@ from .ml.warranted import (
     WarrantedModel,
     fit_warranted,
 )
+from .options import CONFIG
 from .terminal import format_multiple, make_console, print_notes, print_rule
 
 app = typer.Typer(
@@ -194,9 +195,6 @@ def _echo_assumptions(rows: list[tuple[str, Any]]) -> None:
     for label, value in rows:
         t.add_row(label, str(value))
     console.print(t)
-
-
-_CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
 
 
 # --------------------------------------------------------------------------- #
@@ -1027,7 +1025,7 @@ def _render_ablation(frame: pd.DataFrame) -> None:
 @app.command()
 def peers(
     ticker: str,
-    config: Path = _CFG,
+    config: Path = CONFIG,
     groups: Path = typer.Option(
         None, "--groups", help="Recorded DEF 14A peer groups (JSON)."
     ),
@@ -1424,7 +1422,7 @@ def _frame(frame: pd.DataFrame, title: str) -> Table:
 
 @app.command()
 def screen(
-    config: Path = _CFG,
+    config: Path = CONFIG,
     panel: Path = typer.Option(
         None, "--panel", help="Recorded warranted-multiple observation panel (JSON or .json.gz)."
     ),

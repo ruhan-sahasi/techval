@@ -10,12 +10,10 @@ from typer.testing import CliRunner
 
 from techval.commands_cache import app
 
+from conftest import flat
+
 runner = CliRunner()
 DAY = 86400
-
-
-def flat(text: str) -> str:
-    return " ".join(text.split())
 
 
 def seed(root: Path) -> None:

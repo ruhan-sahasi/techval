@@ -35,6 +35,8 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any, Sequence
 
+from ..snapshot import make_figure
+
 ID = "signal"
 TITLE = "The value signal"
 
@@ -231,10 +233,6 @@ def verdict_status(p_newey_west: float, lift: float) -> str:
 # --------------------------------------------------------------------------- #
 
 
-def _figure(kind: str, title: str, subtitle: str, data: dict[str, Any]) -> dict[str, Any]:
-    return {"kind": kind, "title": title, "subtitle": subtitle, "data": data}
-
-
 def _takeaway(f: SignalFacts) -> str:
     sign = "the wrong sign" if f.mean_ic < 0 else "the sign value investing expects"
     naive_clears = abs(f.t_naive) >= SIGNIFICANT_T
@@ -278,7 +276,7 @@ def _evidence(f: SignalFacts) -> dict[str, Any]:
             + (f", the floor of {f.baseline_draws} draws," if at_floor else "")
             + f" treats the {n} dates as independent and is not the test"
         )
-    return _figure(
+    return make_figure(
         "tiles",
         f"About {_num(f.effective_n, 0)} effective observations, not {f.n_scored:,}",
         "",
@@ -325,7 +323,7 @@ def _t_statistics(f: SignalFacts) -> dict[str, Any]:
         f"{f.lag} widens the standard error {_num(f.inflation, 2)}x for the "
         f"{f.horizon_months}-month windows they share."
     )
-    return _figure(
+    return make_figure(
         "dot",
         title,
         subtitle,
@@ -373,7 +371,7 @@ def _ic_by_date(f: SignalFacts) -> dict[str, Any]:
     # at least a tenth beyond the largest coefficient, so the label under the
     # most negative column stays clear of the date labels.
     bound = (math.floor(max(abs(v) for v in f.ic) * 10) + 2) / 10
-    return _figure(
+    return make_figure(
         "column",
         title,
         subtitle,
@@ -410,7 +408,7 @@ def _ic_autocorrelation(f: SignalFacts) -> dict[str, Any]:
         "Overlap with a persistent score does, a trailing multiple persists, and "
         "that is what makes the naive standard error too small."
     )
-    return _figure(
+    return make_figure(
         "dot",
         title,
         subtitle,
@@ -458,7 +456,7 @@ def _bucket_returns(f: SignalFacts) -> dict[str, Any]:
         f"weight, averaged over {f.bucket_dates} dates. Cheapest minus dearest "
         f"{_signed_pct(f.spread)}, Newey-West t {_signed(f.spread_t)}; {shape_words}."
     )
-    return _figure(
+    return make_figure(
         "column",
         title,
         subtitle,

@@ -59,6 +59,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from ...errors import DataSourceError, TechvalError
+from ..snapshot import make_figure
 
 ID = "tmt"
 TITLE = "TMT layer"
@@ -98,10 +99,6 @@ class NothingToShow(TechvalError):
 # --------------------------------------------------------------------------- #
 # small helpers
 # --------------------------------------------------------------------------- #
-
-
-def _figure(kind: str, title: str, subtitle: str, data: dict[str, Any]) -> dict[str, Any]:
-    return {"kind": kind, "title": title, "subtitle": subtitle, "data": data}
 
 
 def _refusal(what: str, why: str) -> dict[str, str]:
@@ -267,7 +264,7 @@ def shape_precedents(
     rev_n = int(rev.get("n", 0))
     rev_median = rev.get("Median") if rev_n >= min_deals and _finite(rev.get("Median")) else None
 
-    figures["precedent_tiles"] = _figure(
+    figures["precedent_tiles"] = make_figure(
         "tiles",
         (
             f"{len(priced)} of {n_deals} deals read from merger filings carry an offer "
@@ -312,7 +309,7 @@ def shape_precedents(
     )
     if both:
         rows = sorted(both, key=lambda t: (t.premium_gap_points, t.target_ticker))
-        figures["premia"] = _figure(
+        figures["premia"] = make_figure(
             "dot",
             f"{len(flagged)} of {len(both)} premia move more than {leak_points:.0f} "
             "points with the choice of unaffected price",
@@ -360,7 +357,7 @@ def shape_precedents(
             if rev_median is not None
             else f"EV/Revenue on {len(with_multiple)} deals, too few for a median"
         )
-        figures["ev_revenue"] = _figure(
+        figures["ev_revenue"] = make_figure(
             "hbar",
             title,
             "Offer enterprise value over the target's trailing twelve months of "
@@ -384,7 +381,7 @@ def shape_precedents(
             },
         )
 
-    figures["deals"] = _figure(
+    figures["deals"] = make_figure(
         "table",
         f"{len(both)} of {n_deals} deals carry both a fixed price and the closes to "
         "measure a premium",
@@ -505,7 +502,7 @@ def shape_segments(
     steps = [{"label": s.name, "value": s.revenue} for s in segments]
     if residual:
         steps.append({"label": explained or "Unallocated / eliminations", "value": residual})
-    figures["segment_revenue"] = _figure(
+    figures["segment_revenue"] = make_figure(
         "waterfall",
         title,
         f"{ticker} revenue by reportable segment, {period}, USD millions, bridged to "
@@ -574,7 +571,7 @@ def shape_segments(
                 f"{period}, so segment operating income cannot be reconciled to a company "
                 "total, and none is made up for it",
             )
-        figures["segment_operating_income"] = _figure(
+        figures["segment_operating_income"] = make_figure(
             "waterfall",
             title,
             f"{ticker} operating income by reportable segment, {period}, USD millions. "
@@ -622,7 +619,7 @@ def shape_segments(
                         ),
                     }
                 )
-            figures["segment_margins"] = _figure(
+            figures["segment_margins"] = make_figure(
                 "tiles", title, f"{ticker} segment operating margin, {period}.", {"tiles": tiles}
             )
 
@@ -762,7 +759,7 @@ def shape_kpis(filers: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     else:
         title = f"All {n_total} operating figures stand, {n_tagged} of them tagged facts"
     figures = {
-        "kpis": _figure(
+        "kpis": make_figure(
             "table",
             title,
             f"Operating KPIs read from {len(tickers)} filers' XBRL instance documents"

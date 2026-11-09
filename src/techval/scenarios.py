@@ -54,8 +54,6 @@ class ScenarioPath:
     growth: list[float]
     cagr: float
     n: int
-    low_cagr: float
-    high_cagr: float
 
 
 def realised_paths(
@@ -111,8 +109,6 @@ def quantile_paths(
                 growth=growth,
                 cagr=path_cagr(growth, horizon),
                 n=len(members),
-                low_cagr=path_cagr(members[0], horizon),
-                high_cagr=path_cagr(members[-1], horizon),
             )
         )
     return out

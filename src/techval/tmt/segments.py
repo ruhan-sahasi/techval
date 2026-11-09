@@ -620,7 +620,7 @@ def _consolidated_from_facts(
     of the reconciliation is ruined by a total struck over a window the segments
     were not.
     """
-    _tag, series, _ladder = facts.resolve_duration_series("revenue", tags.REVENUE)
+    _tag, series, _ladder = facts.resolve_duration_series(tags.REVENUE)
     for fact in series:
         if (fact.start, fact.end) == period:
             return fact.val / _MM
@@ -831,7 +831,7 @@ def _annual_from_facts(
     facts: CompanyFacts, as_of: date | None, ticker: str
 ) -> tuple[str, tuple[date | None, date], float]:
     """Latest annual revenue from company facts, for a filing with none tagged."""
-    tag, series, ladder = facts.resolve_duration_series("revenue", tags.REVENUE)
+    tag, series, ladder = facts.resolve_duration_series(tags.REVENUE)
     annuals = [
         f
         for f in series

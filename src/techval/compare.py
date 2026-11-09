@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from .dashboard.sections import engine as E
+from .dashboard.snapshot import make_figure
 from .errors import TechvalError
 
 
@@ -80,7 +81,7 @@ def value_figure(rows: list[Compared]) -> dict:
         f"{above} of {len(valued)} base cases reach the close, and {above_record} "
         f"{'does' if above_record == 1 else 'do'} on the companies' own records"
     )
-    return E._figure(
+    return make_figure(
         "dot",
         title,
         "Gordon DCF value per share over the close. The base case is the assumptions file's; "
@@ -114,7 +115,7 @@ def returns_figure(rows: list[Compared]) -> dict:
         )
     else:
         title = "No close in the set is reached by any discount rate"
-    return E._figure(
+    return make_figure(
         "dot",
         title,
         "The return a buyer at the close earns if the base case holds, the DCF run backwards "
@@ -172,7 +173,7 @@ def table_figure(rows: list[Compared]) -> dict:
                 "against": where or "n/a",
             }
         )
-    return E._figure(
+    return make_figure(
         "table",
         f"{len(valued)} companies through the same engine, on the same assumptions",
         "Per share, at each company's last close. Growth needed is the first-year growth the "

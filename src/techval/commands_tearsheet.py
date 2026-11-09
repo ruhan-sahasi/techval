@@ -14,6 +14,7 @@ import typer
 from rich.markup import escape
 
 from .errors import TechvalError
+from .options import CONFIG, FACTS_DIR, FROM_RECORD, NO_CACHE, OPEN_PAGE
 from .terminal import make_console
 
 app = typer.Typer()
@@ -25,21 +26,17 @@ CHECKOUT = Path(__file__).resolve().parent.parent.parent
 @app.command()
 def tearsheet(
     ticker: str,
-    config: Path = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file."),
-    no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the HTTP cache."),
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     out: Path = typer.Option(None, "--out", "-o", help="Where to write the page. Default: out/tearsheet_<TICKER>.html."),
-    facts_dir: Path = typer.Option(
-        None, "--facts-dir", help="A directory of recorded companyfacts_<TICKER>.json payloads, instead of live SEC calls."
-    ),
+    facts_dir: Path = FACTS_DIR,
     panels: Path = typer.Option(
         None,
         "--panels",
         help="Directory holding fade_companyfacts.json.gz for base rates and scenarios. Defaults to tests/fixtures in this checkout.",
     ),
-    open_page: bool = typer.Option(False, "--open", help="Open the page in the default browser once it is written."),
-    from_record: bool = typer.Option(
-        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
-    ),
+    open_page: bool = OPEN_PAGE,
+    from_record: bool = FROM_RECORD,
 ) -> None:
     """One company's valuation as a single page: the results page's engine section, measured for TICKER."""
     from .cli import _setup
@@ -96,12 +93,10 @@ def tearsheet(
 @app.command()
 def compare(
     tickers: list[str] = typer.Argument(..., help="The companies to set side by side."),
-    config: Path = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file."),
-    no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the HTTP cache."),
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     out: Path = typer.Option(None, "--out", "-o", help="Where to write the page. Default: out/compare.html."),
-    facts_dir: Path = typer.Option(
-        None, "--facts-dir", help="A directory of recorded companyfacts_<TICKER>.json payloads, instead of live SEC calls."
-    ),
+    facts_dir: Path = FACTS_DIR,
     panels: Path = typer.Option(
         None,
         "--panels",
@@ -110,7 +105,7 @@ def compare(
     peers_from_set: bool = typer.Option(
         False, "--peers-from-set", help="Value each company against the rest of the set as its peers."
     ),
-    open_page: bool = typer.Option(False, "--open", help="Open the page in the default browser once it is written."),
+    open_page: bool = OPEN_PAGE,
     as_json: bool = typer.Option(False, "--json", help="Print the table, the takeaway and the refusals as JSON."),
 ) -> None:
     """Several companies through the same engine on one page: values, returns and scenarios side by side."""

@@ -55,6 +55,8 @@ from dataclasses import dataclass, replace
 from datetime import date
 from typing import Any, Callable, ContextManager
 
+from ..snapshot import make_figure
+
 ID = "warranted"
 TITLE = "Warranted multiple"
 PANEL = "warranted/observations.json.gz"
@@ -266,7 +268,6 @@ class PartialRefit:
 
     score: float
     n: int
-    swapped: int
     screen: tuple[tuple[str, bool], ...]  # (ticker, rich) on the screen's date
 
 
@@ -365,10 +366,6 @@ def _row_height(rows: int, per_row: int) -> int:
 
 def _month(d: date) -> str:
     return d.strftime("%b %Y")
-
-
-def _figure(kind: str, title: str, subtitle: str, data: dict[str, Any]) -> dict[str, Any]:
-    return {"kind": kind, "title": title, "subtitle": subtitle, "data": data}
 
 
 def fold_lifts(inp: Inputs) -> list[float]:
@@ -695,7 +692,7 @@ def build_deflation(inp: Inputs) -> dict[str, Any]:
         )
     pooled, change, n = inp.pooled_on_change_rows, inp.change, inp.n_changes
     verb = "falls" if change < pooled else "rises"
-    return _figure(
+    return make_figure(
         "hbar",
         f"Differenced against last quarter, the score {verb} from {pooled:.2f} to "
         f"{change:.2f}".replace("-", "\u2212"),
@@ -775,7 +772,7 @@ def build_baselines(inp: Inputs) -> dict[str, Any]:
                 c.name, "the model does not count it as answering the same question."
             )
         )
-    return _figure(
+    return make_figure(
         "dot",
         title,
         subtitle,
@@ -813,7 +810,7 @@ def build_folds(inp: Inputs) -> dict[str, Any]:
         }
         for f in inp.folds
     ]
-    return _figure(
+    return make_figure(
         "dot",
         f"Ahead of {_lower_first(_short(card.name))} in "
         f"{wins} of {len(lifts)} folds, the lift running from "
@@ -899,7 +896,7 @@ def build_noise(inp: Inputs) -> dict[str, Any]:
         title = f"Both noise tests put the lift {shipped_call}"
     else:
         title = f"The verdict sentence says {shipped_call}, the stricter test says {strict_call}"
-    return _figure(
+    return make_figure(
         "range",
         title,
         "Each bar is a lift plus and minus one standard deviation, so a bar that "
@@ -979,7 +976,7 @@ def build_screen(inp: Inputs) -> dict[str, Any]:
             f"{rows[0].ticker} trades furthest above its warranted multiple, "
             f"{rows[-1].ticker} furthest below"
         )
-    return _figure(
+    return make_figure(
         "hbar",
         title,
         f"Out-of-sample residual, log of the traded over the warranted {inp.target_label}, "
@@ -1057,7 +1054,7 @@ def build_rerating(inp: Inputs) -> dict[str, Any]:
     verb = "fell" if first is peak else "rose"
     # "yet" only where the calendar is the smaller part of the variance.
     joint = "yet the calendar is only" if inp.between_date_share < 0.5 else "and the calendar is"
-    return _figure(
+    return make_figure(
         "line",
         f"The panel {verb} from {math.exp(first[1]):.1f}x to {math.exp(second[1]):.1f}x "
         f"{inp.target_label}, {joint} {inp.between_date_share:.1%} of the variance",
@@ -1114,7 +1111,7 @@ def build_panel(inp: Inputs) -> dict[str, Any]:
                 ),
             }
         ]
-    return _figure(
+    return make_figure(
         "tiles",
         (
             f"{inp.n_observations:,} company-quarters from {inp.n_companies} companies "
@@ -1242,7 +1239,7 @@ def build_audit(inp: Inputs) -> dict[str, Any]:
     caution = _audit_caution(inp)
     if caution is not None:
         data["notes"] = [caution]
-    return _figure(
+    return make_figure(
         "tiles",
         title,
         (
@@ -1291,7 +1288,7 @@ def build_audit_filers(inp: Inputs) -> dict[str, Any]:
             f"{top.ticker} is the most affected, {top.stale} of its {top.compared} "
             f"observations more than {GAP_STALE:.0%} off"
         )
-    return _figure(
+    return make_figure(
         "dot",
         title,
         (
@@ -1658,7 +1655,6 @@ def partial_refit(panel, audit: Audit, assumptions, model_kind: str, when: date 
 
     rebuilt = {(r.ticker, r.as_of): r for r in audit.observations}
     observations = []
-    swapped = 0
     for o in panel.observations:
         row = rebuilt[(o.ticker, o.as_of)]
         if row.ev_rebuilt is None or row.identical:
@@ -1678,7 +1674,6 @@ def partial_refit(panel, audit: Audit, assumptions, model_kind: str, when: date 
                 log_multiple=math.log(multiple),
             )
         )
-        swapped += 1
     refit_panel = replace(panel, observations=observations, _comps_memo={})
     model = fit_warranted(refit_panel, assumptions, model=model_kind)
     card = model.card.evaluation
@@ -1690,7 +1685,7 @@ def partial_refit(panel, audit: Audit, assumptions, model_kind: str, when: date 
         screen = tuple(
             (str(r["ticker"]), float(r["residual_log"]) > 0) for r in frame.to_dict("records")
         )
-    return PartialRefit(score=card.score, n=card.n_observations, swapped=swapped, screen=screen)
+    return PartialRefit(score=card.score, n=card.n_observations, screen=screen)
 
 
 def collect(ctx) -> dict:

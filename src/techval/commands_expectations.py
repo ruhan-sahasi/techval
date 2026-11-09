@@ -23,7 +23,8 @@ from rich.table import Table
 from .anchors import summary as record_summary
 from .config import Assumptions, ml_cache_root
 from .errors import TechvalError
-from .terminal import make_console
+from .options import CONFIG, FACTS_DIR, FROM_RECORD, NO_CACHE
+from .terminal import format_pct, make_console
 
 app = typer.Typer()
 # As in cli.py: a piped or redirected run gets a width that fits the tables
@@ -40,15 +41,11 @@ LEVER_NAMES = {
 }
 
 
-def _pct(v: float | None) -> str:
-    return "n/a" if v is None else f"{v:.1%}"
-
-
 def _cell(solve) -> str:
     if solve.lever == "duration":
         return f"{solve.implied:.0f} years" if solve.reached else f"over {solve.edge:.0f} years"
     if solve.reached:
-        return _pct(solve.implied)
+        return format_pct(solve.implied)
     return f"beyond {solve.edge:.0%}"
 
 
@@ -96,8 +93,8 @@ def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path 
 @app.command()
 def expectations(
     ticker: str,
-    config: Path = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file."),
-    no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the HTTP cache."),
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     facts_file: Path = typer.Option(
         None, "--facts", help="Recorded companyfacts payload for TICKER, instead of a live SEC call."
     ),
@@ -115,9 +112,7 @@ def expectations(
         "--history",
         help="Also read what the price assumed at each quarter-end of the last three years, point in time.",
     ),
-    from_record: bool = typer.Option(
-        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
-    ),
+    from_record: bool = FROM_RECORD,
 ) -> None:
     """What the price assumes: the DCF solved for the market price, lever by lever, with base rates."""
     from .reverse_dcf import market_expectations
@@ -180,7 +175,7 @@ def _print(result) -> None:
     levers.add_column("Assumed", justify="right")
     levers.add_column("Implied by the price", justify="right")
     for solve in result.solves:
-        assumed = "" if solve.assumed is None else _pct(solve.assumed)
+        assumed = "" if solve.assumed is None else format_pct(solve.assumed)
         if solve.lever == "duration":
             assumed = "5-year fade"
         levers.add_row(LEVER_NAMES[solve.lever], assumed, _cell(solve))
@@ -190,8 +185,8 @@ def _print(result) -> None:
     frontier.add_column("Terminal margin", justify="right")
     frontier.add_column("First-year growth", justify="right")
     for row in result.frontier:
-        need = _pct(row["implied_growth"]) if row["implied_growth"] is not None else "beyond 300%"
-        frontier.add_row(_pct(row["margin"]), need)
+        need = format_pct(row["implied_growth"]) if row["implied_growth"] is not None else "beyond 300%"
+        frontier.add_row(format_pct(row["margin"]), need)
     console.print(frontier)
 
     for sentence in result.summary():
@@ -214,9 +209,9 @@ def _print_history(symbol: str, rows: list[dict]) -> None:
             r["date"],
             f"{r['price']:,.2f}",
             f"{r['base_value']:,.2f}",
-            _pct(r["wacc"]),
-            _pct(r["implied_return"]),
-            _pct(r["implied_growth"]),
+            format_pct(r["wacc"]),
+            format_pct(r["implied_return"]),
+            format_pct(r["implied_growth"]),
         )
     console.print(table)
     for r in refused:
@@ -226,16 +221,12 @@ def _print_history(symbol: str, rows: list[dict]) -> None:
 @app.command("expectations-screen")
 def expectations_screen(
     tickers: list[str] = typer.Argument(..., help="The names to compare."),
-    config: Path = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file."),
-    no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the HTTP cache."),
-    facts_dir: Path = typer.Option(
-        None, "--facts-dir", help="A directory of recorded companyfacts_<TICKER>.json payloads, instead of live SEC calls."
-    ),
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
+    facts_dir: Path = FACTS_DIR,
     panels: Path = typer.Option(None, "--panels", help="Directory holding fade_companyfacts.json.gz for base rates."),
     as_json: bool = typer.Option(False, "--json", help="Print the rows as JSON."),
-    from_record: bool = typer.Option(
-        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
-    ),
+    from_record: bool = FROM_RECORD,
 ) -> None:
     """What each price assumes, side by side, the most demanding first."""
     from .edgar import EdgarClient, HttpCache
@@ -283,8 +274,8 @@ def expectations_screen(
         above = "n/a" if r["simulated_above"] is None else f"{r['simulated_above']:.1%}"
         table.add_row(
             r["ticker"], f"{r['price']:,.2f}", f"{r['base_value']:,.2f}",
-            _pct(r["implied_return"]),
-            "beyond 300%" if r["implied_growth"] is None else _pct(r["implied_growth"]),
+            format_pct(r["implied_return"]),
+            "beyond 300%" if r["implied_growth"] is None else format_pct(r["implied_growth"]),
             did, above, _against(r),
         )
     console.print(table)
@@ -296,8 +287,8 @@ def expectations_screen(
 @app.command()
 def scenarios(
     ticker: str,
-    config: Path = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file."),
-    no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the HTTP cache."),
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     facts_file: Path = typer.Option(
         None, "--facts", help="Recorded companyfacts payload for TICKER, instead of a live SEC call."
     ),
@@ -308,9 +299,7 @@ def scenarios(
         help="Directory holding fade_companyfacts.json.gz. Defaults to tests/fixtures in this checkout.",
     ),
     as_json: bool = typer.Option(False, "--json", help="Print the whole result as JSON."),
-    from_record: bool = typer.Option(
-        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
-    ),
+    from_record: bool = FROM_RECORD,
 ) -> None:
     """Bear, base and bull from what similar company-years went on to do, valued through the engine's DCF."""
     from .scenarios import band_coverage, value_scenarios
@@ -342,7 +331,7 @@ def scenarios(
         table.add_column(name, justify="left" if name in ("Scenario", "Growth, years 1 to 5") else "right")
     for s in result.scenarios:
         table.add_row(
-            s.name.capitalize(), f"P{s.quantile * 100:.0f}", f"{s.n:,}", _pct(s.cagr),
+            s.name.capitalize(), f"P{s.quantile * 100:.0f}", f"{s.n:,}", format_pct(s.cagr),
             "  ".join(f"{g:.1%}" for g in s.growth[:5]), f"{s.value:,.2f}", f"{s.weight:.0%}",
         )
     console.print(table)

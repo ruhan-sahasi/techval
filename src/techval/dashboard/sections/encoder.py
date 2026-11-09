@@ -45,6 +45,7 @@ from ...ml.encoder import (
     evaluate_peer_encoder,
 )
 from ...ml.features import FEATURE_NAMES
+from ..snapshot import make_figure
 
 ID = "encoder"
 TITLE = "Peer encoder"
@@ -352,10 +353,6 @@ def verdict_status(lift: float, t: float | None) -> str:
     return "not_significant"
 
 
-def _figure(kind: str, title: str, subtitle: str, data: dict[str, Any]) -> dict[str, Any]:
-    return {"kind": kind, "title": title, "subtitle": subtitle, "data": data}
-
-
 def _headline(results: Mapping[str, Any]) -> dict[str, Any]:
     h = results["headline"]
     paired = h["paired"]
@@ -383,7 +380,7 @@ def _diagnostics(results: Mapping[str, Any]) -> dict[str, Any]:
         if leans
         else "The encoder does not just return the popular names"
     )
-    return _figure(
+    return make_figure(
         "tiles",
         title,
         "",
@@ -432,7 +429,7 @@ def _ndcg_by_method(results: Mapping[str, Any]) -> dict[str, Any]:
         }
         for m in methods
     ]
-    return _figure(
+    return make_figure(
         "hbar",
         title,
         f"NDCG@{k} on the same {encoder['n']} queries, walk-forward by proxy filing date; "
@@ -484,7 +481,7 @@ def _paired_lift(results: Mapping[str, Any]) -> dict[str, Any]:
         }
         for p in paired
     ]
-    return _figure(
+    return make_figure(
         "dot",
         title,
         f"Encoder minus baseline, NDCG@{k} per query, mean over the same {n} queries; "
@@ -538,7 +535,7 @@ def _warm_cold(results: Mapping[str, Any], refusals: list[dict[str, str]]) -> di
     else:
         present = warm or cold
         title = f"Only the {'warm' if warm else 'cold'}-start slice can be scored, at {present['score']:.2f}"
-    figure = _figure(
+    figure = make_figure(
         "dot",
         title,
         f"NDCG@{k}, encoder against the popularity prior; warm means the target filed a peer "
@@ -677,7 +674,7 @@ def _tower_ablation(results: Mapping[str, Any], refusals: list[dict[str, str]]) 
         if panel["empty"]
         else None
     )
-    figure = _figure(
+    figure = make_figure(
         "dot",
         title,
         "Spearman of pair cosine against the disclosed-peer flag; damage is the full model's "
@@ -788,7 +785,7 @@ def _truncation(results: Mapping[str, Any], refusals: list[dict[str, str]]) -> d
         if unmoved
         else ""
     )
-    figure = _figure(
+    figure = make_figure(
         "line",
         title,
         f"Change in NDCG@{k} from {origin}, on {queries}; {shortened}{same}",

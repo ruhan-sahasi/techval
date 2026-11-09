@@ -129,6 +129,7 @@ from .features import (
     RND_EXPENSE,
     SNM_EXPENSE,
     FeatureRow,
+    _ratio,
     anniversary,
     assert_point_in_time,
 )
@@ -569,13 +570,6 @@ DELISTED_CIKS: dict[str, int] = {
 # --------------------------------------------------------------------------- #
 # Small guarded arithmetic
 # --------------------------------------------------------------------------- #
-
-
-def _ratio(num: float | None, den: float | None) -> float | None:
-    """A share of revenue. Revenue at or below zero has no shares to take."""
-    if num is None or den is None or den <= 0:
-        return None
-    return num / den
 
 
 def _growth(new: float | None, old: float | None) -> float | None:
@@ -1458,23 +1452,20 @@ class _Scaler:
 
     centre: np.ndarray
     scale: np.ndarray
-    observed_share: np.ndarray
 
     @classmethod
     def fit(cls, matrix: np.ndarray) -> "_Scaler":
         width = matrix.shape[1]
         centre = np.zeros(width)
         scale = np.ones(width)
-        share = np.zeros(width)
         for j in range(width):
             column = matrix[:, j]
             observed = column[np.isfinite(column)]
-            share[j] = observed.size / max(column.size, 1)
             if observed.size >= 5:
                 centre[j] = float(np.median(observed))
                 spread = float(np.std(observed))
                 scale[j] = spread if spread > 1e-9 else 1.0
-        return cls(centre=centre, scale=scale, observed_share=share)
+        return cls(centre=centre, scale=scale)
 
     def transform(self, matrix: np.ndarray) -> np.ndarray:
         filled = np.where(np.isfinite(matrix), matrix, self.centre)
@@ -1576,7 +1567,6 @@ class HorizonFit:
     evaluation: EvalResult
     baselines: dict[str, float]
     residual_quantiles: tuple[float, float]
-    residual_sd: float
     n_train: int
     sub_vertical_means: dict[str, float]
     pooled_mean: float
@@ -2093,7 +2083,6 @@ def _fit_horizon(
         evaluation=evaluation,
         baselines=baselines,
         residual_quantiles=(float(low), float(high)),
-        residual_sd=float(np.std(residuals)),
         n_train=len(rows),
         sub_vertical_means=means,
         pooled_mean=pooled,

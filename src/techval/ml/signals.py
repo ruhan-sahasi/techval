@@ -440,7 +440,6 @@ class BucketTable:
 
     frame: pd.DataFrame
     spread_by_date: list[float]
-    spread_dates: list[date]
     lag: int
     monotonicity: float | None
     monotone_steps: float
@@ -1134,7 +1133,6 @@ def _bucket_table(
     per_date_n: dict[int, list[int]] = {b: [] for b in range(buckets)}
     membership: dict[date, dict[str, int]] = {}
     spreads: list[float] = []
-    spread_dates: list[date] = []
     notes: list[str] = []
     skipped = 0
 
@@ -1155,7 +1153,6 @@ def _bucket_table(
             per_date_n[b].append(int(sel.sum()))
             means.append(float(rets[sel].mean()))
         spreads.append(means[-1] - means[0])
-        spread_dates.append(d)
 
     if skipped:
         notes.append(
@@ -1189,7 +1186,6 @@ def _bucket_table(
         BucketTable(
             frame=frame,
             spread_by_date=spreads,
-            spread_dates=spread_dates,
             lag=lag,
             monotonicity=mono,
             monotone_steps=monotone_steps,

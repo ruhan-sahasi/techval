@@ -131,7 +131,6 @@ def _inputs(**overrides) -> S.Inputs:
         refit=S.PartialRefit(
             score=0.71,
             n=401,
-            swapped=2,
             screen=(("AAA", True), ("BBB", True), ("CCC", False), ("DDD", False)),
         ),
     )
@@ -368,7 +367,7 @@ def test_a_screen_name_the_audit_flags_refuses_the_screen_naming_it(extra, skipp
 
 
 def test_a_partial_refit_that_changes_the_screen_refuses_it_naming_the_change():
-    refit = S.PartialRefit(0.72, 400, 3, (("AAA", True), ("EEE", True), ("CCC", True), ("DDD", False)))
+    refit = S.PartialRefit(0.72, 400, (("AAA", True), ("EEE", True), ("CCC", True), ("DDD", False)))
     why = S.screen_refusal(_inputs(refit=refit))
     assert why is not None
     assert "None of the screen's 4 names on 2026-06-30 is itself flagged" in why

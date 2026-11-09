@@ -52,6 +52,8 @@ from contextlib import ExitStack, contextmanager
 from datetime import date
 from typing import Any, Callable, Iterable, Iterator, Mapping
 
+from ..snapshot import make_figure
+
 ID = "datalayer"
 TITLE = "Data layer"
 
@@ -789,10 +791,6 @@ def ticker_reach(
 # --------------------------------------------------------------------------- #
 
 
-def _figure(kind: str, title: str, subtitle: str, data: dict[str, Any]) -> dict[str, Any]:
-    return {"kind": kind, "title": title, "subtitle": subtitle, "data": data}
-
-
 Built = tuple[dict[str, Any], list[dict[str, str]]]
 
 
@@ -877,7 +875,7 @@ def _debt_figures(r: dict[str, Any], names: Mapping[str, str]) -> Built:
             "ladder stood before the fix. The earlier ladders survive only in git "
             "history, which the snapshot does not digest."
         )
-    figure = _figure(
+    figure = make_figure(
         "tiles",
         title,
         "",
@@ -984,7 +982,7 @@ def _split_figures(r: dict[str, Any]) -> dict[str, Any]:
     if worst_early and worst_early["early_end"]:
         subtitle += f", early-end errors on {worst_early['ticker']}"
     return {
-        "split_counts": _figure(
+        "split_counts": make_figure(
             "tiles",
             title,
             "",
@@ -998,7 +996,7 @@ def _split_figures(r: dict[str, Any]) -> dict[str, Any]:
                 },
             },
         ),
-        "split_oracle": _figure(
+        "split_oracle": make_figure(
             "dot",
             oracle_title,
             subtitle + ".",
@@ -1036,7 +1034,7 @@ def _closes_figures(r: dict[str, Any]) -> dict[str, Any]:
         f"{_pct(w['unadjusted_move'], 0)} at the {_factor(w['factor'])}-for-1" for w in windows
     )
     return {
-        "nvda_closes": _figure(
+        "nvda_closes": make_figure(
             "line",
             title,
             (
@@ -1115,7 +1113,7 @@ def _taxonomy_figures(r: dict[str, Any], tickers: Mapping[str, Any] | None) -> d
     else:
         vertical_title = "The SIC code places at least one filer in every sub-vertical"
     return {
-        "taxonomy_by_vertical": _figure(
+        "taxonomy_by_vertical": make_figure(
             "dot",
             vertical_title,
             (
@@ -1148,7 +1146,7 @@ def _taxonomy_figures(r: dict[str, Any], tickers: Mapping[str, Any] | None) -> d
                 },
             },
         ),
-        "taxonomy_how": _figure(
+        "taxonomy_how": make_figure(
             "hbar",
             (
                 f"The analyst's prior, not the SIC code, places {prior} of the "
@@ -1231,7 +1229,7 @@ def _peer_figures(r: dict[str, Any]) -> dict[str, Any]:
             + _join(f"{v} because {_GROUP_LOSS_CLAUSES[k]}" for k, v in biggest)
         )
     return {
-        "peer_label_counts": _figure(
+        "peer_label_counts": make_figure(
             "tiles",
             (
                 f"The encoder learns from {r['groups_kept']} of {r['groups_recorded']} "
@@ -1276,7 +1274,7 @@ def _peer_figures(r: dict[str, Any]) -> dict[str, Any]:
                 },
             },
         ),
-        "peer_groups_lost": _figure(
+        "peer_groups_lost": make_figure(
             "hbar",
             groups_title,
             (
@@ -1297,7 +1295,7 @@ def _peer_figures(r: dict[str, Any]) -> dict[str, Any]:
                 "counts": {"lost": lost_groups, **r["groups_dropped"]},
             },
         ),
-        "peer_label_funnel": _figure(
+        "peer_label_funnel": make_figure(
             "hbar",
             _LOSS_TITLES[largest] if largest else "No named peer is lost",
             (
@@ -1404,7 +1402,7 @@ def _ticker_figures(r: dict[str, Any]) -> Built:
         "measures the pruning and not resolve_ticker. The live file cannot be read "
         "offline. The seeds the live file had dropped are resolved above."
     )
-    figure = _figure(
+    figure = make_figure(
         "tiles",
         title,
         "",

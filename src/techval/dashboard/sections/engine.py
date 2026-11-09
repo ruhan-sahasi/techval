@@ -56,6 +56,8 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, Callable, ContextManager, Sequence
 
+from ..snapshot import make_figure
+
 ID = "engine"
 TITLE = "Valuation engine"
 
@@ -190,7 +192,6 @@ class Expectations:
     implied_return: float | None
     wacc: float
     implied_growth: float | None
-    assumed_growth: float
     assumed_margin: float
     margin_reached: bool
     margin_edge: float
@@ -199,9 +200,6 @@ class Expectations:
     implied_cagr: float | None
     base_hits: int | None
     base_n: int | None
-    similar_hits: int | None
-    similar_n: int | None
-    duration_years: float | None
 
 
 @dataclass
@@ -254,12 +252,6 @@ class Measured:
 # --------------------------------------------------------------------------- #
 # shaping: measured results into figures, with no model in sight
 # --------------------------------------------------------------------------- #
-
-
-def _figure(
-    kind: str, title: str, subtitle: str, data: dict[str, Any], **extra: Any
-) -> dict[str, Any]:
-    return {"kind": kind, "title": title, "subtitle": subtitle, "data": data, **extra}
 
 
 def _round_step(raw: float) -> float:
@@ -405,7 +397,7 @@ def _tiles(m: Measured) -> dict[str, Any]:
         },
     ]
     title = f"A {c.wacc:.2%} WACC, with equity at {c.weight_equity:.1%} of capital"
-    return _figure("tiles", title, "", {"tiles": tiles})
+    return make_figure("tiles", title, "", {"tiles": tiles})
 
 
 def _football(m: Measured) -> dict[str, Any] | None:
@@ -455,7 +447,7 @@ def _football(m: Measured) -> dict[str, Any] | None:
         }
         for b in bands
     ]
-    return _figure(
+    return make_figure(
         "range",
         title,
         " ".join(parts),
@@ -501,7 +493,7 @@ def _bridge(m: Measured) -> dict[str, Any]:
             "out of debt"
         )
     parts.append(lease + ".")
-    return _figure(
+    return make_figure(
         "waterfall",
         title,
         " ".join(parts),
@@ -550,7 +542,7 @@ def _heat(m: Measured) -> dict[str, Any]:
     base = _base_cell(s)
     if base is not None:
         data["base"] = base
-    return _figure("heat", title, subtitle, data)
+    return make_figure("heat", title, subtitle, data)
 
 
 def _wacc_rows(s: Sensitivity) -> list[str]:
@@ -590,7 +582,7 @@ def _hist(m: Measured) -> dict[str, Any]:
     top = max(max(s.correlated), max(s.independent))
     if top < m.price:
         subtitle += f" The {m.price:,.2f} price lies above every draw."
-    return _figure(
+    return make_figure(
         "hist",
         title,
         subtitle,
@@ -657,7 +649,7 @@ def _apv(m: Measured) -> dict[str, Any]:
             f"{a.modelled_interest / a.filed_interest:,.1f}x the "
             f"{a.filed_interest:,.1f}mm filed."
         )
-    return _figure(
+    return make_figure(
         "dot",
         title,
         subtitle,
@@ -709,7 +701,7 @@ def _expectations(m: Measured) -> dict[str, Any]:
             f" No terminal margin up to {e.margin_edge:.0%} reaches it alone: at "
             f"{e.margin_edge:.0%} the DCF is worth {e.margin_edge_value:,.2f}."
         )
-    figure = _figure(
+    figure = make_figure(
         "column",
         title,
         subtitle,
@@ -782,7 +774,7 @@ def _scenarios(m: Measured) -> dict[str, Any]:
             "note": f"P{s['quantile'] * 100:.0f}, the mean path of {s['n']} company-years",
         }
 
-    figure = _figure(
+    figure = make_figure(
         "hbar",
         title,
         subtitle,
@@ -823,7 +815,7 @@ def _record(m: Measured) -> dict[str, Any]:
         parts.append(f"growth fading from {by['revenue_growth_start']['value']:.1%}")
     if "ebit_margin_terminal" in by:
         parts.append(f"its {by['ebit_margin_terminal']['value']:.1%} margin held")
-    figure = _figure(
+    figure = make_figure(
         "table",
         f"The DCF is set from {m.ticker}'s own filings: " + " and ".join(parts),
         "dcf.from_record is on, so these figures replace the assumptions file's for "
@@ -872,7 +864,7 @@ def _history(m: Measured) -> dict[str, Any]:
     def point(r, key):
         return {"x": r["date"], "y": r[key], "label": f"close {r['price']:,.2f}"}
 
-    figure = _figure(
+    figure = make_figure(
         "line",
         title,
         subtitle,
@@ -1358,14 +1350,12 @@ def measure(
         refusals.append(Refusal("What the price assumes", str(exc)))
     else:
         rate, growth = exp.solve("discount_rate"), exp.solve("first_year_growth")
-        margin, duration = exp.solve("terminal_margin"), exp.solve("duration")
+        margin = exp.solve("terminal_margin")
         base = exp.base_rates.get("first_year_growth")
-        similar = base["similar"] if base else None
         measured.expectations = Expectations(
             implied_return=rate.implied,
             wacc=dcf.wacc,
             implied_growth=growth.implied,
-            assumed_growth=a.dcf.revenue_growth_start,
             assumed_margin=a.dcf.ebit_margin_terminal,
             margin_reached=margin.reached,
             margin_edge=margin.bracket[1],
@@ -1374,9 +1364,6 @@ def measure(
             implied_cagr=base["implied_cagr"] if base else None,
             base_hits=base["all"]["hits"] if base else None,
             base_n=base["all"]["n"] if base else None,
-            similar_hits=similar["hits"] if similar else None,
-            similar_n=similar["n"] if similar else None,
-            duration_years=duration.implied,
         )
 
     # -- bear, base and bull from what similar company-years did -------------- #

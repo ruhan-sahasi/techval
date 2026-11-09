@@ -47,7 +47,7 @@ from techval.edgar import CompanyFacts
 from techval.errors import ConfigError
 from techval.ml.forecast import build_fade_panel
 
-from conftest import FIXTURES
+from conftest import FIXTURES, flat
 
 FADE_PANEL = FIXTURES / "fade_companyfacts.json.gz"
 DDOG_FACTS = FIXTURES / "companyfacts_DDOG.json"
@@ -55,16 +55,6 @@ SIGNAL_SCORES = FIXTURES / "signals" / "ev_revenue.csv.gz"
 SIGNAL_PRICES = FIXTURES / "signals" / "closes.csv.gz"
 
 runner = CliRunner()
-
-
-def flat(text: str) -> str:
-    """Collapse whitespace before matching.
-
-    Rich wraps at the console width, so a sentence this file cares about can be
-    split across two lines with the break falling anywhere. Matching on the
-    collapsed text asserts the sentence rather than the wrapping.
-    """
-    return " ".join(text.split())
 
 
 def write_config(tmp_path: Path, **extra: object) -> Path:
