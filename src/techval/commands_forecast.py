@@ -126,7 +126,7 @@ from .ml.signals import (
     ev_revenue_scores,
 )
 from .options import CONFIG, NO_CACHE
-from .terminal import format_money, format_pct, make_console, print_rule
+from .terminal import format_money, format_pct, make_console, print_notes, print_rule
 from .wacc import compute_wacc
 
 app = typer.Typer(
@@ -167,15 +167,6 @@ def _signed(v: float | None, fmt: str) -> str:
     if v is None or not np.isfinite(v):
         return "n/a"
     return format(v, fmt)
-
-
-def _notes(items: Sequence[str], *, heading: str = "Notes") -> None:
-    if not items:
-        return
-    console.print(f"\n[bold]{heading}[/bold]")
-    for n in items:
-        style = "yellow" if n.upper().startswith(("FLAG", "WARN")) else "dim"
-        console.print(Text(f"  - {n}", style=style))
 
 
 def _kv(rows: Sequence[tuple[str, str]], *, title: str = "", bold: Sequence[str] = ()) -> Table:
@@ -678,7 +669,7 @@ def _render_paths(comparison, model: FadeModel, panel: FadePanel, ticker: str) -
                 "  [dim]That is within five points of the sub-vertical's typical "
                 "fade, so the model is not treating this company as unusual.[/dim]"
             )
-    _notes(path.notes, heading="What the path is and is not")
+    print_notes(console, path.notes, heading="What the path is and is not")
 
 
 def _render_valuation(comparison) -> None:
@@ -923,7 +914,7 @@ def fade(
                 panel = _truncate_panel(panel, date.fromisoformat(assumptions.as_of))
             model = fit_fade(panel, assumptions)
         _render_curve(model, panel)
-        _notes(panel.notes, heading="Panel")
+        print_notes(console, panel.notes, heading="Panel")
         _horizon_table(model)
 
         if show_panel:
@@ -978,8 +969,8 @@ def fade(
         _render_valuation(comparison)
         _render_survivorship(model, panel)
 
-        _notes(model.notes, heading="Fit")
-        _notes(model.card.limitations, heading="What this model cannot do")
+        print_notes(console, model.notes, heading="Fit")
+        print_notes(console, model.card.limitations, heading="What this model cannot do")
         _render_assumptions(
             assumptions,
             [
@@ -1436,7 +1427,7 @@ def _render_buckets(result: SignalResult) -> None:
             "to fill the requested number of buckets, and a quantile of one name "
             "is a name rather than a quantile.[/yellow]"
         )
-        _notes(buckets.notes)
+        print_notes(console, buckets.notes)
         return
     t = Table(box=None, pad_edge=False)
     t.add_column("Bucket", no_wrap=True)
@@ -1486,7 +1477,7 @@ def _render_buckets(result: SignalResult) -> None:
             bold=(f"Top less bottom, {result.horizon_months} months",),
         )
     )
-    _notes(buckets.notes)
+    print_notes(console, buckets.notes)
 
 
 def _render_signal_assumptions(
@@ -1703,9 +1694,9 @@ def signal(
         _render_ic(result, show_series)
         _render_buckets(result)
 
-        _notes(result.checks, heading="Cross-checks")
-        _notes(list(result.notes) + notes)
-        _notes(result.card.limitations, heading="What this test cannot do")
+        print_notes(console, result.checks, heading="Cross-checks")
+        print_notes(console, list(result.notes) + notes)
+        print_notes(console, result.card.limitations, heading="What this test cannot do")
         _render_signal_assumptions(
             assumptions,
             result,
