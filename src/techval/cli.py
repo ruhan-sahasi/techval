@@ -69,7 +69,7 @@ from .commands_peers import (
     _bundle as _peer_bundle,
     _load_observations,
 )
-from .commands_tmt import _render_sotp, load_plan as _load_sotp_plan
+from .commands_tmt import _period_gap_flag, _render_sotp, load_plan as _load_sotp_plan
 from .dashboard import (
     collect_snapshot,
     dump_snapshot,
@@ -780,22 +780,7 @@ def _render_optional_sotp(ticker, fin, bridge, assumptions, client, plan_path) -
 
     loaded = _load_sotp_plan(Path(plan_path))
     if report.as_of != fin.as_of:
-        # The fix is deliberately NOT stated as --as-of {report.as_of}. Pinning
-        # the knowledge date to the last day of the fiscal year rolls the run
-        # back to before that year's annual report was filed, so the engine
-        # falls back to the PRIOR year's segment footnote and the two windows
-        # are still a period apart. Measured on DIS: --as-of 2025-09-27 returned
-        # segments for the year ended 2024-09-28. The date that actually closes
-        # the gap is shortly after the annual report reached EDGAR.
-        console.print(
-            f"[yellow]FLAG: the segments cover the year ended {report.as_of} and "
-            f"the consolidated figures cover the twelve months to {fin.as_of}. "
-            "Segment detail is annual, so the parts are measured a period behind "
-            "the whole. To bring them together, pin the run with --as-of set to a "
-            f"date shortly after the {report.as_of} annual report was filed, which "
-            "is a month or two after the year end rather than the year end "
-            "itself.[/yellow]"
-        )
+        console.print(f"[yellow]{_period_gap_flag(client, ticker, report, fin)}[/yellow]")
     result = run_sotp(
         fin,
         bridge,

@@ -1687,8 +1687,8 @@ def _period_gap_flag(client, ticker: str, report, fin) -> str:
     report was filed, where the 10-K is the newest periodic filing on record and
     the parts and the whole are read out of the same document.
 
-    The integration agent corrected the copy of this sentence in ``cli.py``
-    during the same wave. This one is the copy that was missed.
+    ``tmt sotp`` and ``value --sotp-plan`` both print this flag, so the two
+    commands name the same pin.
     """
     filed = _annual_filed(client, ticker, report.accession)
     head = (
