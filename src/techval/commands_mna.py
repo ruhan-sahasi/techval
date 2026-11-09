@@ -84,6 +84,7 @@ from .errors import ConfigError, MissingDataError, TechvalError
 from .market import make_price_source
 from .ml.features import FEATURE_NAMES, FeaturePanel, FeatureRow
 from .ml.mna import DealEvent, PropensityResult, build_universe, fit_propensity
+from .options import CONFIG, NO_CACHE
 from .terminal import (
     format_money,
     format_multiple,
@@ -120,8 +121,6 @@ app = typer.Typer(
 # are the ones capped with an ellipsis instead.
 console = make_console(160)
 
-_CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
-_NOCACHE = typer.Option(False, "--no-cache", help="Bypass the HTTP cache.")
 _ASOF = typer.Option(
     None,
     "--as-of",
@@ -539,8 +538,8 @@ def precedents(
             "SPLK=1353283,ZEN=1463172,MNDT=1370880,WORK=1764925."
         ),
     ),
-    config: Path = _CFG,
-    no_cache: bool = _NOCACHE,
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     as_of: str = _ASOF,
     sub_vertical: str = typer.Option(
         None,
@@ -1204,7 +1203,7 @@ def targets(
             "tests/fixtures/mna for the shape and its manifest for how it was built."
         ),
     ),
-    config: Path = _CFG,
+    config: Path = CONFIG,
     as_of: str = _ASOF,
     screen_on: str = typer.Option(
         None,

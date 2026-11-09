@@ -83,6 +83,7 @@ from .ml.forecast import compare_fade
 from .ml.mna import fit_propensity
 from .ml.signals import Score, test_signal
 from .ml.warranted import fit_warranted
+from .options import CONFIG, FROM_RECORD, NO_CACHE, OPEN_PAGE
 from .terminal import (
     format_money,
     format_multiple,
@@ -169,11 +170,6 @@ _mount(_forecast_app, "Forecasts and signal testing")
 _mount(_mna_app, "M&A")
 app.add_typer(_cache_app, rich_help_panel="Housekeeping")
 
-_CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
-FROM_RECORD = typer.Option(
-    False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
-)
-_NOCACHE = typer.Option(False, "--no-cache", help="Bypass the HTTP cache.")
 _OUT = typer.Option("out", "--out", "-o", help="Directory for chart output.")
 _ASOF = typer.Option(
     None,
@@ -1316,8 +1312,8 @@ def _render_optional_precedents(assumptions, client, market, candidates) -> None
 @app.command()
 def value(
     ticker: str,
-    config: Path = _CFG,
-    no_cache: bool = _NOCACHE,
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     out: str = _OUT,
     as_of: str = _ASOF,
     ml_data: Path = typer.Option(
@@ -1666,8 +1662,8 @@ def _chart(
 @app.command()
 def comps(
     ticker: str,
-    config: Path = _CFG,
-    no_cache: bool = _NOCACHE,
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     as_of: str = _ASOF,
 ) -> None:
     """Trading comparables only."""
@@ -1686,8 +1682,8 @@ def comps(
 def merger(
     acquirer: str,
     target: str,
-    config: Path = _CFG,
-    no_cache: bool = _NOCACHE,
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     as_of: str = _ASOF,
 ) -> None:
     """Accretion/(dilution), contribution and breakeven synergies."""
@@ -1791,8 +1787,8 @@ def _quarter_ends(start: date, end: date) -> list[date]:
 @app.command()
 def backtest(
     tickers: str = typer.Argument(..., help="Comma-separated tickers, e.g. DDOG,MDB,ZS"),
-    config: Path = _CFG,
-    no_cache: bool = _NOCACHE,
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     start: str = typer.Option(..., "--from", help="First valuation date (YYYY-MM-DD)."),
     end: str = typer.Option(..., "--to", help="Last valuation date (YYYY-MM-DD)."),
     horizon: int = typer.Option(252, "--horizon", help="Forward return horizon in calendar days."),
@@ -1881,8 +1877,8 @@ def backtest(
 @app.command()
 def fetch(
     ticker: str,
-    config: Path = _CFG,
-    no_cache: bool = _NOCACHE,
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     as_of: str = _ASOF,
 ) -> None:
     """Warm the cache and print where every figure came from."""
@@ -1926,7 +1922,7 @@ def _print_run(run: SectionRun) -> None:
 
 @app.command(rich_help_panel="Results")
 def dashboard(
-    config: Path = _CFG,
+    config: Path = CONFIG,
     ml_data: Path = typer.Option(
         Path("tests/fixtures"),
         "--ml-data",
@@ -1970,7 +1966,7 @@ def dashboard(
         "--collected-at",
         help="The date the snapshot is stamped with (YYYY-MM-DD). Default: today.",
     ),
-    open_page: bool = typer.Option(False, "--open", help="Open the page in the default browser once it is written."),
+    open_page: bool = OPEN_PAGE,
 ) -> None:
     """Collect every model's results from the fixtures and render the dashboard page.
 

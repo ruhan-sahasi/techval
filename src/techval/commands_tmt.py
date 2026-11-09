@@ -83,6 +83,7 @@ from .ev_bridge import build_ev_bridge
 from .financials import build_financials
 from .market import MarketData, make_price_source
 from .nlp.sections import load_sections
+from .options import CONFIG, NO_CACHE
 from .terminal import format_money, format_pct, make_console, print_notes, print_rule
 from .tmt import kpis as kpi_module
 from .tmt import metrics as metric_module
@@ -102,8 +103,6 @@ app = typer.Typer(
 # three characters in a piped or redirected run.
 console = make_console(120)
 
-_CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
-_NOCACHE = typer.Option(False, "--no-cache", help="Bypass the HTTP cache.")
 _ASOF = typer.Option(
     None,
     "--as-of",
@@ -1221,8 +1220,8 @@ def _render_pack(pack, *, definitions: bool) -> None:
 @app.command()
 def kpis(
     ticker: str,
-    config: Path = _CFG,
-    no_cache: bool = _NOCACHE,
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     as_of: str = _ASOF,
     sub_vertical: str = typer.Option(
         None,
@@ -1437,8 +1436,8 @@ def _render_reconciliation(report) -> None:
 @app.command()
 def segments(
     ticker: str,
-    config: Path = _CFG,
-    no_cache: bool = _NOCACHE,
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     as_of: str = _ASOF,
     geography: bool = typer.Option(
         True, "--geography/--no-geography", help="Print the geography cut as well."
@@ -1865,8 +1864,8 @@ def _render_sotp(result, fin, report) -> None:
 @app.command()
 def sotp(
     ticker: str,
-    config: Path = _CFG,
-    no_cache: bool = _NOCACHE,
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     as_of: str = _ASOF,
     plan: Path = typer.Option(
         None,

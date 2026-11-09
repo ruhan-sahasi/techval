@@ -125,6 +125,7 @@ from .ml.signals import (
     SignalResult,
     ev_revenue_scores,
 )
+from .options import CONFIG, NO_CACHE
 from .terminal import format_money, format_pct, make_console, print_rule
 from .wacc import compute_wacc
 
@@ -197,8 +198,6 @@ def _fail(exc: TechvalError) -> None:
 # Shared options
 # --------------------------------------------------------------------------- #
 
-_CFG = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file.")
-_NOCACHE = typer.Option(False, "--no-cache", help="Bypass the HTTP cache.")
 _ASOF = typer.Option(
     None,
     "--as-of",
@@ -837,8 +836,8 @@ def _render_assumptions(
 @app.command()
 def fade(
     ticker: str,
-    config: Path = _CFG,
-    no_cache: bool = _NOCACHE,
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     as_of: str = _ASOF,
     panel_file: Path = typer.Option(
         None,
@@ -1536,8 +1535,8 @@ def _render_signal_assumptions(
 
 @app.command()
 def signal(
-    config: Path = _CFG,
-    no_cache: bool = _NOCACHE,
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     score: str = typer.Option(
         "cheapness",
         "--score",

@@ -23,6 +23,7 @@ from rich.table import Table
 from .anchors import summary as record_summary
 from .config import Assumptions, ml_cache_root
 from .errors import TechvalError
+from .options import CONFIG, FACTS_DIR, FROM_RECORD, NO_CACHE
 from .terminal import make_console
 
 app = typer.Typer()
@@ -96,8 +97,8 @@ def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path 
 @app.command()
 def expectations(
     ticker: str,
-    config: Path = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file."),
-    no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the HTTP cache."),
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     facts_file: Path = typer.Option(
         None, "--facts", help="Recorded companyfacts payload for TICKER, instead of a live SEC call."
     ),
@@ -115,9 +116,7 @@ def expectations(
         "--history",
         help="Also read what the price assumed at each quarter-end of the last three years, point in time.",
     ),
-    from_record: bool = typer.Option(
-        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
-    ),
+    from_record: bool = FROM_RECORD,
 ) -> None:
     """What the price assumes: the DCF solved for the market price, lever by lever, with base rates."""
     from .reverse_dcf import market_expectations
@@ -226,16 +225,12 @@ def _print_history(symbol: str, rows: list[dict]) -> None:
 @app.command("expectations-screen")
 def expectations_screen(
     tickers: list[str] = typer.Argument(..., help="The names to compare."),
-    config: Path = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file."),
-    no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the HTTP cache."),
-    facts_dir: Path = typer.Option(
-        None, "--facts-dir", help="A directory of recorded companyfacts_<TICKER>.json payloads, instead of live SEC calls."
-    ),
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
+    facts_dir: Path = FACTS_DIR,
     panels: Path = typer.Option(None, "--panels", help="Directory holding fade_companyfacts.json.gz for base rates."),
     as_json: bool = typer.Option(False, "--json", help="Print the rows as JSON."),
-    from_record: bool = typer.Option(
-        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
-    ),
+    from_record: bool = FROM_RECORD,
 ) -> None:
     """What each price assumes, side by side, the most demanding first."""
     from .edgar import EdgarClient, HttpCache
@@ -296,8 +291,8 @@ def expectations_screen(
 @app.command()
 def scenarios(
     ticker: str,
-    config: Path = typer.Option(None, "--config", "-c", help="Path to an assumptions YAML file."),
-    no_cache: bool = typer.Option(False, "--no-cache", help="Bypass the HTTP cache."),
+    config: Path = CONFIG,
+    no_cache: bool = NO_CACHE,
     facts_file: Path = typer.Option(
         None, "--facts", help="Recorded companyfacts payload for TICKER, instead of a live SEC call."
     ),
@@ -308,9 +303,7 @@ def scenarios(
         help="Directory holding fade_companyfacts.json.gz. Defaults to tests/fixtures in this checkout.",
     ),
     as_json: bool = typer.Option(False, "--json", help="Print the whole result as JSON."),
-    from_record: bool = typer.Option(
-        False, "--from-record", help="Set the DCF from the company's own filings, as dcf.from_record does."
-    ),
+    from_record: bool = FROM_RECORD,
 ) -> None:
     """Bear, base and bull from what similar company-years went on to do, valued through the engine's DCF."""
     from .scenarios import band_coverage, value_scenarios
