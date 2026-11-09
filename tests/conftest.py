@@ -83,7 +83,12 @@ def load_instance(ticker: str) -> tuple[list[DimensionedFact], str, date]:
 
 
 def flat(text: str) -> str:
-    """Command output with its colour codes stripped and its whitespace collapsed."""
+    """Command output with its colour codes stripped and its whitespace collapsed.
+
+    Rich wraps at the console width, so a sentence a test cares about can be
+    split across two lines with the break falling anywhere. Matching on the
+    collapsed text asserts the sentence rather than the wrapping.
+    """
     import re
 
     return " ".join(re.sub(r"\x1b\[[0-9;]*m", "", text).split())
