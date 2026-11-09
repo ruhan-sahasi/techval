@@ -1740,6 +1740,10 @@ METHOD_NAMES: tuple[str, ...] = (
     "text lsa cosine",
 )
 
+# What the headline score and every sub-group score call the popularity prior
+# when they put the encoder against it.
+_POPULARITY_BASELINE = "popularity prior (named-by-anybody count, query ignored)"
+
 # Size and growth, and nothing else. Two size columns because market
 # capitalisation is unavailable wherever the panel was built without prices, and
 # a baseline that silently becomes a growth-only baseline at some dates is not
@@ -2002,7 +2006,7 @@ def evaluate_peer_encoder(
         rankings["encoder"],
         k,
         baseline=rankings["popularity prior"],
-        baseline_name="popularity prior (named-by-anybody count, query ignored)",
+        baseline_name=_POPULARITY_BASELINE,
     )
     against = {
         name: evaluate_ranking(
@@ -2277,7 +2281,7 @@ def _subset_result(
             model,
             k,
             baseline=base,
-            baseline_name="popularity prior (named-by-anybody count, query ignored)",
+            baseline_name=_POPULARITY_BASELINE,
         )
     except NotMeaningfulError:
         return None
