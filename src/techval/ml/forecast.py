@@ -1404,7 +1404,7 @@ class DelistedAwareClient(EdgarClient):
             return cik
 
 
-def fade_universe(extra: Mapping[str, str] | None = None) -> dict[str, str]:
+def fade_universe() -> dict[str, str]:
     """Ticker to sub-vertical for the panel, survivors and leavers together.
 
     The survivors come from ``taxonomy.SEED``, which is the curated TMT prior
@@ -1422,8 +1422,6 @@ def fade_universe(extra: Mapping[str, str] | None = None) -> dict[str, str]:
     """
     out = {ticker: vertical.value for ticker, vertical in SEED.items()}
     out.update(DELISTED_UNIVERSE)
-    if extra:
-        out.update({k.upper(): v for k, v in extra.items()})
     return out
 
 
