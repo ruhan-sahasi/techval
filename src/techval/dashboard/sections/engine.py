@@ -190,7 +190,6 @@ class Expectations:
     implied_return: float | None
     wacc: float
     implied_growth: float | None
-    assumed_growth: float
     assumed_margin: float
     margin_reached: bool
     margin_edge: float
@@ -199,9 +198,6 @@ class Expectations:
     implied_cagr: float | None
     base_hits: int | None
     base_n: int | None
-    similar_hits: int | None
-    similar_n: int | None
-    duration_years: float | None
 
 
 @dataclass
@@ -1358,14 +1354,12 @@ def measure(
         refusals.append(Refusal("What the price assumes", str(exc)))
     else:
         rate, growth = exp.solve("discount_rate"), exp.solve("first_year_growth")
-        margin, duration = exp.solve("terminal_margin"), exp.solve("duration")
+        margin = exp.solve("terminal_margin")
         base = exp.base_rates.get("first_year_growth")
-        similar = base["similar"] if base else None
         measured.expectations = Expectations(
             implied_return=rate.implied,
             wacc=dcf.wacc,
             implied_growth=growth.implied,
-            assumed_growth=a.dcf.revenue_growth_start,
             assumed_margin=a.dcf.ebit_margin_terminal,
             margin_reached=margin.reached,
             margin_edge=margin.bracket[1],
@@ -1374,9 +1368,6 @@ def measure(
             implied_cagr=base["implied_cagr"] if base else None,
             base_hits=base["all"]["hits"] if base else None,
             base_n=base["all"]["n"] if base else None,
-            similar_hits=similar["hits"] if similar else None,
-            similar_n=similar["n"] if similar else None,
-            duration_years=duration.implied,
         )
 
     # -- bear, base and bull from what similar company-years did -------------- #
