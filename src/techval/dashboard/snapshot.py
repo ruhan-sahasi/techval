@@ -286,6 +286,11 @@ def load_snapshot(path: str | Path) -> Snapshot:
 # --------------------------------------------------------------------------- #
 
 
+def make_figure(kind: str, title: str, subtitle: str, data: dict[str, Any], **extra: Any) -> dict[str, Any]:
+    """One figure as a section carries it; ``extra`` holds the optional figure-level fields."""
+    return {"kind": kind, "title": title, "subtitle": subtitle, "data": data, **extra}
+
+
 def validate_section(section: Any) -> None:
     """Hold one section to the schema, or raise ``ValueError`` saying where it breaks.
 

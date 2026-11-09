@@ -58,6 +58,7 @@ from typing import Any, Sequence
 import numpy as np
 
 from ...errors import ConfigError, MissingDataError, NotMeaningfulError, TechvalError
+from ..snapshot import make_figure
 
 ID = "propensity"
 TITLE = "M&A propensity"
@@ -318,10 +319,6 @@ def verdict_status(
 # --------------------------------------------------------------------------- #
 
 
-def _figure(kind: str, title: str, subtitle: str, data: dict[str, Any]) -> dict[str, Any]:
-    return {"kind": kind, "title": title, "subtitle": subtitle, "data": data}
-
-
 def _pct(v: float, dp: int = 1) -> str:
     return f"{v * 100:.{dp}f}%"
 
@@ -487,7 +484,7 @@ def _folds_figure(ev: Evaluation, folds: tuple[FoldScore, ...]) -> dict[str, Any
     gaps = [f.model - f.size for f in folds]
     # The widest fold in each direction carries its gap on the chart.
     marked = {gaps.index(max(gaps)), gaps.index(min(gaps))}
-    return _figure(
+    return make_figure(
         "dot",
         title,
         f"Walk-forward AUC per test window; {sd} against a pooled lift of "
@@ -544,7 +541,7 @@ def _recovered_figure(rec: Recovered) -> dict[str, Any]:
         (f"Less the {rec.n_doubted} doubted", rec.without_doubted),
         (f"Less all {rec.n_recovered} recovered", rec.without_all),
     ]
-    return _figure(
+    return make_figure(
         "dot",
         title,
         "Walk-forward AUC refitted on three label sets, each counted in announced "
@@ -581,7 +578,7 @@ def _coefficients_figure(coefs: Coefficients) -> dict[str, Any]:
     flipped = [c for c in ordered if c.flips]
     annotate = flipped[0].feature if flipped else None
     first, last = coefs.fold_train[0], coefs.fold_train[-1]
-    return _figure(
+    return make_figure(
         "heat",
         f"{len(flipped)} of {len(coefs.rows)} coefficients change sign between folds",
         f"Standardised logistic coefficient per walk-forward fit, {coefs.fold_labels[0]} "
@@ -636,7 +633,7 @@ def _base_rates_figure(years: tuple[YearRate, ...], sample: Sample) -> dict[str,
             f"{y.year} holds {y.dates} screen date{'s' if y.dates != 1 else ''} of {full}"
             for y in partial
         ) + ", its later windows still open"
-    return _figure(
+    return make_figure(
         "column",
         title,
         subtitle,
@@ -692,7 +689,7 @@ def _calibration_figure(cal: Calibration) -> dict[str, Any]:
         )
     else:
         title = "No well-populated bucket over-promises"
-    return _figure(
+    return make_figure(
         "dot",
         title,
         "Out-of-sample stated probability against the share announced as a target "
@@ -731,7 +728,7 @@ def _calibration_figure(cal: Calibration) -> dict[str, Any]:
 
 
 def _precision_figures(top: TopK) -> tuple[dict[str, Any], dict[str, Any]]:
-    precision = _figure(
+    precision = make_figure(
         "hbar",
         f"{_one_in(top.precision_model).capitalize()} on the model's top {top.k} was "
         f"bought within a year, {_one_in(top.precision_size)} on the size sort's",
@@ -762,7 +759,7 @@ def _precision_figures(top: TopK) -> tuple[dict[str, Any], dict[str, Any]]:
             f"The model's top {top.k} catch {_pct(top.recall_model)} of each date's "
             f"targets, the size sort's {_pct(top.recall_size)}"
         )
-    recall = _figure(
+    recall = make_figure(
         "hbar",
         title,
         f"Recall at {top.k}, out of sample, mean over {top.dates} screen dates; the rule "
@@ -833,7 +830,7 @@ def _screen_figure(screen: Screen, calibration: Calibration | Refused, price: Pr
                 f"{_pct(max(b.realised for b in loud))}"
             )
     notes = [_price_note(price, ev)] if isinstance(price, PriceLeak) else []
-    return _figure(
+    return make_figure(
         "hbar",
         title,
         subtitle,
