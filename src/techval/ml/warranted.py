@@ -274,6 +274,7 @@ __all__ = [
     "share_basis_factor",
     "build_observations",
     "fit_warranted",
+    "screen_frame",
 ]
 
 # The multiples this module will fit, and the ``Financials`` attribute each one
@@ -675,6 +676,31 @@ class WarrantedRead:
         )
 
 
+def screen_frame(reads: Sequence[WarrantedRead], n: int) -> pd.DataFrame:
+    """The ``n`` richest and ``n`` cheapest of ``reads``, richest first.
+
+    Every read when there are no more than ``2n`` of them. ``extremes`` screens
+    a whole date with it, and the screen command one sub-vertical of a date.
+    """
+    ranked = sorted(reads, key=lambda r: r.residual_log, reverse=True)
+    chosen = ranked[:n] + ranked[-n:] if len(ranked) > 2 * n else ranked
+    return pd.DataFrame(
+        [
+            {
+                "ticker": r.ticker,
+                "sub_vertical": r.sub_vertical,
+                "actual": r.actual_multiple,
+                "warranted": r.warranted_multiple,
+                "residual_turns": r.residual_turns,
+                "residual_log": r.residual_log,
+                "z": r.z,
+                "verdict": "rich" if r.residual_log > 0 else "cheap",
+            }
+            for r in chosen
+        ]
+    )
+
+
 @dataclass
 class WarrantedModel:
     """A fitted warranted multiple, its honest score, and the names at the edges.
@@ -741,23 +767,7 @@ class WarrantedModel:
         reads = [r for (_, d), r in self.reads.items() if d == when]
         if not reads:
             raise NotMeaningfulError(f"the panel holds no observations on {when}")
-        reads.sort(key=lambda r: r.residual_log, reverse=True)
-        chosen = reads[:n] + reads[-n:] if len(reads) > 2 * n else reads
-        return pd.DataFrame(
-            [
-                {
-                    "ticker": r.ticker,
-                    "sub_vertical": r.sub_vertical,
-                    "actual": r.actual_multiple,
-                    "warranted": r.warranted_multiple,
-                    "residual_turns": r.residual_turns,
-                    "residual_log": r.residual_log,
-                    "z": r.z,
-                    "verdict": "rich" if r.residual_log > 0 else "cheap",
-                }
-                for r in chosen
-            ]
-        )
+        return screen_frame(reads, n)
 
     def verdict(self) -> str:
         """One paragraph: the score, the re-rating around it, its caveat, and what to do.
