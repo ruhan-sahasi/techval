@@ -238,7 +238,7 @@ def _setup(config: Path | None, no_cache: bool, as_of: str | None = None):
     # A dated run sees only what was filed by that date and prices that stopped
     # there. Both halves are needed: filings alone would still be marked to
     # today's price, which is the more obvious half of the same hindsight.
-    knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
+    knowledge = assumptions.knowledge_date
 
     cache = HttpCache(enabled=not no_cache)
     client = EdgarClient(cache, knowledge_date=knowledge)

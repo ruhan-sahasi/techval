@@ -1002,7 +1002,7 @@ def _setup(config: Path | None, no_cache: bool, as_of: str | None):
     assumptions = Assumptions.load(config)
     if as_of:
         assumptions.as_of = as_of
-    knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
+    knowledge = assumptions.knowledge_date
     cache = HttpCache(enabled=not no_cache)
     client = EdgarClient(cache, knowledge_date=knowledge)
     source = make_price_source(assumptions.price_source, cache, assumptions.price_csv_dir)

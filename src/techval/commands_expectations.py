@@ -68,7 +68,7 @@ def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path 
     assumptions = Assumptions.load(config)
     if from_record:
         assumptions.dcf.from_record = True
-    knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
+    knowledge = assumptions.knowledge_date
     cache = HttpCache(enabled=not no_cache)
     source = make_price_source(assumptions.price_source, cache, assumptions.price_csv_dir)
     market = MarketData(source, cache, today=knowledge or date.today())
@@ -237,7 +237,7 @@ def expectations_screen(
         assumptions = Assumptions.load(config)
         if from_record:
             assumptions.dcf.from_record = True
-        when = date.fromisoformat(assumptions.as_of) if assumptions.as_of else date.today()
+        when = assumptions.knowledge_date or date.today()
         cache = HttpCache(enabled=not no_cache)
         source = make_price_source(assumptions.price_source, cache, assumptions.price_csv_dir)
         payloads, missing = {}, []

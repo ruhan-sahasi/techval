@@ -205,7 +205,7 @@ def _setup(config: Path | None, no_cache: bool, as_of: str | None = None):
     assumptions = Assumptions.load(config)
     if as_of:
         assumptions.as_of = as_of
-    knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
+    knowledge = assumptions.knowledge_date
     cache = HttpCache(enabled=not no_cache)
     client = EdgarClient(cache, knowledge_date=knowledge)
     source = make_price_source(assumptions.price_source, cache, assumptions.price_csv_dir)
@@ -312,7 +312,7 @@ def recorded_fit(path: Path, assumptions: Assumptions, only: set[str] | None):
     def build():
         panel = _recorded_panel(path, assumptions, only)
         if assumptions.as_of:
-            panel = _truncate_panel(panel, date.fromisoformat(assumptions.as_of))
+            panel = _truncate_panel(panel, assumptions.knowledge_date)
         return panel, fit_fade(panel, assumptions)
 
     return cached_fit(
@@ -911,7 +911,7 @@ def fade(
             )
             panel = _live_panel(cache, assumptions, only)
             if assumptions.as_of:
-                panel = _truncate_panel(panel, date.fromisoformat(assumptions.as_of))
+                panel = _truncate_panel(panel, assumptions.knowledge_date)
             model = fit_fade(panel, assumptions)
         _render_curve(model, panel)
         print_notes(console, panel.notes, heading="Panel")
@@ -946,9 +946,7 @@ def fade(
         if facts_file is not None:
             with _open_text(facts_file) as handle:
                 payload = json.load(handle)
-            knowledge = (
-                date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
-            )
+            knowledge = assumptions.knowledge_date
             fin = build_financials(
                 symbol, facts=CompanyFacts(payload, symbol, knowledge_date=knowledge)
             )

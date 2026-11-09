@@ -1780,11 +1780,7 @@ def build_precedents(
     completed target: a precedent set with real premia over closed deals needs
     ``price_source: csv`` and the closes supplied.
     """
-    as_of = (
-        date.fromisoformat(assumptions.as_of)
-        if assumptions.as_of
-        else (getattr(client, "knowledge_date", None) or date.today())
-    )
+    as_of = assumptions.knowledge_date or getattr(client, "knowledge_date", None) or date.today()
     mna = assumptions.ml.mna
 
     transactions: list[Transaction] = []
@@ -2041,11 +2037,7 @@ def deal_events(
     ``build_precedents`` keeps the distinction in ``Transaction.status``; this
     signature cannot, so do not read a ``False`` here as a failed deal.
     """
-    as_of = (
-        date.fromisoformat(assumptions.as_of)
-        if assumptions.as_of
-        else (getattr(client, "knowledge_date", None) or date.today())
-    )
+    as_of = assumptions.knowledge_date or getattr(client, "knowledge_date", None) or date.today()
     events: list[tuple[str, date, bool]] = []
     seen: set[str] = set()
     for raw in tickers:

@@ -588,9 +588,7 @@ def precedents(
         assumptions = Assumptions.load(config)
         if as_of:
             assumptions.as_of = as_of
-        knowledge = (
-            date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
-        )
+        knowledge = assumptions.knowledge_date
         cache = HttpCache(enabled=not no_cache)
         names, pinned = parse_targets(tickers)
         client = EdgarClient(cache, knowledge_date=knowledge)
@@ -1255,11 +1253,7 @@ def targets(
             assumptions.as_of = as_of
 
         panel, universe, events, extras = load_dataset(dataset)
-        resolved_as_of = (
-            date.fromisoformat(assumptions.as_of)
-            if assumptions.as_of
-            else max(panel.dates)
-        )
+        resolved_as_of = assumptions.knowledge_date or max(panel.dates)
         when = date.fromisoformat(screen_on) if screen_on else max(panel.dates)
         if when not in set(panel.dates):
             raise ConfigError(

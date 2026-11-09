@@ -89,6 +89,14 @@ def test_a_date_that_is_not_a_date_is_still_refused(tmp_path):
     assert "as_of" in str(exc.value)
 
 
+def test_the_knowledge_date_is_as_of_read_back_as_a_date():
+    """What every command hands the EDGAR client, including after --as-of sets it."""
+    assumptions = Assumptions()
+    assert assumptions.knowledge_date is None
+    assumptions.as_of = "2026-09-11"
+    assert assumptions.knowledge_date == date(2026, 9, 11)
+
+
 # --------------------------------------------------------------------------- #
 # a rejected file is a refusal, not a traceback
 # --------------------------------------------------------------------------- #
