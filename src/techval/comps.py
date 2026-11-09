@@ -315,7 +315,7 @@ def _revenue_growth(
     February problem that ``date.replace`` would raise on.
     """
     target = fin.as_of - timedelta(days=365)
-    _, series, _ = facts.resolve_duration_series("revenue", tags.REVENUE)
+    _, series, _ = facts.resolve_duration_series(tags.REVENUE)
     candidates = [f.end for f in series if abs((f.end - target).days) <= 10]
     prior_as_of = (
         min(candidates, key=lambda d: abs((d - target).days)) if candidates else target

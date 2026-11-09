@@ -33,7 +33,7 @@ def prior_year_revenue(fin: Financials, facts) -> float:
     off a 52/53 week filer's year end, which is most of this fixture set.
     """
     target = fin.as_of - timedelta(days=365)
-    _, series, _ = facts.resolve_duration_series("revenue", tags.REVENUE)
+    _, series, _ = facts.resolve_duration_series(tags.REVENUE)
     ends = [f.end for f in series if abs((f.end - target).days) <= 10]
     anchor = min(ends, key=lambda d: abs((d - target).days)) if ends else target
     raw, _ = facts.resolve_ttm("prior revenue", tags.REVENUE, anchor, required=False)

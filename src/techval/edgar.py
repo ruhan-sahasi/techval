@@ -956,7 +956,7 @@ class CompanyFacts:
         )
 
     def resolve_duration_series(
-        self, concept: str, ladder: Iterable[str]
+        self, ladder: Iterable[str]
     ) -> tuple[str | None, list[Fact], list[str]]:
         """First ladder tag that carries any duration facts, with its series."""
         ladder = list(ladder)
