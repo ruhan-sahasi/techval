@@ -189,6 +189,23 @@ MIN_TRAIN_PAIRS = 200
 # almost nothing to discriminate against, and the loss carries little gradient.
 MIN_BATCH = 8
 
+# The architecture and training settings fit_peer_encoder, evaluate_peer_encoder
+# and ablate_towers all default to. Written once, so the model a walk-forward
+# evaluation scores and the model an ablation takes apart are the model
+# fit_peer_encoder fits, unless a caller sets one of them on purpose.
+DIM = 64
+HIDDEN: tuple[int, ...] = (128,)
+TEXT_DIM = 128
+DROPOUT = 0.1
+TEMPERATURE = 0.07
+BATCH_SIZE = 128
+EPOCHS = 60
+PATIENCE = 8
+LEARNING_RATE = 1e-3
+WEIGHT_DECAY = 1e-4
+MIN_DF = 2
+MAX_DF = 0.85
+
 
 # --------------------------------------------------------------------------- #
 # The labelled sample
@@ -1301,20 +1318,20 @@ def fit_peer_encoder(
     assumptions: Assumptions,
     *,
     fit_through: date | None = None,
-    dim: int = 64,
-    hidden: Sequence[int] = (128,),
-    text_dim: int = 128,
+    dim: int = DIM,
+    hidden: Sequence[int] = HIDDEN,
+    text_dim: int = TEXT_DIM,
     text_weight: float | None = None,
-    dropout: float = 0.1,
-    temperature: float = 0.07,
-    batch_size: int = 128,
-    epochs: int = 60,
-    patience: int = 8,
-    learning_rate: float = 1e-3,
-    weight_decay: float = 1e-4,
+    dropout: float = DROPOUT,
+    temperature: float = TEMPERATURE,
+    batch_size: int = BATCH_SIZE,
+    epochs: int = EPOCHS,
+    patience: int = PATIENCE,
+    learning_rate: float = LEARNING_RATE,
+    weight_decay: float = WEIGHT_DECAY,
     validation_share: float = 0.15,
-    min_df: int = 2,
-    max_df: float = 0.85,
+    min_df: int = MIN_DF,
+    max_df: float = MAX_DF,
     evaluation: EvalResult | PeerEvaluation | None = None,
 ) -> PeerEncoder:
     """Fit both towers on every pair disclosed on or before ``fit_through``.
@@ -1790,19 +1807,19 @@ def evaluate_peer_encoder(
     n_folds: int | None = None,
     embargo_days: int = EMBARGO_DAYS,
     sic_by_ticker: Mapping[str, str | None] | None = None,
-    dim: int = 64,
-    hidden: Sequence[int] = (128,),
-    text_dim: int = 128,
+    dim: int = DIM,
+    hidden: Sequence[int] = HIDDEN,
+    text_dim: int = TEXT_DIM,
     text_weight: float | None = None,
-    dropout: float = 0.1,
-    temperature: float = 0.07,
-    batch_size: int = 128,
-    epochs: int = 60,
-    patience: int = 8,
-    learning_rate: float = 1e-3,
-    weight_decay: float = 1e-4,
-    min_df: int = 2,
-    max_df: float = 0.85,
+    dropout: float = DROPOUT,
+    temperature: float = TEMPERATURE,
+    batch_size: int = BATCH_SIZE,
+    epochs: int = EPOCHS,
+    patience: int = PATIENCE,
+    learning_rate: float = LEARNING_RATE,
+    weight_decay: float = WEIGHT_DECAY,
+    min_df: int = MIN_DF,
+    max_df: float = MAX_DF,
     progress: Callable[[str], None] | None = None,
 ) -> PeerEvaluation:
     """Walk forward by date, refit everything inside each fold, score every method.
@@ -2315,18 +2332,18 @@ def ablate_towers(
     n_folds: int | None = None,
     embargo_days: int = EMBARGO_DAYS,
     negatives_per_pair: int = 5,
-    dim: int = 64,
-    hidden: Sequence[int] = (128,),
-    text_dim: int = 128,
-    dropout: float = 0.1,
-    temperature: float = 0.07,
-    batch_size: int = 128,
-    epochs: int = 60,
-    patience: int = 8,
-    learning_rate: float = 1e-3,
-    weight_decay: float = 1e-4,
-    min_df: int = 2,
-    max_df: float = 0.85,
+    dim: int = DIM,
+    hidden: Sequence[int] = HIDDEN,
+    text_dim: int = TEXT_DIM,
+    dropout: float = DROPOUT,
+    temperature: float = TEMPERATURE,
+    batch_size: int = BATCH_SIZE,
+    epochs: int = EPOCHS,
+    patience: int = PATIENCE,
+    learning_rate: float = LEARNING_RATE,
+    weight_decay: float = WEIGHT_DECAY,
+    min_df: int = MIN_DF,
+    max_df: float = MAX_DF,
 ) -> pd.DataFrame:
     """Refit with each tower removed in turn and report what its absence costs.
 
