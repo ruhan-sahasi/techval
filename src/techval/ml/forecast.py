@@ -1209,9 +1209,7 @@ def _build_company(
 _MAX_LABEL_HORIZON = 5
 
 
-def _attach_labels(
-    observations: Sequence[FadeObservation], horizons: int = _MAX_LABEL_HORIZON
-) -> int:
+def _attach_labels(observations: Sequence[FadeObservation]) -> None:
     """Forward growth for each horizon, taken from the later filing's own figures.
 
     Two decisions are in this function and both of them are load-bearing.
@@ -1235,11 +1233,10 @@ def _attach_labels(
         by_ticker.setdefault(observation.ticker, {})[
             observation.fiscal_year_end
         ] = observation
-    attached = 0
     for years in by_ticker.values():
         ends = list(years)
         for fiscal_year_end, observation in years.items():
-            for horizon in range(1, horizons + 1):
+            for horizon in range(1, _MAX_LABEL_HORIZON + 1):
                 target = anniversary(
                     ends, fiscal_year_end, -horizon, _ANNIVERSARY_TOLERANCE_DAYS
                 )
@@ -1250,8 +1247,6 @@ def _attach_labels(
                     continue
                 observation.labels[horizon] = later.growth
                 observation.label_dates[horizon] = later.as_of
-                attached += 1
-    return attached
 
 
 def _winsorize_by_year(observations: Sequence[FadeObservation]) -> int:
