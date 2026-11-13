@@ -357,6 +357,11 @@ class Provenance:
         }
 
 
+# What a resolver says when no tag in its ladder appears in the filer's facts at
+# all, as against tags that appear and carry nothing usable for the period.
+_NO_TAG_IN_FACTS = "no us-gaap tag in the ladder appears in this filer's company facts"
+
+
 class CompanyFacts:
     """The ``companyfacts`` payload for one filer, indexed for lookup."""
 
@@ -958,7 +963,7 @@ class CompanyFacts:
             ticker=self.ticker,
             tags_tried=ladder,
             period=f"as of {as_of}",
-            hint="no us-gaap tag in the ladder appears in this filer's company facts",
+            hint=_NO_TAG_IN_FACTS,
         )
 
     def resolve_duration_series(
@@ -1169,7 +1174,7 @@ class CompanyFacts:
                 concept=concept, tag=None, method="unavailable", tags_tried=names
             )
 
-        hint = "no us-gaap tag in the ladder appears in this filer's company facts"
+        hint = _NO_TAG_IN_FACTS
         if partial:
             hint = (
                 "these tags exist but do not report enough periods to tile a "
