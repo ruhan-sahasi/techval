@@ -46,7 +46,7 @@ import pytest
 from typer.testing import CliRunner
 
 from techval import commands_mna as C
-from techval.errors import ConfigError, MissingDataError
+from techval.errors import ConfigError
 from techval.edgar import (
     SEC_FACTS_URL,
     SEC_SUBMISSIONS_URL,
