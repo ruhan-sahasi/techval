@@ -56,7 +56,7 @@
     "tests/fixtures/merger/text/0001193125-26-036712.txt": "92f118b0de7fb54f91a1729259d88ccf6bc0783068a09b7a2c2938173328873d",
     "tests/fixtures/merger/text/0001193125-26-128959.txt.gz": "c47a166ade01cc35a243146f5a1da3b21ee54cebb5611c0a14ab58bb2b31aa5d",
     "tests/fixtures/merger/text/0001193125-26-377700.txt.gz": "17ef4c68c2f9e6328577c218316c5e31a108a581e879117b7b1db47dd56aa926",
-    "tests/fixtures/mna/MANIFEST.json": "b6c090ca0d54a95cc6553d9ab8a3a877126128c9bbbdf3d43fede6efba7f1c83",
+    "tests/fixtures/mna/MANIFEST.json": "270fb3d625caeb30fde8a60929be0dc7bcaef2911ea4189c7a4366e6b59bf156",
     "tests/fixtures/mna/events.json": "3e3e498ea6bee23bd370c51fc0308a5741f27895d500b140056941dbd24fd5a0",
     "tests/fixtures/mna/panel.csv.gz": "75bc6208c6ff7d6db5e9ee67c5b6ae8036f15d1933f76ca9a42a8f301cb3ffe2",
     "tests/fixtures/mna/price_availability.json": "c723aad88d4ffd28443379227d0e594c59845302ff0f3a2470bc14b478b51747",
@@ -6867,7 +6867,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 2.62
+          "seconds": 2.68
         },
         {
           "entry_point": "techval.ml.evaluation.evaluate_classification",
@@ -6889,7 +6889,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 5.12
+          "seconds": 4.76
         },
         {
           "entry_point": "techval.ml.mna.PropensityResult.coefficient_stability",
@@ -6955,7 +6955,7 @@
             "tests/fixtures/mna/panel.csv.gz",
             "tests/fixtures/mna/MANIFEST.json"
           ],
-          "seconds": 1.25
+          "seconds": 1.27
         },
         {
           "entry_point": "techval.ml.evaluation.evaluate_classification",
@@ -10052,6 +10052,6 @@
       "title": "Warranted multiple"
     }
   },
-  "techval_commit": "c6decda",
+  "techval_commit": "7551ea2",
   "title": "Valuation engine and model results"
 }
