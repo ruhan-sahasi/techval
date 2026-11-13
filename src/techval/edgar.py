@@ -53,6 +53,12 @@ SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 SEC_FACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
 SEC_SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
 
+# The periodic reports, annual and quarterly: what latest_filing and
+# instance_facts read by default, and what proves a filer was a reporting
+# company. Form D, S-1 and the rest of the registration and exempt-offering
+# paperwork do not.
+PERIODIC_FORMS: tuple[str, ...] = ("10-K", "10-Q")
+
 CACHE_ROOT = Path(os.environ.get("TECHVAL_CACHE", Path.home() / ".techval" / "cache"))
 
 # The SEC permits ten requests a second. Eight leaves headroom and still warms a
@@ -1669,7 +1675,7 @@ class EdgarClient:
         return self._get_json(SEC_SUBMISSIONS_URL.format(cik=cik))
 
     def latest_filing(
-        self, ticker: str, forms: tuple[str, ...] = ("10-K", "10-Q")
+        self, ticker: str, forms: tuple[str, ...] = PERIODIC_FORMS
     ) -> tuple[str, date, str]:
         """Accession, filing date and form of the most recent periodic report.
 
@@ -1760,7 +1766,7 @@ class EdgarClient:
         return strip_markup(body)
 
     def instance_facts(
-        self, ticker: str, forms: tuple[str, ...] = ("10-K", "10-Q")
+        self, ticker: str, forms: tuple[str, ...] = PERIODIC_FORMS
     ) -> tuple[list[DimensionedFact], str, date]:
         """Dimensioned facts from the latest periodic filing's instance document.
 

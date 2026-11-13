@@ -103,6 +103,11 @@ MIN_ITEM1_CHARS = 2_000
 # fold dated years ago can see its own filing at all.
 DEFAULT_FILING_LIMIT = 25
 
+# How many neighbours a query returns unless asked for more or fewer: for the
+# fitted space, and for the TF-IDF baseline it has to beat, so the two are
+# compared at the same depth.
+NEIGHBOURS = 8
+
 
 # --------------------------------------------------------------------------- #
 # What the caller has to supply
@@ -675,7 +680,7 @@ class TextFeatures:
         return float(np.clip(dot, -1.0, 1.0))
 
     def neighbours(
-        self, ticker: str, k: int = 8, *, space: str = "lsa"
+        self, ticker: str, k: int = NEIGHBOURS, *, space: str = "lsa"
     ) -> list[tuple[str, float]]:
         return nearest_neighbours(self, ticker, k, space=space)
 
@@ -1012,7 +1017,7 @@ def transform(
 
 
 def nearest_neighbours(
-    features: TextFeatures, ticker: str, k: int = 8, *, space: str = "lsa"
+    features: TextFeatures, ticker: str, k: int = NEIGHBOURS, *, space: str = "lsa"
 ) -> list[tuple[str, float]]:
     """The k most similar companies, highest cosine first, excluding self.
 
@@ -1051,7 +1056,7 @@ def nearest_neighbours(
 
 
 def baseline_neighbours(
-    features: TextFeatures, ticker: str, k: int = 8
+    features: TextFeatures, ticker: str, k: int = NEIGHBOURS
 ) -> list[tuple[str, float]]:
     """Raw TF-IDF cosine neighbours: the comparison a learned model must win.
 

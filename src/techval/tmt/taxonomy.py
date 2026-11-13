@@ -96,6 +96,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from enum import Enum
 
+from ..edgar import PERIODIC_FORMS
 from ..errors import ConfigError, DataSourceError, MissingDataError
 from ..ev_bridge import build_ev_bridge
 from ..financials import build_financials
@@ -489,11 +490,6 @@ should not take the same weight of evidence as overturning "semiconductors"."""
 MIN_KEYWORD_HITS = 2
 """Distinct phrases the winner must match before evidence counts at all. One
 stray word in a risk factor is not a business description."""
-
-# Forms that prove a filer was a reporting company. Form D, S-1 and the rest of
-# the registration and exempt-offering paperwork do not, which is the whole point
-# of testing on this tuple rather than on any filing at all.
-PERIODIC_FORMS = ("10-K", "10-Q")
 
 
 # --------------------------------------------------------------------------- #

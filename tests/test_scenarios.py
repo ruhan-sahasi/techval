@@ -116,21 +116,14 @@ def case():
     return Case(fin=fin, bridge=bridge, wacc=compute_wacc(fin, bridge, market, a), assumptions=a)
 
 
-@pytest.fixture(scope="module")
-def panel():
-    from techval.ml.panels import fade_panel
-
-    return fade_panel(FIXTURES)
-
-
 PRICE = 225.27
 TRAILING = 0.276754
 
 
-def test_each_scenario_is_the_engines_own_dcf_on_its_path(case, panel):
+def test_each_scenario_is_the_engines_own_dcf_on_its_path(case, fade_observations):
     from techval.scenarios import value_scenarios
 
-    result = value_scenarios(case, PRICE, panel.observations, trailing=TRAILING)
+    result = value_scenarios(case, PRICE, fade_observations, trailing=TRAILING)
     bear, base, bull = result.scenarios
     assert bear.value < base.value < bull.value
     for s in result.scenarios:
@@ -161,14 +154,14 @@ def test_scenario_settings_that_cannot_be_meant_are_refused(tmp_path, body, mess
         Assumptions.load(path)
 
 
-def test_the_scenarios_follow_the_assumptions(case, panel):
+def test_the_scenarios_follow_the_assumptions(case, fade_observations):
     from techval.scenarios import value_scenarios
 
     wider = case.with_dcf()
     wider.assumptions.scenarios.quantiles = {"bear": 0.25, "base": 0.5, "bull": 0.75}
     wider.assumptions.scenarios.weights = {"bear": 0.25, "base": 0.5, "bull": 0.25}
-    result = value_scenarios(wider, PRICE, panel.observations, trailing=TRAILING)
-    usual = value_scenarios(case, PRICE, panel.observations, trailing=TRAILING)
+    result = value_scenarios(wider, PRICE, fade_observations, trailing=TRAILING)
+    usual = value_scenarios(case, PRICE, fade_observations, trailing=TRAILING)
     assert usual.scenario("bear").value < result.scenario("bear").value
     assert result.scenario("bull").value < usual.scenario("bull").value
     assert [s.weight for s in result.scenarios] == [0.25, 0.5, 0.25]
@@ -221,10 +214,10 @@ def test_a_price_outside_the_scenarios_is_named_not_weighted():
     assert below["side"] == "below" and "below even the bear case" in below["sentence"]
 
 
-def test_datadogs_price_is_above_even_its_bull_case(case, panel):
+def test_datadogs_price_is_above_even_its_bull_case(case, fade_observations):
     from techval.scenarios import value_scenarios
 
-    result = value_scenarios(case, PRICE, panel.observations, trailing=TRAILING)
+    result = value_scenarios(case, PRICE, fade_observations, trailing=TRAILING)
     assert result.implied["side"] == "above"
     assert "3.1 times" in result.implied["sentence"]
     first, weighted, implied = result.sentences
@@ -256,12 +249,12 @@ def test_a_band_is_built_only_from_outcomes_public_by_then():
     assert (cover["n"], cover["above"], cover["inside"], cover["below"]) == (1, 1, 0, 0)
 
 
-def test_on_held_out_company_years_the_band_runs_narrow_on_the_upside(panel):
+def test_on_held_out_company_years_the_band_runs_narrow_on_the_upside(fade_observations):
     from datetime import date
 
     from techval.scenarios import band_coverage
 
-    cover = band_coverage(panel.observations, test_from=date(2016, 1, 1))
+    cover = band_coverage(fade_observations, test_from=date(2016, 1, 1))
     assert (cover["n"], cover["inside"], cover["below"], cover["above"]) == (674, 466, 78, 130)
     # Nominal 80% inside, 10% each side; what followed ran faster than the history.
     assert 0.65 < cover["share_inside"] < 0.75
