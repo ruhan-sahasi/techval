@@ -182,13 +182,13 @@ def assumptions() -> Assumptions:
 
 
 @pytest.fixture(scope="module")
-def result(panel, universe, events):
+def result(panel, extras, universe, events):
     """The headline fit. Module scoped because it is the expensive one."""
     if "result" not in _CACHE:
         a = Assumptions()
         a.as_of = AS_OF.isoformat()
         _CACHE["result"] = fit_propensity(
-            panel, universe, events, a, as_of=AS_OF, extras=_CACHE["extras"]
+            panel, universe, events, a, as_of=AS_OF, extras=extras
         )
     return _CACHE["result"]
 
@@ -579,15 +579,15 @@ def test_the_gap_costs_observations_on_the_real_sample(panel, universe, events):
     assert len(with_gap.observations) < len(without_gap.observations)
 
 
-def test_the_model_can_be_fitted_with_and_without_the_gap(panel, universe, events):
+def test_the_model_can_be_fitted_with_and_without_the_gap(panel, extras, universe, events):
     """Both results exist, so the cost of the discipline is measurable."""
     a = Assumptions()
     with_gap = fit_propensity(
         panel, universe, events, a, as_of=AS_OF, gap_days=DEFAULT_GAP_DAYS,
-        extras=_CACHE["extras"],
+        extras=extras,
     )
     without_gap = fit_propensity(
-        panel, universe, events, a, as_of=AS_OF, gap_days=0, extras=_CACHE["extras"]
+        panel, universe, events, a, as_of=AS_OF, gap_days=0, extras=extras
     )
     assert with_gap.labels.dropped_in_gap > without_gap.labels.dropped_in_gap
     assert np.isfinite(with_gap.evaluation.score)
@@ -734,18 +734,18 @@ def test_the_card_summary_carries_the_verdict(result):
     assert " features. AUC of " in summary and ". auc of" not in summary
 
 
-def test_fit_refuses_a_sample_below_the_distinct_deal_floor(panel, universe, events):
+def test_fit_refuses_a_sample_below_the_distinct_deal_floor(panel, extras, universe, events):
     few = events[:3]
     with pytest.raises(NotMeaningfulError, match="distinct companies"):
         fit_propensity(
-            panel, universe, few, Assumptions(), as_of=AS_OF, extras=_CACHE["extras"]
+            panel, universe, few, Assumptions(), as_of=AS_OF, extras=extras
         )
 
 
-def test_two_fits_on_the_same_panel_agree_exactly(panel, universe, events):
+def test_two_fits_on_the_same_panel_agree_exactly(panel, extras, universe, events):
     a = Assumptions()
-    one = fit_propensity(panel, universe, events, a, as_of=AS_OF, extras=_CACHE["extras"])
-    two = fit_propensity(panel, universe, events, a, as_of=AS_OF, extras=_CACHE["extras"])
+    one = fit_propensity(panel, universe, events, a, as_of=AS_OF, extras=extras)
+    two = fit_propensity(panel, universe, events, a, as_of=AS_OF, extras=extras)
     assert np.array_equal(one.model.weights, two.model.weights)
     assert one.model.intercept == two.model.intercept
     assert one.evaluation.score == two.evaluation.score
@@ -762,10 +762,10 @@ def test_every_fitted_feature_states_what_it_claims():
 # --------------------------------------------------------------------------- #
 
 
-def test_rank_returns_a_screen_with_a_reason_per_name(result, panel, universe):
+def test_rank_returns_a_screen_with_a_reason_per_name(result, panel, extras, universe):
     latest = max(panel.dates)
     frame = result.model.rank(
-        panel, universe, latest, top_k=20, extras=_CACHE["extras"]
+        panel, universe, latest, top_k=20, extras=extras
     )
     assert len(frame) == 20
     assert list(frame["rank"]) == list(range(1, 21))
@@ -775,9 +775,9 @@ def test_rank_returns_a_screen_with_a_reason_per_name(result, panel, universe):
     assert frame["driver_1"].notna().all()
 
 
-def test_rank_only_scores_companies_that_existed_on_the_date(result, panel, universe):
+def test_rank_only_scores_companies_that_existed_on_the_date(result, panel, extras, universe):
     when = date(2021, 6, 30)
-    frame = result.model.rank(panel, universe, when, top_k=50, extras=_CACHE["extras"])
+    frame = result.model.rank(panel, universe, when, top_k=50, extras=extras)
     live = {m.ticker for m in universe.as_of(when)}
     assert set(frame["ticker"]) <= live
     assert SLACK not in set(frame["ticker"]) or SLACK in live
@@ -832,8 +832,8 @@ def test_the_screen_beats_the_base_rate_at_the_top_of_the_list(result):
 # --------------------------------------------------------------------------- #
 
 
-def test_relative_features_are_struck_against_the_date_cross_section(panel, universe):
-    derived = derive_features(panel, universe, _CACHE["extras"])
+def test_relative_features_are_struck_against_the_date_cross_section(panel, extras, universe):
+    derived = derive_features(panel, universe, extras)
     assert derived
     ranks = [
         v["mna_growth_rank_in_vertical"]
@@ -846,8 +846,8 @@ def test_relative_features_are_struck_against_the_date_cross_section(panel, univ
     )
 
 
-def test_subscale_is_centred_on_its_own_sub_vertical(panel, universe):
-    derived = derive_features(panel, universe, _CACHE["extras"])
+def test_subscale_is_centred_on_its_own_sub_vertical(panel, extras, universe):
+    derived = derive_features(panel, universe, extras)
     by_date_vertical: dict[tuple, list[float]] = {}
     members = universe.by_ticker
     for (ticker, when), values in derived.items():
@@ -865,8 +865,8 @@ def test_subscale_is_centred_on_its_own_sub_vertical(panel, universe):
         )
 
 
-def test_growth_decay_is_the_turn_and_not_the_level(panel, universe):
-    derived = derive_features(panel, universe, _CACHE["extras"])
+def test_growth_decay_is_the_turn_and_not_the_level(panel, extras, universe):
+    derived = derive_features(panel, universe, extras)
     decays = [
         v["mna_growth_decay"] for v in derived.values()
         if v["mna_growth_decay"] is not None
@@ -890,7 +890,7 @@ def test_standardisation_puts_the_training_mean_where_a_gap_was(result):
     assert np.isfinite(Z).all()
 
 
-def test_unmatched_observations_are_counted_rather_than_imputed(panel, universe):
+def test_unmatched_observations_are_counted_rather_than_imputed(panel, extras, universe):
     report = label_observations(
         universe, [date(2019, 3, 31)], [], as_of=AS_OF
     )
@@ -903,7 +903,7 @@ def test_unmatched_observations_are_counted_rather_than_imputed(panel, universe)
             window_closes=date(2020, 6, 29),
         )
     )
-    matrix = build_matrix(panel, universe, report, extras=_CACHE["extras"])
+    matrix = build_matrix(panel, universe, report, extras=extras)
     assert "NOT_IN_THE_PANEL" not in matrix.tickers
     assert any("had no feature row" in n for n in matrix.notes)
 
