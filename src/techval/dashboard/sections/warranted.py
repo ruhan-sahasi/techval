@@ -90,16 +90,20 @@ ENTRY_LOAD = "techval.commands_peers._load_observations"
 ENTRY_AUDIT = "techval.dashboard.sections.warranted.audit_counts"
 ENTRY_FILERS = "techval.dashboard.sections.warranted.affected_filers"
 
+# The model's name for the one baseline it reads the answer from. The card leaves
+# it off, and SHORT_BASELINE_NAMES gives the page a shorter label for it.
+PERSISTENCE = (
+    "the company's own multiple last quarter (persistence: NOT a warranted "
+    "multiple, it reads the answer)"
+)
+
 # Short row labels for the model's baseline names. A name not listed here is
 # shown as the model wrote it, up to its first parenthesis.
 SHORT_BASELINE_NAMES = {
     "comps.py OLS refit on the date, sub-vertical peers": "Comps OLS on sub-vertical peers",
     "comps.py OLS refit on the date, whole TMT cross-section": "Comps OLS on the whole TMT cross-section",
     "sub-vertical median multiple on the date (the comps convention)": "Sub-vertical median multiple",
-    (
-        "the company's own multiple last quarter (persistence: NOT a warranted "
-        "multiple, it reads the answer)"
-    ): "Last quarter's own multiple",
+    PERSISTENCE: "Last quarter's own multiple",
 }
 
 METRIC_NAMES = {"spearman": "Spearman rank correlation"}
@@ -109,10 +113,7 @@ MODEL_NAMES = {"mlp": "network", "ridge": "ridge"}
 # Why a baseline stronger than the card's is left off the card, for the baselines
 # the model is known to exclude. The exclusion itself is derived from the scores.
 EXCLUSION_REASONS = {
-    (
-        "the company's own multiple last quarter (persistence: NOT a warranted "
-        "multiple, it reads the answer)"
-    ): (
+    PERSISTENCE: (
         "it is the company's own multiple carried forward, so it reads the price a "
         "warranted multiple exists to be compared against."
     ),
