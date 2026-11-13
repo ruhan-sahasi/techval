@@ -247,6 +247,12 @@ def _free_cash_flow(fin: Financials, flags: list[str]) -> float | None:
     return fin.cfo - fin.capex
 
 
+# How every pack defines the revenue growth _growth works out.
+_REVENUE_GROWTH_DEFINITION = (
+    "Decimal. Trailing twelve month revenue against the prior comparable twelve months."
+)
+
+
 def _growth(
     fin: Financials, kpis: dict | None, flags: list[str], metric: str
 ) -> tuple[float | None, float | None]:
@@ -433,10 +439,7 @@ def software_metrics(
         )
 
     metrics["Revenue growth"] = growth
-    definitions["Revenue growth"] = (
-        "Decimal. Trailing twelve month revenue against the prior comparable "
-        "twelve months."
-    )
+    definitions["Revenue growth"] = _REVENUE_GROWTH_DEFINITION
     metrics["Gross margin"] = fin.gross_margin
     definitions["Gross margin"] = (
         "Decimal. Gross profit over revenue, as filed. Hosting and customer "
@@ -771,10 +774,7 @@ def media_metrics(
     amort = _kpi(kpis, "content_amortization", flags, "Content amortisation")
 
     metrics["Revenue growth"] = growth
-    definitions["Revenue growth"] = (
-        "Decimal. Trailing twelve month revenue against the prior comparable "
-        "twelve months."
-    )
+    definitions["Revenue growth"] = _REVENUE_GROWTH_DEFINITION
     metrics["EBITDA margin"] = _divide(
         ebitda,
         fin.revenue,
@@ -939,10 +939,7 @@ def telecom_metrics(
         )
 
     metrics["Revenue growth"] = growth
-    definitions["Revenue growth"] = (
-        "Decimal. Trailing twelve month revenue against the prior comparable "
-        "twelve months."
-    )
+    definitions["Revenue growth"] = _REVENUE_GROWTH_DEFINITION
     metrics["EBITDA"] = ebitda
     definitions["EBITDA"] = (
         f"USD millions. {ebitda_label}. Ground leases are large in this sector, so "
