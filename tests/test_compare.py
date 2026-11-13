@@ -19,13 +19,6 @@ from conftest import FIXTURES
 AS_OF = date(2026, 9, 9)
 
 
-@pytest.fixture(scope="module")
-def panel():
-    from techval.ml.panels import fade_panel
-
-    return fade_panel(FIXTURES).observations
-
-
 def sources(observations=None):
     return E.Sources(
         client=RecordedFacts(FIXTURES),
@@ -45,8 +38,8 @@ def assumptions():
 
 
 @pytest.fixture(scope="module")
-def compared(panel):
-    return measure_all(["DDOG", "CRWD", "DIS", "NOPE"], assumptions(), sources(panel), today=AS_OF)
+def compared(fade_observations):
+    return measure_all(["DDOG", "CRWD", "DIS", "NOPE"], assumptions(), sources(fade_observations), today=AS_OF)
 
 
 def test_every_company_keeps_its_place_and_one_with_no_filings_is_refused(compared):
@@ -63,8 +56,10 @@ def test_each_company_is_measured_on_the_assumptions_and_on_its_own_record(compa
     assert all(c.base.history is None and c.record.history is None for c in compared[:3])
 
 
-def test_the_set_can_be_its_own_peers(panel):
-    rows = measure_all(["DDOG", "CRWD", "ZS"], assumptions(), sources(panel), today=AS_OF, peers_from_set=True)
+def test_the_set_can_be_its_own_peers(fade_observations):
+    rows = measure_all(
+        ["DDOG", "CRWD", "ZS"], assumptions(), sources(fade_observations), today=AS_OF, peers_from_set=True
+    )
     assert set(rows[0].base.cost_of_capital.peers) <= {"CRWD", "ZS"} and rows[0].base.cost_of_capital.peers
 
 
@@ -112,13 +107,13 @@ def test_the_takeaway_names_the_price_that_asks_the_most(compared):
     assert "CRWD's price asks the most" in text
 
 
-def test_the_comparison_is_a_one_section_page_that_validates(panel):
+def test_the_comparison_is_a_one_section_page_that_validates(fade_observations):
     from techval.compare import build_comparison
     from techval.dashboard.snapshot import Snapshot
 
     snap = build_comparison(
         ["DDOG", "DIS", "NOPE"], assumptions(), client=RecordedFacts(FIXTURES), prices=CsvSource(FIXTURES / "prices"),
-        price_feed="csv", observations=panel, panel="tests/fixtures/fade_companyfacts.json.gz",
+        price_feed="csv", observations=fade_observations, panel="tests/fixtures/fade_companyfacts.json.gz",
         today=AS_OF, collected_at="2026-09-09", commit="abc1234",
     )
     back = Snapshot.from_dict(snap.to_dict())

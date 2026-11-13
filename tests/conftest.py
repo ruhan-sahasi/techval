@@ -123,6 +123,14 @@ def assumptions() -> Assumptions:
     return a
 
 
+@pytest.fixture(scope="module")
+def fade_observations():
+    """Every observation in the committed fade panel, loaded once per test module."""
+    from techval.ml.panels import fade_panel
+
+    return fade_panel(FIXTURES).observations
+
+
 @pytest.fixture
 def ddog():
     return build_financials("DDOG", facts=load_facts("DDOG"))

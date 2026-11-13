@@ -18,13 +18,6 @@ from conftest import FIXTURES
 AS_OF = date(2026, 9, 9)
 
 
-@pytest.fixture(scope="module")
-def panel():
-    from techval.ml.panels import fade_panel
-
-    return fade_panel(FIXTURES).observations
-
-
 def sheet(ticker, peers=(), observations=None):
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
@@ -36,11 +29,11 @@ def sheet(ticker, peers=(), observations=None):
     )
 
 
-def test_datadogs_tearsheet_draws_the_results_pages_figures(panel):
+def test_datadogs_tearsheet_draws_the_results_pages_figures(fade_observations):
     from techval.dashboard.collect import CollectContext, collect_section
     from techval.dashboard.sections import engine as E
 
-    snap = sheet("DDOG", ("CRWD", "MDB", "ZS"), panel)
+    snap = sheet("DDOG", ("CRWD", "MDB", "ZS"), fade_observations)
     page = snap.sections["engine"]
     results, _ = collect_section(E, CollectContext(FIXTURES, Path(__file__).parents[1], Assumptions()), use_cache=False)
     assert set(page["figures"]) == set(results["figures"])
@@ -51,8 +44,8 @@ def test_datadogs_tearsheet_draws_the_results_pages_figures(panel):
     assert page["takeaway"] == results["takeaway"]
 
 
-def test_the_page_names_its_live_sources_and_validates(panel):
-    snap = sheet("DDOG", ("CRWD", "MDB", "ZS"), panel)
+def test_the_page_names_its_live_sources_and_validates(fade_observations):
+    snap = sheet("DDOG", ("CRWD", "MDB", "ZS"), fade_observations)
     back = Snapshot.from_dict(snap.to_dict())
     assert back.fixtures == {} and list(back.sections) == ["engine"]
     assert back.title == "DDOG, valued by the engine"

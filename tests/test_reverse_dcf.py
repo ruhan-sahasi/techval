@@ -209,19 +209,12 @@ def test_without_a_trailing_rate_there_is_no_similar_bucket():
     assert rate["similar"] is None
 
 
-@pytest.fixture(scope="module")
-def panel():
-    from techval.ml.panels import fade_panel
-
-    return fade_panel(FIXTURES)
-
-
-def test_datadogs_implied_growth_has_almost_never_happened(case, panel):
+def test_datadogs_implied_growth_has_almost_never_happened(case, fade_observations):
     from techval.reverse_dcf import growth_base_rate, implied_first_year_growth, path_cagr
 
     solve = implied_first_year_growth(case, PRICE)
     implied = path_cagr(solve.extras["path"], 5)
-    rate = growth_base_rate(panel.observations, implied_cagr=implied, horizon=5, trailing=0.277)
+    rate = growth_base_rate(fade_observations, implied_cagr=implied, horizon=5, trailing=0.277)
     assert rate["all"]["n"] > 1000
     assert rate["all"]["share"] < 0.02
     assert rate["similar"]["n"] > 100
@@ -247,12 +240,12 @@ def test_with_dcf_leaves_the_original_case_alone(case):
     assert case.assumptions.dcf.ebit_margin_terminal == before
 
 
-def test_market_expectations_gathers_every_lever_with_base_rates(case, panel):
+def test_market_expectations_gathers_every_lever_with_base_rates(case, fade_observations):
     import json as _json
 
     from techval.reverse_dcf import market_expectations
 
-    exp = market_expectations(case, PRICE, trailing_growth=0.277, observations=panel.observations)
+    exp = market_expectations(case, PRICE, trailing_growth=0.277, observations=fade_observations)
     assert exp.price == PRICE and exp.base_value == pytest.approx(case.value())
     assert {s.lever for s in exp.solves} == {"discount_rate", "first_year_growth", "terminal_margin", "duration"}
     assert exp.base_rates["first_year_growth"]["all"]["share"] < 0.02
@@ -295,10 +288,10 @@ def test_the_persistence_curve_counts_who_held_a_rate_for_each_horizon():
     assert curve[1]["share"] == pytest.approx(0.5)
 
 
-def test_datadogs_rate_rarely_lasts_five_years(panel):
+def test_datadogs_rate_rarely_lasts_five_years(fade_observations):
     from techval.reverse_dcf import persistence_curve
 
-    curve = persistence_curve(panel.observations, growth=0.277, horizons=5)
+    curve = persistence_curve(fade_observations, growth=0.277, horizons=5)
     shares = [c["share"] for c in curve]
     # Each extra year can only lose companies that held every year before it.
     assert all(a >= b for a, b in zip(shares, shares[1:]))
@@ -306,10 +299,10 @@ def test_datadogs_rate_rarely_lasts_five_years(panel):
     assert shares[-1] < 0.10
 
 
-def test_expectations_carry_the_persistence_curve_for_the_held_rate(case, panel):
+def test_expectations_carry_the_persistence_curve_for_the_held_rate(case, fade_observations):
     from techval.reverse_dcf import market_expectations
 
-    exp = market_expectations(case, PRICE, trailing_growth=0.277, observations=panel.observations)
+    exp = market_expectations(case, PRICE, trailing_growth=0.277, observations=fade_observations)
     assert [c["horizon"] for c in exp.persistence] == [1, 2, 3, 4, 5]
     text = " ".join(exp.summary())
     assert "year after year" in text and "for five" in text
@@ -396,7 +389,7 @@ def test_the_history_reads_each_quarter_from_what_was_public_then():
     assert rows[1]["filings_through"] <= "2024-12-31"
 
 
-def test_the_screen_ranks_the_most_demanding_prices_first(panel):
+def test_the_screen_ranks_the_most_demanding_prices_first(fade_observations):
     from datetime import date as d
 
     from techval.reverse_dcf import screen
@@ -406,7 +399,7 @@ def test_the_screen_ranks_the_most_demanding_prices_first(panel):
     }
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
-    rows = screen(payloads, CsvSource(FIXTURES / "prices"), a, d(2026, 9, 9), panel.observations)
+    rows = screen(payloads, CsvSource(FIXTURES / "prices"), a, d(2026, 9, 9), fade_observations)
     assert {r["ticker"] for r in rows} == set(payloads)
     valued = [r for r in rows if not r["refused"]]
     assert len(valued) >= 4
