@@ -29,7 +29,6 @@ from techval.dashboard.sections.overview import (
     scoreboard,
     section_states,
     shape,
-    takeaway,
 )
 from techval.dashboard.snapshot import validate_section
 from techval.errors import NotMeaningfulError
