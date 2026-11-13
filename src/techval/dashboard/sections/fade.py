@@ -647,7 +647,7 @@ def collect(ctx) -> dict:
     # A fitted path reaches a DCF only behind this switch. Showing that path is
     # what this section is for, so the switch is on for this collection alone.
     assumptions.ml.forecast.enabled = True
-    knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
+    knowledge = assumptions.knowledge_date
     dcf = assumptions.dcf
 
     with ctx.record("depth", "techval.ml.forecast.build_fade_panel", [PANEL]):

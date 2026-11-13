@@ -651,7 +651,7 @@ def build_segments(
             "business-segments axis out of the filing"
         )
 
-    as_of = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
+    as_of = assumptions.knowledge_date
     dimensioned, accession, _filed = client.instance_facts(ticker, forms=("10-K",))
     index, crossed, flags = _index(dimensioned, as_of)
     revenue_tag, period = _pick_revenue(index)

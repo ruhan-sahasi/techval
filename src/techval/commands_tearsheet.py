@@ -7,7 +7,6 @@ payloads with --facts-dir. See ``techval.tearsheet``.
 
 from __future__ import annotations
 
-from datetime import date
 from pathlib import Path
 
 import typer
@@ -55,7 +54,7 @@ def tearsheet(
         if from_record:
             assumptions.dcf.from_record = True
         if facts_dir is not None:
-            knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
+            knowledge = assumptions.knowledge_date
             client = RecordedFacts(facts_dir, knowledge)
         observations, _ = _panel(directory, symbol, ml_cache_root(assumptions))
         snap = build_tearsheet(
@@ -125,7 +124,7 @@ def compare(
     try:
         assumptions, client, market = _setup(config, no_cache)
         if facts_dir is not None:
-            knowledge = date.fromisoformat(assumptions.as_of) if assumptions.as_of else None
+            knowledge = assumptions.knowledge_date
             client = RecordedFacts(facts_dir, knowledge)
         observations, _ = _panel(directory, "", ml_cache_root(assumptions))
         snap = build_comparison(

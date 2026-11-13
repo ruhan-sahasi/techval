@@ -897,6 +897,11 @@ class Assumptions(_Base):
             return value.isoformat()
         return value
 
+    @property
+    def knowledge_date(self) -> date | None:
+        """``as_of`` as a date, or None for a run that sees everything filed to date."""
+        return date.fromisoformat(self.as_of) if self.as_of else None
+
     @classmethod
     def load(cls, path: str | Path | None) -> "Assumptions":
         """Read an assumptions file, or the defaults when none is named.

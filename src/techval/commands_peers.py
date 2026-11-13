@@ -155,6 +155,7 @@ from .ml.warranted import (
     Skip,
     WarrantedModel,
     fit_warranted,
+    screen_frame,
 )
 from .options import CONFIG
 from .terminal import format_multiple, make_console, print_notes, print_rule
@@ -1503,23 +1504,7 @@ def screen(
                     f"{as_of}. That date carries: {', '.join(verticals)}[/red]"
                 )
                 raise typer.Exit(1)
-            reads.sort(key=lambda r: r.residual_log, reverse=True)
-            chosen = reads[:n] + reads[-n:] if len(reads) > 2 * n else reads
-            frame = pd.DataFrame(
-                [
-                    {
-                        "ticker": r.ticker,
-                        "sub_vertical": r.sub_vertical,
-                        "actual": r.actual_multiple,
-                        "warranted": r.warranted_multiple,
-                        "residual_turns": r.residual_turns,
-                        "residual_log": r.residual_log,
-                        "z": r.z,
-                        "verdict": "rich" if r.residual_log > 0 else "cheap",
-                    }
-                    for r in chosen
-                ]
-            )
+            frame = screen_frame(reads, n)
 
         console.print()
         _render_screen(frame, as_of, fitted.rerating.within_date_sd)

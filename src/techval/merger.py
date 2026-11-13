@@ -524,16 +524,15 @@ def build_consideration(
     acq_price: float,
     tgt_price: float,
     assumptions: Assumptions,
-    tgt_bridge: EVBridge | None = None,
     notes: list[str] | None = None,
 ) -> Consideration:
     """Price the offer and fund it.
 
     ``tgt_price`` is the unaffected price, the reference the premium is quoted
-    against. Where no target bridge is supplied one is built at the offer price
-    rather than the unaffected price, because a convertible that is out of the
-    money today is usually in the money at a control premium, and the change of
-    control provision settles it either way.
+    against. The target is bridged at the offer price rather than the unaffected
+    price, because a convertible that is out of the money today is usually in
+    the money at a control premium, and the change of control provision settles
+    it either way.
     """
     m = assumptions.merger
     notes = notes if notes is not None else []
@@ -553,8 +552,7 @@ def build_consideration(
     offer_price = _offer_price(tgt_price, assumptions)
     premium = offer_price / tgt_price - 1.0
 
-    if tgt_bridge is None:
-        tgt_bridge = build_ev_bridge(tgt_fin, offer_price, assumptions)
+    tgt_bridge = build_ev_bridge(tgt_fin, offer_price, assumptions)
 
     equity_purchase_price = offer_price * tgt_fin.diluted_shares
     enterprise_purchase_price = equity_purchase_price + _net_debt(tgt_bridge)
@@ -1006,12 +1004,10 @@ def accretion_sensitivity(
                 }
             )
             cell = assumptions.model_copy(update={"merger": cell_merger})
-            # No bridge is passed, so the target is re-bridged at each cell's
-            # offer price and a convertible that crosses into the money at a
-            # higher premium is treated accordingly in that cell.
-            cons = build_consideration(
-                acq_fin, tgt_fin, acq_price, tgt_price, cell, None
-            )
+            # The target is re-bridged at each cell's offer price, so a
+            # convertible that crosses into the money at a higher premium is
+            # treated accordingly in that cell.
+            cons = build_consideration(acq_fin, tgt_fin, acq_price, tgt_price, cell)
             res = _run_accretion(acq_fin, tgt_fin, cons, cell, tax_rate)
             row.append(
                 res.accretion_dollars / standalone_eps
@@ -2028,11 +2024,10 @@ def run_merger(
 
     # The consideration prices the target's balance sheet at the OFFER, not at
     # the unaffected market price, because moneyness at the offer is what
-    # decides whether a convertible converts in the deal. Passing no bridge lets
-    # build_consideration apply its documented rule; the market-priced bridge
-    # the caller supplied still serves the standalone comparisons below.
+    # decides whether a convertible converts in the deal. The market-priced
+    # bridge the caller supplied still serves the standalone comparisons below.
     cons = build_consideration(
-        acq_fin, tgt_fin, acq_price, tgt_price, assumptions, None, notes
+        acq_fin, tgt_fin, acq_price, tgt_price, assumptions, notes=notes
     )
     sources_uses = _sources_and_uses(cons, assumptions)
     accretion = _run_accretion(acq_fin, tgt_fin, cons, assumptions, tax_rate)

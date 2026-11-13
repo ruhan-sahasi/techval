@@ -118,6 +118,7 @@ import pandas as pd
 from .. import tags
 from ..edgar import CompanyFacts, Fact, trailing_twelve_months
 from ..errors import ConfigError, DataSourceError, MissingDataError
+from .taxonomy import _knowledge_date
 
 _MM = 1_000_000.0
 
@@ -2081,15 +2082,7 @@ def _valuation_date(client: Any, assumptions: Any) -> date:
     The client outranks the assumptions file because a client built with a
     knowledge date is already refusing to hand back anything filed after it, and
     reading metrics past that date would put facts in the KPI set that the rest
-    of the run cannot see.
+    of the run cannot see. The rule is the universe's own, in
+    ``taxonomy._knowledge_date``; only the fallback to today is this module's.
     """
-    from_client = getattr(client, "knowledge_date", None)
-    if from_client is not None:
-        return from_client
-    raw = getattr(assumptions, "as_of", None)
-    if raw:
-        try:
-            return date.fromisoformat(raw)
-        except ValueError as exc:
-            raise ConfigError(f"as_of must be an ISO date, got {raw!r}: {exc}") from exc
-    return date.today()
+    return _knowledge_date(client, assumptions, None) or date.today()
