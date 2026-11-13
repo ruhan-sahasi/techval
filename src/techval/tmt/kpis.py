@@ -116,7 +116,7 @@ from typing import Any, Iterable
 import pandas as pd
 
 from .. import tags
-from ..edgar import CompanyFacts, Fact, trailing_twelve_months
+from ..edgar import PERIODIC_FORMS, CompanyFacts, Fact, trailing_twelve_months
 from ..errors import ConfigError, DataSourceError, MissingDataError
 from .taxonomy import _knowledge_date
 
@@ -657,7 +657,7 @@ def _instance_facts(client: Any, ticker: str) -> tuple[list[Any], str | None, da
             "taxonomy in company facts could be searched"
         )
     try:
-        facts, accession, filed = getter(ticker, forms=("10-K", "10-Q"))
+        facts, accession, filed = getter(ticker, forms=PERIODIC_FORMS)
     except (MissingDataError, DataSourceError) as exc:
         return [], None, None, f"the filing's instance document could not be read: {exc}"
     return list(facts), accession, filed, None
