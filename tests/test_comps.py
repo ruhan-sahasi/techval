@@ -7,7 +7,7 @@ import pytest
 
 from techval.comps import run_comps
 
-from conftest import FixtureClient
+from conftest import FixtureClient, facts_payload
 
 
 @pytest.fixture
@@ -268,33 +268,21 @@ def test_growth_survives_a_retired_revenue_tag():
     from techval.edgar import CompanyFacts
     from techval.financials import Financials
 
+    # Thirteen-week quarters back from 2026-07-26, so the year before closed 364 days earlier.
     end = date(2026, 7, 26)
-    live = []
-    for i in range(8):
-        q_end = end - timedelta(days=91 * i)
-        live.append(
-            {
-                "start": (q_end - timedelta(days=90)).isoformat(),
-                "end": q_end.isoformat(),
-                "val": 50_000_000_000 - 2_000_000_000 * i,
-                "form": "10-Q",
-                "filed": (q_end + timedelta(days=30)).isoformat(),
-            }
-        )
-    retired = [
-        {"start": "2021-02-01", "end": "2022-01-30", "val": 26_914_000_000, "form": "10-K", "filed": "2022-03-18"}
+    quarters = [
+        ((end - timedelta(days=91 * i + 90)).isoformat(), (end - timedelta(days=91 * i)).isoformat(), 50e9 - 2e9 * i)
+        for i in range(8)
     ]
-    payload = {
-        "cik": 1,
-        "entityName": "Retired Tag Corp",
-        "facts": {
-            "us-gaap": {
-                "RevenueFromContractWithCustomerExcludingAssessedTax": {"units": {"USD": retired}},
-                "Revenues": {"units": {"USD": live}},
+    facts = CompanyFacts(
+        facts_payload(
+            {
+                "RevenueFromContractWithCustomerExcludingAssessedTax": [("2021-02-01", "2022-01-30", 26_914e6)],
+                "Revenues": quarters,
             }
-        },
-    }
-    facts = CompanyFacts(payload, "NVDA")
+        ),
+        "NVDA",
+    )
     current, _ = facts.resolve_ttm("revenue", ["Revenues"], end)
     stub = object.__new__(Financials)
     object.__setattr__(stub, "as_of", end)
