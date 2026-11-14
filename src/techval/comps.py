@@ -67,7 +67,7 @@ a sample; the pair actually applied to the target is ``comps.apply_percentiles``
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import date, timedelta
 
 import numpy as np
 import pandas as pd
@@ -296,30 +296,44 @@ def _pct_label(q: float) -> str:
     return f"p{q * 100:g}"
 
 
+def prior_year_end(as_of: date, facts: CompanyFacts) -> date:
+    """The filer's own reported period end nearest a year before ``as_of``.
+
+    A fixed 365-day step looks equivalent and is not. A 52/53-week filer closes
+    its year 364 days back, one day before where the step lands, and the tiler
+    cannot cover a window whose end falls between two reported periods, so
+    growth and the Rule of 40 would read NM for every such filer, permanently,
+    and that calendar is common among US technology names. Anchoring on a date
+    the company actually reported sidesteps the arithmetic, and the 29 February
+    problem ``date.replace`` would raise on. The plain step is the answer only
+    when no reported end lies within ten days of it.
+
+    The candidate ends are pooled across every tag on the revenue ladder rather
+    than taken from the first tag that carries any facts. Nvidia stopped tagging
+    ``RevenueFromContractWithCustomerExcludingAssessedTax`` after fiscal 2022 and
+    reports under ``Revenues`` now, but the retired tag still has facts, so its
+    ends stop in 2022, nothing is near the target, and the first-tag reading
+    lands on the plain step a day off the quarter the company actually closed.
+    """
+    target = as_of - timedelta(days=365)
+    ends: set[date] = set()
+    for tag in tags.REVENUE:
+        if not isinstance(tag, str):
+            continue
+        ends.update(f.end for f in facts.facts(tag) if not f.is_instant)
+    near = [d for d in ends if abs((d - target).days) <= 10]
+    return min(near, key=lambda d: abs((d - target).days)) if near else target
+
+
 def _revenue_growth(
     fin: Financials, facts: CompanyFacts, flags: list[str]
 ) -> float | None:
     """Year-over-year growth of trailing twelve month revenue.
 
-    The prior window is anchored on the filer's **own** reported period end
-    nearest a year before the current balance-sheet date, then handed to the same
-    tiler, so the comparison is twelve reported months against twelve reported
-    months.
-
-    A fixed 365-day step looks equivalent and is not. A 52/53-week filer closes
-    its year 364 days back, one day before where the step lands, and the tiler
-    cannot cover a window whose end falls between two reported periods. Growth
-    and Rule of 40 would then read NM for every such filer, permanently, and that
-    calendar is common among US technology names. Anchoring on a date the company
-    actually reported sidesteps the arithmetic entirely, and also avoids the 29
-    February problem that ``date.replace`` would raise on.
+    The prior window ends on ``prior_year_end`` and goes to the same tiler, so
+    the comparison is twelve reported months against twelve reported months.
     """
-    target = fin.as_of - timedelta(days=365)
-    _, series, _ = facts.resolve_duration_series(tags.REVENUE)
-    candidates = [f.end for f in series if abs((f.end - target).days) <= 10]
-    prior_as_of = (
-        min(candidates, key=lambda d: abs((d - target).days)) if candidates else target
-    )
+    prior_as_of = prior_year_end(fin.as_of, facts)
     raw, prov = facts.resolve_ttm(
         "prior-year revenue", tags.REVENUE, prior_as_of, required=False
     )

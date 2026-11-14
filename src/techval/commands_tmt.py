@@ -76,6 +76,7 @@ from rich.table import Table
 from rich.text import Text
 
 from . import tags
+from .comps import prior_year_end
 from .config import Assumptions
 from .edgar import EdgarClient, HttpCache
 from .errors import ConfigError, MissingDataError, TechvalError
@@ -646,38 +647,6 @@ SALES_AND_MARKETING = ["SellingAndMarketingExpense"]
 _MM = 1e6
 
 
-def _prior_anchor(fin, facts) -> date:
-    """The period end the filer actually reported nearest a year back.
-
-    A fixed 365 day step looks equivalent and is not. A 52/53 week filer closes
-    its year 364 days back, one day before where the step lands, the tiler cannot
-    cover a window whose end falls between two reported periods, and every such
-    filer would report no growth and no magic number forever.
-
-    The candidate period ends are pooled across **every** tag on the revenue
-    ladder rather than taken from the first one that carries any facts at all.
-    That distinction is not academic and Nvidia is the case that earned it.
-    Nvidia stopped tagging ``RevenueFromContractWithCustomerExcludingAssessedTax``
-    after fiscal 2022 and reports under ``Revenues`` now, but the retired tag
-    still has facts, so a reader that stops at the first tag with a series gets a
-    list of period ends that stop in 2022, finds nothing within ten days of the
-    target, falls back to the fixed 365 day step and lands on 2025-07-26 against
-    a quarter the company closed on 2025-07-27. The window cannot be tiled, and
-    prior-year revenue, revenue growth, the Rule of 40 and the magic number all
-    come back unavailable for the largest company in the sector. See the note in
-    the pull request: ``comps._revenue_growth`` anchors the same way and has the
-    same exposure.
-    """
-    target = fin.as_of - timedelta(days=365)
-    ends: set[date] = set()
-    for tag in tags.REVENUE:
-        if not isinstance(tag, str):
-            continue
-        ends.update(f.end for f in facts.facts(tag) if not f.is_instant)
-    near = [d for d in ends if abs((d - target).days) <= 10]
-    return min(near, key=lambda d: abs((d - target).days)) if near else target
-
-
 def _statement_kpis(fin, facts) -> tuple[dict[str, float], list[dict[str, object]]]:
     """Prior period revenue and sales and marketing spend, off the filed lines.
 
@@ -690,7 +659,7 @@ def _statement_kpis(fin, facts) -> tuple[dict[str, float], list[dict[str, object
     """
     values: dict[str, float] = {}
     rows: list[dict[str, object]] = []
-    prior_end = _prior_anchor(fin, facts)
+    prior_end = prior_year_end(fin.as_of, facts)
 
     for key, concept, ladder, when in (
         ("revenue_prior", "prior-year revenue", tags.REVENUE, prior_end),
