@@ -65,6 +65,15 @@ This is not hypothetical. Zscaler reports its marketable securities under
 the obvious list. Before that entry was added, the engine returned zero
 short-term investments and overstated Zscaler's enterprise value by $2.5bn.
 
+Revenue meets the same trap over periods rather than at a date. Nvidia stopped
+tagging `RevenueFromContractWithCustomerExcludingAssessedTax` after fiscal 2022
+and reports under `Revenues` now, and the retired tag, first on the revenue
+ladder, still carries its last figures. The anchor for last year's revenue is
+therefore the filer's own period end nearest a year back among the periods of
+every tag on the ladder, and a revenue series read whole, which is where the
+segment reconciliation finds its consolidated total, comes from the tag whose
+facts run latest rather than from the first tag that has any.
+
 ### 2.2 Absence means two different things
 
 A concept can be missing because the filer has none of it, or because the engine
