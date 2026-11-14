@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from datetime import date, timedelta
+
 import pandas as pd
 import pytest
 
-from techval.comps import run_comps
+from techval.comps import PeerMetrics, _revenue_growth, compute_peer_metrics, fit_warranted_multiple, run_comps
+from techval.edgar import CompanyFacts
+from techval.errors import ConfigError
+from techval.ev_bridge import build_ev_bridge, equity_value_from_ev
+from techval.financials import Financials
 
 from conftest import FixtureClient, facts_payload
 
@@ -195,7 +201,26 @@ def test_growth_is_measured_not_guessed(result):
             assert -1.0 < p.revenue_growth < 3.0
 
 
-def test_growth_works_for_a_52_53_week_filer(assumptions, market, monkeypatch):
+def _thirteen_week_quarters(end: date, n: int, first: float, step: float) -> list[tuple[str, str, float]]:
+    """``n`` thirteen-week quarters back from ``end``, revenue ``step`` lower each quarter back."""
+    return [
+        ((end - timedelta(days=91 * i + 90)).isoformat(), (end - timedelta(days=91 * i)).isoformat(), first - step * i)
+        for i in range(n)
+    ]
+
+
+def _growth_at(end: date, facts: CompanyFacts, tag: str) -> tuple[float | None, list[str]]:
+    """comps' revenue growth for a filer whose revenue is the twelve months to ``end`` under ``tag``."""
+    current, _ = facts.resolve_ttm("revenue", [tag], end)
+    stub = object.__new__(Financials)
+    object.__setattr__(stub, "as_of", end)
+    object.__setattr__(stub, "revenue", current / 1e6)
+    object.__setattr__(stub, "provenance", {})
+    flags: list[str] = []
+    return _revenue_growth(stub, facts, flags), flags
+
+
+def test_growth_works_for_a_52_53_week_filer():
     """A 13-week fiscal quarter does not land on the calendar anniversary.
 
     A 52/53-week year closes 364 days back, one day before a fixed 365-day step
@@ -204,51 +229,10 @@ def test_growth_works_for_a_52_53_week_filer(assumptions, market, monkeypatch):
     what makes growth available for this calendar at all. Cisco, Broadcom,
     Marvell, NetApp and Dell all use it, and all are plausible comp-set members.
     """
-    from datetime import date, timedelta
-
-    from techval.edgar import CompanyFacts
-
-    # Thirteen-week quarters marching back from 2026-08-01.
+    tag = "RevenueFromContractWithCustomerExcludingAssessedTax"
     end = date(2026, 8, 1)
-    quarters = []
-    for i in range(9):
-        q_end = end - timedelta(days=91 * i)
-        quarters.append(
-            {
-                "start": (q_end - timedelta(days=90)).isoformat(),
-                "end": q_end.isoformat(),
-                "val": 250_000_000 - 10_000_000 * i,
-                "form": "10-Q",
-                "filed": (q_end + timedelta(days=30)).isoformat(),
-            }
-        )
-    payload = {
-        "cik": 1,
-        "entityName": "Thirteen Weeks Inc",
-        "facts": {
-            "us-gaap": {
-                "RevenueFromContractWithCustomerExcludingAssessedTax": {
-                    "units": {"USD": quarters}
-                }
-            }
-        },
-    }
-    facts = CompanyFacts(payload, "WEEK")
-
-    from techval.financials import Financials
-    from techval.comps import _revenue_growth
-
-    current, _ = facts.resolve_ttm(
-        "revenue",
-        ["RevenueFromContractWithCustomerExcludingAssessedTax"],
-        end,
-    )
-    stub = object.__new__(Financials)
-    object.__setattr__(stub, "as_of", end)
-    object.__setattr__(stub, "revenue", current / 1e6)
-    object.__setattr__(stub, "provenance", {})
-    flags: list[str] = []
-    growth = _revenue_growth(stub, facts, flags)
+    facts = CompanyFacts(facts_payload({tag: _thirteen_week_quarters(end, 9, 250e6, 10e6)}), "WEEK")
+    growth, flags = _growth_at(end, facts, tag)
 
     assert growth is not None, f"growth unavailable for a 13-week filer: {flags}"
     assert growth > 0
@@ -262,34 +246,17 @@ def test_growth_survives_a_retired_revenue_tag():
     back, nothing is near the target, the anchor falls back to the plain 365 day
     step, lands a day off a 52/53 week filer's close, and growth comes back NM.
     """
-    from datetime import date, timedelta
-
-    from techval.comps import _revenue_growth
-    from techval.edgar import CompanyFacts
-    from techval.financials import Financials
-
-    # Thirteen-week quarters back from 2026-07-26, so the year before closed 364 days earlier.
     end = date(2026, 7, 26)
-    quarters = [
-        ((end - timedelta(days=91 * i + 90)).isoformat(), (end - timedelta(days=91 * i)).isoformat(), 50e9 - 2e9 * i)
-        for i in range(8)
-    ]
     facts = CompanyFacts(
         facts_payload(
             {
                 "RevenueFromContractWithCustomerExcludingAssessedTax": [("2021-02-01", "2022-01-30", 26_914e6)],
-                "Revenues": quarters,
+                "Revenues": _thirteen_week_quarters(end, 8, 50e9, 2e9),
             }
         ),
         "NVDA",
     )
-    current, _ = facts.resolve_ttm("revenue", ["Revenues"], end)
-    stub = object.__new__(Financials)
-    object.__setattr__(stub, "as_of", end)
-    object.__setattr__(stub, "revenue", current / 1e6)
-    object.__setattr__(stub, "provenance", {})
-    flags: list[str] = []
-    growth = _revenue_growth(stub, facts, flags)
+    growth, flags = _growth_at(end, facts, "Revenues")
 
     assert growth is not None, f"growth unavailable behind a retired tag: {flags}"
     assert growth == pytest.approx(188 / 156 - 1)
@@ -302,13 +269,8 @@ def test_negative_enterprise_value_withholds_ev_multiples(assumptions, market):
     so they are withheld with the reason on show while P/E, an equity multiple,
     survives on its own merits.
     """
-    from datetime import date as _date
-
-    from techval.comps import compute_peer_metrics
-    from techval.financials import Financials
-
     fin = Financials(
-        ticker="CASHBOX", entity_name="Cashbox", cik=1, as_of=_date(2026, 6, 30),
+        ticker="CASHBOX", entity_name="Cashbox", cik=1, as_of=date(2026, 6, 30),
         revenue=500.0, gross_profit=350.0, ebit=40.0, da=10.0, sbc=0.0,
         net_income=50.0, pretax_income=60.0, tax_expense=10.0,
         interest_expense=0.0, operating_lease_cost=0.0, capex=5.0, cfo=None,
@@ -318,8 +280,6 @@ def test_negative_enterprise_value_withholds_ev_multiples(assumptions, market):
         finance_lease_liability=0.0, nci=0.0, preferred=0.0,
         current_assets=None, current_liabilities=None, deferred_revenue=0.0,
     )
-    from techval.edgar import CompanyFacts
-
     # Priced at 10.00 the equity is 1,000mm against 2,000mm of cash: EV -1,000mm.
     empty = CompanyFacts({"cik": 1, "entityName": "Cashbox", "facts": {}}, "CASHBOX")
     m = compute_peer_metrics(fin, empty, 10.0, assumptions)
@@ -342,8 +302,6 @@ _A, _B1, _B2 = 2.0, 20.0, 10.0
 
 def _peer(ticker, *, ev_revenue, growth, margin, revenue=1_000.0, price=50.0):
     """One synthetic comp, carrying only the lines the regression reads."""
-    from techval.comps import PeerMetrics
-
     equity = price * 100.0
     return PeerMetrics(
         ticker=ticker,
@@ -401,15 +359,8 @@ def _real_target(assumptions, *, price=100.0, growth=0.25, margin=0.10):
     prior-year revenue to measure growth from, and the regression needs drivers,
     not a growth calculation.
     """
-    from datetime import date as _date
-
-    from techval.comps import compute_peer_metrics
-    from techval.edgar import CompanyFacts
-    from techval.ev_bridge import build_ev_bridge
-    from techval.financials import Financials
-
     fin = Financials(
-        ticker="TGT", entity_name="Warranted Inc", cik=1, as_of=_date(2026, 6, 30),
+        ticker="TGT", entity_name="Warranted Inc", cik=1, as_of=date(2026, 6, 30),
         revenue=1_000.0, gross_profit=800.0, ebit=60.0, da=40.0, sbc=0.0,
         net_income=50.0, pretax_income=60.0, tax_expense=10.0,
         interest_expense=12.0, operating_lease_cost=15.0, capex=30.0, cfo=None,
@@ -429,8 +380,6 @@ def _real_target(assumptions, *, price=100.0, growth=0.25, margin=0.10):
 
 def test_noiseless_data_recovers_the_coefficients_exactly(assumptions):
     """The whole method rests on this: OLS on a plane returns that plane."""
-    from techval.comps import fit_warranted_multiple
-
     fit = fit_warranted_multiple(_on_the_line(12), _synthetic_target(), assumptions)
 
     assert fit is not None
@@ -446,8 +395,6 @@ def test_noiseless_data_recovers_the_coefficients_exactly(assumptions):
 
 
 def test_warranted_multiple_reads_the_line_at_the_target(assumptions):
-    from techval.comps import fit_warranted_multiple
-
     target = _synthetic_target(growth=0.25, margin=0.10, ev_revenue=9.0)
     fit = fit_warranted_multiple(_on_the_line(12), target, assumptions)
 
@@ -459,8 +406,6 @@ def test_warranted_multiple_reads_the_line_at_the_target(assumptions):
 
 def test_residual_is_actual_less_warranted_in_both_directions(assumptions):
     """Positive residual means the market pays above what the drivers explain."""
-    from techval.comps import fit_warranted_multiple
-
     peers = _on_the_line(12)
     warranted = _A + _B1 * 0.25 + _B2 * 0.10
 
@@ -473,8 +418,6 @@ def test_residual_is_actual_less_warranted_in_both_directions(assumptions):
 
 def test_adjusted_r_squared_is_below_the_raw_figure(assumptions):
     """Raw R-squared cannot fall when a regressor is added; adjusted can."""
-    from techval.comps import fit_warranted_multiple
-
     fit = fit_warranted_multiple(_on_the_line(12, noise=True), _synthetic_target(), assumptions)
 
     assert fit is not None
@@ -490,8 +433,6 @@ def test_adjusted_r_squared_is_below_the_raw_figure(assumptions):
 
 def test_the_shipped_six_peer_set_is_refused(assumptions):
     """Two parameters on six points memorises the set. It must say so, not fit."""
-    from techval.comps import fit_warranted_multiple
-
     notes: list[str] = []
     fit = fit_warranted_multiple(
         _on_the_line(6), _synthetic_target(), assumptions, notes=notes
@@ -524,8 +465,6 @@ def test_regression_is_off_unless_asked_for(assumptions, market):
 
 def test_three_points_per_parameter_is_the_floor(assumptions):
     """Even with the minimum lowered, five points for two drivers is refused."""
-    from techval.comps import fit_warranted_multiple
-
     assumptions.comps.regression.min_observations = 3
     notes: list[str] = []
     fit = fit_warranted_multiple(
@@ -538,8 +477,6 @@ def test_three_points_per_parameter_is_the_floor(assumptions):
 
 def test_singular_design_is_refused_not_pseudo_inverted(assumptions):
     """A driver that does not move cannot be told apart from the intercept."""
-    from techval.comps import fit_warranted_multiple
-
     peers = [
         _peer(f"S{i:02d}", ev_revenue=3.0 + 20.0 * (0.10 + 0.02 * i),
               growth=0.10 + 0.02 * i, margin=0.20)
@@ -554,8 +491,6 @@ def test_singular_design_is_refused_not_pseudo_inverted(assumptions):
 
 def test_collinear_drivers_are_refused(assumptions):
     """Margin defined as twice growth carries no separate information."""
-    from techval.comps import fit_warranted_multiple
-
     peers = [
         _peer(f"C{i:02d}", ev_revenue=3.0 + 5.0 * i,
               growth=0.10 + 0.02 * i, margin=2.0 * (0.10 + 0.02 * i))
@@ -567,8 +502,6 @@ def test_collinear_drivers_are_refused(assumptions):
 
 def test_a_peer_missing_a_driver_is_dropped_and_named(assumptions):
     """Never imputed: a peer given the sample mean sits on the line by construction."""
-    from techval.comps import fit_warranted_multiple
-
     peers = _on_the_line(12)
     peers[3].ebitda_margin = None
     peers[7].ev_revenue = None
@@ -584,8 +517,6 @@ def test_a_peer_missing_a_driver_is_dropped_and_named(assumptions):
 
 
 def test_dropped_peers_can_push_the_sample_under_the_minimum(assumptions):
-    from techval.comps import fit_warranted_multiple
-
     peers = _on_the_line(9)
     for p in peers[:3]:
         p.revenue_growth = None
@@ -597,8 +528,6 @@ def test_dropped_peers_can_push_the_sample_under_the_minimum(assumptions):
 
 def test_a_backwards_coefficient_is_flagged(assumptions):
     """Growth that reduces the multiple is a symptom, not a finding."""
-    from techval.comps import fit_warranted_multiple
-
     # A high base so the backwards slope still warrants a positive multiple at
     # the target: the point under test is the sign flag, not the refusal.
     peers = _on_the_line(12, a=12.0, b1=-20.0)
@@ -610,8 +539,6 @@ def test_a_backwards_coefficient_is_flagged(assumptions):
 
 
 def test_a_target_missing_a_driver_gets_no_warranted_multiple(assumptions):
-    from techval.comps import fit_warranted_multiple
-
     target = _synthetic_target()
     target.ebitda_margin = None
     notes: list[str] = []
@@ -622,8 +549,6 @@ def test_a_target_missing_a_driver_gets_no_warranted_multiple(assumptions):
 
 def test_a_negative_warranted_multiple_is_refused(assumptions):
     """A positive multiple times positive revenue is a value; a negative one is not."""
-    from techval.comps import fit_warranted_multiple
-
     notes: list[str] = []
     # Far below every peer on both drivers, so the fitted line runs below zero.
     target = _synthetic_target(growth=-1.0, margin=-1.0)
@@ -632,8 +557,6 @@ def test_a_negative_warranted_multiple_is_refused(assumptions):
 
 
 def test_the_target_outside_the_peer_range_is_flagged_not_refused(assumptions):
-    from techval.comps import fit_warranted_multiple
-
     fit = fit_warranted_multiple(_on_the_line(12), _synthetic_target(growth=0.90), assumptions)
 
     assert fit is not None
@@ -642,9 +565,6 @@ def test_the_target_outside_the_peer_range_is_flagged_not_refused(assumptions):
 
 def test_implied_value_uses_the_same_bridge_walk_as_the_percentile_range(assumptions):
     """A warranted price and a p25 price must subtract identical debt."""
-    from techval.comps import fit_warranted_multiple
-    from techval.ev_bridge import equity_value_from_ev
-
     fin, bridge, target = _real_target(assumptions)
     fit = fit_warranted_multiple(
         _on_the_line(12), target, assumptions, target_fin=fin, bridge=bridge
@@ -661,8 +581,6 @@ def test_implied_value_uses_the_same_bridge_walk_as_the_percentile_range(assumpt
 
 def test_the_walk_is_the_same_with_or_without_the_bridge(assumptions):
     """EV less market capitalisation is the bridge walk in reduced form."""
-    from techval.comps import fit_warranted_multiple
-
     fin, bridge, target = _real_target(assumptions)
     peers = _on_the_line(12)
 
@@ -675,8 +593,6 @@ def test_the_walk_is_the_same_with_or_without_the_bridge(assumptions):
 
 
 def test_rows_render_without_a_none(assumptions):
-    from techval.comps import fit_warranted_multiple
-
     target = _synthetic_target()
     target.ev_revenue = None
     fit = fit_warranted_multiple(_on_the_line(12), target, assumptions)
@@ -690,9 +606,6 @@ def test_rows_render_without_a_none(assumptions):
 
 
 def test_an_unknown_dependent_or_driver_is_a_config_error(assumptions):
-    from techval.comps import fit_warranted_multiple
-    from techval.errors import ConfigError
-
     with pytest.raises(ConfigError):
         fit_warranted_multiple(
             _on_the_line(12), _synthetic_target(), assumptions, dependent="ev_sales"
@@ -705,8 +618,6 @@ def test_an_unknown_dependent_or_driver_is_a_config_error(assumptions):
 
 def test_a_single_driver_still_fits(assumptions):
     """One regressor needs only three points per parameter, plus the minimum."""
-    from techval.comps import fit_warranted_multiple
-
     assumptions.comps.regression.drivers = ["revenue_growth"]
     peers = [
         _peer(f"G{i:02d}", ev_revenue=_A + _B1 * (0.10 + 0.03 * i),
