@@ -611,3 +611,34 @@ def test_switching_segments_off_refuses_rather_than_returning_nothing(assumption
     assumptions.tmt.segments = False
     with pytest.raises(ConfigError, match="tmt.segments"):
         build_segments("DIS", FilingClient(), assumptions)
+
+
+def test_a_filer_that_changed_revenue_tags_falls_back_to_its_live_annual_revenue():
+    """Nvidia's shape, at the fallback a segment note with no tagged total uses.
+
+    The retired tag is first on the ladder and stops in fiscal 2022. Read from it,
+    the "latest" annual revenue is four years stale; read from the tag that runs
+    latest, it is the year the segments describe.
+    """
+    from techval.tmt.segments import _annual_from_facts
+
+    row = lambda start, end, val: {"start": start, "end": end, "val": val, "form": "10-K", "filed": end}
+    facts = CompanyFacts(
+        {
+            "cik": 1,
+            "entityName": "Retired Tag Corp",
+            "facts": {
+                "us-gaap": {
+                    "RevenueFromContractWithCustomerExcludingAssessedTax": {
+                        "units": {"USD": [row("2021-02-01", "2022-01-30", 26_914e6)]}
+                    },
+                    "Revenues": {"units": {"USD": [row("2025-01-27", "2026-01-25", 130_497e6)]}},
+                }
+            },
+        },
+        "NVDA",
+    )
+    tag, period, revenue = _annual_from_facts(facts, None, "NVDA")
+    assert tag == "Revenues"
+    assert period == (date(2025, 1, 27), date(2026, 1, 25))
+    assert revenue == pytest.approx(130_497.0)

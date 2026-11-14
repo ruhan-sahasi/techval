@@ -254,6 +254,59 @@ def test_growth_works_for_a_52_53_week_filer(assumptions, market, monkeypatch):
     assert growth > 0
 
 
+def test_growth_survives_a_retired_revenue_tag():
+    """Nvidia's shape: the first tag on the ladder retired years ago, the live one further down.
+
+    The prior-year anchor has to be looked for among every tag's period ends.
+    Taken from the first tag that carries any facts at all, the ends stop years
+    back, nothing is near the target, the anchor falls back to the plain 365 day
+    step, lands a day off a 52/53 week filer's close, and growth comes back NM.
+    """
+    from datetime import date, timedelta
+
+    from techval.comps import _revenue_growth
+    from techval.edgar import CompanyFacts
+    from techval.financials import Financials
+
+    end = date(2026, 7, 26)
+    live = []
+    for i in range(8):
+        q_end = end - timedelta(days=91 * i)
+        live.append(
+            {
+                "start": (q_end - timedelta(days=90)).isoformat(),
+                "end": q_end.isoformat(),
+                "val": 50_000_000_000 - 2_000_000_000 * i,
+                "form": "10-Q",
+                "filed": (q_end + timedelta(days=30)).isoformat(),
+            }
+        )
+    retired = [
+        {"start": "2021-02-01", "end": "2022-01-30", "val": 26_914_000_000, "form": "10-K", "filed": "2022-03-18"}
+    ]
+    payload = {
+        "cik": 1,
+        "entityName": "Retired Tag Corp",
+        "facts": {
+            "us-gaap": {
+                "RevenueFromContractWithCustomerExcludingAssessedTax": {"units": {"USD": retired}},
+                "Revenues": {"units": {"USD": live}},
+            }
+        },
+    }
+    facts = CompanyFacts(payload, "NVDA")
+    current, _ = facts.resolve_ttm("revenue", ["Revenues"], end)
+    stub = object.__new__(Financials)
+    object.__setattr__(stub, "as_of", end)
+    object.__setattr__(stub, "revenue", current / 1e6)
+    object.__setattr__(stub, "provenance", {})
+    flags: list[str] = []
+    growth = _revenue_growth(stub, facts, flags)
+
+    assert growth is not None, f"growth unavailable behind a retired tag: {flags}"
+    assert growth == pytest.approx(188 / 156 - 1)
+
+
 def test_negative_enterprise_value_withholds_ev_multiples(assumptions, market):
     """Cash above market cap plus debt makes every EV multiple negative.
 

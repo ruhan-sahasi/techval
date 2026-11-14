@@ -36,6 +36,7 @@ import pytest
 from typer.testing import CliRunner
 
 from techval import commands_tmt as C
+from techval.comps import prior_year_end
 from techval.edgar import CompanyFacts, Provenance
 from techval.errors import ConfigError
 from techval.market import CsvSource
@@ -528,7 +529,7 @@ def _payload(series: dict[str, list[tuple[str, str, float]]]) -> dict:
 
 
 def test_the_prior_year_anchor_survives_a_retired_revenue_tag():
-    """Nvidia's case, and a bug this module had to route around.
+    """Nvidia's case, which ``comps.prior_year_end`` routes around for both readers.
 
     ``CompanyFacts.resolve_duration_series`` returns the **first** ladder tag
     that carries any duration facts at all. Nvidia stopped tagging
@@ -561,13 +562,13 @@ def test_the_prior_year_anchor_survives_a_retired_revenue_tag():
     fin = SimpleNamespace(as_of=date(2026, 7, 26), revenue=302_970.0)
     # 364 days back, which is where a 52/53 week filer actually closed, and one
     # day away from where the naive step lands.
-    assert C._prior_anchor(fin, facts) == date(2025, 7, 27)
+    assert prior_year_end(fin.as_of, facts) == date(2025, 7, 27)
 
 
 def test_the_anchor_falls_back_to_the_step_when_nothing_is_near():
     facts = CompanyFacts(_payload({"Revenues": [("2019-01-01", "2019-12-31", 10.0)]}), "X")
     fin = SimpleNamespace(as_of=date(2026, 6, 30), revenue=100.0)
-    assert C._prior_anchor(fin, facts) == date(2025, 6, 30)
+    assert prior_year_end(fin.as_of, facts) == date(2025, 6, 30)
 
 
 def _quarters(tag: str, values: list[float]) -> list[tuple[str, str, float]]:
