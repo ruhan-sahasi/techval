@@ -7,7 +7,7 @@ from datetime import date
 
 from techval.edgar import CompanyFacts
 
-from conftest import FIXTURES
+from conftest import FIXTURES, facts_payload
 
 PAYLOAD = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text(encoding="utf-8"))
 TAG = "RevenueFromContractWithCustomerExcludingAssessedTax"
@@ -34,15 +34,6 @@ def test_an_unknown_tag_is_an_empty_list_every_time():
     assert facts.facts("NoSuchTag") == [] and facts.facts("NoSuchTag") == []
 
 
-def _revenue_payload(series: dict[str, list[tuple[str, str, float]]]) -> dict:
-    """Company facts with one (start, end, value) list per revenue tag."""
-    us_gaap = {
-        tag: {"units": {"USD": [{"start": s, "end": e, "val": v, "form": "10-K", "filed": e} for s, e, v in rows]}}
-        for tag, rows in series.items()
-    }
-    return {"cik": 1, "entityName": "Revenue Tags Inc", "facts": {"us-gaap": us_gaap}}
-
-
 def test_the_duration_series_follows_a_filer_that_changed_revenue_tags():
     """Nvidia's shape: the first tag on the ladder retired, the live one further down.
 
@@ -53,7 +44,7 @@ def test_the_duration_series_follows_a_filer_that_changed_revenue_tags():
     from techval import tags
 
     facts = CompanyFacts(
-        _revenue_payload(
+        facts_payload(
             {
                 "RevenueFromContractWithCustomerExcludingAssessedTax": [("2021-02-01", "2022-01-30", 26.9e9)],
                 "Revenues": [("2025-01-27", "2026-01-25", 130.5e9)],
@@ -70,7 +61,7 @@ def test_two_tags_running_to_the_same_end_keep_the_ladders_order():
     from techval import tags
 
     facts = CompanyFacts(
-        _revenue_payload(
+        facts_payload(
             {
                 "RevenueFromContractWithCustomerExcludingAssessedTax": [("2025-01-01", "2025-12-31", 90.0)],
                 "Revenues": [("2025-01-01", "2025-12-31", 100.0)],

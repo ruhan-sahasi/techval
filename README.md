@@ -1772,6 +1772,8 @@ are all observed in filings committed as test fixtures:
   whose newest fact is more than 20 days old is skipped. Zscaler reports
   marketable securities under `DebtSecuritiesAvailableForSaleExcludingAccruedInterestCurrent`;
   resolving by first-tag-present returned zero and overstated its EV by $2.5bn.
+  Revenue series come from the tag whose facts run latest, so Nvidia's retired
+  first tag is not read as its current revenue.
 - **Quarters that were never filed.** Q4 is always the year less nine months.
   Snowflake tags D&A only cumulatively; CrowdStrike files a year-to-date half plus
   a discrete Q2 with no discrete Q1. Periods are recovered by subtracting nested
