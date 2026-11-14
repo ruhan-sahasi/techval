@@ -969,13 +969,24 @@ class CompanyFacts:
     def resolve_duration_series(
         self, ladder: Iterable[str]
     ) -> tuple[str | None, list[Fact], list[str]]:
-        """First ladder tag that carries any duration facts, with its series."""
+        """The ladder tag whose duration facts run latest, with its series.
+
+        Latest rather than first, because a filer that changes tags leaves the
+        old one in its facts. Nvidia stopped tagging
+        ``RevenueFromContractWithCustomerExcludingAssessedTax`` after fiscal 2022
+        and reports under ``Revenues`` now, so the first tag with any facts is
+        the retired one and every period read from it stops years back. Where
+        two tags run to the same end, the earlier on the ladder wins.
+        """
         ladder = list(ladder)
+        best: tuple[date, str, list[Fact]] | None = None
         for tag in ladder:
             facts = [f for f in self.facts(tag) if not f.is_instant]
-            if facts:
-                return tag, facts, ladder
-        return None, [], ladder
+            if facts and (best is None or max(f.end for f in facts) > best[0]):
+                best = (max(f.end for f in facts), tag, facts)
+        if best is None:
+            return None, [], ladder
+        return best[1], best[2], ladder
 
     def _composite_series(self, parts: tuple[str, ...]) -> list[Fact]:
         """Sum several tags over identical periods.
