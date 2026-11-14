@@ -8,12 +8,13 @@ whose arithmetic only agrees with itself is not evidence of anything.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 
 import pytest
 
 from conftest import load_facts
 from techval import tags
+from techval.comps import prior_year_end
 from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import Financials
@@ -29,13 +30,11 @@ from techval.tmt.metrics import (
 def prior_year_revenue(fin: Financials, facts) -> float:
     """The prior twelve months of revenue, anchored on a period the filer reported.
 
-    The same anchoring the comp engine uses. A flat 365 day step lands one day
-    off a 52/53 week filer's year end, which is most of this fixture set.
+    The comp engine's own anchor, ``comps.prior_year_end``. A flat 365 day step
+    lands one day off a 52/53 week filer's year end, which is most of this
+    fixture set.
     """
-    target = fin.as_of - timedelta(days=365)
-    _, series, _ = facts.resolve_duration_series(tags.REVENUE)
-    ends = [f.end for f in series if abs((f.end - target).days) <= 10]
-    anchor = min(ends, key=lambda d: abs((d - target).days)) if ends else target
+    anchor = prior_year_end(fin.as_of, facts)
     raw, _ = facts.resolve_ttm("prior revenue", tags.REVENUE, anchor, required=False)
     assert raw is not None, "fixture should carry a prior year of revenue"
     return raw / 1e6
