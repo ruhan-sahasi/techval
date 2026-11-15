@@ -2,14 +2,21 @@
 
 from __future__ import annotations
 
+import cProfile
+import gzip
+import json
 from pathlib import Path
+
+import techval
+from techval.edgar import CompanyFacts
+from techval.ml import panels
+from techval.ml.forecast import build_fade_panel, fade_universe
+from techval.ml.panels import cached_fit, fit_key
 
 from conftest import FIXTURES
 
 
 def test_a_cached_fit_is_built_once_and_loaded_after(tmp_path):
-    from techval.ml.panels import cached_fit
-
     panel = tmp_path / "panel.bin"
     panel.write_bytes(b"one")
     built = []
@@ -27,8 +34,6 @@ def test_a_cached_fit_is_built_once_and_loaded_after(tmp_path):
 
 
 def test_changed_panel_bytes_are_a_cache_miss(tmp_path):
-    from techval.ml.panels import cached_fit, fit_key
-
     panel = tmp_path / "panel.bin"
     modules = ("techval.ml.panels",)
     panel.write_bytes(b"one")
@@ -43,8 +48,6 @@ def test_changed_panel_bytes_are_a_cache_miss(tmp_path):
 
 
 def test_an_unreadable_entry_is_a_miss_and_refit_rebuilds(tmp_path):
-    from techval.ml.panels import cached_fit, fit_key
-
     panel = tmp_path / "panel.bin"
     panel.write_bytes(b"one")
     modules = ("techval.ml.panels",)
@@ -57,8 +60,6 @@ def test_an_unreadable_entry_is_a_miss_and_refit_rebuilds(tmp_path):
 
 
 def test_no_cache_root_means_no_disk_cache(tmp_path):
-    from techval.ml.panels import cached_fit
-
     calls = []
     for _ in range(2):
         cached_fit("probe", [], (), lambda: calls.append(1), None)
@@ -73,16 +74,7 @@ def test_the_fade_panel_cache_key_covers_every_module_the_build_runs():
     profiled on a few companies and the modules it actually entered are read
     off the profile.
     """
-    import cProfile
-    import gzip
-    import json as _json
-
-    import techval
-    from techval.edgar import CompanyFacts
-    from techval.ml import panels
-    from techval.ml.forecast import build_fade_panel, fade_universe
-
-    blob = _json.load(gzip.open(FIXTURES / panels.FADE_PANEL, "rt"))
+    blob = json.load(gzip.open(FIXTURES / panels.FADE_PANEL, "rt"))
 
     class Client:
         def company_facts(self, ticker):

@@ -7,7 +7,13 @@ from datetime import date, timedelta
 import pandas as pd
 import pytest
 
-from techval.comps import PeerMetrics, _revenue_growth, compute_peer_metrics, fit_warranted_multiple, run_comps
+from techval.comps import (
+    PeerMetrics,
+    _revenue_growth,
+    compute_peer_metrics,
+    fit_warranted_multiple,
+    run_comps,
+)
 from techval.edgar import CompanyFacts
 from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge, equity_value_from_ev

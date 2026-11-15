@@ -8,7 +8,10 @@ from pathlib import Path
 import pytest
 
 from techval.config import Assumptions
-from techval.dashboard.snapshot import Snapshot
+from techval.dashboard.collect import CollectContext, collect_section
+from techval.dashboard.render import render_dashboard
+from techval.dashboard.sections import engine as E
+from techval.dashboard.snapshot import Snapshot, load_snapshot
 from techval.market import CsvSource
 from techval.tearsheet import RecordedFacts, build_tearsheet
 
@@ -29,9 +32,6 @@ def sheet(ticker, peers=(), observations=None):
 
 
 def test_datadogs_tearsheet_draws_the_results_pages_figures(fade_observations):
-    from techval.dashboard.collect import CollectContext, collect_section
-    from techval.dashboard.sections import engine as E
-
     snap = sheet("DDOG", ("CRWD", "MDB", "ZS"), fade_observations)
     page = snap.sections["engine"]
     results, _ = collect_section(E, CollectContext(FIXTURES, Path(__file__).parents[1], Assumptions()), use_cache=False)
@@ -68,9 +68,6 @@ def test_a_company_with_no_peers_or_panel_still_gets_a_page_that_says_what_is_mi
 
 @pytest.mark.parametrize("ticker", ["CRWD", "DIS"])
 def test_each_example_page_is_exactly_what_its_committed_snapshot_renders(ticker):
-    from techval.dashboard.render import render_dashboard
-    from techval.dashboard.snapshot import load_snapshot
-
     docs = Path(__file__).parents[1] / "docs" / "tearsheet"
     snap = load_snapshot(docs / f"{ticker}.json")
     assert snap.title == f"{ticker}, valued by the engine" and snap.page is not None
@@ -78,8 +75,6 @@ def test_each_example_page_is_exactly_what_its_committed_snapshot_renders(ticker
 
 
 def test_the_disney_example_is_on_its_own_record():
-    from techval.dashboard.snapshot import load_snapshot
-
     snap = load_snapshot(Path(__file__).parents[1] / "docs" / "tearsheet" / "DIS.json")
     assert "record" in snap.sections["engine"]["figures"]
     assert "The DCF is the record case" in snap.page["standfirst"]

@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+import json
 from datetime import date
 
 import pytest
 
+from techval.config import Assumptions
+import techval.market as M
 from techval.edgar import HttpCache
-from techval.market import TREASURY_URL, CsvSource, MarketData
+from techval.errors import MissingDataError
+from techval.market import TREASURY_URL, CsvSource, MarketData, SpanSource
+from techval.reverse_dcf import expectations_history, quarter_ends
 
 from conftest import FIXTURES, PRICES
 
@@ -66,8 +71,6 @@ class Counting:
 
 
 def test_a_span_fetches_each_symbol_once_and_serves_every_window_inside_it():
-    from techval.market import SpanSource
-
     counting = Counting(PRICES)
     span = SpanSource(counting, date(2023, 6, 1), date(2026, 9, 1))
     windows = [(date(2023, 6, 1), date(2025, 3, 31)), (date(2024, 1, 2), date(2026, 9, 1))]
@@ -79,17 +82,12 @@ def test_a_span_fetches_each_symbol_once_and_serves_every_window_inside_it():
 
 
 def test_a_window_outside_the_span_goes_to_the_source_as_asked():
-    from techval.market import SpanSource
-
     counting = Counting(PRICES)
     SpanSource(counting, date(2024, 1, 1), date(2025, 1, 1)).fetch("DDOG", date(2023, 6, 1), date(2024, 6, 1))
     assert counting.asked == [("DDOG", date(2023, 6, 1), date(2024, 6, 1))]
 
 
 def test_a_symbol_the_source_cannot_price_is_refused_every_time_without_asking_again():
-    from techval.errors import MissingDataError
-    from techval.market import SpanSource
-
     counting = Counting(PRICES)
     span = SpanSource(counting, date(2024, 1, 1), date(2025, 1, 1))
     for _ in range(2):
@@ -100,12 +98,6 @@ def test_a_symbol_the_source_cannot_price_is_refused_every_time_without_asking_a
 
 def test_a_history_reads_each_treasury_year_once(monkeypatch):
     """Twelve quarters across three years are three yield files, not twelve."""
-    import json
-
-    import techval.market as M
-    from techval.config import Assumptions
-    from techval.reverse_dcf import expectations_history, quarter_ends
-
     asked = []
 
     def fake_get(url, *, cache, headers=None, **_):

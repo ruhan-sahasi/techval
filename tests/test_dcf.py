@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from techval.anchors import record_case
 from techval.config import Assumptions
 from techval.dcf import (
     carryforward_value,
@@ -19,7 +20,10 @@ from techval.dcf import (
 )
 from techval.edgar import CompanyFacts
 from techval.errors import ConfigError
+from techval.ev_bridge import build_ev_bridge, equity_value_from_ev
 from techval.wacc import compute_wacc
+
+from conftest import load_facts
 
 # Pinned so the per-share figures quoted in the docstrings below stay true
 # whatever the CAPM build does next. Every test that reads a number rather than
@@ -255,8 +259,6 @@ def test_per_share_walks_the_bridge_backwards(
     ddog, ddog_bridge, assumptions, wacc_result
 ):
     """A DCF equity value must use the same debt definition as the comps."""
-    from techval.ev_bridge import equity_value_from_ev
-
     d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
     expected = equity_value_from_ev(d.enterprise_value_gordon, ddog_bridge)
     assert d.equity_value_gordon == pytest.approx(expected)
@@ -307,8 +309,6 @@ def test_dcf_equity_walk_never_subtracts_operating_leases(
     equity would charge the same lease twice, so the equity value must be
     identical under either convention.
     """
-    from techval.ev_bridge import build_ev_bridge
-
     price = market.spot("DDOG")
     plain = run_dcf(ddog, build_ev_bridge(ddog, price, assumptions), wacc_result,
                     assumptions)
@@ -1006,9 +1006,6 @@ def test_the_working_capital_note_sets_the_assumed_ratio_beside_the_balance_shee
     ddog, ddog_bridge, assumptions, wacc_result
 ):
     """The ratio is a choice, so the note shows what the filer actually carries."""
-    from conftest import load_facts
-    from techval.anchors import record_case
-
     assumptions.dcf.wacc_override = PINNED_WACC
     reported = ddog.operating_working_capital
     note = _working_capital_note(run_dcf(ddog, ddog_bridge, wacc_result, assumptions))
@@ -1026,8 +1023,6 @@ def test_the_working_capital_note_sets_the_assumed_ratio_beside_the_balance_shee
 def test_a_positive_working_capital_ratio_is_said_to_tie_up_cash(
     mdb, assumptions, market
 ):
-    from techval.ev_bridge import build_ev_bridge
-
     assumptions.dcf.wacc_override = PINNED_WACC
     assumptions.dcf.nwc_pct_revenue = 0.03
     bridge = build_ev_bridge(mdb, market.spot("MDB"), assumptions)

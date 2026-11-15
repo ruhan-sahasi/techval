@@ -20,8 +20,9 @@ from datetime import date
 
 import pytest
 
+from techval.commands_peers import _load_corpora, _load_groups, _load_panel
 from techval.config import Assumptions
-from techval.edgar import SEC_TICKERS_URL
+from techval.edgar import SEC_TICKERS_URL, CompanyFacts
 from techval.errors import DataSourceError, MissingDataError
 from techval.ml.peer_labels import (
     MAX_PLAUSIBLE_PEERS,
@@ -29,9 +30,11 @@ from techval.ml.peer_labels import (
     NameIndex,
     PeerGroup,
     build_name_index,
+    build_peer_artifacts,
     cache_dir,
     collect_peer_groups,
     extract_peer_group,
+    most_named_peers,
     normalise_name,
     peer_pairs,
     segment_names,
@@ -915,8 +918,6 @@ class ArtifactClient(FixtureProxyClient):
         self.knowledge_date = knowledge_date
 
     def company_facts(self, ticker: str):
-        from techval.edgar import CompanyFacts
-
         path = FIXTURES / f"companyfacts_{ticker.upper()}.json"
         if not path.exists():
             raise MissingDataError("companyfacts", ticker=ticker, hint="not a fixture")
@@ -960,9 +961,6 @@ def test_the_build_writes_the_three_files_the_commands_read(tmp_path):
     so the files are read back through ``commands_peers``' own loaders rather
     than through a copy of them.
     """
-    from techval.commands_peers import _load_corpora, _load_groups, _load_panel
-    from techval.ml.peer_labels import build_peer_artifacts
-
     dates = [date(2025, 1, 1), date(2026, 1, 1)]
     written = build_peer_artifacts(
         ARTIFACT_UNIVERSE,
@@ -1009,9 +1007,6 @@ def test_a_row_that_could_not_be_built_is_written_with_its_reason(tmp_path):
     a build. It reaches the file with its error, because a panel that silently
     held one company where two were asked for would understate its own coverage.
     """
-    from techval.commands_peers import _load_panel
-    from techval.ml.peer_labels import build_peer_artifacts
-
     written = build_peer_artifacts(
         ["DDOG", "NOSUCHCO"],
         tmp_path,
@@ -1036,8 +1031,6 @@ def test_the_universe_widens_to_the_companies_the_filings_name_often(client, ind
     cannot contain the answer is marked wrong for a gap in the candidate list,
     which is where survivorship and coverage both live.
     """
-    from techval.ml.peer_labels import most_named_peers
-
     groups = collect_peer_groups(UNIVERSE, client, index, assumptions=None, use_cache=False)
     widened = most_named_peers(groups, exclude=UNIVERSE, minimum=2)
     assert widened
