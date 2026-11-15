@@ -14,11 +14,16 @@ from __future__ import annotations
 import json
 import math
 import re
+from contextlib import nullcontext
+from datetime import date
 
 import pytest
 
+from techval.config import Assumptions
+from techval.dashboard.collect import CollectContext, collect_section
 from techval.dashboard.sections import engine as E
 from techval.dashboard.snapshot import to_jsonable, validate_section
+from techval.market import CsvSource
 from conftest import FIXTURES, PRICES, FixtureClient
 from .walk import ROOT, SNAPSHOT, kit_charts, numbers_at
 
@@ -346,9 +351,6 @@ def test_the_suite_constants_are_the_conftest_fixture(assumptions):
 
 def test_the_collector_runs_offline_on_the_fixtures_and_holds_to_the_schema(tmp_path):
     """One real collection, under a second: provenance resolves, refusals are named."""
-    from techval.config import Assumptions
-    from techval.dashboard.collect import CollectContext, collect_section
-
     a = Assumptions()
     a.ml.cache_dir = str(tmp_path)
     section, run = collect_section(E, CollectContext(FIXTURES, ROOT, a), use_cache=False)
@@ -491,10 +493,6 @@ def test_the_sensitivity_grid_is_plain_with_the_base_case_boxed_and_wacc_to_two_
 
 def fixture_sources(observations=None):
     """The committed fixtures read straight off disk, with nothing recorded."""
-    from contextlib import nullcontext
-
-    from techval.market import CsvSource
-
     return E.Sources(
         client=FixtureClient(),
         prices=CsvSource(PRICES),
@@ -507,10 +505,6 @@ def fixture_sources(observations=None):
 
 
 def test_a_company_with_no_peers_is_valued_on_its_own_beta_and_says_why_comps_are_missing():
-    from datetime import date
-
-    from techval.config import Assumptions
-
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
     m = E.measure("CRWD", [], a, fixture_sources(), today=date(2026, 9, 9))
@@ -527,10 +521,6 @@ def test_a_company_with_no_peers_is_valued_on_its_own_beta_and_says_why_comps_ar
 
 
 def test_the_record_case_leads_the_section_and_moves_the_dcf_but_not_the_history():
-    from datetime import date
-
-    from techval.config import Assumptions
-
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
     plain = E.measure("DDOG", [], a, fixture_sources(), today=date(2026, 9, 9))
@@ -548,10 +538,6 @@ def test_the_record_case_leads_the_section_and_moves_the_dcf_but_not_the_history
 
 def test_a_history_no_quarter_of_which_has_an_implied_return_is_refused_not_drawn():
     """With the margin held at Datadog's 0.4%, no discount rate reaches any close."""
-    from datetime import date
-
-    from techval.config import Assumptions
-
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
     a.dcf.ebit_margin_terminal = 0.004
@@ -563,10 +549,6 @@ def test_a_history_no_quarter_of_which_has_an_implied_return_is_refused_not_draw
 
 
 def test_a_measurement_without_the_history_skips_it_and_refuses_nothing():
-    from datetime import date
-
-    from techval.config import Assumptions
-
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
     whole = E.measure("DDOG", [], a, fixture_sources(), today=date(2026, 9, 9))
