@@ -12,12 +12,37 @@ from datetime import date
 
 import pytest
 
+import techval.anchors as A
+import techval.reverse_dcf as R
 from techval.config import Assumptions
 from techval.edgar import CompanyFacts, HttpCache
+from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
 from techval.market import CsvSource, MarketData
-from techval.reverse_dcf import Case, implied_discount_rate, solve_monotone
+from techval.reverse_dcf import (
+    DURATION_HORIZON,
+    FRONTIER_MARGINS,
+    GROWTH_BRACKET,
+    MARGIN_BRACKET,
+    Case,
+    duration_path,
+    expectations_history,
+    growth_base_rate,
+    growth_margin_frontier,
+    implied_discount_rate,
+    implied_duration,
+    implied_first_year_growth,
+    implied_terminal_margin,
+    market_expectations,
+    path_cagr,
+    persistence_curve,
+    price_in_simulation,
+    quarter_ends,
+    screen,
+    solve_monotone,
+)
+from techval.simulation import run_simulation
 from techval.wacc import compute_wacc
 
 from conftest import FIXTURES
@@ -78,16 +103,12 @@ def test_a_price_below_any_plausible_value_says_so(case):
 
 
 def test_the_base_case_value_implies_the_assumed_first_year_growth(case):
-    from techval.reverse_dcf import implied_first_year_growth
-
     solve = implied_first_year_growth(case, case.value())
     assert solve.reached
     assert solve.implied == pytest.approx(case.assumptions.dcf.revenue_growth_start, abs=1e-5)
 
 
 def test_datadogs_price_needs_triple_digit_growth_next_year(case):
-    from techval.reverse_dcf import implied_first_year_growth
-
     solve = implied_first_year_growth(case, PRICE)
     assert solve.reached
     assert 1.0 < solve.implied < 2.0
@@ -101,8 +122,6 @@ def test_datadogs_price_needs_triple_digit_growth_next_year(case):
 
 
 def test_a_growth_lever_that_cannot_reach_the_price_reports_its_edge(case):
-    from techval.reverse_dcf import GROWTH_BRACKET, implied_first_year_growth
-
     solve = implied_first_year_growth(case, 1e6)
     assert not solve.reached
     assert solve.edge == GROWTH_BRACKET[1]
@@ -111,16 +130,12 @@ def test_a_growth_lever_that_cannot_reach_the_price_reports_its_edge(case):
 
 
 def test_the_base_case_value_implies_the_assumed_terminal_margin(case):
-    from techval.reverse_dcf import implied_terminal_margin
-
     solve = implied_terminal_margin(case, case.value())
     assert solve.reached
     assert solve.implied == pytest.approx(case.assumptions.dcf.ebit_margin_terminal, abs=1e-5)
 
 
 def test_no_terminal_margin_alone_reaches_datadogs_price(case):
-    from techval.reverse_dcf import MARGIN_BRACKET, implied_terminal_margin
-
     solve = implied_terminal_margin(case, PRICE)
     assert not solve.reached
     assert solve.edge == MARGIN_BRACKET[1]
@@ -130,16 +145,12 @@ def test_no_terminal_margin_alone_reaches_datadogs_price(case):
 
 
 def test_a_reachable_margin_round_trips(case):
-    from techval.reverse_dcf import implied_terminal_margin
-
     target = case.value(ebit_margin_terminal=0.45)
     solve = implied_terminal_margin(case, target)
     assert solve.reached and solve.implied == pytest.approx(0.45, abs=1e-5)
 
 
 def test_duration_is_the_fewest_whole_years_of_held_growth_that_reach_the_price(case):
-    from techval.reverse_dcf import DURATION_HORIZON, duration_path, implied_duration
-
     solve = implied_duration(case, PRICE, held_growth=0.277)
     assert solve.reached
     k = int(solve.implied)
@@ -153,8 +164,6 @@ def test_duration_is_the_fewest_whole_years_of_held_growth_that_reach_the_price(
 
 
 def test_a_duration_the_horizon_cannot_hold_reports_fifteen_years_short(case):
-    from techval.reverse_dcf import DURATION_HORIZON, implied_duration
-
     solve = implied_duration(case, 1e6, held_growth=0.277)
     assert not solve.reached
     assert solve.edge == DURATION_HORIZON
@@ -162,8 +171,6 @@ def test_a_duration_the_horizon_cannot_hold_reports_fifteen_years_short(case):
 
 
 def test_the_duration_path_holds_then_fades_to_terminal(case):
-    from techval.reverse_dcf import duration_path
-
     path = duration_path(0.30, 10, case)
     assert path[:10] == [0.30] * 10
     assert path[-1] == pytest.approx(case.assumptions.dcf.revenue_growth_terminal)
@@ -179,15 +186,11 @@ class Obs:
 
 
 def test_path_cagr_compounds_the_first_h_years():
-    from techval.reverse_dcf import path_cagr
-
     assert path_cagr([0.10, 0.10, 0.10], 3) == pytest.approx(0.10)
     assert path_cagr([1.0, 0.0], 2) == pytest.approx(2 ** 0.5 - 1)
 
 
 def test_base_rates_count_realised_cagrs_at_or_above_the_implied_one():
-    from techval.reverse_dcf import growth_base_rate
-
     panel = [
         Obs(0.30, {1: 0.40, 2: 0.40}),
         Obs(0.35, {1: 0.20, 2: 0.10}),
@@ -203,15 +206,11 @@ def test_base_rates_count_realised_cagrs_at_or_above_the_implied_one():
 
 
 def test_without_a_trailing_rate_there_is_no_similar_bucket():
-    from techval.reverse_dcf import growth_base_rate
-
     rate = growth_base_rate([Obs(0.1, {1: 0.2})], implied_cagr=0.1, horizon=1)
     assert rate["similar"] is None
 
 
 def test_datadogs_implied_growth_has_almost_never_happened(case, fade_observations):
-    from techval.reverse_dcf import growth_base_rate, implied_first_year_growth, path_cagr
-
     solve = implied_first_year_growth(case, PRICE)
     implied = path_cagr(solve.extras["path"], 5)
     rate = growth_base_rate(fade_observations, implied_cagr=implied, horizon=5, trailing=0.277)
@@ -221,8 +220,6 @@ def test_datadogs_implied_growth_has_almost_never_happened(case, fade_observatio
 
 
 def test_the_frontier_trades_margin_for_growth(case):
-    from techval.reverse_dcf import FRONTIER_MARGINS, growth_margin_frontier, implied_first_year_growth
-
     rows = growth_margin_frontier(case, PRICE)
     assert [r["margin"] for r in rows] == list(FRONTIER_MARGINS)
     reached = [r["implied_growth"] for r in rows if r["implied_growth"] is not None]
@@ -241,10 +238,6 @@ def test_with_dcf_leaves_the_original_case_alone(case):
 
 
 def test_market_expectations_gathers_every_lever_with_base_rates(case, fade_observations):
-    import json as _json
-
-    from techval.reverse_dcf import market_expectations
-
     exp = market_expectations(case, PRICE, trailing_growth=0.277, observations=fade_observations)
     assert exp.price == PRICE and exp.base_value == pytest.approx(case.value())
     assert {s.lever for s in exp.solves} == {"discount_rate", "first_year_growth", "terminal_margin", "duration"}
@@ -257,13 +250,11 @@ def test_market_expectations_gathers_every_lever_with_base_rates(case, fade_obse
     # The panel stops at five years, and the summary says so for a longer duration.
     assert "nothing in it tests" in text
     payload = exp.to_dict()
-    _json.dumps(payload)
+    json.dumps(payload)
     assert payload["frontier"][0]["margin"] == 0.10
 
 
 def test_without_a_panel_there_are_no_base_rates_and_it_says_why(case):
-    from techval.reverse_dcf import market_expectations
-
     exp = market_expectations(case, PRICE, trailing_growth=None)
     assert exp.base_rates == {}
     assert any("no fade panel" in s for s in exp.summary())
@@ -273,8 +264,6 @@ def test_without_a_panel_there_are_no_base_rates_and_it_says_why(case):
 
 
 def test_the_persistence_curve_counts_who_held_a_rate_for_each_horizon():
-    from techval.reverse_dcf import persistence_curve
-
     panel = [
         Obs(0.30, {1: 0.30, 2: 0.31, 3: 0.40}),  # held 3 years
         Obs(0.30, {1: 0.35, 2: 0.10, 3: 0.50}),  # broke in year 2
@@ -289,8 +278,6 @@ def test_the_persistence_curve_counts_who_held_a_rate_for_each_horizon():
 
 
 def test_datadogs_rate_rarely_lasts_five_years(fade_observations):
-    from techval.reverse_dcf import persistence_curve
-
     curve = persistence_curve(fade_observations, growth=0.277, horizons=5)
     shares = [c["share"] for c in curve]
     # Each extra year can only lose companies that held every year before it.
@@ -300,8 +287,6 @@ def test_datadogs_rate_rarely_lasts_five_years(fade_observations):
 
 
 def test_expectations_carry_the_persistence_curve_for_the_held_rate(case, fade_observations):
-    from techval.reverse_dcf import market_expectations
-
     exp = market_expectations(case, PRICE, trailing_growth=0.277, observations=fade_observations)
     assert [c["horizon"] for c in exp.persistence] == [1, 2, 3, 4, 5]
     text = " ".join(exp.summary())
@@ -316,8 +301,6 @@ class SizedObs(Obs):
 
 
 def test_a_size_bucket_keeps_company_years_within_a_factor_of_two_in_revenue():
-    from techval.reverse_dcf import growth_base_rate
-
     panel = [
         SizedObs(0.3, {1: 0.5}, 1_000e6),
         SizedObs(0.3, {1: 0.1}, 2_500e6),
@@ -330,14 +313,10 @@ def test_a_size_bucket_keeps_company_years_within_a_factor_of_two_in_revenue():
 
 
 def test_no_revenue_means_no_size_bucket():
-    from techval.reverse_dcf import growth_base_rate
-
     assert growth_base_rate([SizedObs(0.1, {1: 0.2}, 1e9)], implied_cagr=0.1, horizon=1)["size"] is None
 
 
 def test_the_price_is_placed_in_the_engines_own_simulated_distribution(case):
-    from techval.reverse_dcf import price_in_simulation
-
     at_close = price_in_simulation(case, PRICE)
     assert at_close["kept"] > 9000
     assert at_close["share_above"] == 0.0
@@ -349,32 +328,22 @@ def test_the_price_is_placed_in_the_engines_own_simulated_distribution(case):
 
 
 def test_the_simulation_keeps_its_draws_for_reuse(case):
-    from techval.simulation import run_simulation
-
     result = run_simulation(case.fin, case.bridge, case.wacc, case.assumptions)
     assert len(result.per_share_draws) == result.kept_draws
     assert result.prob_above_price == pytest.approx(float((result.per_share_draws > result.current_price).mean()))
 
 
 def test_quarter_ends_run_from_the_first_to_the_last_date():
-    from datetime import date as d
-
-    from techval.reverse_dcf import quarter_ends
-
-    assert quarter_ends(d(2024, 2, 10), d(2024, 12, 31)) == [d(2024, 3, 31), d(2024, 6, 30), d(2024, 9, 30), d(2024, 12, 31)]
-    assert quarter_ends(d(2024, 3, 31), d(2024, 4, 1)) == [d(2024, 3, 31)]
+    assert quarter_ends(date(2024, 2, 10), date(2024, 12, 31)) == [date(2024, 3, 31), date(2024, 6, 30), date(2024, 9, 30), date(2024, 12, 31)]
+    assert quarter_ends(date(2024, 3, 31), date(2024, 4, 1)) == [date(2024, 3, 31)]
 
 
 def test_the_history_reads_each_quarter_from_what_was_public_then():
-    from datetime import date as d
-
-    from techval.reverse_dcf import expectations_history
-
     payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
     rows = expectations_history(
-        payload, "DDOG", CsvSource(FIXTURES / "prices"), a, [d(2023, 12, 31), d(2024, 12, 31), d(2026, 6, 30)]
+        payload, "DDOG", CsvSource(FIXTURES / "prices"), a, [date(2023, 12, 31), date(2024, 12, 31), date(2026, 6, 30)]
     )
     assert [r["date"] for r in rows] == ["2023-12-31", "2024-12-31", "2026-06-30"]
     # Before the fixture's revenue history reaches twelve months, the quarter is refused, by name.
@@ -390,16 +359,12 @@ def test_the_history_reads_each_quarter_from_what_was_public_then():
 
 
 def test_the_screen_ranks_the_most_demanding_prices_first(fade_observations):
-    from datetime import date as d
-
-    from techval.reverse_dcf import screen
-
     payloads = {
         t: json.loads((FIXTURES / f"companyfacts_{t}.json").read_text()) for t in ("DDOG", "CRWD", "MDB", "ZS", "DIS")
     }
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
-    rows = screen(payloads, CsvSource(FIXTURES / "prices"), a, d(2026, 9, 9), fade_observations)
+    rows = screen(payloads, CsvSource(FIXTURES / "prices"), a, date(2026, 9, 9), fade_observations)
     assert {r["ticker"] for r in rows} == set(payloads)
     valued = [r for r in rows if not r["refused"]]
     assert len(valued) >= 4
@@ -427,16 +392,11 @@ def test_a_changed_valuation_leaves_the_case_it_came_from_alone(case):
 
 def test_one_quarter_the_engine_cannot_value_is_refused_alone(monkeypatch):
     """Zoom's history failed whole when one quarter's cost of capital fell below terminal growth."""
-    from datetime import date as d
-
-    from techval.errors import ConfigError
-    from techval.reverse_dcf import Case, expectations_history, quarter_ends
-
     payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
     real = Case.value
-    bad = d(2025, 3, 31)
+    bad = date(2025, 3, 31)
 
     _quarter = [None]
 
@@ -445,8 +405,6 @@ def test_one_quarter_the_engine_cannot_value_is_refused_alone(monkeypatch):
         if _quarter[0] == bad and not changes and growth_path is None:
             raise ConfigError("terminal growth of 2.50% is not below the WACC of 1.24%")
         return real(self, growth_path, **changes)
-    import techval.reverse_dcf as R
-
     real_case_at = R.case_at
 
     def case_at(payload, ticker, source, assumptions, when, cache=None):
@@ -455,7 +413,7 @@ def test_one_quarter_the_engine_cannot_value_is_refused_alone(monkeypatch):
 
     monkeypatch.setattr(R, "case_at", case_at)
     monkeypatch.setattr(Case, "value", value)
-    rows = expectations_history(payload, "DDOG", CsvSource(FIXTURES / "prices"), a, quarter_ends(d(2024, 1, 1), d(2025, 12, 31)))
+    rows = expectations_history(payload, "DDOG", CsvSource(FIXTURES / "prices"), a, quarter_ends(date(2024, 1, 1), date(2025, 12, 31)))
     by = {r["date"]: r for r in rows}
     assert "WACC of 1.24%" in by["2025-03-31"]["refused"]
     assert sum(1 for r in rows if not r["refused"]) >= 5
@@ -463,11 +421,6 @@ def test_one_quarter_the_engine_cannot_value_is_refused_alone(monkeypatch):
 
 def test_a_record_case_history_reads_each_quarter_from_its_own_filings(monkeypatch):
     """Today's anchors in a 2024 quarter would be the lookahead the history exists to avoid."""
-    from datetime import date as d
-
-    import techval.anchors as A
-    from techval.reverse_dcf import expectations_history, quarter_ends
-
     seen = []
     real = A.record_case
 
@@ -480,7 +433,7 @@ def test_a_record_case_history_reads_each_quarter_from_its_own_filings(monkeypat
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
     a.dcf.from_record = True
-    rows = expectations_history(payload, "DDOG", CsvSource(FIXTURES / "prices"), a, quarter_ends(d(2024, 1, 1), d(2026, 6, 30)))
+    rows = expectations_history(payload, "DDOG", CsvSource(FIXTURES / "prices"), a, quarter_ends(date(2024, 1, 1), date(2026, 6, 30)))
     assert sum(1 for r in rows if not r["refused"]) >= 8
     assert seen and all(fin_as_of <= known for known, fin_as_of in seen)
     assert len({fin_as_of for _, fin_as_of in seen}) >= 6
