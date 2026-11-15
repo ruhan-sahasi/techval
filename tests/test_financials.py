@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 from datetime import date, timedelta
 
@@ -12,10 +13,11 @@ from techval.edgar import (
     Fact,
     cover_window,
     derive_periods,
+    parse_instance,
     trailing_twelve_months,
 )
 from techval.errors import MissingDataError, StaleDataError
-from techval.financials import build_financials
+from techval.financials import _DebtLadder, build_financials
 
 from conftest import FIXTURES, load_facts
 
@@ -299,8 +301,6 @@ def test_operating_working_capital_names_the_tags_it_was_built_from(ddog, vz):
 
 def test_a_debt_total_with_no_split_leaves_working_capital_unread():
     """A total off one concept says nothing about what falls due within the year."""
-    from techval.financials import _DebtLadder
-
     assert _DebtLadder(total=5_000.0, combined_tag="DebtLongtermAndShorttermCombinedAmount").current_or_none is None
     assert _DebtLadder(total=0.0, combined_tag="DebtLongtermAndShorttermCombinedAmount").current_or_none == 0.0
     split = _DebtLadder(5_000.0, 4_200.0, 800.0, "LongTermDebtNoncurrent", "LongTermDebtCurrent")
@@ -383,10 +383,6 @@ def test_knowledge_date_hides_facts_filed_later():
     newest revenue period knowable is the December 2025 year end, from the 10-K
     filed on 2026-02-18.
     """
-    import json
-
-    from techval.edgar import CompanyFacts
-
     raw = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     tag = "RevenueFromContractWithCustomerExcludingAssessedTax"
 
@@ -407,10 +403,6 @@ def test_knowledge_date_falls_back_to_the_filing_of_record(crwd):
     first. Filtering only after deduplication would have let the 2026 filing win
     selection and then be dropped, losing the period altogether.
     """
-    import json
-
-    from techval.edgar import CompanyFacts
-
     raw = json.loads((FIXTURES / "companyfacts_CRWD.json").read_text())
     period = (date(2023, 2, 1), date(2024, 1, 31))
 
@@ -425,10 +417,6 @@ def test_knowledge_date_falls_back_to_the_filing_of_record(crwd):
 
 def test_a_point_in_time_statement_is_internally_consistent():
     """The whole statement moves back together, not just one line."""
-    import json
-
-    from techval.edgar import CompanyFacts
-
     raw = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     fin = build_financials(
         "DDOG", facts=CompanyFacts(raw, "DDOG", knowledge_date=date(2026, 3, 1))
@@ -483,8 +471,6 @@ def test_instance_parsing_recovers_dimensioned_facts():
     vanish from companyfacts. Summing them is the only route to a point-in-time
     share count for Datadog, Alphabet or any other multi-class filer.
     """
-    from techval.edgar import parse_instance
-
     facts = parse_instance(_INSTANCE)
     shares = [f for f in facts if f.tag == "EntityCommonStockSharesOutstanding"]
 
@@ -503,8 +489,6 @@ def test_instance_parsing_keeps_duration_and_skips_non_numeric():
     Coercing a non-numeric fact to zero would put a fabricated figure into a
     share count, which is the one thing this engine does not do.
     """
-    from techval.edgar import parse_instance
-
     facts = parse_instance(_INSTANCE)
     options = next(f for f in facts if "OptionsOutstandingNumber" in f.tag)
 
@@ -937,12 +921,6 @@ def test_a_genuinely_debt_free_filer_still_resolves_zero(ddog):
 
 def test_a_filer_with_no_operating_income_tag_gets_ebit_from_pre_tax_income():
     """IBM files income before tax and interest expense, and no OperatingIncomeLoss at all."""
-    import copy
-    import json
-
-    from techval.edgar import CompanyFacts
-    from techval.financials import build_financials
-
     payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     whole = build_financials("DDOG", facts=CompanyFacts(payload, "DDOG"))
     stripped = copy.deepcopy(payload)
@@ -954,13 +932,6 @@ def test_a_filer_with_no_operating_income_tag_gets_ebit_from_pre_tax_income():
 
 
 def test_operating_income_that_is_filed_but_cannot_be_tiled_is_still_refused():
-    import copy
-    import json
-
-    from techval.edgar import CompanyFacts
-    from techval.errors import MissingDataError
-    from techval.financials import build_financials
-
     payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     thin = copy.deepcopy(payload)
     rows = thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"]
@@ -971,12 +942,6 @@ def test_operating_income_that_is_filed_but_cannot_be_tiled_is_still_refused():
 
 def test_a_filer_that_stopped_tagging_operating_income_gets_it_derived_too():
     """KLA's last OperatingIncomeLoss fact is from 2015."""
-    import copy
-    import json
-
-    from techval.edgar import CompanyFacts
-    from techval.financials import build_financials
-
     payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     lapsed = copy.deepcopy(payload)
     rows = lapsed["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"]
@@ -986,9 +951,6 @@ def test_a_filer_that_stopped_tagging_operating_income_gets_it_derived_too():
 
 
 def _without_diluted(loss: bool):
-    import copy
-    import json
-
     payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     out = copy.deepcopy(payload)
     del out["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"]
@@ -1000,9 +962,6 @@ def _without_diluted(loss: bool):
 
 def test_a_loss_maker_with_no_diluted_count_is_valued_on_its_basic_one():
     """Take-Two files a basic weighted count and no diluted one."""
-    from techval.edgar import CompanyFacts
-    from techval.financials import build_financials
-
     fin = build_financials("DDOG", facts=CompanyFacts(_without_diluted(loss=True), "DDOG"))
     assert fin.net_income < 0
     assert fin.diluted_shares == pytest.approx(fin.basic_shares)
@@ -1010,23 +969,12 @@ def test_a_loss_maker_with_no_diluted_count_is_valued_on_its_basic_one():
 
 
 def test_a_profitable_filer_with_no_diluted_count_is_refused():
-    from techval.edgar import CompanyFacts
-    from techval.errors import MissingDataError
-    from techval.financials import build_financials
-
     with pytest.raises(MissingDataError, match="diluted shares"):
         build_financials("DDOG", facts=CompanyFacts(_without_diluted(loss=False), "DDOG"))
 
 
 def test_a_diluted_count_filed_too_thinly_to_tile_is_refused_not_replaced():
     """MongoDB files a diluted count it cannot tile at some dates; the basic count is no substitute."""
-    import copy
-    import json
-
-    from techval.edgar import CompanyFacts
-    from techval.errors import MissingDataError
-    from techval.financials import build_financials
-
     payload = _without_diluted(loss=True)
     original = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     rows = copy.deepcopy(original["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"])
