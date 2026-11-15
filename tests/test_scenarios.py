@@ -8,9 +8,29 @@ engine's own DCF with everything else held at the base case.
 
 from __future__ import annotations
 
+import json
+from datetime import date
+
 import pytest
 
-from techval.scenarios import quantile_paths, realised_paths
+from techval.config import Assumptions
+from techval.edgar import CompanyFacts, HttpCache
+from techval.errors import ConfigError
+from techval.ev_bridge import build_ev_bridge
+from techval.financials import build_financials
+from techval.market import CsvSource, MarketData
+from techval.ml.panels import fade_panel
+from techval.reverse_dcf import Case
+from techval.scenarios import (
+    Scenario,
+    band_coverage,
+    fit_path,
+    implied_weight,
+    quantile_paths,
+    realised_paths,
+    value_scenarios,
+)
+from techval.wacc import compute_wacc
 
 from conftest import FIXTURES, PRICES
 
@@ -75,8 +95,6 @@ def test_no_paths_means_no_scenarios():
 
 
 def test_datadogs_similar_starters_run_from_stalling_to_a_third_a_year():
-    from techval.ml.panels import fade_panel
-
     panel = fade_panel(FIXTURES)
     pool = realised_paths(panel.observations, trailing=0.276754)
     assert pool.similar and pool.n == 307
@@ -88,25 +106,12 @@ def test_datadogs_similar_starters_run_from_stalling_to_a_third_a_year():
 
 
 def test_a_path_is_cut_to_a_short_projection_and_faded_beyond_the_panel():
-    from techval.scenarios import fit_path
-
     assert fit_path([0.3, 0.2, 0.1], 2, 0.05) == [0.3, 0.2]
     assert fit_path([0.3, 0.2, 0.1], 5, 0.05) == pytest.approx([0.3, 0.2, 0.1, 0.075, 0.05])
 
 
 @pytest.fixture(scope="module")
 def case():
-    import json
-    from datetime import date
-
-    from techval.config import Assumptions
-    from techval.edgar import CompanyFacts, HttpCache
-    from techval.ev_bridge import build_ev_bridge
-    from techval.financials import build_financials
-    from techval.market import CsvSource, MarketData
-    from techval.reverse_dcf import Case
-    from techval.wacc import compute_wacc
-
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
     facts = CompanyFacts(json.loads((FIXTURES / "companyfacts_DDOG.json").read_text()), "DDOG")
@@ -121,8 +126,6 @@ TRAILING = 0.276754
 
 
 def test_each_scenario_is_the_engines_own_dcf_on_its_path(case, fade_observations):
-    from techval.scenarios import value_scenarios
-
     result = value_scenarios(case, PRICE, fade_observations, trailing=TRAILING)
     bear, base, bull = result.scenarios
     assert bear.value < base.value < bull.value
@@ -145,9 +148,6 @@ def test_each_scenario_is_the_engines_own_dcf_on_its_path(case, fade_observation
     ],
 )
 def test_scenario_settings_that_cannot_be_meant_are_refused(tmp_path, body, message):
-    from techval.config import Assumptions
-    from techval.errors import ConfigError
-
     path = tmp_path / "assumptions.yaml"
     path.write_text(body)
     with pytest.raises(ConfigError, match=message):
@@ -155,8 +155,6 @@ def test_scenario_settings_that_cannot_be_meant_are_refused(tmp_path, body, mess
 
 
 def test_the_scenarios_follow_the_assumptions(case, fade_observations):
-    from techval.scenarios import value_scenarios
-
     wider = case.with_dcf()
     wider.assumptions.scenarios.quantiles = {"bear": 0.25, "base": 0.5, "bull": 0.75}
     wider.assumptions.scenarios.weights = {"bear": 0.25, "base": 0.5, "bull": 0.25}
@@ -168,14 +166,10 @@ def test_the_scenarios_follow_the_assumptions(case, fade_observations):
 
 
 def test_an_empty_panel_values_no_scenarios(case):
-    from techval.scenarios import value_scenarios
-
     assert value_scenarios(case, PRICE, [], trailing=TRAILING) is None
 
 
 def three(bear=10.0, base=20.0, bull=40.0):
-    from techval.scenarios import Scenario
-
     return [
         Scenario("bear", 0.1, 0.3, [], 0.0, 1, bear),
         Scenario("base", 0.5, 0.4, [], 0.0, 1, base),
@@ -184,16 +178,12 @@ def three(bear=10.0, base=20.0, bull=40.0):
 
 
 def test_a_price_at_the_weighted_value_implies_swansons_own_weight():
-    from techval.scenarios import implied_weight
-
     # 0.3 x 10 + 0.4 x 20 + 0.3 x 40 = 23.
     implied = implied_weight(three(), 23.0)
     assert implied["side"] == "bull" and implied["weight"] == pytest.approx(0.30)
 
 
 def test_a_richer_price_leans_on_the_bull_case_and_a_cheaper_one_on_the_bear():
-    from techval.scenarios import implied_weight
-
     rich = implied_weight(three(), 30.0)
     # Bear and base held 3:4 are worth 11/0.7; the bull weight that lifts that to 30.
     assert rich["side"] == "bull"
@@ -205,8 +195,6 @@ def test_a_richer_price_leans_on_the_bull_case_and_a_cheaper_one_on_the_bear():
 
 
 def test_a_price_outside_the_scenarios_is_named_not_weighted():
-    from techval.scenarios import implied_weight
-
     above = implied_weight(three(), 50.0)
     assert above["side"] == "above" and above["weight"] is None
     assert "1.2 times" in above["sentence"]
@@ -215,8 +203,6 @@ def test_a_price_outside_the_scenarios_is_named_not_weighted():
 
 
 def test_datadogs_price_is_above_even_its_bull_case(case, fade_observations):
-    from techval.scenarios import value_scenarios
-
     result = value_scenarios(case, PRICE, fade_observations, trailing=TRAILING)
     assert result.implied["side"] == "above"
     assert "3.1 times" in result.implied["sentence"]
@@ -233,10 +219,6 @@ class Dated(Obs):
 
 
 def test_a_band_is_built_only_from_outcomes_public_by_then():
-    from datetime import date
-
-    from techval.scenarios import band_coverage
-
     panel = [
         Dated(date(2000, 3, 1), 0.2, 0.00),
         Dated(date(2000, 3, 1), 0.2, 0.10),
@@ -250,10 +232,6 @@ def test_a_band_is_built_only_from_outcomes_public_by_then():
 
 
 def test_on_held_out_company_years_the_band_runs_narrow_on_the_upside(fade_observations):
-    from datetime import date
-
-    from techval.scenarios import band_coverage
-
     cover = band_coverage(fade_observations, test_from=date(2016, 1, 1))
     assert (cover["n"], cover["inside"], cover["below"], cover["above"]) == (674, 466, 78, 130)
     # Nominal 80% inside, 10% each side; what followed ran faster than the history.
