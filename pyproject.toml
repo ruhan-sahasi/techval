@@ -34,7 +34,6 @@ packages = ["src/techval"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-filterwarnings = ["ignore::DeprecationWarning"]
 # src layout: put the package and the fixtures helper on the path directly, so
 # the suite runs the working tree rather than whatever happens to be installed.
 pythonpath = ["src", "tests"]

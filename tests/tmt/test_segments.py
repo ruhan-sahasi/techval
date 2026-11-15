@@ -20,7 +20,7 @@ from datetime import date
 
 import pytest
 
-from conftest import FIXTURES, load_instance
+from conftest import FIXTURES, facts_payload, load_instance
 from techval.edgar import CompanyFacts, DimensionedFact
 from techval.errors import ConfigError, MissingDataError
 from techval.tmt.segments import (
@@ -622,20 +622,13 @@ def test_a_filer_that_changed_revenue_tags_falls_back_to_its_live_annual_revenue
     """
     from techval.tmt.segments import _annual_from_facts
 
-    row = lambda start, end, val: {"start": start, "end": end, "val": val, "form": "10-K", "filed": end}
     facts = CompanyFacts(
-        {
-            "cik": 1,
-            "entityName": "Retired Tag Corp",
-            "facts": {
-                "us-gaap": {
-                    "RevenueFromContractWithCustomerExcludingAssessedTax": {
-                        "units": {"USD": [row("2021-02-01", "2022-01-30", 26_914e6)]}
-                    },
-                    "Revenues": {"units": {"USD": [row("2025-01-27", "2026-01-25", 130_497e6)]}},
-                }
-            },
-        },
+        facts_payload(
+            {
+                "RevenueFromContractWithCustomerExcludingAssessedTax": [("2021-02-01", "2022-01-30", 26_914e6)],
+                "Revenues": [("2025-01-27", "2026-01-25", 130_497e6)],
+            }
+        ),
         "NVDA",
     )
     tag, period, revenue = _annual_from_facts(facts, None, "NVDA")

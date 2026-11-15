@@ -82,6 +82,21 @@ def load_instance(ticker: str) -> tuple[list[DimensionedFact], str, date]:
     return load_instance_file(FIXTURES / f"instance_facts_{ticker}.json")
 
 
+def facts_payload(series: dict[str, list[tuple[str, str, float]]]) -> dict:
+    """A companyfacts payload written by hand: (start, end, value) rows in USD per tag.
+
+    Each row is filed on its own end date, as a 10-K when it spans a year and as
+    a 10-Q otherwise.
+    """
+
+    def row(start: str, end: str, value: float) -> dict:
+        days = (date.fromisoformat(end) - date.fromisoformat(start)).days
+        return {"start": start, "end": end, "val": value, "form": "10-K" if days > 300 else "10-Q", "filed": end}
+
+    us_gaap = {tag: {"units": {"USD": [row(*r) for r in rows]}} for tag, rows in series.items()}
+    return {"cik": 1, "entityName": "Hand Written Inc", "facts": {"us-gaap": us_gaap}}
+
+
 def flat(text: str) -> str:
     """Command output with its colour codes stripped and its whitespace collapsed.
 

@@ -43,7 +43,7 @@ from techval.market import CsvSource
 from techval.tmt import kpis as kpi_module
 from techval.tmt import metrics as metric_module
 from techval.tmt.taxonomy import SubVertical
-from conftest import FIXTURES, PRICES, load_instance_file
+from conftest import FIXTURES, PRICES, facts_payload, load_instance_file
 
 # The date every fixture was retrieved, and the date every run below is pinned
 # to. Without it ``build_kpis`` dates its prose metrics to today and the printed
@@ -505,29 +505,6 @@ def test_a_figure_with_no_counterpart_says_so_instead_of_vanishing():
 # --------------------------------------------------------------------------- #
 
 
-def _payload(series: dict[str, list[tuple[str, str, float]]]) -> dict:
-    """Company facts from (start, end, value) triples, one list per tag."""
-    facts = {}
-    for tag, rows in series.items():
-        facts[tag] = {
-            "units": {
-                "USD": [
-                    {
-                        "start": start,
-                        "end": end,
-                        "val": value,
-                        "form": "10-Q",
-                        "fy": 2026,
-                        "fp": "Q2",
-                        "filed": end,
-                    }
-                    for start, end, value in rows
-                ]
-            }
-        }
-    return {"cik": 1, "entityName": "Fifty Three Week Inc", "facts": {"us-gaap": facts}}
-
-
 def test_the_prior_year_anchor_survives_a_retired_revenue_tag():
     """Nvidia's case, which ``comps.prior_year_end`` routes around for both readers.
 
@@ -546,7 +523,7 @@ def test_the_prior_year_anchor_survives_a_retired_revenue_tag():
     tag ranked third, and a period end 364 days back rather than 365.
     """
     facts = CompanyFacts(
-        _payload(
+        facts_payload(
             {
                 "RevenueFromContractWithCustomerExcludingAssessedTax": [
                     ("2021-02-01", "2022-01-30", 26_914.0)
@@ -566,7 +543,7 @@ def test_the_prior_year_anchor_survives_a_retired_revenue_tag():
 
 
 def test_the_anchor_falls_back_to_the_step_when_nothing_is_near():
-    facts = CompanyFacts(_payload({"Revenues": [("2019-01-01", "2019-12-31", 10.0)]}), "X")
+    facts = CompanyFacts(facts_payload({"Revenues": [("2019-01-01", "2019-12-31", 10.0)]}), "X")
     fin = SimpleNamespace(as_of=date(2026, 6, 30), revenue=100.0)
     assert prior_year_end(fin.as_of, facts) == date(2025, 6, 30)
 
@@ -595,7 +572,7 @@ def test_the_statement_reads_are_filed_figures_with_their_tag_and_window():
     two of the metrics a software page leads with.
     """
     facts = CompanyFacts(
-        _payload(
+        facts_payload(
             {
                 "Revenues": _quarters("Revenues", [100e6] * 4 + [130e6] * 4),
                 "SellingAndMarketingExpense": _quarters(
@@ -626,7 +603,7 @@ def test_sales_and_marketing_never_falls_back_to_sg_and_a():
     """
     assert C.SALES_AND_MARKETING == ["SellingAndMarketingExpense"]
     facts = CompanyFacts(
-        _payload(
+        facts_payload(
             {
                 "Revenues": _quarters("Revenues", [100e6] * 8),
                 "SellingGeneralAndAdministrativeExpense": _quarters(

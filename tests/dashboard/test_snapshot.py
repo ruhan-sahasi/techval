@@ -129,7 +129,7 @@ def test_to_jsonable_converts_numpy_nan_and_dates():
             "nat": pd.NaT,
             "np_date": np.datetime64("2026-03-31"),
             "np_ns": np.datetime64("2026-03-31T00:00:00.000000000"),
-            "np_nat": np.datetime64("NaT"),
+            "np_nat": np.datetime64("NaT", "D"),
             "tuple": (1, 2.0000004),
             "enum": Colour.BLUE,
             "path": Path("tests") / "fixtures" / "x.json",
