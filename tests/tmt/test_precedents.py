@@ -49,9 +49,12 @@ from techval.edgar import (
     SEC_FACTS_URL,
     SEC_SUBMISSIONS_URL,
     SEC_TICKERS_URL,
+    CompanyFacts,
     EdgarClient,
     HttpCache,
 )
+from techval.ev_bridge import build_ev_bridge
+from techval.financials import build_financials
 from techval.market import CsvSource
 from techval.tmt import precedents as P
 
@@ -636,10 +639,6 @@ def test_multiples_are_the_offer_price_through_the_standard_bridge(
     The point is that the precedent multiple is the offer price times the share
     count plus the net debt the buyer assumed, not a market capitalisation.
     """
-    from techval.edgar import CompanyFacts
-    from techval.ev_bridge import build_ev_bridge
-    from techval.financials import build_financials
-
     ramp = by_ticker(precedents, "RAMP")
     raw = merger_client.company_facts("RAMP").raw
     facts = CompanyFacts(raw, "RAMP", knowledge_date=ramp.announced)
@@ -662,9 +661,6 @@ def test_the_trailing_twelve_months_are_the_ones_filed_at_announcement(
     merger_client, precedents
 ):
     """A knowledge-dated fact set, not the restated figures that came later."""
-    from techval.edgar import CompanyFacts
-    from techval.financials import build_financials
-
     zen = by_ticker(precedents, "ZEN")
     assert zen.announced == date(2022, 6, 24)
     dated = build_financials(
