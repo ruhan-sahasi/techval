@@ -25,6 +25,7 @@ Nothing here touches the network.
 from __future__ import annotations
 
 import gzip
+import inspect
 import json
 import re
 from datetime import date, timedelta
@@ -39,14 +40,22 @@ from typer.testing import CliRunner
 
 from techval.commands_peers import (
     _label_sources,
+    _render_ablation,
     _render_thin_evidence,
     _tower_ablation,
     app,
 )
 from techval.config import Assumptions
-from techval.ml.encoder import MIN_TRAIN_PAIRS, ablation_folds, build_dataset
-from techval.ml.features import FEATURE_NAMES
+from techval.ml.encoder import (
+    EMBARGO_DAYS,
+    MIN_TRAIN_PAIRS,
+    ablation_folds,
+    build_dataset,
+)
+from techval.ml.evaluation import walk_forward_folds
+from techval.ml.features import FEATURE_NAMES, FeaturePanel, FeatureRow
 from techval.ml.peer_labels import PeerGroup
+from techval.ml.text import TextCorpus
 
 from conftest import FIXTURES
 
@@ -724,8 +733,6 @@ def test_a_tower_is_only_shown_to_help_when_it_clears_the_fold_noise(capsys):
     on the committed TMT universe the text tower clears the noise by a hair and
     the fundamentals tower does not clear it at all.
     """
-    from techval.commands_peers import _render_ablation
-
     frame = pd.DataFrame(
         [
             {"group": "all features", "n_columns": 118, "score": 0.42, "damage": 0.0,
@@ -797,13 +804,8 @@ def test_the_folds_this_command_supplies_clear_the_training_floor(real_dataset):
     on the real universe costs a minute and the property under test is the
     training window rather than the result.
     """
-    import inspect
-
     source = inspect.getsource(_tower_ablation)
     assert "min_train=MIN_TRAIN_PAIRS" in source
-
-    from techval.ml.evaluation import walk_forward_folds
-    from techval.ml.encoder import EMBARGO_DAYS
 
     folds = walk_forward_folds(
         [e.filed for e in real_dataset.examples],
@@ -817,12 +819,6 @@ def test_the_folds_this_command_supplies_clear_the_training_floor(real_dataset):
 @pytest.fixture(scope="module")
 def real_dataset():
     """The TMT seed universe's disclosed peer groups, read from proxies 2026-09-11."""
-    from datetime import date as _date
-
-    from techval.ml.features import FeaturePanel, FeatureRow
-    from techval.ml.peer_labels import PeerGroup
-    from techval.ml.text import TextCorpus
-
     for name in ("peer_groups_tmt.json", "peer_panel_tmt.json", "peer_item1_tmt.json"):
         if not (FIXTURES / name).exists():
             pytest.skip(f"{name} is not committed")
@@ -832,13 +828,13 @@ def real_dataset():
         rows=[
             FeatureRow(
                 ticker=r["ticker"],
-                as_of=_date.fromisoformat(r["as_of"]),
-                knowledge_date=_date.fromisoformat(r["knowledge_date"])
+                as_of=date.fromisoformat(r["as_of"]),
+                knowledge_date=date.fromisoformat(r["knowledge_date"])
                 if r["knowledge_date"]
                 else None,
                 values=r["values"],
                 missing=r["missing"],
-                statement_date=_date.fromisoformat(r["statement_date"])
+                statement_date=date.fromisoformat(r["statement_date"])
                 if r["statement_date"]
                 else None,
                 error=r["error"],
@@ -852,11 +848,11 @@ def real_dataset():
     corpora = {}
     for iso, companies in item1["by_date"].items():
         tickers = sorted(companies)
-        corpora[_date.fromisoformat(iso)] = TextCorpus(
+        corpora[date.fromisoformat(iso)] = TextCorpus(
             tickers=tickers,
             documents=[companies[t]["item1"] for t in tickers],
             as_of_by_ticker={
-                t: _date.fromisoformat(companies[t]["filed"]) for t in tickers
+                t: date.fromisoformat(companies[t]["filed"]) for t in tickers
             },
             source_accessions={t: companies[t]["accession"] for t in tickers},
             entity_names={t: names[t] for t in tickers if names.get(t)},
@@ -866,7 +862,7 @@ def real_dataset():
             ticker=g["ticker"],
             cik=g["cik"],
             accession=g["accession"],
-            filed=_date.fromisoformat(g["filed"]),
+            filed=date.fromisoformat(g["filed"]),
             fiscal_year=g["fiscal_year"],
             peers=g["peers"],
             method=g["method"],
