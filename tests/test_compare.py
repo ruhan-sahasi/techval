@@ -8,9 +8,18 @@ from pathlib import Path
 
 import pytest
 
-from techval.compare import measure_all
+from techval.compare import (
+    build_comparison,
+    measure_all,
+    returns_figure,
+    table_figure,
+    takeaway,
+    value_figure,
+)
 from techval.config import Assumptions
+from techval.dashboard.render import render_dashboard
 from techval.dashboard.sections import engine as E
+from techval.dashboard.snapshot import Snapshot, load_snapshot
 from techval.market import CsvSource
 from techval.tearsheet import RecordedFacts
 
@@ -64,8 +73,6 @@ def test_the_set_can_be_its_own_peers(fade_observations):
 
 
 def test_the_value_figure_puts_each_dcf_over_its_close(compared):
-    from techval.compare import value_figure
-
     fig = value_figure(compared)
     rows = {r["label"]: r["values"] for r in fig["data"]["rows"]}
     assert set(rows) == {"DDOG", "CRWD", "DIS"}
@@ -77,8 +84,6 @@ def test_the_value_figure_puts_each_dcf_over_its_close(compared):
 
 
 def test_the_returns_figure_names_the_close_that_earns_least(compared):
-    from techval.compare import returns_figure
-
     fig = returns_figure(compared)
     rows = {r["label"]: r["values"] for r in fig["data"]["rows"]}
     lowest = min(rows, key=lambda t: rows[t]["implied"])
@@ -87,8 +92,6 @@ def test_the_returns_figure_names_the_close_that_earns_least(compared):
 
 
 def test_the_table_carries_every_reading_for_every_company_valued(compared):
-    from techval.compare import table_figure
-
     fig = table_figure(compared)
     rows = {r["company"]: r for r in fig["data"]["rows"]}
     assert list(rows) == ["DDOG", "CRWD", "DIS"]
@@ -100,17 +103,12 @@ def test_the_table_carries_every_reading_for_every_company_valued(compared):
 
 
 def test_the_takeaway_names_the_price_that_asks_the_most(compared):
-    from techval.compare import takeaway
-
     text = takeaway(compared, "2026-09-09")
     assert text.startswith("At the closes of 2026-09-09, the base case reaches the price of 1 of the 3")
     assert "CRWD's price asks the most" in text
 
 
 def test_the_comparison_is_a_one_section_page_that_validates(fade_observations):
-    from techval.compare import build_comparison
-    from techval.dashboard.snapshot import Snapshot
-
     snap = build_comparison(
         ["DDOG", "DIS", "NOPE"], assumptions(), client=RecordedFacts(FIXTURES), prices=CsvSource(FIXTURES / "prices"),
         price_feed="csv", observations=fade_observations, panel="tests/fixtures/fade_companyfacts.json.gz",
@@ -126,9 +124,6 @@ def test_the_comparison_is_a_one_section_page_that_validates(fade_observations):
 
 
 def test_the_example_comparison_is_exactly_what_its_committed_snapshot_renders():
-    from techval.dashboard.render import render_dashboard
-    from techval.dashboard.snapshot import load_snapshot
-
     docs = Path(__file__).parents[1] / "docs" / "compare"
     snap = load_snapshot(docs / "snapshot.json")
     assert snap.title == "CRWD, DDOG, MDB, ZS, DIS, compared"
