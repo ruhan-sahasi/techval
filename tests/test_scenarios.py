@@ -13,11 +13,9 @@ from datetime import date
 import pytest
 
 from techval.config import Assumptions
-from techval.edgar import HttpCache
 from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
-from techval.market import CsvSource, MarketData
 from techval.ml.panels import fade_panel
 from techval.reverse_dcf import Case
 from techval.scenarios import (
@@ -31,7 +29,7 @@ from techval.scenarios import (
 )
 from techval.wacc import compute_wacc
 
-from conftest import FIXTURES, PRICES, load_facts
+from conftest import AS_OF, FIXTURES, load_facts, market_at, pinned_assumptions
 
 
 class Obs:
@@ -111,11 +109,10 @@ def test_a_path_is_cut_to_a_short_projection_and_faded_beyond_the_panel():
 
 @pytest.fixture(scope="module")
 def case():
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     facts = load_facts("DDOG")
     fin = build_financials("DDOG", facts=facts)
-    market = MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=date(2026, 9, 10))
+    market = market_at(AS_OF)
     bridge = build_ev_bridge(fin, market.spot("DDOG"), a)
     return Case(fin=fin, bridge=bridge, wacc=compute_wacc(fin, bridge, market, a), assumptions=a)
 

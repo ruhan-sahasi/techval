@@ -30,10 +30,9 @@ import numpy as np
 import pytest
 
 from techval.config import Assumptions
-from techval.edgar import CompanyFacts, HttpCache
+from techval.edgar import CompanyFacts
 from techval.errors import ConfigError, MissingDataError
 from techval.financials import build_financials
-from techval.market import CsvSource, MarketData
 from techval.ml.features import (
     FEATURE_GROUPS,
     FEATURE_NAMES,
@@ -50,7 +49,7 @@ from techval.ml.features import (
     winsorize,
 )
 
-from conftest import PRICES, load_facts, load_payload
+from conftest import load_facts, load_payload, market_at, pinned_assumptions
 
 # Dates chosen inside the window the fixtures cover. The price CSVs run
 # 2023-09-01 to 2026-09-09 and the earliest filing in any payload is 2024-03-06,
@@ -108,26 +107,14 @@ class LyingClient:
         )
 
 
-def _market(when: date, history_years: float = 3.0) -> MarketData:
-    return MarketData(
-        CsvSource(PRICES),
-        HttpCache(enabled=False),
-        today=when,
-        history_years=history_years,
-    )
-
-
 @pytest.fixture
 def ml_assumptions() -> Assumptions:
-    """Defaults with the risk-free rate pinned so nothing reaches the Treasury."""
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
-    return a
+    return pinned_assumptions()
 
 
 def _row(ticker: str, when: date, assumptions: Assumptions, **kw) -> FeatureRow:
     return build_features(
-        ticker, when, PinnedClient(when), _market(when), assumptions, **kw
+        ticker, when, PinnedClient(when), market_at(when), assumptions, **kw
     )
 
 
@@ -235,7 +222,7 @@ def test_no_provenance_on_a_clean_row_postdates_the_row(ml_assumptions):
 def test_an_unpinned_client_is_refused(ml_assumptions):
     with pytest.raises(LookaheadError, match="not pinned"):
         build_features(
-            "DDOG", D_2025_JAN, UnpinnedClient(), _market(D_2025_JAN), ml_assumptions
+            "DDOG", D_2025_JAN, UnpinnedClient(), market_at(D_2025_JAN), ml_assumptions
         )
 
 
@@ -245,7 +232,7 @@ def test_a_client_pinned_after_the_row_date_is_refused(ml_assumptions):
             "DDOG",
             D_2025_JAN,
             PinnedClient(D_2026_SEP),
-            _market(D_2025_JAN),
+            market_at(D_2025_JAN),
             ml_assumptions,
         )
 
@@ -254,7 +241,7 @@ def test_a_client_pinned_earlier_is_allowed_but_says_so(ml_assumptions):
     """Conservative, not leaking. The row is built and the gap is on the record."""
     earlier = D_2025_SEP - timedelta(days=30)
     row = build_features(
-        "DDOG", D_2025_SEP, PinnedClient(earlier), _market(earlier), ml_assumptions
+        "DDOG", D_2025_SEP, PinnedClient(earlier), market_at(earlier), ml_assumptions
     )
     assert row.knowledge_date == earlier
     assert any("conservative rather than leaking" in n for n in row.notes)
@@ -266,7 +253,7 @@ def test_an_uncapped_market_feed_is_refused(ml_assumptions):
             "DDOG",
             D_2025_JAN,
             PinnedClient(D_2025_JAN),
-            _market(D_2026_SEP),
+            market_at(D_2026_SEP),
             ml_assumptions,
         )
 
@@ -283,7 +270,7 @@ def test_the_provenance_assertion_catches_a_seeded_violation(ml_assumptions):
             "DDOG",
             D_2025_JAN,
             LyingClient(D_2025_JAN),
-            _market(D_2025_JAN),
+            market_at(D_2025_JAN),
             ml_assumptions,
         )
     assert "after the valuation date" in str(exc.value)
@@ -309,7 +296,7 @@ def test_the_assertion_walks_this_modules_own_historical_provenance(ml_assumptio
 
 def test_the_assertion_catches_a_price_series_running_past_the_row(ml_assumptions):
     row = _row("DDOG", D_2025_JAN, ml_assumptions)
-    late = _market(D_2026_SEP).prices("DDOG")
+    late = market_at(D_2026_SEP).prices("DDOG")
     with pytest.raises(LookaheadError, match="price series running to"):
         assert_point_in_time(row, prices=late)
 
@@ -319,7 +306,7 @@ def test_a_clean_row_passes_the_assertion(ml_assumptions):
     fin = build_financials(
         "MDB", facts=PinnedClient(D_2026_SEP).company_facts("MDB")
     )
-    assert_point_in_time(row, fin, prices=_market(D_2026_SEP).prices("MDB"))
+    assert_point_in_time(row, fin, prices=market_at(D_2026_SEP).prices("MDB"))
 
 
 # --------------------------------------------------------------------------- #
@@ -469,7 +456,7 @@ def test_market_features_are_in_a_sane_range(ml_assumptions):
 def test_relative_momentum_is_the_stock_less_the_index(ml_assumptions):
     """The feature is excess return against SPY, not a second price return."""
     row = _row("DDOG", D_2026_SEP, ml_assumptions)
-    spy = _market(D_2026_SEP).prices("SPY")
+    spy = market_at(D_2026_SEP).prices("SPY")
     index_return = spy.last / _close_a_year_before(spy) - 1.0
 
     assert row.values["market_relative_momentum_12m"] == pytest.approx(
@@ -516,9 +503,8 @@ def test_the_research_and_sales_ladders_resolve_when_the_filer_reports_them():
         def company_facts(self, ticker: str) -> CompanyFacts:
             return CompanyFacts(payload, ticker, knowledge_date=D_2026_SEP)
 
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
-    row = build_features("DDOG", D_2026_SEP, Injected(), _market(D_2026_SEP), a)
+    a = pinned_assumptions()
+    row = build_features("DDOG", D_2026_SEP, Injected(), market_at(D_2026_SEP), a)
 
     assert row.values["efficiency_rnd_to_revenue"] is not None
     assert row.values["efficiency_rnd_to_revenue"] == pytest.approx(
@@ -730,7 +716,7 @@ def test_missing_values_survive_standardisation_as_missing():
 def _factories():
     return (
         lambda when: PinnedClient(when),
-        lambda when: _market(when),
+        market_at,
     )
 
 
@@ -835,7 +821,7 @@ def test_build_panel_does_not_swallow_a_lookahead(ml_assumptions):
             ["DDOG"],
             [D_2025_JAN],
             lambda when: LyingClient(when),
-            lambda when: _market(when),
+            market_at,
             ml_assumptions,
         )
 
@@ -909,7 +895,7 @@ def test_a_date_before_any_filing_fails_rather_than_inventing_a_row(ml_assumptio
     before = date(2023, 6, 1)
     with pytest.raises(MissingDataError):
         build_features(
-            "DDOG", before, PinnedClient(before), _market(before), ml_assumptions
+            "DDOG", before, PinnedClient(before), market_at(before), ml_assumptions
         )
 
 
@@ -922,7 +908,7 @@ def test_a_stale_price_feed_is_reported_rather_than_hidden(ml_assumptions):
     """
     stale = D_2026_SEP - timedelta(days=45)
     row = build_features(
-        "DDOG", D_2026_SEP, PinnedClient(D_2026_SEP), _market(stale), ml_assumptions
+        "DDOG", D_2026_SEP, PinnedClient(D_2026_SEP), market_at(stale), ml_assumptions
     )
     assert any("the price series ends" in n for n in row.notes)
     assert row.values["market_momentum_12m"] is not None

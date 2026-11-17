@@ -16,14 +16,13 @@ from techval.compare import (
     takeaway,
     value_figure,
 )
-from techval.config import Assumptions
 from techval.dashboard.render import render_dashboard
 from techval.dashboard.sections import engine as E
 from techval.dashboard.snapshot import Snapshot, load_snapshot
 from techval.market import CsvSource
 from techval.tearsheet import RecordedFacts
 
-from conftest import FIXTURES, PRICES
+from conftest import FIXTURES, PRICES, pinned_assumptions
 
 AS_OF = date(2026, 9, 9)
 
@@ -40,15 +39,9 @@ def sources(observations=None):
     )
 
 
-def assumptions():
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
-    return a
-
-
 @pytest.fixture(scope="module")
 def compared(fade_observations):
-    return measure_all(["DDOG", "CRWD", "DIS", "NOPE"], assumptions(), sources(fade_observations), today=AS_OF)
+    return measure_all(["DDOG", "CRWD", "DIS", "NOPE"], pinned_assumptions(), sources(fade_observations), today=AS_OF)
 
 
 def test_every_company_keeps_its_place_and_one_with_no_filings_is_refused(compared):
@@ -67,7 +60,7 @@ def test_each_company_is_measured_on_the_assumptions_and_on_its_own_record(compa
 
 def test_the_set_can_be_its_own_peers(fade_observations):
     rows = measure_all(
-        ["DDOG", "CRWD", "ZS"], assumptions(), sources(fade_observations), today=AS_OF, peers_from_set=True
+        ["DDOG", "CRWD", "ZS"], pinned_assumptions(), sources(fade_observations), today=AS_OF, peers_from_set=True
     )
     assert set(rows[0].base.cost_of_capital.peers) <= {"CRWD", "ZS"} and rows[0].base.cost_of_capital.peers
 
@@ -110,7 +103,7 @@ def test_the_takeaway_names_the_price_that_asks_the_most(compared):
 
 def test_the_comparison_is_a_one_section_page_that_validates(fade_observations):
     snap = build_comparison(
-        ["DDOG", "DIS", "NOPE"], assumptions(), client=RecordedFacts(FIXTURES), prices=CsvSource(PRICES),
+        ["DDOG", "DIS", "NOPE"], pinned_assumptions(), client=RecordedFacts(FIXTURES), prices=CsvSource(PRICES),
         price_feed="csv", observations=fade_observations, panel="tests/fixtures/fade_companyfacts.json.gz",
         today=AS_OF, collected_at="2026-09-09", commit="abc1234",
     )

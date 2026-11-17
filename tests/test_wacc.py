@@ -7,7 +7,6 @@ from datetime import date, timedelta
 import numpy as np
 import pytest
 
-from techval.config import Assumptions
 from techval.errors import ConfigError, MissingDataError, NotMeaningfulError
 from techval.market import PriceSeries
 from techval.wacc import (
@@ -21,6 +20,8 @@ from techval.wacc import (
     unlever,
     vasicek_adjust,
 )
+
+from conftest import pinned_assumptions
 
 
 # --------------------------------------------------------------------------- #
@@ -160,8 +161,7 @@ def test_book_yield_below_the_risk_free_rate_is_rejected(ddog, ddog_bridge, mark
     zero, which is not a rate anyone would lend at, so the engine falls through
     to the synthetic rating and says why.
     """
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     a.cost_of_debt.method = "filings"
     w = compute_wacc(ddog, ddog_bridge, market, a)
     assert w.pretax_cost_of_debt >= w.risk_free_rate
@@ -169,8 +169,7 @@ def test_book_yield_below_the_risk_free_rate_is_rejected(ddog, ddog_bridge, mark
 
 
 def test_override_is_used_verbatim(ddog, ddog_bridge, market):
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     a.cost_of_debt.method = "override"
     a.cost_of_debt.override_rate = 0.062
     w = compute_wacc(ddog, ddog_bridge, market, a)

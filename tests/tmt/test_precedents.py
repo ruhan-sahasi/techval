@@ -58,6 +58,8 @@ from techval.financials import build_financials
 from techval.market import CsvSource
 from techval.tmt import precedents as P
 
+from conftest import pinned_assumptions
+
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "merger"
 PRICES = FIXTURES / "prices"
 
@@ -154,8 +156,7 @@ def merger_client() -> MergerFixtureClient:
 
 @pytest.fixture
 def merger_assumptions() -> Assumptions:
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     a.as_of = MERGER_AS_OF.isoformat()
     # The default 250mm floor would be exercised separately; the fixture set is
     # about extraction and arithmetic, so nothing is dropped for size here.

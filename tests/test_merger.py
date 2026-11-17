@@ -15,7 +15,7 @@ from techval.ev_bridge import build_ev_bridge
 from techval.financials import Financials, build_financials
 from techval.merger import _target_book_equity, run_merger
 
-from conftest import load_facts
+from conftest import load_facts, pinned_assumptions
 
 
 def _company(
@@ -102,8 +102,7 @@ def hand_case():
     )
     tgt = _company("TGT", revenue=1500, ebit=280, da=60, net_income=200, shares=100)
 
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     a.tax.marginal_tax_rate = 0.24
     a.merger.offer_premium = 0.30
     a.merger.pct_cash = 0.50

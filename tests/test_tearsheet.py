@@ -15,14 +15,13 @@ from techval.dashboard.snapshot import Snapshot, load_snapshot
 from techval.market import CsvSource
 from techval.tearsheet import RecordedFacts, build_tearsheet
 
-from conftest import FIXTURES, PRICES
+from conftest import FIXTURES, PRICES, pinned_assumptions
 
 AS_OF = date(2026, 9, 9)
 
 
 def sheet(ticker, peers=(), observations=None):
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     a.comps.peers = list(peers)
     return build_tearsheet(
         ticker, a, client=RecordedFacts(FIXTURES), prices=CsvSource(PRICES), price_feed="csv",

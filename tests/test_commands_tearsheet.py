@@ -10,7 +10,7 @@ from typer.testing import CliRunner
 
 from techval.cli import app
 
-from conftest import FIXTURES
+from conftest import FIXTURES, flat
 
 runner = CliRunner()
 
@@ -41,7 +41,7 @@ def test_a_tearsheet_is_written_offline_as_a_one_section_page(tmp_path):
          "--panels", str(FIXTURES), "--out", str(out)],
     )
     assert result.exit_code == 0, result.output
-    assert f"Wrote {out}" in " ".join(result.output.split())
+    assert f"Wrote {out}" in flat(result.output)
     snap = snapshot_in(out.read_text(encoding="utf-8"))
     assert snap["title"] == "DDOG, valued by the engine"
     assert list(snap["sections"]) == ["engine"] and snap["fixtures"] == {}
@@ -57,7 +57,7 @@ def test_a_name_with_no_recorded_facts_is_refused_with_the_path_it_looked_at(tmp
          "--out", str(tmp_path / "nope.html")],
     )
     assert result.exit_code == 1
-    assert "companyfacts_NOPE.json" in " ".join(result.output.split())
+    assert "companyfacts_NOPE.json" in flat(result.output)
     assert not (tmp_path / "nope.html").exists()
 
 
@@ -82,7 +82,7 @@ def test_compare_writes_one_page_for_the_set_and_prints_the_table(tmp_path):
          "--panels", str(FIXTURES), "--out", str(out)],
     )
     assert result.exit_code == 0, result.output
-    text = " ".join(result.output.split())
+    text = flat(result.output)
     assert "Record case" in text and "Implied return" in text
     assert "Not valued NOPE" in text and f"Wrote {out}" in text
     snap = snapshot_in(out.read_text(encoding="utf-8"))

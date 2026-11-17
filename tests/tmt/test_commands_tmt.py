@@ -44,7 +44,14 @@ from techval.terminal import format_money
 from techval.tmt import kpis as kpi_module
 from techval.tmt import metrics as metric_module
 from techval.tmt.taxonomy import SubVertical
-from conftest import FIXTURES, PRICES, facts_payload, load_facts, load_instance_file
+from conftest import (
+    FIXTURES,
+    PRICES,
+    facts_payload,
+    flat,
+    load_facts,
+    load_instance_file,
+)
 
 # The date every fixture was retrieved, and the date every run below is pinned
 # to. Without it ``build_kpis`` dates its prose metrics to today and the printed
@@ -878,7 +885,7 @@ def test_the_evidence_survives_the_crossing_into_the_computed_table():
     same label the disclosed table used.
     """
     result = run("kpis", "DDOG", "--no-definitions")
-    out = " ".join(result.stdout.split())
+    out = flat(result.stdout)
     assert "What the pack was given, and the evidence behind each" in out
     # Datadog's retention is the weak one and it says so in both tables.
     assert "nrr prose, hedged dollar-based net retention rate was about 120%" in out
@@ -888,7 +895,7 @@ def test_the_evidence_survives_the_crossing_into_the_computed_table():
 
 def test_a_command_line_figure_is_labelled_as_such_in_the_pack_inputs():
     result = run("kpis", "DDOG", "--no-definitions", "--kpi", "arr=3000")
-    out = " ".join(result.stdout.split())
+    out = flat(result.stdout)
     assert "arr command line --kpi arr=3000" in out
 
 
@@ -1162,7 +1169,7 @@ def test_the_period_mismatch_is_named_before_the_coverage_check_refuses(tmp_path
     """
     result = sotp(tmp_path, PLAN, as_of="2026-09-10")
     assert result.exit_code == 1
-    out = " ".join(result.stdout.split())
+    out = flat(result.stdout)
     assert "the segments cover the year ended 2025-09-27" in out
     assert "97.4% of the company" in out
 
@@ -1182,7 +1189,7 @@ def test_the_period_mismatch_names_a_pin_that_works_and_the_one_that_does_not(tm
     same 2025-11-14 that every other sotp test in this file already pins to.
     """
     result = sotp(tmp_path, PLAN, as_of="2026-09-10")
-    out = " ".join(result.stdout.split())
+    out = flat(result.stdout)
     assert "--as-of 2025-11-14" in out
     assert "reached EDGAR on 2025-11-13" in out
     assert "Do NOT pin to 2025-09-27" in out

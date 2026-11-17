@@ -24,7 +24,7 @@ from techval.dashboard.collect import CollectContext, collect_section
 from techval.dashboard.sections import engine as E
 from techval.dashboard.snapshot import to_jsonable, validate_section
 from techval.market import CsvSource
-from conftest import FIXTURES, PRICES, FixtureClient
+from conftest import FIXTURES, PRICES, FixtureClient, pinned_assumptions
 from .walk import ROOT, SNAPSHOT, kit_charts, numbers_at
 
 ASSETS = ROOT / "src" / "techval" / "dashboard" / "assets"
@@ -505,8 +505,7 @@ def fixture_sources(observations=None):
 
 
 def test_a_company_with_no_peers_is_valued_on_its_own_beta_and_says_why_comps_are_missing():
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     m = E.measure("CRWD", [], a, fixture_sources(), today=date(2026, 9, 9))
     section = E.shape(m)
     assert m.ticker == "CRWD" and m.cost_of_capital.peers == []
@@ -521,8 +520,7 @@ def test_a_company_with_no_peers_is_valued_on_its_own_beta_and_says_why_comps_ar
 
 
 def test_the_record_case_leads_the_section_and_moves_the_dcf_but_not_the_history():
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     plain = E.measure("DDOG", [], a, fixture_sources(), today=date(2026, 9, 9))
     a.dcf.from_record = True
     record = E.measure("DDOG", [], a, fixture_sources(), today=date(2026, 9, 9))
@@ -538,8 +536,7 @@ def test_the_record_case_leads_the_section_and_moves_the_dcf_but_not_the_history
 
 def test_a_history_no_quarter_of_which_has_an_implied_return_is_refused_not_drawn():
     """With the margin held at Datadog's 0.4%, no discount rate reaches any close."""
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     a.dcf.ebit_margin_terminal = 0.004
     m = E.measure("DDOG", [], a, fixture_sources(), today=date(2026, 9, 9))
     section = E.shape(m)
@@ -549,8 +546,7 @@ def test_a_history_no_quarter_of_which_has_an_implied_return_is_refused_not_draw
 
 
 def test_a_measurement_without_the_history_skips_it_and_refuses_nothing():
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     whole = E.measure("DDOG", [], a, fixture_sources(), today=date(2026, 9, 9))
     lean = E.measure("DDOG", [], a, fixture_sources(), today=date(2026, 9, 9), history=False)
     assert whole.history is not None and lean.history is None

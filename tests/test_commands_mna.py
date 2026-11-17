@@ -55,7 +55,7 @@ from techval.edgar import (
     HttpCache,
 )
 
-from conftest import FIXTURES
+from conftest import FIXTURES, flat
 
 MERGER = FIXTURES / "merger"
 MNA = FIXTURES / "mna"
@@ -160,17 +160,6 @@ def _run(args: list[str]) -> str:
     return result.output
 
 
-def _flat(text: str) -> str:
-    """Whitespace collapsed to single spaces.
-
-    Rich wraps prose at the console width, so a sentence the command prints as
-    one string arrives split across lines with the break in an arbitrary place.
-    Asserting on the wrapped form tests the terminal width; asserting on this
-    tests the sentence.
-    """
-    return re.sub(r"\s+", " ", text).strip()
-
-
 def _sections(output: str) -> dict[str, str]:
     """The output split at its rules, keyed by rule title.
 
@@ -214,18 +203,18 @@ def test_the_control_premium_warning_prints_above_the_deal_table(precedent_outpu
     gap between them is not upside. The caution is worth nothing below the table
     it qualifies.
     """
-    flat = _flat(precedent_output)
-    assert "control premium" in flat
-    assert "roughly 25 to 40 percent across TMT" in flat
+    text = flat(precedent_output)
+    assert "control premium" in text
+    assert "roughly 25 to 40 percent across TMT" in text
     warning_at = precedent_output.index("counts the control premium twice")
     first_deal_at = precedent_output.index("IRDM")
     assert warning_at < first_deal_at, "the caution landed under the table"
 
 
 def test_the_warning_says_precedents_are_never_averaged_with_comps(precedent_output):
-    flat = _flat(precedent_output)
-    assert "not a trading comparable" in flat
-    assert "never averaged" in flat
+    text = flat(precedent_output)
+    assert "not a trading comparable" in text
+    assert "never averaged" in text
 
 
 # --------------------------------------------------------------------------- #
@@ -257,14 +246,14 @@ def test_iridium_reports_no_offer_price_at_all(precedent_output):
 
 
 def test_the_collar_is_explained_in_the_filing_s_own_terms(precedent_output):
-    detail = _flat(_section(precedent_output, "Deals with no offer price"))
+    detail = flat(_section(precedent_output, "Deals with no offer price"))
     assert "collar" in detail
     assert "does not exist at announcement" in detail
 
 
 def test_the_cash_leg_is_shown_once_and_labelled_as_the_cash_leg(precedent_output):
     """Shown, because it is a fact about the deal. Labelled, because it is not the price."""
-    detail = _flat(_section(precedent_output, "Deals with no offer price"))
+    detail = flat(_section(precedent_output, "Deals with no offer price"))
     assert "27.00" in detail
     assert "CASH LEG and not the offer" in detail
     # And it never became a multiple or a premium anywhere.
@@ -341,7 +330,7 @@ def test_a_column_below_the_deal_floor_prints_refused_in_every_cell(precedent_ou
     stats = _section(precedent_output, "Statistics")
     assert "refused" in stats
     assert "column(s) refused" in stats
-    assert "a median of three transactions is three transactions" in _flat(stats).lower()
+    assert "a median of three transactions is three transactions" in flat(stats).lower()
 
 
 def test_a_refused_column_keeps_its_n_so_the_refusal_is_legible(precedent_output):
@@ -362,7 +351,7 @@ def test_a_column_that_clears_the_floor_is_reported(precedent_output):
 
 
 def test_every_sub_vertical_is_refused_on_this_sample_and_says_so(precedent_output):
-    section = _flat(_section(precedent_output, "By sub-vertical"))
+    section = flat(_section(precedent_output, "By sub-vertical"))
     assert "No sub-vertical reached the 5-deal floor" in section
 
 
@@ -404,10 +393,10 @@ def test_the_size_floor_drops_the_unsized_and_flags_the_count(merger_config):
         ["precedents", ",".join(DEAL_TICKERS), "--config", str(merger_config),
          "--min-size", "5000"]
     )
-    flat = _flat(out)
-    assert "4 of 9 ticker(s)" in flat
-    assert "dropped by the 5,000mm size floor" in flat
-    assert "not because they were small" in flat
+    text = flat(out)
+    assert "4 of 9 ticker(s)" in text
+    assert "dropped by the 5,000mm size floor" in text
+    assert "not because they were small" in text
 
 
 def test_a_filter_that_empties_the_set_is_an_ordinary_answer(merger_config):
@@ -415,9 +404,9 @@ def test_a_filter_that_empties_the_set_is_an_ordinary_answer(merger_config):
         ["precedents", ",".join(DEAL_TICKERS), "--config", str(merger_config),
          "--sub-vertical", "gaming"]
     )
-    flat = _flat(out)
-    assert "No transaction survived" in flat
-    assert "Most companies are not acquired" in flat
+    text = flat(out)
+    assert "No transaction survived" in text
+    assert "Most companies are not acquired" in text
 
 
 # --------------------------------------------------------------------------- #
@@ -429,7 +418,7 @@ def test_every_deal_names_the_document_it_came_from(precedent_output):
     section = _section(precedent_output, "Deal size and provenance")
     # The Splunk merger 8-K, by accession, as the module extracted it.
     assert "0001104659-23-102594" in section
-    assert "Confidence is a coarse ladder" in _flat(precedent_output)
+    assert "Confidence is a coarse ladder" in flat(precedent_output)
 
 
 def test_the_size_a_floor_filters_on_is_printed_beside_the_floor(precedent_output):
@@ -443,8 +432,8 @@ def test_the_size_a_floor_filters_on_is_printed_beside_the_floor(precedent_outpu
     assert "Equity, mm" in section and "EV, mm" in section
     splk = [ln for ln in section.splitlines() if "SPLK" in ln]
     assert splk and "25,856" in splk[0]
-    assert "ml.mna.min_deal_size" in _flat(section)
-    assert "an unknown size cannot be shown to clear one" in _flat(section)
+    assert "ml.mna.min_deal_size" in flat(section)
+    assert "an unknown size cannot be shown to clear one" in flat(section)
 
 
 def test_no_number_in_the_deal_table_is_truncated(precedent_output):
@@ -568,9 +557,9 @@ def test_a_delisted_target_resolves_by_ticker_alone(monkeypatch, merger_config):
     """
     monkeypatch.setattr(C, "EdgarClient", DelistedClient)
     out = _run(["precedents", "SPLK", "--config", str(merger_config)])
-    flat = _flat(out)
-    assert "1 of 1 ticker(s)" in flat
-    assert "former-ticker index" in flat or "cover page" in flat
+    text = flat(out)
+    assert "1 of 1 ticker(s)" in text
+    assert "former-ticker index" in text or "cover page" in text
 
 
 def test_a_cik_on_the_command_line_gets_past_the_delisting(monkeypatch, merger_config):
@@ -583,10 +572,10 @@ def test_a_cik_on_the_command_line_gets_past_the_delisting(monkeypatch, merger_c
     """
     monkeypatch.setattr(C, "EdgarClient", DelistedClient)
     out = _run(["precedents", "SPLK=1353283", "--config", str(merger_config)])
-    flat = _flat(out)
-    assert "1 of 1 ticker(s)" in flat
-    assert "CIK supplied on the command line for SPLK (1353283)" in flat
-    assert "25,856" in _flat(_section(out, "Deal size and provenance"))
+    text = flat(out)
+    assert "1 of 1 ticker(s)" in text
+    assert "CIK supplied on the command line for SPLK (1353283)" in text
+    assert "25,856" in flat(_section(out, "Deal size and provenance"))
 
 
 def test_the_help_example_is_one_that_can_actually_run(monkeypatch, merger_config):
@@ -604,15 +593,15 @@ def test_the_help_example_is_one_that_can_actually_run(monkeypatch, merger_confi
             str(merger_config),
         ]
     )
-    assert "4 of 4 ticker(s)" in _flat(out)
+    assert "4 of 4 ticker(s)" in flat(out)
 
 
 def test_the_run_echoes_the_assumptions_that_drove_it(precedent_output):
-    flat = _flat(precedent_output)
-    assert "Lookback 10 years" in flat
-    assert "ml.mna.min_deal_size" in flat
-    assert "Prices from csv" in flat
-    assert "Statistics need 5 deals per column" in flat
+    text = flat(precedent_output)
+    assert "Lookback 10 years" in text
+    assert "ml.mna.min_deal_size" in text
+    assert "Prices from csv" in text
+    assert "Statistics need 5 deals per column" in text
 
 
 # --------------------------------------------------------------------------- #
@@ -644,12 +633,12 @@ def test_the_screen_prints_its_auc_and_its_baseline_before_the_first_name(
     A target screen is the output here most likely to be pasted into a deck, and
     a caveat on another page is a caveat nobody carries with them.
     """
-    flat = _flat(target_output)
-    assert "0.5685" in flat
-    assert "0.5474" in flat
+    text = flat(target_output)
+    assert "0.5685" in text
+    assert "0.5474" in text
     # Twice: once in the block above the screen, and again inside the screen's
     # own header, so the number travels with the names if the page is cropped.
-    assert flat.count("0.5685") >= 2
+    assert text.count("0.5685") >= 2
     screen = _section(target_output, "Acquisition target screen")
     assert "0.5685" in screen
     assert screen.index("0.5685") < screen.index("What put it on the list")
@@ -657,34 +646,34 @@ def test_the_screen_prints_its_auc_and_its_baseline_before_the_first_name(
 
 def test_the_baseline_is_the_size_sort_and_not_the_base_rate(target_output):
     """Beating a constant is not an achievement. Sorting by size costs one line."""
-    flat = _flat(target_output)
-    assert "size sort" in flat
-    assert "smallest to largest, which costs one line of code" in flat
+    text = flat(target_output)
+    assert "size sort" in text
+    assert "smallest to largest, which costs one line of code" in text
 
 
 def test_the_lift_is_reported_as_inside_the_fold_noise(target_output):
-    flat = _flat(target_output)
-    assert "+0.0212" in flat
-    assert "0.0910" in flat
-    assert "the lift is INSIDE the fold-to-fold noise" in flat
-    assert "beat_baseline is technically True" in flat
-    assert "a different claim from the model working" in flat
-    assert "the size sort is free" in flat
+    text = flat(target_output)
+    assert "+0.0212" in text
+    assert "0.0910" in text
+    assert "the lift is INSIDE the fold-to-fold noise" in text
+    assert "beat_baseline is technically True" in text
+    assert "a different claim from the model working" in text
+    assert "the size sort is free" in text
 
 
 def test_the_blind_spot_is_printed_above_the_list(target_output):
     """The model is fundamentals only and the output must not let that pass unsaid."""
-    assert "CANNOT SAY WHETHER CHEAP COMPANIES GET BOUGHT" in _flat(target_output)
+    assert "CANNOT SAY WHETHER CHEAP COMPANIES GET BOUGHT" in flat(target_output)
     blind_at = target_output.index("What this model cannot see")
     list_at = target_output.index("Acquisition target screen")
     assert blind_at < list_at, "the blind spot landed under the list"
-    assert "no valuation channel is in this ranking" in _flat(target_output)
+    assert "no valuation channel is in this ranking" in flat(target_output)
 
 
 def test_the_blind_spot_explains_why_rather_than_only_asserting_it(target_output):
-    flat = _flat(target_output)
-    assert "no public source serves price history for a delisted symbol" in flat
-    assert "true, circular and useless" in flat
+    text = flat(target_output)
+    assert "no public source serves price history for a delisted symbol" in text
+    assert "true, circular and useless" in text
 
 
 def test_the_ranked_list_is_printed_with_per_name_drivers(target_output):
@@ -701,14 +690,14 @@ def test_the_per_year_base_rate_is_printed_and_its_swing_stated(target_output):
     section = _section(target_output, "Base rate by year")
     for year in ("2019", "2020", "2021", "2022", "2023", "2024"):
         assert year in section
-    flat = _flat(section)
-    assert "2.05%" in flat and "4.53%" in flat
-    assert "different worlds for technology M&A" in flat
+    text = flat(section)
+    assert "2.05%" in text and "4.53%" in text
+    assert "different worlds for technology M&A" in text
 
 
 def test_the_coefficients_that_change_sign_between_folds_are_counted(target_output):
     """Nine of fifteen. A coefficient that changes sign has been sampled, not measured."""
-    section = _flat(_section(target_output, "Coefficient stability"))
+    section = flat(_section(target_output, "Coefficient stability"))
     assert "9 of 15 coefficients change sign between folds" in section
     assert "has not been measured, it has been sampled" in section
 
@@ -718,14 +707,14 @@ def test_precision_at_k_is_reported_against_the_size_sort_on_the_same_dates(
 ):
     section = _section(target_output, "Precision and recall at k")
     assert "Prec. model" in section and "Prec. size" in section
-    assert "is worth having and is not a result" in _flat(section)
+    assert "is worth having and is not a result" in flat(section)
 
 
 def test_calibration_marks_the_thin_buckets_as_thin(target_output):
     """Ranking and calibration fail independently, and both are reported."""
     section = _section(target_output, "Calibration of the out-of-sample")
     assert "thin" in section
-    assert "Ranking and calibration fail independently" in _flat(section)
+    assert "Ranking and calibration fail independently" in flat(section)
 
 
 def test_calibration_says_which_way_the_probabilities_miss(target_output):
@@ -735,17 +724,17 @@ def test_calibration_says_which_way_the_probabilities_miss(target_output):
     screen prints probabilities, so the command has to say the number on the
     list is a rank wearing a percentage sign.
     """
-    section = _flat(_section(target_output, "Calibration of the out-of-sample"))
+    section = flat(_section(target_output, "Calibration of the out-of-sample"))
     assert "over-predict by more than five points" in section
     assert "ranks wearing a percentage sign" in section
     assert "do not quote a number off it as a likelihood" in section
 
 
 def test_the_limitations_from_the_model_card_reach_the_page(target_output):
-    flat = _flat(target_output)
-    assert "Announcement is the label, not completion" in flat
-    assert "A blocked deal is a positive" in flat
-    assert "86 distinct companies were acquired in this sample" in flat
+    text = flat(target_output)
+    assert "Announcement is the label, not completion" in text
+    assert "A blocked deal is a positive" in text
+    assert "86 distinct companies were acquired in this sample" in text
 
 
 def test_the_verdict_rests_on_the_matrix_deal_count_not_the_observation_count(
@@ -756,18 +745,18 @@ def test_the_verdict_rests_on_the_matrix_deal_count_not_the_observation_count(
     Quoting the observation count beside a score the smaller sample produced
     would overstate the evidence by the companies the panel could not build.
     """
-    flat = _flat(target_output)
-    assert "86 distinct deals that reached the design matrix" in flat
-    assert "284 positive observations" in flat
-    assert "add no independent evidence" in flat
+    text = flat(target_output)
+    assert "86 distinct deals that reached the design matrix" in text
+    assert "284 positive observations" in text
+    assert "add no independent evidence" in text
 
 
 def test_the_run_echoes_the_sample_it_was_fitted_on(target_output):
-    flat = _flat(target_output)
-    assert "493 registrants" in flat
-    assert "104 have left the filing record" in flat
-    assert "107 announced deals" in flat
-    assert "5 walk-forward folds, seed 7" in flat
+    text = flat(target_output)
+    assert "493 registrants" in text
+    assert "104 have left the filing record" in text
+    assert "107 announced deals" in text
+    assert "5 walk-forward folds, seed 7" in text
 
 
 def test_the_sub_vertical_filter_narrows_the_printed_list():

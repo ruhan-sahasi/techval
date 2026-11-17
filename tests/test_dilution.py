@@ -15,17 +15,18 @@ from datetime import date
 
 import pytest
 
-from conftest import AS_OF, FIXTURES, PRICES, load_instance
 from techval.config import Assumptions
-from techval.edgar import DimensionedFact, HttpCache
+from techval.edgar import DimensionedFact
 from techval.errors import MissingDataError, NotMeaningfulError
-from techval.market import CsvSource, MarketData
+from techval.market import MarketData
 from techval.dilution import (
     AwardBlock,
     build_share_count,
     shares_outstanding,
     treasury_stock_shares,
 )
+
+from conftest import AS_OF, FIXTURES, load_instance, market_at
 
 OPTION_COUNT = (
     "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingNumber"
@@ -90,7 +91,7 @@ def tsm(assumptions) -> Assumptions:
 
 @pytest.fixture
 def prices() -> MarketData:
-    return MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=AS_OF)
+    return market_at(AS_OF)
 
 
 @pytest.fixture

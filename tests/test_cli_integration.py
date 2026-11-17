@@ -49,7 +49,7 @@ from techval.financials import build_financials
 from techval.market import CsvSource
 from techval.merger import run_merger
 from techval.wacc import compute_wacc
-from conftest import FIXTURES, PRICES, load_facts, load_instance_file
+from conftest import FIXTURES, PRICES, flat, load_facts, load_instance_file
 
 AS_OF = "2026-09-10"
 
@@ -418,9 +418,9 @@ def test_a_missing_artifact_is_named_rather_than_guessed_at(flag, wanted, tmp_pa
     empty.mkdir()
     result = run_value("-c", str(config), "--ml-data", str(empty))
     assert result.exit_code == 0
-    flat = "".join(result.output.split())
-    assert "missing" in flat
-    assert wanted in flat, f"{flag} did not name the file it wanted"
+    joined = "".join(result.output.split())
+    assert "missing" in joined
+    assert wanted in joined, f"{flag} did not name the file it wanted"
 
 
 def test_sotp_refuses_without_a_plan_and_names_the_command_that_writes_one(tmp_path):
@@ -447,8 +447,8 @@ def test_ml_data_defaults_to_the_configured_cache_dir(tmp_path):
     )
     result = run_value("-c", str(config))
     assert result.exit_code == 0
-    flat = "".join(result.output.split())
-    assert "".join(str(root / "observations.json.gz").split()) in flat
+    joined = "".join(result.output.split())
+    assert "".join(str(root / "observations.json.gz").split()) in joined
 
 
 def test_ml_root_prefers_the_flag_over_the_config(tmp_path):
@@ -506,9 +506,9 @@ def test_a_refusal_names_every_place_it_looked(tmp_path):
     empty.mkdir()
     with pytest.raises(MissingDataError) as exc:
         C._resolve(empty, ["warranted_panel"], what="the panel", writer="written by x")
-    flat = "".join(str(exc.value).split())
-    assert "observations.json.gz" in flat
-    assert "warranted/observations.json.gz" in flat
+    joined = "".join(str(exc.value).split())
+    assert "observations.json.gz" in joined
+    assert "warranted/observations.json.gz" in joined
 
 
 def test_a_directory_of_the_right_name_is_not_an_artifact(tmp_path):
@@ -584,10 +584,10 @@ def test_the_fade_section_prints_the_baselines_at_every_horizon(tmp_path):
 def test_the_fade_section_carries_the_model_card(tmp_path):
     """A fitted path inside a valuation without its training window is unauditable."""
     result = _fade_result(tmp_path)
-    flat = " ".join(result.output.split())
-    assert "The model behind that number" in flat
-    assert "Trained through" in flat
-    assert "What this model cannot do" in flat
+    text = flat(result.output)
+    assert "The model behind that number" in text
+    assert "Trained through" in text
+    assert "What this model cannot do" in text
 
 
 def test_the_fade_section_honours_the_knowledge_date(tmp_path):
@@ -605,11 +605,11 @@ def test_the_fade_section_honours_the_knowledge_date(tmp_path):
          "--ml-data", str(FIXTURES)],
     )
     assert result.exit_code == 0
-    flat = " ".join(result.output.split())
+    text = flat(result.output)
     # The panel's own note, not the report's point-in-time banner, which is
     # printed whether or not anything downstream honoured the date.
-    assert "observation(s) filed after 2024-06-30 were removed" in flat
-    assert "forward label(s) that had not been filed by then were detached" in flat
+    assert "observation(s) filed after 2024-06-30 were removed" in text
+    assert "forward label(s) that had not been filed by then were detached" in text
 
 
 # --------------------------------------------------------------------------- #
@@ -628,14 +628,14 @@ def test_the_warranted_section_carries_the_model_card(tmp_path):
     config = _config(tmp_path, FLAG_BODIES["ml.warranted.enabled"])
     result = run_value("-c", str(config), "--ml-data", str(FIXTURES))
     assert result.exit_code == 0
-    flat = " ".join(result.output.split())
-    assert "Trained through" in flat
-    assert "Training observations" in flat
+    text = flat(result.output)
+    assert "Trained through" in text
+    assert "Training observations" in text
     assert "observations.json.gz" in "".join(result.output.split())
-    assert "What this model cannot do" in flat
+    assert "What this model cannot do" in text
     # The pooled score is mostly company identity. Printing it without the
     # differenced figure beside it is how a screen gets oversold.
-    assert "Differenced against the company's own prior read" in flat
+    assert "Differenced against the company's own prior read" in text
 
 
 def test_the_signal_section_says_what_the_sample_was(tmp_path):
@@ -650,13 +650,13 @@ def test_the_signal_section_says_what_the_sample_was(tmp_path):
     config = _config(tmp_path, FLAG_BODIES["ml.signals.enabled"])
     result = run_value("-c", str(config), "--ml-data", str(FIXTURES))
     assert result.exit_code == 0
-    flat = " ".join(result.output.split())
-    assert "holding periods ran their course" in flat
-    assert "FLAG:" in flat
-    assert "biased upward by the outcomes it cannot see" in flat
+    text = flat(result.output)
+    assert "holding periods ran their course" in text
+    assert "FLAG:" in text
+    assert "biased upward by the outcomes it cannot see" in text
     # And the convention that produced it, so the exclusion is a stated choice
     # rather than a default nobody saw.
-    assert "--delisting" in flat
+    assert "--delisting" in text
 
 
 # --------------------------------------------------------------------------- #
@@ -709,9 +709,9 @@ def test_the_merger_command_prints_the_targets_capped_carryforward(tmp_path):
     )
     result = run_merger_command("-c", str(_config(tmp_path, body)))
     assert result.exit_code == 0
-    flat = " ".join(result.output.split())
-    assert "Of which the target's, under its cap" in flat
-    assert "Carryforwards at close shelter the sweep's cash taxes" in flat
+    text = flat(result.output)
+    assert "Of which the target's, under its cap" in text
+    assert "Carryforwards at close shelter the sweep's cash taxes" in text
 
     # The opening balance sheet it prints books the target's balance at the rate.
     assumptions, client, market = C._setup(_config(tmp_path, body), True, AS_OF)
@@ -749,13 +749,13 @@ def test_the_accretion_row_prints_the_dollars_the_model_computed(tmp_path):
 
     result = run_merger_command("-c", str(config))
     assert result.exit_code == 0
-    flat = "".join(result.output.split())
+    joined = "".join(result.output.split())
     for _, dollars, _ in pa.accretion_by_year:
         shown = f"({abs(dollars):,.3f})" if dollars < 0 else f"{dollars:,.3f}"
-        assert shown in flat, f"{shown} is missing from the accretion row"
+        assert shown in joined, f"{shown} is missing from the accretion row"
     for _, _, pct in pa.accretion_by_year:
         if pct is not None:
-            assert f"{pct:.1%}" in flat, f"{pct:.1%} is missing from the percent row"
+            assert f"{pct:.1%}" in joined, f"{pct:.1%} is missing from the percent row"
 
 
 # --------------------------------------------------------------------------- #
@@ -768,7 +768,7 @@ def test_the_record_case_sets_the_dcf_from_the_filings_and_says_which_figures(tm
     record = run_value("-c", str(_config(tmp_path, "dcf:\n  from_record: true\n")))
     assert default.exit_code == 0 and record.exit_code == 0
     assert "The record case" not in default.output
-    text = " ".join(record.output.split())
+    text = flat(record.output)
     assert "The record case" in text
     for label in (
         "Year 1 revenue growth",
@@ -780,8 +780,8 @@ def test_the_record_case_sets_the_dcf_from_the_filings_and_says_which_figures(tm
     assert "twelve months to" in text or "fiscal-year revenue" in text
     # And the DCF's own note says where year one's working capital now starts.
     assert "the balance sheet reports" in text
-    assert "dcf.from_record sets the ratio from the balance instead" in " ".join(
-        default.output.split()
+    assert "dcf.from_record sets the ratio from the balance instead" in flat(
+        default.output
     )
 
 
@@ -857,7 +857,7 @@ def test_the_merger_command_repays_the_targets_borrowings_when_told_to(tmp_path)
     if result.exception is not None and not isinstance(result.exception, SystemExit):
         raise result.exception
     assert result.exit_code == 0
-    flat = " ".join(result.output.split())
+    out = flat(result.output)
     for text in (
         "of which borrowings repaid at close",
         "Repayment of target borrowings",
@@ -866,4 +866,4 @@ def test_the_merger_command_repays_the_targets_borrowings_when_told_to(tmp_path)
         "prepayment premium paid on them 460.41",
         "Prepayment premium on them 460",
     ):
-        assert text in flat, text
+        assert text in out, text

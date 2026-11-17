@@ -57,7 +57,7 @@ from techval.ml.features import FEATURE_NAMES, FeaturePanel, FeatureRow
 from techval.ml.peer_labels import PeerGroup
 from techval.ml.text import TextCorpus
 
-from conftest import FIXTURES
+from conftest import FIXTURES, flat
 
 REAL_PANEL = FIXTURES / "warranted" / "observations.json.gz"
 
@@ -233,16 +233,6 @@ def _config(root: Path, name: str = "assumptions.yaml", **overrides) -> Path:
     return path
 
 
-def _flat(text: str) -> str:
-    """Collapse the whitespace rich used to wrap a sentence across two lines.
-
-    Every assertion below is about a sentence the command printed, and a table
-    width is not. Flattening first keeps the tests from failing the day somebody
-    widens a column.
-    """
-    return re.sub(r"\s+", " ", text)
-
-
 def _tight(text: str) -> str:
     """All whitespace removed, for the assertions about a path.
 
@@ -287,14 +277,14 @@ def cold_run(synthetic):
     """One company that never filed a proxy, with the evaluation run."""
     result = _peers(synthetic, "S5C4", "--n", "6")
     assert result.exit_code == 0, result.output
-    return _flat(result.output)
+    return flat(result.output)
 
 
 @pytest.fixture(scope="module")
 def warm_run(synthetic):
     result = _peers(synthetic, "S1C1", "--n", "6")
     assert result.exit_code == 0, result.output
-    return _flat(result.output)
+    return flat(result.output)
 
 
 # --------------------------------------------------------------------------- #
@@ -333,9 +323,9 @@ def test_warm_is_decided_by_the_filing_cut_and_not_by_the_embedding_date(synthet
     """
     result = _peers(synthetic, "S5C3", "--no-evaluate")
     assert result.exit_code == 0, result.output
-    flat = _flat(result.output)
-    assert "embedded at 2024-01-01 on proxies filed through 2024-" in flat
-    assert "WARM START. S5C3 disclosed 1 peer group(s)" in flat
+    text = flat(result.output)
+    assert "embedded at 2024-01-01 on proxies filed through 2024-" in text
+    assert "WARM START. S5C3 disclosed 1 peer group(s)" in text
 
 
 def test_a_capped_training_window_moves_a_company_from_warm_to_cold(synthetic):
@@ -346,8 +336,8 @@ def test_a_capped_training_window_moves_a_company_from_warm_to_cold(synthetic):
     rather than the file. This is the same discipline the rest of the engine
     applies to a valuation dated in the past.
     """
-    late = _flat(_peers(synthetic, "S4C0", "--no-evaluate", "--no-cache").output)
-    early = _flat(
+    late = flat(_peers(synthetic, "S4C0", "--no-evaluate", "--no-cache").output)
+    early = flat(
         _peers(
             synthetic, "S4C0", "--no-evaluate", "--no-cache", "--through", "2022-12-31"
         ).output
@@ -362,9 +352,9 @@ def test_a_training_window_with_too_few_pairs_refuses_to_fit(synthetic):
         synthetic, "S1C1", "--no-evaluate", "--no-cache", "--through", "2021-03-02"
     )
     assert result.exit_code == 1
-    flat = _flat(result.output)
-    assert "NotMeaningfulError" in flat
-    assert "below the floor" in flat
+    text = flat(result.output)
+    assert "NotMeaningfulError" in text
+    assert "below the floor" in text
 
 
 def test_the_cold_and_warm_scores_both_reach_the_output(cold_run):
@@ -390,9 +380,9 @@ def test_without_the_evaluation_the_command_refuses_to_quote_a_score(synthetic):
     """
     result = _peers(synthetic, "S1C1", "--no-evaluate", "--no-cache")
     assert result.exit_code == 0, result.output
-    flat = _flat(result.output)
-    assert "the warm and cold scores are unavailable" in flat
-    assert "Cold start (target never seen)" not in flat
+    text = flat(result.output)
+    assert "the warm and cold scores are unavailable" in text
+    assert "Cold start (target never seen)" not in text
 
 
 def test_every_baseline_is_printed_on_the_same_queries(warm_run):
@@ -488,7 +478,7 @@ def test_a_single_source_candidate_is_named_loudly_and_kept_at_its_rank(capsys):
     _render_thin_evidence(
         "DIS", ranked, sources, ["CMCSA", "PG", "NFLX", "T"], {"PG": "PROCTER & GAMBLE Co"}
     )
-    out = _flat(capsys.readouterr().out)
+    out = flat(capsys.readouterr().out)
     assert "OUT OF ITS DEPTH. PG (PROCTER & GAMBLE Co) is ranked 2 of 3 for DIS" in out
     assert "comes from one filer's proxy (MSFT)" in out
     assert "printed at its rank rather than dropped" in out
@@ -547,7 +537,7 @@ def disney_run(tmp_path_factory) -> str:
         ],
     )
     assert result.exit_code == 0, result.output
-    return _flat(result.output)
+    return flat(result.output)
 
 
 def test_procter_and_gamble_above_netflix_for_disney_is_flagged(disney_run):
@@ -613,17 +603,17 @@ def test_a_hand_written_peer_the_model_never_saw_is_named_rather_than_dropped(wa
 
 def test_the_target_itself_is_not_ranked_against_itself(synthetic):
     result = _peers(synthetic, "S1C1", "--no-evaluate")
-    flat = _flat(result.output)
-    assert "S1C1 - - the target itself" in flat
+    text = flat(result.output)
+    assert "S1C1 - - the target itself" in text
 
 
 def test_a_company_outside_the_fitted_universe_is_refused_not_approximated(synthetic):
     """The engine's cardinal rule, at the command boundary."""
     result = _peers(synthetic, "NOPE", "--no-evaluate")
     assert result.exit_code == 1
-    flat = _flat(result.output)
-    assert "MissingDataError" in flat
-    assert "this company was not in the fitted universe" in flat
+    text = flat(result.output)
+    assert "MissingDataError" in text
+    assert "this company was not in the fitted universe" in text
 
 
 def test_the_size_gate_drops_the_name_below_the_floor_and_says_it_is_on(synthetic):
@@ -635,8 +625,8 @@ def test_the_size_gate_drops_the_name_below_the_floor_and_says_it_is_on(syntheti
     similar the prose, and a measurement that did would be scoring the band
     rather than the model, which is why the evaluation below runs ungated.
     """
-    on = _flat(_peers(synthetic, "S1C1", "--no-evaluate", "--n", "6").output)
-    off = _flat(
+    on = flat(_peers(synthetic, "S1C1", "--no-evaluate", "--n", "6").output)
+    off = flat(
         _peers(synthetic, "S1C1", "--no-evaluate", "--no-size-gate", "--n", "6").output
     )
     ranked_on = re.findall(r"\d+ (S\dC\d) S\dC\d Holdings", on)
@@ -661,8 +651,8 @@ def test_the_assumptions_that_drove_the_ranking_are_echoed(warm_run):
 
 def test_the_same_inputs_give_the_same_ranking(synthetic):
     """Seeded from ml.random_seed, so a rerun is a rerun and not a new opinion."""
-    first = _flat(_peers(synthetic, "S1C1", "--no-evaluate", "--no-cache").output)
-    second = _flat(_peers(synthetic, "S1C1", "--no-evaluate", "--no-cache").output)
+    first = flat(_peers(synthetic, "S1C1", "--no-evaluate", "--no-cache").output)
+    second = flat(_peers(synthetic, "S1C1", "--no-evaluate", "--no-cache").output)
     pattern = r"\d+ (S\dC\d) S\dC\d Holdings ([\d.]+)"
     assert re.findall(pattern, first) == re.findall(pattern, second)
     assert re.findall(pattern, first)
@@ -676,8 +666,8 @@ def test_the_fit_is_cached_and_the_second_run_reads_it(synthetic):
     """
     first = _peers(synthetic, "S1C1", "--no-evaluate", "--refit")
     second = _peers(synthetic, "S1C1", "--no-evaluate")
-    assert "fit fitted on this run" in _flat(first.output)
-    assert "fit read from cache" in _flat(second.output)
+    assert "fit fitted on this run" in flat(first.output)
+    assert "fit read from cache" in flat(second.output)
 
 
 # --------------------------------------------------------------------------- #
@@ -717,11 +707,11 @@ def test_the_ablation_refits_without_each_tower_and_reports_all_three(synthetic)
         ],
     )
     assert result.exit_code == 0, result.output
-    flat = _flat(result.output)
-    assert "What each tower is worth, refitted without it" in flat
+    text = flat(result.output)
+    assert "What each tower is worth, refitted without it" in text
     for row in ("all features", "without text", "without fundamentals"):
-        assert row in flat
-    assert "Fold sd" in flat
+        assert row in text
+    assert "Fold sd" in text
 
 
 def test_a_tower_is_only_shown_to_help_when_it_clears_the_fold_noise(capsys):
@@ -744,10 +734,10 @@ def test_a_tower_is_only_shown_to_help_when_it_clears_the_fold_noise(capsys):
         ]
     )
     _render_ablation(frame)
-    flat = _flat(capsys.readouterr().out)
-    assert "without text 116 0.3600 0.0640" in flat
-    assert "1.01x the fold noise: shown to help" in flat
-    assert "0.57x the fold noise: NOT shown to help" in flat
+    text = flat(capsys.readouterr().out)
+    assert "without text 116 0.3600 0.0640" in text
+    assert "1.01x the fold noise: shown to help" in text
+    assert "0.57x the fold noise: NOT shown to help" in text
 
     _render_ablation(
         pd.DataFrame(
@@ -759,7 +749,7 @@ def test_a_tower_is_only_shown_to_help_when_it_clears_the_fold_noise(capsys):
             ]
         )
     )
-    assert "removing it did not hurt: this tower is not helping" in _flat(
+    assert "removing it did not hurt: this tower is not helping" in flat(
         capsys.readouterr().out
     )
 
@@ -886,7 +876,7 @@ def test_a_missing_artifact_names_the_file_and_the_recorder(tmp_path):
         ["peers", "AAA", "-c", str(config), "--groups", str(tmp_path / "nope.json")],
     )
     assert result.exit_code == 1
-    assert "MissingDataError" in _flat(result.output)
+    assert "MissingDataError" in flat(result.output)
     tight = _tight(result.output)
     assert "nope.json" in tight
     assert "record.py" in tight
@@ -911,7 +901,7 @@ def test_a_file_that_is_not_the_artifact_says_which_key_is_missing(tmp_path, syn
         ],
     )
     assert result.exit_code == 1
-    assert "'groups'" in _flat(result.output)
+    assert "'groups'" in flat(result.output)
 
 
 def test_a_non_positive_multiple_is_refused_rather_than_logged(tmp_path):
@@ -945,9 +935,9 @@ def test_a_non_positive_multiple_is_refused_rather_than_logged(tmp_path):
     )
     result = runner.invoke(app, ["screen", "--panel", str(path)])
     assert result.exit_code == 1
-    flat = _flat(result.output)
-    assert "has no logarithm" in flat
-    assert "recording error rather than a cheap company" in flat
+    text = flat(result.output)
+    assert "has no logarithm" in text
+    assert "recording error rather than a cheap company" in text
 
 
 # --------------------------------------------------------------------------- #
@@ -975,7 +965,7 @@ def screen_run(tmp_path_factory):
         ],
     )
     assert result.exit_code == 0, result.output
-    return _flat(result.output)
+    return flat(result.output)
 
 
 def test_the_reflexivity_limit_is_printed_before_the_ranking(screen_run):
@@ -1078,9 +1068,9 @@ def test_one_companys_own_read_can_be_pulled_out_of_the_screen(tmp_path):
         ],
     )
     assert result.exit_code == 0, result.output
-    flat = _flat(result.output)
-    assert "DDOG trades at" in flat
-    assert "a statement about relative pricing, not about value" in flat
+    text = flat(result.output)
+    assert "DDOG trades at" in text
+    assert "a statement about relative pricing, not about value" in text
 
 
 def test_a_sub_vertical_the_date_does_not_carry_is_refused_with_what_it_does(tmp_path):
@@ -1099,9 +1089,9 @@ def test_a_sub_vertical_the_date_does_not_carry_is_refused_with_what_it_does(tmp
         ],
     )
     assert result.exit_code == 1
-    flat = _flat(result.output)
-    assert "No 'shipbuilding' name has an out-of-sample read" in flat
-    assert "semiconductors" in flat
+    text = flat(result.output)
+    assert "No 'shipbuilding' name has an out-of-sample read" in text
+    assert "semiconductors" in text
 
 
 def test_a_panel_below_the_floor_reports_nothing_rather_than_noise(tmp_path):
@@ -1117,9 +1107,9 @@ def test_a_panel_below_the_floor_reports_nothing_rather_than_noise(tmp_path):
     path.write_text(json.dumps({**payload, "observations": keep, "skips": []}))
     result = runner.invoke(app, ["screen", "-c", str(_config(tmp_path)), "--panel", str(path)])
     assert result.exit_code == 1
-    flat = _flat(result.output)
-    assert "NotMeaningfulError" in flat
-    assert "min_train_observations" in flat
+    text = flat(result.output)
+    assert "NotMeaningfulError" in text
+    assert "min_train_observations" in text
 
 
 def test_the_recorded_target_wins_over_the_configured_one(tmp_path):
@@ -1134,6 +1124,6 @@ def test_the_recorded_target_wins_over_the_configured_one(tmp_path):
     path.write_text(json.dumps({**payload, "observations": payload["observations"][:5]}))
     config = _config(tmp_path, ml={"warranted": {"target": "ev_ebitda"}})
     result = runner.invoke(app, ["screen", "-c", str(config), "--panel", str(path)])
-    flat = _flat(result.output)
-    assert "The recorded panel is a ev_revenue panel" in flat
-    assert "The panel wins" in flat
+    text = flat(result.output)
+    assert "The recorded panel is a ev_revenue panel" in text
+    assert "The panel wins" in text
