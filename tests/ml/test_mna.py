@@ -79,6 +79,8 @@ from techval.ml.mna import (
     fit_propensity,
     label_observations,
 )
+from techval.tmt import precedents as P
+from techval.tmt.precedents import DEAL_FORMS
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "mna"
 
@@ -946,8 +948,6 @@ def test_the_consent_solicitation_forms_are_reachable():
     belong to the population a propensity model most wants to see, because the
     route a company takes to be sold is decided by who controls its votes.
     """
-    from techval.tmt.precedents import DEAL_FORMS
-
     assert set(CONSENT_DEAL_FORMS) & set(DEAL_FORMS) == {
         "DEFM14C", "PREM14C", "SC 13E3", "SC 13E3/A",
     }
@@ -966,8 +966,6 @@ def test_a_dual_class_target_is_not_discarded_as_somebody_elses_deal():
     as a group rather than at random, which is the same population the brief
     hypothesised was most likely to be bought.
     """
-    from techval.tmt import precedents as P
-
     filing = {
         "accession": POWERSCHOOL_INFORMATION_STATEMENT,
         "form": "DEFM14C",
@@ -997,8 +995,6 @@ def test_the_acquirer_side_refusal_still_holds_after_that_fix():
     looser pattern is what breaks it: the sentence that then matches is about
     who may vote at the Zendesk special meeting.
     """
-    from techval.tmt import precedents as P
-
     path = (
         Path(__file__).resolve().parents[1]
         / "fixtures" / "merger" / "text" / "0001193125-21-349135.txt"
