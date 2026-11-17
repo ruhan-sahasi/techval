@@ -268,7 +268,7 @@ def test_growth_survives_a_retired_revenue_tag():
     assert growth == pytest.approx(188 / 156 - 1)
 
 
-def test_negative_enterprise_value_withholds_ev_multiples(assumptions, market):
+def test_negative_enterprise_value_withholds_ev_multiples(assumptions):
     """Cash above market cap plus debt makes every EV multiple negative.
 
     Negative multiples would drag the whole percentile distribution below zero,

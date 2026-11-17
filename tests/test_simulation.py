@@ -489,7 +489,7 @@ def test_a_model_far_below_the_price_never_clears_it(
 
 
 def test_the_probability_is_read_off_the_quoted_price(
-    ddog, wacc_result, sim, assumptions
+    ddog, wacc_result, sim
 ):
     """Price the bridge at the model's own answer and the coin is fair.
 
