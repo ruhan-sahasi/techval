@@ -101,6 +101,23 @@ def facts_payload(series: dict[str, list[tuple[str, str, float]]]) -> dict:
     return {"cik": 1, "entityName": "Hand Written Inc", "facts": {"us-gaap": us_gaap}}
 
 
+def offline_config(tmp_path: Path, extra: str = "") -> Path:
+    """An assumptions file that keeps a command offline and its caches in ``tmp_path``.
+
+    The committed closes for prices, the pinned risk-free rate, and the retrieval
+    date as ``as_of``. ``extra`` is appended as YAML.
+    """
+    path = tmp_path / "assumptions.yaml"
+    path.write_text(
+        "market:\n  risk_free_rate: 0.0483\n"
+        f"price_source: csv\nprice_csv_dir: {PRICES}\n"
+        f"as_of: '{AS_OF.isoformat()}'\n"
+        f"ml:\n  cache_dir: {tmp_path / 'ml'}\n" + extra,
+        encoding="utf-8",
+    )
+    return path
+
+
 def flat(text: str) -> str:
     """Command output with its colour codes stripped and its whitespace collapsed.
 

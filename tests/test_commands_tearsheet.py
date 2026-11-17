@@ -10,22 +10,13 @@ from typer.testing import CliRunner
 
 from techval.cli import app
 
-from conftest import FIXTURES, flat
+from conftest import FIXTURES, flat, offline_config
 
 runner = CliRunner()
 
 
 def config(tmp_path: Path, peers: str = "[CRWD, MDB, ZS]") -> Path:
-    path = tmp_path / "assumptions.yaml"
-    path.write_text(
-        "market:\n  risk_free_rate: 0.0483\n"
-        f"comps:\n  peers: {peers}\n"
-        f"price_source: csv\nprice_csv_dir: {FIXTURES / 'prices'}\n"
-        "as_of: '2026-09-10'\n"
-        f"ml:\n  cache_dir: {tmp_path / 'ml'}\n",
-        encoding="utf-8",
-    )
-    return path
+    return offline_config(tmp_path, f"comps:\n  peers: {peers}\n")
 
 
 def snapshot_in(page: str) -> dict:
