@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import json
 from datetime import date, timedelta
 
 import pytest
@@ -19,7 +18,7 @@ from techval.edgar import (
 from techval.errors import MissingDataError, StaleDataError
 from techval.financials import _DebtLadder, build_financials
 
-from conftest import FIXTURES, load_facts
+from conftest import load_facts, load_payload
 
 
 def _fact(start: str, end: str, val: float, tag="X", form="10-Q", filed="2026-01-01"):
@@ -383,11 +382,10 @@ def test_knowledge_date_hides_facts_filed_later():
     newest revenue period knowable is the December 2025 year end, from the 10-K
     filed on 2026-02-18.
     """
-    raw = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     tag = "RevenueFromContractWithCustomerExcludingAssessedTax"
 
-    full = CompanyFacts(raw, "DDOG")
-    past = CompanyFacts(raw, "DDOG", knowledge_date=date(2026, 3, 1))
+    full = load_facts("DDOG")
+    past = load_facts("DDOG", knowledge_date=date(2026, 3, 1))
 
     latest = lambda c: max(f.end for f in c.facts(tag) if not f.is_instant)
     assert latest(full) == date(2026, 6, 30)
@@ -403,10 +401,9 @@ def test_knowledge_date_falls_back_to_the_filing_of_record():
     first. Filtering only after deduplication would have let the 2026 filing win
     selection and then be dropped, losing the period altogether.
     """
-    raw = json.loads((FIXTURES / "companyfacts_CRWD.json").read_text())
     period = (date(2023, 2, 1), date(2024, 1, 31))
 
-    then = CompanyFacts(raw, "CRWD", knowledge_date=date(2025, 6, 30))
+    then = load_facts("CRWD", knowledge_date=date(2025, 6, 30))
     fact = next(
         f for f in then.facts("NetIncomeLoss")
         if (f.start, f.end) == period
@@ -417,9 +414,8 @@ def test_knowledge_date_falls_back_to_the_filing_of_record():
 
 def test_a_point_in_time_statement_is_internally_consistent():
     """The whole statement moves back together, not just one line."""
-    raw = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     fin = build_financials(
-        "DDOG", facts=CompanyFacts(raw, "DDOG", knowledge_date=date(2026, 3, 1))
+        "DDOG", facts=load_facts("DDOG", knowledge_date=date(2026, 3, 1))
     )
     assert fin.as_of == date(2025, 12, 31)
     assert fin.revenue == pytest.approx(3427.2, rel=1e-3)   # FY2025 as filed
@@ -628,11 +624,7 @@ def test_a_finance_lease_inside_the_debt_concept_is_not_added_twice():
     the bridge takes the debt line and suppresses the lease line, and the total
     lands on the 158,150mm Verizon tags as its own combined debt.
     """
-    facts = CompanyFacts(
-        json.loads((FIXTURES / "companyfacts_VZ.json").read_text()),
-        "VZ",
-        knowledge_date=date(2026, 3, 1),
-    )
+    facts = load_facts("VZ", knowledge_date=date(2026, 3, 1))
     fin = build_financials("VZ", facts=facts)
 
     assert fin.as_of == date(2025, 12, 31)
@@ -663,11 +655,7 @@ def test_a_combined_tag_is_never_added_to_its_own_components():
     157,709mm, which is the first two together. The resolution takes the split
     and never reaches the combined ladder.
     """
-    facts = CompanyFacts(
-        json.loads((FIXTURES / "companyfacts_VZ.json").read_text()),
-        "VZ",
-        knowledge_date=date(2026, 3, 1),
-    )
+    facts = load_facts("VZ", knowledge_date=date(2026, 3, 1))
     combined = [
         f
         for f in facts.facts("LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities")
@@ -921,7 +909,7 @@ def test_a_genuinely_debt_free_filer_still_resolves_zero(ddog):
 
 def test_a_filer_with_no_operating_income_tag_gets_ebit_from_pre_tax_income():
     """IBM files income before tax and interest expense, and no OperatingIncomeLoss at all."""
-    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    payload = load_payload("DDOG")
     whole = build_financials("DDOG", facts=CompanyFacts(payload, "DDOG"))
     stripped = copy.deepcopy(payload)
     del stripped["facts"]["us-gaap"]["OperatingIncomeLoss"]
@@ -932,7 +920,7 @@ def test_a_filer_with_no_operating_income_tag_gets_ebit_from_pre_tax_income():
 
 
 def test_operating_income_that_is_filed_but_cannot_be_tiled_is_still_refused():
-    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    payload = load_payload("DDOG")
     thin = copy.deepcopy(payload)
     rows = thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"]
     thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"] = [r for r in rows if r["end"] < "2026-01-01"]
@@ -942,7 +930,7 @@ def test_operating_income_that_is_filed_but_cannot_be_tiled_is_still_refused():
 
 def test_a_filer_that_stopped_tagging_operating_income_gets_it_derived_too():
     """KLA's last OperatingIncomeLoss fact is from 2015."""
-    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    payload = load_payload("DDOG")
     lapsed = copy.deepcopy(payload)
     rows = lapsed["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"]
     lapsed["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"] = [r for r in rows if r["end"] < "2024-01-01"]
@@ -951,7 +939,7 @@ def test_a_filer_that_stopped_tagging_operating_income_gets_it_derived_too():
 
 
 def _without_diluted(loss: bool):
-    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    payload = load_payload("DDOG")
     out = copy.deepcopy(payload)
     del out["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"]
     if loss:
@@ -976,7 +964,7 @@ def test_a_profitable_filer_with_no_diluted_count_is_refused():
 def test_a_diluted_count_filed_too_thinly_to_tile_is_refused_not_replaced():
     """MongoDB files a diluted count it cannot tile at some dates; the basic count is no substitute."""
     payload = _without_diluted(loss=True)
-    original = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    original = load_payload("DDOG")
     rows = copy.deepcopy(original["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"])
     rows["units"]["shares"] = [r for r in rows["units"]["shares"] if r["end"] < "2026-01-01"]
     payload["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"] = rows

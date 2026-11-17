@@ -22,7 +22,7 @@ import pytest
 
 from techval.commands_peers import _load_corpora, _load_groups, _load_panel
 from techval.config import Assumptions
-from techval.edgar import SEC_TICKERS_URL, CompanyFacts
+from techval.edgar import SEC_TICKERS_URL
 from techval.errors import DataSourceError, MissingDataError
 from techval.ml.peer_labels import (
     MAX_PLAUSIBLE_PEERS,
@@ -40,7 +40,7 @@ from techval.ml.peer_labels import (
     segment_names,
 )
 
-from conftest import FIXTURES
+from conftest import FIXTURES, load_facts
 
 TICKER_FIXTURE = FIXTURES / "sec_tickers_tmt.json"
 PROXY_FIXTURE = FIXTURES / "proxy_peer_groups.json"
@@ -921,9 +921,7 @@ class ArtifactClient(FixtureProxyClient):
         path = FIXTURES / f"companyfacts_{ticker.upper()}.json"
         if not path.exists():
             raise MissingDataError("companyfacts", ticker=ticker, hint="not a fixture")
-        return CompanyFacts(
-            json.loads(path.read_text()), ticker, knowledge_date=self.knowledge_date
-        )
+        return load_facts(ticker, knowledge_date=self.knowledge_date)
 
     def submissions(self, ticker: str) -> dict:
         return {"formerNames": [], "name": f"{ticker.upper()} Holdings, Inc."}

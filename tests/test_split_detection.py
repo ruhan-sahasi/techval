@@ -37,7 +37,7 @@ import pytest
 
 from techval.edgar import CompanyFacts
 
-from conftest import FIXTURES
+from conftest import FIXTURES, load_payload
 
 FIXTURE = FIXTURES / "companyfacts_NVDA_shares.json"
 
@@ -208,7 +208,7 @@ def splitters() -> dict[str, dict]:
     has never split and is the control.
     """
     payloads = json.loads((FIXTURES / "share_basis_facts.json").read_text())
-    payloads["CRWD"] = json.loads((FIXTURES / "companyfacts_CRWD.json").read_text())
+    payloads["CRWD"] = load_payload("CRWD")
     return payloads
 
 

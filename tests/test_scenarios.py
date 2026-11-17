@@ -8,13 +8,12 @@ engine's own DCF with everything else held at the base case.
 
 from __future__ import annotations
 
-import json
 from datetime import date
 
 import pytest
 
 from techval.config import Assumptions
-from techval.edgar import CompanyFacts, HttpCache
+from techval.edgar import HttpCache
 from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
@@ -32,7 +31,7 @@ from techval.scenarios import (
 )
 from techval.wacc import compute_wacc
 
-from conftest import FIXTURES, PRICES
+from conftest import FIXTURES, PRICES, load_facts
 
 
 class Obs:
@@ -114,7 +113,7 @@ def test_a_path_is_cut_to_a_short_projection_and_faded_beyond_the_panel():
 def case():
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
-    facts = CompanyFacts(json.loads((FIXTURES / "companyfacts_DDOG.json").read_text()), "DDOG")
+    facts = load_facts("DDOG")
     fin = build_financials("DDOG", facts=facts)
     market = MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=date(2026, 9, 10))
     bridge = build_ev_bridge(fin, market.spot("DDOG"), a)

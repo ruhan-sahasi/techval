@@ -49,7 +49,7 @@ from techval.ml.warranted import (
 from techval.tmt.metrics import build_metrics
 from techval.tmt.taxonomy import SubVertical
 
-from conftest import FIXTURES, PRICES
+from conftest import FIXTURES, PRICES, load_payload
 
 PANEL_FIXTURE = FIXTURES / "warranted" / "observations.json.gz"
 
@@ -72,13 +72,6 @@ TINY_VERTICALS = {t: "infrastructure_software" for t in TINY_TICKERS}
 # --------------------------------------------------------------------------- #
 # Fixture plumbing
 # --------------------------------------------------------------------------- #
-
-
-def _payloads() -> dict[str, dict]:
-    return {
-        t: json.loads((FIXTURES / f"companyfacts_{t}.json").read_text())
-        for t in TINY_TICKERS
-    }
 
 
 class PinnedClient:
@@ -107,7 +100,7 @@ def split_facts() -> dict[str, dict]:
 
 @pytest.fixture(scope="module")
 def payloads() -> dict[str, dict]:
-    return _payloads()
+    return {t: load_payload(t) for t in TINY_TICKERS}
 
 
 @pytest.fixture(scope="module")

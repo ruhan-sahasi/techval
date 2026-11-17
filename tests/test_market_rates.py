@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from datetime import date
 
 import pytest
@@ -14,7 +13,7 @@ from techval.errors import MissingDataError
 from techval.market import TREASURY_URL, CsvSource, MarketData, SpanSource
 from techval.reverse_dcf import expectations_history, quarter_ends
 
-from conftest import FIXTURES, PRICES
+from conftest import PRICES, load_payload
 
 HEADER = "Date,1 Mo,2 Mo,3 Mo,6 Mo,1 Yr,2 Yr,3 Yr,5 Yr,7 Yr,10 Yr,20 Yr,30 Yr\n"
 
@@ -111,7 +110,7 @@ def test_a_history_reads_each_treasury_year_once(monkeypatch):
         return body
 
     monkeypatch.setattr(M, "http_get", fake_get)
-    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    payload = load_payload("DDOG")
     rows = expectations_history(
         payload, "DDOG", CsvSource(PRICES), Assumptions(), quarter_ends(date(2024, 1, 1), date(2026, 9, 9))
     )

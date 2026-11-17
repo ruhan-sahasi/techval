@@ -62,7 +62,7 @@ from techval.ml.forecast import (
 from techval.ml.protocol import EvalResult, ModelCard
 from techval.wacc import compute_wacc
 
-from conftest import AS_OF, FIXTURES, PRICES
+from conftest import AS_OF, FIXTURES, PRICES, load_facts
 
 
 def _blob() -> dict:
@@ -150,7 +150,7 @@ def test_the_guard_leaves_an_ordinary_ladder_alone():
     The guard must be inert on the overwhelming majority of filers, or it is not
     a guard, it is a different resolution rule.
     """
-    facts = CompanyFacts(json.loads((FIXTURES / "companyfacts_DDOG.json").read_text()), "DDOG")
+    facts = load_facts("DDOG")
     plain, plain_prov = facts.resolve_ttm("revenue", tags.REVENUE, date(2026, 6, 30))
     guarded, guarded_prov = facts.resolve_ttm(
         "revenue", tags.REVENUE, date(2026, 6, 30), component_guard=10.0
@@ -690,10 +690,7 @@ def test_a_survivors_only_fit_fades_more_slowly(panel, fade_assumptions):
 @pytest.fixture(scope="module")
 def ddog_valuation(fade_assumptions):
     """Datadog priced off the committed fixtures, ready for two growth paths."""
-    facts = CompanyFacts(
-        json.loads((FIXTURES / "companyfacts_DDOG.json").read_text()), "DDOG"
-    )
-    fin = build_financials("DDOG", facts=facts)
+    fin = build_financials("DDOG", facts=load_facts("DDOG"))
     market = MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=AS_OF)
     bridge = build_ev_bridge(fin, market.spot("DDOG"), fade_assumptions)
     wacc = compute_wacc(fin, bridge, market, fade_assumptions)

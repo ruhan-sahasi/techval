@@ -15,7 +15,6 @@ is about whether the harness is evidence.
 
 from __future__ import annotations
 
-import json
 from datetime import date, timedelta
 
 import numpy as np
@@ -41,7 +40,7 @@ from techval.errors import ConfigError
 from techval.financials import build_financials
 from techval.market import CsvSource, MarketData
 
-from conftest import FIXTURES, PRICES
+from conftest import PRICES, load_facts, load_payload
 
 
 # The fixture price CSVs run 2023-09-01 to 2026-09-09. Dates are picked so that
@@ -56,10 +55,6 @@ BEFORE_FIRST_FILING = date(2023, 1, 15)
 TICKERS = ["DDOG", "CRWD", "MDB", "ZS"]
 
 
-def _payload(ticker: str) -> dict:
-    return json.loads((FIXTURES / f"companyfacts_{ticker.upper()}.json").read_text())
-
-
 class DatedFixtureClient:
     """A fixture client that honours a knowledge date, as EdgarClient does."""
 
@@ -67,9 +62,7 @@ class DatedFixtureClient:
         self.knowledge_date = knowledge_date
 
     def company_facts(self, ticker: str) -> CompanyFacts:
-        return CompanyFacts(
-            _payload(ticker), ticker, knowledge_date=self.knowledge_date
-        )
+        return load_facts(ticker, knowledge_date=self.knowledge_date)
 
 
 def dated_client_factory(as_of: date) -> DatedFixtureClient:
@@ -119,7 +112,7 @@ def test_knowledge_date_changes_the_statements_being_valued():
     filed until August. A backtest that valued the second one on the first one's
     date would be scoring a company that did not exist.
     """
-    payload = _payload("DDOG")
+    payload = load_payload("DDOG")
 
     then = build_financials(
         "DDOG", facts=CompanyFacts(payload, "DDOG", knowledge_date=date(2026, 3, 1))
@@ -140,9 +133,7 @@ def test_knowledge_date_changes_the_statements_being_valued():
 
 def test_assert_no_lookahead_passes_on_a_properly_dated_run():
     as_of = date(2026, 3, 1)
-    fin = build_financials(
-        "DDOG", facts=CompanyFacts(_payload("DDOG"), "DDOG", knowledge_date=as_of)
-    )
+    fin = build_financials("DDOG", facts=load_facts("DDOG", knowledge_date=as_of))
     assert_no_lookahead(fin, as_of)
 
     filed = [date.fromisoformat(p.filed) for p in fin.provenance.values() if p.filed]
@@ -158,7 +149,7 @@ def test_assert_no_lookahead_catches_a_seeded_violation():
     come back carry filings from months after the valuation date.
     """
     as_of = date(2026, 3, 1)
-    fin = build_financials("DDOG", facts=CompanyFacts(_payload("DDOG"), "DDOG"))
+    fin = build_financials("DDOG", facts=load_facts("DDOG"))
 
     with pytest.raises(LookaheadError) as exc:
         assert_no_lookahead(fin, as_of)
@@ -174,9 +165,7 @@ def test_assert_no_lookahead_catches_a_seeded_violation():
 def test_assert_no_lookahead_ignores_defaulted_line_items():
     """A concept no tag reports has no filing date and cannot have seen anything."""
     as_of = date(2026, 3, 1)
-    fin = build_financials(
-        "DDOG", facts=CompanyFacts(_payload("DDOG"), "DDOG", knowledge_date=as_of)
-    )
+    fin = build_financials("DDOG", facts=load_facts("DDOG", knowledge_date=as_of))
     defaulted = [p for p in fin.provenance.values() if p.filed is None]
     assert defaulted, "expected at least one concept defaulted to zero"
     assert_no_lookahead(fin, as_of)
@@ -254,9 +243,7 @@ def test_every_observation_in_a_run_passed_the_assertion(
             continue
         fin = build_financials(
             obs.ticker,
-            facts=CompanyFacts(
-                _payload(obs.ticker), obs.ticker, knowledge_date=obs.as_of
-            ),
+            facts=load_facts(obs.ticker, knowledge_date=obs.as_of),
         )
         assert_no_lookahead(fin, obs.as_of)
         checked += 1
