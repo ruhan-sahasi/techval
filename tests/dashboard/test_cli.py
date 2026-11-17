@@ -20,6 +20,7 @@ from techval.dashboard.render import render_dashboard
 from techval.dashboard.sections import COLLECT_ORDER, SECTION_IDS
 from techval.dashboard.snapshot import dump_snapshot, load_snapshot
 
+from conftest import flat
 from dashboard.test_render import make_assets, make_snapshot
 
 runner = CliRunner()
@@ -136,7 +137,7 @@ def test_contradictions_and_absences_are_refused(
     result = _invoke(tmp_path, *args)
     assert result.exit_code == 1
     assert "ConfigError" in result.output
-    assert message in " ".join(result.output.split())
+    assert message in flat(result.output)
     assert not (tmp_path / "site" / "index.html").exists()
 
 
