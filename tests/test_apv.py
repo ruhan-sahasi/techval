@@ -29,6 +29,8 @@ from techval.ev_bridge import EVBridge, build_ev_bridge
 from techval.financials import Financials
 from techval.wacc import WACCResult, compute_wacc
 
+from conftest import hand_financials
+
 # Datadog's convertible conversion price from the notes footnote. With the stock
 # far above it the notes are equity under ASU 2020-06, which leaves the company
 # with no debt at all: the clean no-shield case.
@@ -310,13 +312,12 @@ def _flat_financials() -> Financials:
     """
     revenue = 1_000.0
     ebit = 200.0
-    return Financials(
+    return hand_financials(
         ticker="FLAT",
         entity_name="Flat Perpetuity Corp",
         cik=1,
         as_of=date(2026, 9, 10),
         revenue=revenue,
-        gross_profit=None,
         ebit=ebit,
         da=25.0,
         sbc=0.0,
@@ -324,22 +325,10 @@ def _flat_financials() -> Financials:
         pretax_income=ebit,
         tax_expense=ebit * _TAX,
         interest_expense=_KD * _DEBT,
-        operating_lease_cost=None,
         capex=30.0,
-        cfo=None,
         diluted_shares=_SHARES,
         basic_shares=_SHARES,
-        cash=0.0,
-        short_term_investments=0.0,
         straight_debt=_DEBT,
-        convertible_debt=0.0,
-        operating_lease_liability=0.0,
-        finance_lease_liability=0.0,
-        nci=0.0,
-        preferred=0.0,
-        current_assets=None,
-        current_liabilities=None,
-        deferred_revenue=0.0,
     )
 
 

@@ -15,7 +15,7 @@ from techval.ev_bridge import build_ev_bridge
 from techval.financials import Financials, build_financials
 from techval.merger import _target_book_equity, run_merger
 
-from conftest import load_facts, pinned_assumptions
+from conftest import hand_financials, load_facts, pinned_assumptions
 
 
 def _company(
@@ -30,7 +30,7 @@ def _company(
     debt: float = 0.0,
 ) -> Financials:
     """A clean synthetic filer, so the hand arithmetic below is checkable."""
-    return Financials(
+    return hand_financials(
         ticker=ticker,
         entity_name=ticker,
         cik=1,
@@ -46,20 +46,10 @@ def _company(
         interest_expense=0.0,
         operating_lease_cost=0.0,
         capex=0.0,
-        cfo=None,
         diluted_shares=shares,
         basic_shares=shares,
         cash=cash,
-        short_term_investments=0.0,
         straight_debt=debt,
-        convertible_debt=0.0,
-        operating_lease_liability=0.0,
-        finance_lease_liability=0.0,
-        nci=0.0,
-        preferred=0.0,
-        current_assets=None,
-        current_liabilities=None,
-        deferred_revenue=0.0,
     )
 
 

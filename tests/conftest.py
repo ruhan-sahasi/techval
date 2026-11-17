@@ -45,7 +45,7 @@ import pytest  # noqa: E402
 from techval.config import Assumptions  # noqa: E402
 from techval.edgar import CompanyFacts, DimensionedFact, HttpCache
 from techval.ev_bridge import build_ev_bridge
-from techval.financials import build_financials
+from techval.financials import Financials, build_financials
 from techval.market import CsvSource, MarketData
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -99,6 +99,38 @@ def facts_payload(series: dict[str, list[tuple[str, str, float]]]) -> dict:
 
     us_gaap = {tag: {"units": {"USD": [row(*r) for r in rows]}} for tag, rows in series.items()}
     return {"cik": 1, "entityName": "Hand Written Inc", "facts": {"us-gaap": us_gaap}}
+
+
+# A hand-written filer's lines that its example leaves out: None where the
+# statements allow it, zero on the balance sheet.
+_ABSENT_LINES = dict(
+    gross_profit=None,
+    da=None,
+    sbc=None,
+    pretax_income=None,
+    tax_expense=None,
+    interest_expense=None,
+    operating_lease_cost=None,
+    capex=None,
+    cfo=None,
+    basic_shares=None,
+    current_assets=None,
+    current_liabilities=None,
+    cash=0.0,
+    short_term_investments=0.0,
+    straight_debt=0.0,
+    convertible_debt=0.0,
+    operating_lease_liability=0.0,
+    finance_lease_liability=0.0,
+    nci=0.0,
+    preferred=0.0,
+    deferred_revenue=0.0,
+)
+
+
+def hand_financials(**lines) -> Financials:
+    """Statements written by hand, naming only the lines a worked example uses."""
+    return Financials(**{**_ABSENT_LINES, **lines})
 
 
 def offline_config(tmp_path: Path, extra: str = "") -> Path:
