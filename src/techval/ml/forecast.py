@@ -665,8 +665,8 @@ class FadeObservation:
     ``labels`` holds forward growth by horizon in years, taken from the filing
     that reported each of those later years, and it is empty for the last
     observation of any filer, including every filer that was acquired. That
-    emptiness is the survivorship channel, and ``FadePanel.truncation`` counts
-    it rather than letting it disappear.
+    emptiness is the survivorship channel, and ``FadePanel.survivorship_report``
+    counts it rather than letting it disappear.
 
     ``restated_revenue`` is the same fiscal year as it stands in the fact set
     today. It plays no part in any fit. It exists so the distance between what
