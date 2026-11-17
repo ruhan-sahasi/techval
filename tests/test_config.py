@@ -22,7 +22,12 @@ import pytest
 import yaml
 from pydantic import BaseModel
 
-from techval.config import Assumptions, NOLAssumptions, SimulationAssumptions
+from techval.config import (
+    Assumptions,
+    NOLAssumptions,
+    SimulationAssumptions,
+    ml_cache_root,
+)
 from techval.errors import ConfigError
 
 EXAMPLE = Path(__file__).resolve().parents[1] / "assumptions.example.yaml"
@@ -290,8 +295,6 @@ def test_the_example_does_not_switch_a_fitted_section_on():
 
 
 def test_the_ml_cache_is_ml_cache_dir_or_the_home_directory(tmp_path, monkeypatch):
-    from techval.config import ml_cache_root
-
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
     # Resolved when asked, so a moved home directory moves the cache with it.
     assert ml_cache_root(None) == tmp_path / "home" / ".techval" / "ml"

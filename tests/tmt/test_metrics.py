@@ -17,7 +17,7 @@ from techval import tags
 from techval.comps import prior_year_end
 from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge
-from techval.financials import Financials
+from techval.financials import Financials, build_financials
 from techval.tmt.metrics import (
     MetricPack,
     build_metrics,
@@ -383,8 +383,6 @@ def test_a_metric_without_a_definition_is_refused():
 
 @pytest.mark.parametrize("ticker", ["DDOG", "CRWD", "MDB", "ZS"])
 def test_every_fixture_company_builds_a_self_documenting_pack(ticker, assumptions):
-    from techval.financials import build_financials
-
     facts = load_facts(ticker)
     fin = build_financials(ticker, facts=facts)
     pack = build_metrics(

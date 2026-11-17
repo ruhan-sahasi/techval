@@ -40,6 +40,7 @@ from techval.comps import prior_year_end
 from techval.edgar import CompanyFacts, Provenance
 from techval.errors import ConfigError
 from techval.market import CsvSource
+from techval.terminal import format_money
 from techval.tmt import kpis as kpi_module
 from techval.tmt import metrics as metric_module
 from techval.tmt.taxonomy import SubVertical
@@ -1144,8 +1145,6 @@ def test_a_zero_discount_prints_as_zero_rather_than_as_minus_zero(tmp_path):
     Printed raw that reads as a rounding artefact on a line that was in fact not
     used at all.
     """
-    from techval.terminal import format_money
-
     assert format_money(-0.0) == "0"
     result = sotp(tmp_path)
     row = next(
