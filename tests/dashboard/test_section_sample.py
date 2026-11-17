@@ -405,7 +405,7 @@ def test_with_no_model_section_collected_the_section_is_refused():
 # --------------------------------------------------------------------------- #
 
 
-def test_collect_records_every_figure_against_a_reader_that_resolves(tmp_path):
+def test_collect_records_every_figure_against_a_reader_that_resolves():
     ctx = CollectContext(root=FIXTURES, repo_root=ROOT, results=_fake())
     section, run = C.collect_section(sample, ctx, use_cache=False)
     assert run.status == "ok"

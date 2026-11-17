@@ -820,7 +820,7 @@ def test_the_frame_carries_one_row_per_attempt_with_its_return(
 
 
 def test_the_observation_records_which_terminal_method_made_the_call(
-    assumptions, market_factory, prices
+    assumptions, market_factory
 ):
     """A Gordon call and a value-driver call are two different predictions.
 
