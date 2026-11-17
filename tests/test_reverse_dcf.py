@@ -45,7 +45,7 @@ from techval.reverse_dcf import (
 from techval.simulation import run_simulation
 from techval.wacc import compute_wacc
 
-from conftest import FIXTURES, load_facts
+from conftest import FIXTURES, load_facts, load_payload
 
 PRICE = 225.27
 
@@ -339,7 +339,7 @@ def test_quarter_ends_run_from_the_first_to_the_last_date():
 
 
 def test_the_history_reads_each_quarter_from_what_was_public_then():
-    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    payload = load_payload("DDOG")
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
     rows = expectations_history(
@@ -359,9 +359,7 @@ def test_the_history_reads_each_quarter_from_what_was_public_then():
 
 
 def test_the_screen_ranks_the_most_demanding_prices_first(fade_observations):
-    payloads = {
-        t: json.loads((FIXTURES / f"companyfacts_{t}.json").read_text()) for t in ("DDOG", "CRWD", "MDB", "ZS", "DIS")
-    }
+    payloads = {t: load_payload(t) for t in ("DDOG", "CRWD", "MDB", "ZS", "DIS")}
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
     rows = screen(payloads, CsvSource(FIXTURES / "prices"), a, date(2026, 9, 9), fade_observations)
@@ -392,7 +390,7 @@ def test_a_changed_valuation_leaves_the_case_it_came_from_alone(case):
 
 def test_one_quarter_the_engine_cannot_value_is_refused_alone(monkeypatch):
     """Zoom's history failed whole when one quarter's cost of capital fell below terminal growth."""
-    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    payload = load_payload("DDOG")
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
     real = Case.value
@@ -429,7 +427,7 @@ def test_a_record_case_history_reads_each_quarter_from_its_own_filings(monkeypat
         return real(assumptions, fin, facts)
 
     monkeypatch.setattr(A, "record_case", spy)
-    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    payload = load_payload("DDOG")
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
     a.dcf.from_record = True

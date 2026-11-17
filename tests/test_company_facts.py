@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import json
 from datetime import date
 
 from techval import tags
 from techval.edgar import CompanyFacts
 
-from conftest import FIXTURES, facts_payload
+from conftest import facts_payload, load_payload
 
-PAYLOAD = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text(encoding="utf-8"))
+PAYLOAD = load_payload("DDOG")
 TAG = "RevenueFromContractWithCustomerExcludingAssessedTax"
 
 

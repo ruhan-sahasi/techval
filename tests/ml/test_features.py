@@ -24,7 +24,6 @@ this store counts as evidence.
 from __future__ import annotations
 
 import copy
-import json
 from datetime import date, timedelta
 
 import numpy as np
@@ -51,7 +50,7 @@ from techval.ml.features import (
     winsorize,
 )
 
-from conftest import FIXTURES, PRICES
+from conftest import PRICES, load_facts, load_payload
 
 # Dates chosen inside the window the fixtures cover. The price CSVs run
 # 2023-09-01 to 2026-09-09 and the earliest filing in any payload is 2024-03-06,
@@ -65,10 +64,6 @@ D_2026_SEP = date(2026, 9, 10)
 TICKERS = ["DDOG", "CRWD", "MDB", "ZS"]
 
 
-def _payload(ticker: str) -> dict:
-    return json.loads((FIXTURES / f"companyfacts_{ticker.upper()}.json").read_text())
-
-
 class PinnedClient:
     """A fixture client that honours a knowledge date, as ``EdgarClient`` does."""
 
@@ -76,16 +71,14 @@ class PinnedClient:
         self.knowledge_date = knowledge_date
 
     def company_facts(self, ticker: str) -> CompanyFacts:
-        return CompanyFacts(
-            _payload(ticker), ticker, knowledge_date=self.knowledge_date
-        )
+        return load_facts(ticker, knowledge_date=self.knowledge_date)
 
 
 class UnpinnedClient:
     """The mistake this store exists to refuse: a client with no knowledge date."""
 
     def company_facts(self, ticker: str) -> CompanyFacts:
-        return CompanyFacts(_payload(ticker), ticker)
+        return load_facts(ticker)
 
 
 class _LyingFacts(CompanyFacts):
@@ -111,7 +104,7 @@ class LyingClient:
 
     def company_facts(self, ticker: str) -> CompanyFacts:
         return _LyingFacts(
-            _payload(ticker), ticker, knowledge_date=self.knowledge_date
+            load_payload(ticker), ticker, knowledge_date=self.knowledge_date
         )
 
 
@@ -511,7 +504,7 @@ def test_the_research_and_sales_ladders_resolve_when_the_filer_reports_them():
     structure and a known answer: research intensity must then equal one less the
     gross margin. That tests the ladder rather than the arithmetic of a stub.
     """
-    payload = _payload("DDOG")
+    payload = load_payload("DDOG")
     gaap = payload["facts"]["us-gaap"]
     gaap["ResearchAndDevelopmentExpense"] = copy.deepcopy(
         gaap["CostOfGoodsAndServicesSold"]

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-import json
 from datetime import date, timedelta
 
 import pytest
@@ -19,7 +18,7 @@ from techval.edgar import (
 from techval.errors import MissingDataError, StaleDataError
 from techval.financials import _DebtLadder, build_financials
 
-from conftest import FIXTURES, load_facts
+from conftest import load_facts, load_payload
 
 
 def _fact(start: str, end: str, val: float, tag="X", form="10-Q", filed="2026-01-01"):
@@ -910,7 +909,7 @@ def test_a_genuinely_debt_free_filer_still_resolves_zero(ddog):
 
 def test_a_filer_with_no_operating_income_tag_gets_ebit_from_pre_tax_income():
     """IBM files income before tax and interest expense, and no OperatingIncomeLoss at all."""
-    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    payload = load_payload("DDOG")
     whole = build_financials("DDOG", facts=CompanyFacts(payload, "DDOG"))
     stripped = copy.deepcopy(payload)
     del stripped["facts"]["us-gaap"]["OperatingIncomeLoss"]
@@ -921,7 +920,7 @@ def test_a_filer_with_no_operating_income_tag_gets_ebit_from_pre_tax_income():
 
 
 def test_operating_income_that_is_filed_but_cannot_be_tiled_is_still_refused():
-    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    payload = load_payload("DDOG")
     thin = copy.deepcopy(payload)
     rows = thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"]
     thin["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"] = [r for r in rows if r["end"] < "2026-01-01"]
@@ -931,7 +930,7 @@ def test_operating_income_that_is_filed_but_cannot_be_tiled_is_still_refused():
 
 def test_a_filer_that_stopped_tagging_operating_income_gets_it_derived_too():
     """KLA's last OperatingIncomeLoss fact is from 2015."""
-    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    payload = load_payload("DDOG")
     lapsed = copy.deepcopy(payload)
     rows = lapsed["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"]
     lapsed["facts"]["us-gaap"]["OperatingIncomeLoss"]["units"]["USD"] = [r for r in rows if r["end"] < "2024-01-01"]
@@ -940,7 +939,7 @@ def test_a_filer_that_stopped_tagging_operating_income_gets_it_derived_too():
 
 
 def _without_diluted(loss: bool):
-    payload = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    payload = load_payload("DDOG")
     out = copy.deepcopy(payload)
     del out["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"]
     if loss:
@@ -965,7 +964,7 @@ def test_a_profitable_filer_with_no_diluted_count_is_refused():
 def test_a_diluted_count_filed_too_thinly_to_tile_is_refused_not_replaced():
     """MongoDB files a diluted count it cannot tile at some dates; the basic count is no substitute."""
     payload = _without_diluted(loss=True)
-    original = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
+    original = load_payload("DDOG")
     rows = copy.deepcopy(original["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"])
     rows["units"]["shares"] = [r for r in rows["units"]["shares"] if r["end"] < "2026-01-01"]
     payload["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"] = rows
