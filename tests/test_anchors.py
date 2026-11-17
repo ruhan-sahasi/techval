@@ -9,7 +9,7 @@ from techval.anchors import record_anchors, record_case, trailing_growth, unanch
 from techval.config import Assumptions
 from techval.financials import build_financials
 
-from conftest import load_facts
+from conftest import load_facts, pinned_assumptions
 
 
 def company(ticker):
@@ -102,9 +102,8 @@ def test_with_the_switch_off_the_assumptions_come_back_as_given():
 
 def test_with_the_switch_on_the_dcf_takes_the_record_and_the_original_is_untouched():
     fin, facts = company("DDOG")
-    a = Assumptions()
+    a = pinned_assumptions()
     a.dcf.from_record = True
-    a.market.risk_free_rate = 0.0483
     record, anchors = record_case(a, fin, facts)
     assert record.dcf.revenue_growth_start == pytest.approx(0.315, abs=0.001)
     assert record.dcf.ebit_margin_terminal == pytest.approx(fin.ebit_margin)

@@ -138,11 +138,17 @@ def market() -> MarketData:
     return market_at(AS_OF)
 
 
-@pytest.fixture
-def assumptions() -> Assumptions:
+def pinned_assumptions() -> Assumptions:
     """Defaults, with a risk-free rate pinned so no test reaches the Treasury."""
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
+    return a
+
+
+@pytest.fixture
+def assumptions() -> Assumptions:
+    """The pinned defaults, with the three comparables the engine tests value against."""
+    a = pinned_assumptions()
     a.comps.peers = ["CRWD", "MDB", "ZS"]
     return a
 

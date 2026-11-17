@@ -48,7 +48,7 @@ from techval.ml.warranted import (
 from techval.tmt.metrics import build_metrics
 from techval.tmt.taxonomy import SubVertical
 
-from conftest import FIXTURES, load_payload, market_at
+from conftest import FIXTURES, load_payload, market_at, pinned_assumptions
 
 PANEL_FIXTURE = FIXTURES / "warranted" / "observations.json.gz"
 
@@ -104,8 +104,7 @@ def payloads() -> dict[str, dict]:
 
 @pytest.fixture(scope="module")
 def tiny(payloads) -> ObservationPanel:
-    assumptions = Assumptions()
-    assumptions.market.risk_free_rate = 0.0483
+    assumptions = pinned_assumptions()
     return build_observations(
         TINY_TICKERS,
         TINY_DATES,
@@ -499,8 +498,7 @@ def test_an_unresolved_basis_costs_the_row_and_names_the_reason(payloads, monkey
         return 7.0, "the price and the share count may be on different bases"
 
     monkeypatch.setattr(W, "share_basis_factor", unresolved)
-    assumptions = Assumptions()
-    assumptions.market.risk_free_rate = 0.0483
+    assumptions = pinned_assumptions()
     panel = build_observations(
         ["DDOG"],
         TINY_DATES[:2],
@@ -576,8 +574,7 @@ def test_an_unprofitable_filer_is_refused_on_ev_ebitda_and_named(payloads):
     silently restricts the model to profitable companies and then reports the
     result as though it were about the sector.
     """
-    assumptions = Assumptions()
-    assumptions.market.risk_free_rate = 0.0483
+    assumptions = pinned_assumptions()
     panel = build_observations(
         TINY_TICKERS,
         TINY_DATES,
@@ -755,8 +752,7 @@ def test_a_price_series_that_is_not_this_company_is_caught(payloads):
 
 
 def test_a_company_with_no_classification_is_recorded_not_dropped(payloads):
-    assumptions = Assumptions()
-    assumptions.market.risk_free_rate = 0.0483
+    assumptions = pinned_assumptions()
     panel = build_observations(
         TINY_TICKERS,
         TINY_DATES[:2],

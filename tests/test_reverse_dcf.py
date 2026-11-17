@@ -14,7 +14,6 @@ import pytest
 
 import techval.anchors as A
 import techval.reverse_dcf as R
-from techval.config import Assumptions
 from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
@@ -44,15 +43,21 @@ from techval.reverse_dcf import (
 from techval.simulation import run_simulation
 from techval.wacc import compute_wacc
 
-from conftest import AS_OF, PRICES, load_facts, load_payload, market_at
+from conftest import (
+    AS_OF,
+    PRICES,
+    load_facts,
+    load_payload,
+    market_at,
+    pinned_assumptions,
+)
 
 PRICE = 225.27
 
 
 @pytest.fixture(scope="module")
 def case() -> Case:
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     facts = load_facts("DDOG")
     fin = build_financials("DDOG", facts=facts)
     market = market_at(AS_OF)
@@ -339,8 +344,7 @@ def test_quarter_ends_run_from_the_first_to_the_last_date():
 
 def test_the_history_reads_each_quarter_from_what_was_public_then():
     payload = load_payload("DDOG")
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     rows = expectations_history(
         payload, "DDOG", CsvSource(PRICES), a, [date(2023, 12, 31), date(2024, 12, 31), date(2026, 6, 30)]
     )
@@ -359,8 +363,7 @@ def test_the_history_reads_each_quarter_from_what_was_public_then():
 
 def test_the_screen_ranks_the_most_demanding_prices_first(fade_observations):
     payloads = {t: load_payload(t) for t in ("DDOG", "CRWD", "MDB", "ZS", "DIS")}
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     rows = screen(payloads, CsvSource(PRICES), a, date(2026, 9, 9), fade_observations)
     assert {r["ticker"] for r in rows} == set(payloads)
     valued = [r for r in rows if not r["refused"]]
@@ -390,8 +393,7 @@ def test_a_changed_valuation_leaves_the_case_it_came_from_alone(case):
 def test_one_quarter_the_engine_cannot_value_is_refused_alone(monkeypatch):
     """Zoom's history failed whole when one quarter's cost of capital fell below terminal growth."""
     payload = load_payload("DDOG")
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     real = Case.value
     bad = date(2025, 3, 31)
 
@@ -427,8 +429,7 @@ def test_a_record_case_history_reads_each_quarter_from_its_own_filings(monkeypat
 
     monkeypatch.setattr(A, "record_case", spy)
     payload = load_payload("DDOG")
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     a.dcf.from_record = True
     rows = expectations_history(payload, "DDOG", CsvSource(PRICES), a, quarter_ends(date(2024, 1, 1), date(2026, 6, 30)))
     assert sum(1 for r in rows if not r["refused"]) >= 8

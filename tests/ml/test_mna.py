@@ -82,6 +82,8 @@ from techval.ml.mna import (
 from techval.tmt import precedents as P
 from techval.tmt.precedents import DEAL_FORMS
 
+from conftest import pinned_assumptions
+
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "mna"
 
 #: The date every fixture was recorded and every claim about what was pending is
@@ -177,8 +179,7 @@ def events() -> list[DealEvent]:
 
 @pytest.fixture
 def assumptions() -> Assumptions:
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     a.as_of = AS_OF.isoformat()
     return a
 

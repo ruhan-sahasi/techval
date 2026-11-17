@@ -49,7 +49,7 @@ from techval.ml.features import (
     winsorize,
 )
 
-from conftest import load_facts, load_payload, market_at
+from conftest import load_facts, load_payload, market_at, pinned_assumptions
 
 # Dates chosen inside the window the fixtures cover. The price CSVs run
 # 2023-09-01 to 2026-09-09 and the earliest filing in any payload is 2024-03-06,
@@ -109,10 +109,7 @@ class LyingClient:
 
 @pytest.fixture
 def ml_assumptions() -> Assumptions:
-    """Defaults with the risk-free rate pinned so nothing reaches the Treasury."""
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
-    return a
+    return pinned_assumptions()
 
 
 def _row(ticker: str, when: date, assumptions: Assumptions, **kw) -> FeatureRow:
@@ -506,8 +503,7 @@ def test_the_research_and_sales_ladders_resolve_when_the_filer_reports_them():
         def company_facts(self, ticker: str) -> CompanyFacts:
             return CompanyFacts(payload, ticker, knowledge_date=D_2026_SEP)
 
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     row = build_features("DDOG", D_2026_SEP, Injected(), market_at(D_2026_SEP), a)
 
     assert row.values["efficiency_rnd_to_revenue"] is not None

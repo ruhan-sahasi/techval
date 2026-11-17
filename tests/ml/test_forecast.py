@@ -61,7 +61,7 @@ from techval.ml.forecast import (
 from techval.ml.protocol import EvalResult, ModelCard
 from techval.wacc import compute_wacc
 
-from conftest import AS_OF, FIXTURES, load_facts, market_at
+from conftest import AS_OF, FIXTURES, load_facts, market_at, pinned_assumptions
 
 
 def _blob() -> dict:
@@ -96,8 +96,7 @@ def panel(universe) -> FadePanel:
 
 @pytest.fixture(scope="module")
 def fade_assumptions() -> Assumptions:
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     a.ml.forecast.enabled = True
     return a
 
@@ -740,8 +739,7 @@ def test_the_switch_is_off_by_default_and_the_report_is_unchanged(model):
 
 def test_compare_fade_refuses_to_run_behind_the_switch(ddog_valuation, model):
     fin, bridge, wacc = ddog_valuation
-    off = Assumptions()
-    off.market.risk_free_rate = 0.0483
+    off = pinned_assumptions()
     with pytest.raises(ConfigError) as exc:
         compare_fade(fin, bridge, wacc, off, model)
     assert "ml.forecast.enabled" in str(exc.value)
@@ -832,8 +830,7 @@ def test_the_survivorship_refit_is_reported_as_a_pair(panel):
 
 def test_a_path_with_no_assumed_tail_says_it_ends_on_a_cliff(panel):
     """Fitting every projection year hands a 20% grower to a 2.5% perpetuity."""
-    five = Assumptions()
-    five.market.risk_free_rate = 0.0483
+    five = pinned_assumptions()
     five.ml.forecast.enabled = True
     five.ml.forecast.horizon_years = 5
     model = fit_fade(panel, five)

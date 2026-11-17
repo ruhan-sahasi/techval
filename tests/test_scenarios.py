@@ -29,7 +29,7 @@ from techval.scenarios import (
 )
 from techval.wacc import compute_wacc
 
-from conftest import AS_OF, FIXTURES, load_facts, market_at
+from conftest import AS_OF, FIXTURES, load_facts, market_at, pinned_assumptions
 
 
 class Obs:
@@ -109,8 +109,7 @@ def test_a_path_is_cut_to_a_short_projection_and_faded_beyond_the_panel():
 
 @pytest.fixture(scope="module")
 def case():
-    a = Assumptions()
-    a.market.risk_free_rate = 0.0483
+    a = pinned_assumptions()
     facts = load_facts("DDOG")
     fin = build_financials("DDOG", facts=facts)
     market = market_at(AS_OF)
