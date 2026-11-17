@@ -383,11 +383,10 @@ def test_knowledge_date_hides_facts_filed_later():
     newest revenue period knowable is the December 2025 year end, from the 10-K
     filed on 2026-02-18.
     """
-    raw = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     tag = "RevenueFromContractWithCustomerExcludingAssessedTax"
 
-    full = CompanyFacts(raw, "DDOG")
-    past = CompanyFacts(raw, "DDOG", knowledge_date=date(2026, 3, 1))
+    full = load_facts("DDOG")
+    past = load_facts("DDOG", knowledge_date=date(2026, 3, 1))
 
     latest = lambda c: max(f.end for f in c.facts(tag) if not f.is_instant)
     assert latest(full) == date(2026, 6, 30)
@@ -403,10 +402,9 @@ def test_knowledge_date_falls_back_to_the_filing_of_record():
     first. Filtering only after deduplication would have let the 2026 filing win
     selection and then be dropped, losing the period altogether.
     """
-    raw = json.loads((FIXTURES / "companyfacts_CRWD.json").read_text())
     period = (date(2023, 2, 1), date(2024, 1, 31))
 
-    then = CompanyFacts(raw, "CRWD", knowledge_date=date(2025, 6, 30))
+    then = load_facts("CRWD", knowledge_date=date(2025, 6, 30))
     fact = next(
         f for f in then.facts("NetIncomeLoss")
         if (f.start, f.end) == period
@@ -417,9 +415,8 @@ def test_knowledge_date_falls_back_to_the_filing_of_record():
 
 def test_a_point_in_time_statement_is_internally_consistent():
     """The whole statement moves back together, not just one line."""
-    raw = json.loads((FIXTURES / "companyfacts_DDOG.json").read_text())
     fin = build_financials(
-        "DDOG", facts=CompanyFacts(raw, "DDOG", knowledge_date=date(2026, 3, 1))
+        "DDOG", facts=load_facts("DDOG", knowledge_date=date(2026, 3, 1))
     )
     assert fin.as_of == date(2025, 12, 31)
     assert fin.revenue == pytest.approx(3427.2, rel=1e-3)   # FY2025 as filed
@@ -628,11 +625,7 @@ def test_a_finance_lease_inside_the_debt_concept_is_not_added_twice():
     the bridge takes the debt line and suppresses the lease line, and the total
     lands on the 158,150mm Verizon tags as its own combined debt.
     """
-    facts = CompanyFacts(
-        json.loads((FIXTURES / "companyfacts_VZ.json").read_text()),
-        "VZ",
-        knowledge_date=date(2026, 3, 1),
-    )
+    facts = load_facts("VZ", knowledge_date=date(2026, 3, 1))
     fin = build_financials("VZ", facts=facts)
 
     assert fin.as_of == date(2025, 12, 31)
@@ -663,11 +656,7 @@ def test_a_combined_tag_is_never_added_to_its_own_components():
     157,709mm, which is the first two together. The resolution takes the split
     and never reaches the combined ladder.
     """
-    facts = CompanyFacts(
-        json.loads((FIXTURES / "companyfacts_VZ.json").read_text()),
-        "VZ",
-        knowledge_date=date(2026, 3, 1),
-    )
+    facts = load_facts("VZ", knowledge_date=date(2026, 3, 1))
     combined = [
         f
         for f in facts.facts("LongTermDebtAndCapitalLeaseObligationsIncludingCurrentMaturities")

@@ -2,21 +2,18 @@
 
 from __future__ import annotations
 
-import json
-
 import pytest
 
 import techval.anchors as A
 from techval.anchors import record_anchors, record_case, trailing_growth, unanchored
 from techval.config import Assumptions
-from techval.edgar import CompanyFacts
 from techval.financials import build_financials
 
-from conftest import FIXTURES
+from conftest import load_facts
 
 
 def company(ticker):
-    facts = CompanyFacts(json.loads((FIXTURES / f"companyfacts_{ticker}.json").read_text()), ticker)
+    facts = load_facts(ticker)
     return build_financials(ticker, facts=facts), facts
 
 

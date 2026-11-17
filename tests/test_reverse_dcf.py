@@ -15,7 +15,7 @@ import pytest
 import techval.anchors as A
 import techval.reverse_dcf as R
 from techval.config import Assumptions
-from techval.edgar import CompanyFacts, HttpCache
+from techval.edgar import HttpCache
 from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
@@ -45,7 +45,7 @@ from techval.reverse_dcf import (
 from techval.simulation import run_simulation
 from techval.wacc import compute_wacc
 
-from conftest import FIXTURES
+from conftest import FIXTURES, load_facts
 
 PRICE = 225.27
 
@@ -54,7 +54,7 @@ PRICE = 225.27
 def case() -> Case:
     a = Assumptions()
     a.market.risk_free_rate = 0.0483
-    facts = CompanyFacts(json.loads((FIXTURES / "companyfacts_DDOG.json").read_text()), "DDOG")
+    facts = load_facts("DDOG")
     fin = build_financials("DDOG", facts=facts)
     market = MarketData(CsvSource(FIXTURES / "prices"), HttpCache(enabled=False), today=date(2026, 9, 10))
     bridge = build_ev_bridge(fin, market.spot("DDOG"), a)

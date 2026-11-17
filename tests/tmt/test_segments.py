@@ -15,12 +15,10 @@ written in USD millions and scaled up to the units a filing tags them in.
 
 from __future__ import annotations
 
-import json
 from datetime import date
 
 import pytest
 
-from conftest import FIXTURES, facts_payload, load_instance
 from techval.edgar import CompanyFacts, DimensionedFact
 from techval.errors import ConfigError, MissingDataError
 from techval.tmt.segments import (
@@ -28,6 +26,8 @@ from techval.tmt.segments import (
     _annual_from_facts,
     build_segments,
 )
+
+from conftest import facts_payload, load_facts, load_instance
 
 SEGMENT_AXIS = "us-gaap:StatementBusinessSegmentsAxis"
 GEOGRAPHY_AXIS = "us-gaap:StatementGeographicalAxis"
@@ -52,8 +52,7 @@ class FilingClient:
         return load_instance(ticker)
 
     def company_facts(self, ticker):
-        path = FIXTURES / f"companyfacts_{ticker.upper()}.json"
-        return CompanyFacts(json.loads(path.read_text()), ticker)
+        return load_facts(ticker)
 
 
 class HandWritten:

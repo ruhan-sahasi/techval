@@ -50,7 +50,7 @@ from techval.tmt.kpis import (
     settings_from_assumptions,
 )
 
-from conftest import AS_OF, FIXTURES
+from conftest import AS_OF, FIXTURES, load_facts
 
 # A filer with no company facts at all. Used where the point of the test is the
 # instance document, so that anything the assertion sees demonstrably came from
@@ -73,11 +73,6 @@ def load_instance(ticker: str) -> tuple[list[DimensionedFact], str, date]:
         for row in payload["facts"]
     ]
     return facts, payload["_accession"], date.fromisoformat(payload["_filed"])
-
-
-def load_company_facts(ticker: str) -> CompanyFacts:
-    path = FIXTURES / f"companyfacts_{ticker}.json"
-    return CompanyFacts(json.loads(path.read_text()), ticker)
 
 
 class KpiClient:
@@ -104,7 +99,7 @@ class KpiClient:
     def company_facts(self, ticker: str) -> CompanyFacts:
         if self.facts is None:
             return CompanyFacts(NO_COMPANY_FACTS, ticker)
-        return load_company_facts(self.facts)
+        return load_facts(self.facts)
 
     def instance_facts(
         self, ticker: str, forms: tuple[str, ...] = ("10-K", "10-Q")
@@ -118,7 +113,7 @@ class NoInstanceClient:
     """A client from before dimensioned facts existed, as conftest's still is."""
 
     def company_facts(self, ticker: str) -> CompanyFacts:
-        return load_company_facts(ticker)
+        return load_facts(ticker)
 
 
 def software(**over) -> Assumptions:
@@ -510,7 +505,7 @@ def test_billings_matches_the_hand_arithmetic_in_its_own_docstring():
 
     If the code and the docstring ever part company, this is where it shows.
     """
-    billings = derive_billings(load_company_facts("DDOG"), AS_OF)
+    billings = derive_billings(load_facts("DDOG"), AS_OF)
     assert billings is not None
     assert billings.value == pytest.approx(3_966.725 + 1_337.550 - 996.308)
     assert billings.value == pytest.approx(4_307.967)
@@ -520,7 +515,7 @@ def test_billings_matches_the_hand_arithmetic_in_its_own_docstring():
 
 def test_billings_is_marked_derived_and_carries_the_caveat():
     """It approximates invoiced value. A page must not read it as disclosure."""
-    billings = derive_billings(load_company_facts("DDOG"), AS_OF)
+    billings = derive_billings(load_facts("DDOG"), AS_OF)
     assert billings is not None
     assert billings.source == "derived"
     assert billings.confidence == 0.8
@@ -537,7 +532,7 @@ def test_billings_exceeds_revenue_for_every_growing_software_filer(ticker: str):
     more than it recognises. A sign error in the change would invert this for all
     four at once, which is exactly the bug a single-company test would miss.
     """
-    facts = load_company_facts(ticker)
+    facts = load_facts(ticker)
     billings = derive_billings(facts, AS_OF)
     assert billings is not None
     revenue, _prov = facts.resolve_ttm("revenue", tags.REVENUE, billings.period_end)
@@ -557,7 +552,7 @@ def test_billings_uses_total_deferred_revenue_not_only_the_current_part():
     convention would come in 21.0mm lower. Asserting the gap keeps the choice
     visible rather than implicit.
     """
-    billings = derive_billings(load_company_facts("DDOG"), AS_OF)
+    billings = derive_billings(load_facts("DDOG"), AS_OF)
     assert billings is not None
     current_only = 3_966.725 + 1_286.690 - 966.442
     assert billings.value - current_only == pytest.approx(50.860 - 29.866, abs=1e-6)

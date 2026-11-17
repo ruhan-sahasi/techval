@@ -56,9 +56,10 @@ PRICES = FIXTURES / "prices"
 AS_OF = date(2026, 9, 10)
 
 
-def load_facts(ticker: str) -> CompanyFacts:
+def load_facts(ticker: str, knowledge_date: date | None = None) -> CompanyFacts:
     path = FIXTURES / f"companyfacts_{ticker.upper()}.json"
-    return CompanyFacts(json.loads(path.read_text()), ticker)
+    payload = json.loads(path.read_text())
+    return CompanyFacts(payload, ticker, knowledge_date=knowledge_date)
 
 
 def load_instance_file(path: Path) -> tuple[list[DimensionedFact], str, date]:

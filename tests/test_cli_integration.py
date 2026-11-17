@@ -121,10 +121,7 @@ class FixtureClient:
         return self.company_facts(ticker).cik
 
     def company_facts(self, ticker: str) -> CompanyFacts:
-        path = FIXTURES / f"companyfacts_{ticker.upper()}.json"
-        return CompanyFacts(
-            json.loads(path.read_text()), ticker, knowledge_date=self.knowledge_date
-        )
+        return load_facts(ticker, knowledge_date=self.knowledge_date)
 
     def submissions(self, ticker: str) -> dict:
         return dict(SUBMISSIONS.get(ticker.upper(), {}))
