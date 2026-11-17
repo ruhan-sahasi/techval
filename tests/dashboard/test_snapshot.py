@@ -13,7 +13,7 @@ from __future__ import annotations
 import enum
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from pathlib import Path
 
@@ -245,8 +245,6 @@ def test_committed_fixture_is_keyed_repository_relative():
 
 
 def test_a_page_block_round_trips_and_is_absent_unless_set(tmp_path):
-    from dataclasses import replace
-
     plain = dump_snapshot(_snapshot(), tmp_path / "plain.json").read_text()
     assert '"page"' not in plain
     page = {"standfirst": "One company, valued live.", "sources": ["SEC EDGAR companyfacts, DDOG"]}

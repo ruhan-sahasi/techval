@@ -21,6 +21,7 @@ from datetime import date, timedelta
 import numpy as np
 import pytest
 
+import techval.market as M
 from techval.backtest import (
     FAILED,
     SKIPPED,
@@ -38,7 +39,7 @@ from techval.config import Assumptions
 from techval.edgar import CompanyFacts, HttpCache
 from techval.errors import ConfigError
 from techval.financials import build_financials
-from techval.market import CsvSource
+from techval.market import CsvSource, MarketData
 
 from conftest import FIXTURES, PRICES
 
@@ -214,8 +215,6 @@ def test_lookahead_is_caught_on_the_price_side_too(assumptions, source, cache):
     valuation a close from after the valuation date with nothing in the
     provenance to show for it.
     """
-    from techval.market import MarketData
-
     capped = market_factory_from(source, cache)
 
     def uncapped(_as_of: date) -> MarketData:
@@ -629,8 +628,6 @@ def test_an_unpinned_rate_is_the_treasury_yield_of_each_valuation_date(market_fa
     2024 and 7.00% from 2025, so a 2025 valuation that read the wrong year would
     show it in its discount rate.
     """
-    import techval.market as M
-
     def curve(url, **_):
         year = int(url.split("daily-treasury-rates.csv/")[1].split("/")[0])
         rate = 3.80 if year <= 2024 else 7.00

@@ -26,7 +26,7 @@ from techval.dashboard.sections import (
     SECTION_IDS,
     section_module,
 )
-from techval.errors import ConfigError
+from techval.errors import ConfigError, MissingDataError
 
 _serial = itertools.count()
 
@@ -180,8 +180,6 @@ def test_a_techval_error_becomes_a_refusal_with_its_reason(sections, root, assum
     )
     snap, runs = _collect(root, assumptions)
     fade = snap.sections["fade"]
-    from techval.errors import MissingDataError
-
     expected = str(MissingDataError("fade panel", hint="record it with the fade recorder"))
     assert fade["status"] == "refused"
     assert fade["refusals"] == [{"what": "Revenue fade", "why": expected}]

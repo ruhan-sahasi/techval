@@ -878,9 +878,6 @@ def test_simulation_uses_the_same_share_count_as_the_dcf(
     per-share figure the DCF itself would not produce. Both now divide by
     Financials.shares_for_valuation.
     """
-    from techval.wacc import compute_wacc
-    from techval.simulation import run_simulation
-
     w = compute_wacc(ddog, ddog_bridge, market, assumptions)
     assumptions.simulation.draws = 500
 

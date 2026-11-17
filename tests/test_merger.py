@@ -9,10 +9,13 @@ import pandas as pd
 import pytest
 
 from techval.config import Assumptions
+from techval.edgar import Provenance
 from techval.errors import ConfigError, MissingDataError
 from techval.ev_bridge import build_ev_bridge
-from techval.financials import Financials
-from techval.merger import run_merger
+from techval.financials import Financials, build_financials
+from techval.merger import _target_book_equity, run_merger
+
+from conftest import load_facts
 
 
 def _company(
@@ -807,10 +810,6 @@ def test_book_equity_deducts_a_borrowing_once_and_a_lease_not_at_all():
     total borrowings, and deduct the current leg of leases the method leaves out.
     Each borrowing now comes off once, and a separately tagged lease not at all.
     """
-    from conftest import load_facts
-    from techval.financials import build_financials
-    from techval.merger import _target_book_equity
-
     dis = build_financials("DIS", facts=load_facts("DIS"))
     assert dis.current_financing > 0
     notes: list[str] = []
@@ -1227,8 +1226,6 @@ def test_refinancing_moves_the_interest_in_the_roll_forward_and_counts_the_debt_
 
 def test_the_targets_interest_is_read_by_its_size_and_a_net_figure_refused(hand_case):
     """Disney files InterestExpense with a minus sign; net interest is not a coupon."""
-    from techval.edgar import Provenance
-
     r, a, acq, tgt = hand_case
     a.merger.refinance_target_debt = True
     rate = a.tax.marginal_tax_rate

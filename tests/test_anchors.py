@@ -6,7 +6,8 @@ import json
 
 import pytest
 
-from techval.anchors import record_anchors, trailing_growth, unanchored
+import techval.anchors as A
+from techval.anchors import record_anchors, record_case, trailing_growth, unanchored
 from techval.config import Assumptions
 from techval.edgar import CompanyFacts
 from techval.financials import build_financials
@@ -88,8 +89,6 @@ def test_working_capital_whose_debt_cannot_be_split_stays_at_the_assumption(monk
 
 
 def test_growth_outside_the_band_is_held_to_it_and_says_so(monkeypatch):
-    import techval.anchors as A
-
     fin, facts = company("DDOG")
     monkeypatch.setattr(A, "trailing_growth", lambda fin, facts: (1.40, "revenue doubled and more"))
     start = by_field(record_anchors(fin, facts, Assumptions()))["revenue_growth_start"]
@@ -98,8 +97,6 @@ def test_growth_outside_the_band_is_held_to_it_and_says_so(monkeypatch):
 
 
 def test_with_the_switch_off_the_assumptions_come_back_as_given():
-    from techval.anchors import record_case
-
     fin, facts = company("DDOG")
     a = Assumptions()
     same, anchors = record_case(a, fin, facts)
@@ -107,8 +104,6 @@ def test_with_the_switch_off_the_assumptions_come_back_as_given():
 
 
 def test_with_the_switch_on_the_dcf_takes_the_record_and_the_original_is_untouched():
-    from techval.anchors import record_case
-
     fin, facts = company("DDOG")
     a = Assumptions()
     a.dcf.from_record = True

@@ -42,11 +42,14 @@ from typer.testing import CliRunner
 from techval import cli as C
 from techval import commands_forecast, commands_mna, commands_peers, commands_tmt
 from techval.config import Assumptions
+from techval.dcf import run_dcf
 from techval.edgar import CompanyFacts
 from techval.errors import MissingDataError
+from techval.financials import build_financials
 from techval.market import CsvSource
 from techval.merger import run_merger
-from conftest import FIXTURES, PRICES, load_instance_file
+from techval.wacc import compute_wacc
+from conftest import FIXTURES, PRICES, load_facts, load_instance_file
 
 AS_OF = "2026-09-10"
 
@@ -809,8 +812,6 @@ def test_the_value_report_states_the_carryforward_left_at_year_n(tmp_path):
 
     assumptions, client, market = C._setup(_config(tmp_path, NOL_BODY), True, AS_OF)
     fin, _, bridge = C._load("DDOG", client, market, assumptions)
-    from techval.dcf import run_dcf
-    from techval.wacc import compute_wacc
 
     d = run_dcf(fin, bridge, compute_wacc(fin, bridge, market, assumptions), assumptions)
     row = next(line for line in tracked.output.splitlines() if label in line)
@@ -830,9 +831,6 @@ def test_the_value_report_shows_the_section_382_cap_at_work(tmp_path):
 
 def test_the_financials_table_shows_working_capital_without_the_financing(tmp_path):
     """The balance the DCF notes quote is printed where the reader can find it."""
-    from conftest import load_facts
-    from techval.financials import build_financials
-
     result = run_value("-c", str(_config(tmp_path)))
     assert result.exit_code == 0
     ddog = build_financials("DDOG", facts=load_facts("DDOG"))

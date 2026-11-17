@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date, timedelta
+
 import numpy as np
 import pytest
 
@@ -60,8 +62,6 @@ def test_unlevering_a_debt_free_company_changes_nothing():
 
 def _series(symbol: str, closes: list[float], start="2024-01-05") -> PriceSeries:
     """Weekly closes, seven days apart, so each lands in its own ISO week."""
-    from datetime import date, timedelta
-
     d0 = date.fromisoformat(start)
     dates = [d0 + timedelta(days=7 * i) for i in range(len(closes))]
     return PriceSeries(symbol, dates, np.array(closes, dtype=float), "test")
@@ -110,8 +110,6 @@ def test_returns_are_paired_by_date_not_by_position():
     # Same underlying path, but the stock only starts trading 60 weeks in.
     offset = 60
     s_px = [p * 1.5 for p in m_px[offset:]]
-    from datetime import date, timedelta
-
     d0 = date.fromisoformat("2024-01-05") + timedelta(days=7 * offset)
     stock = PriceSeries(
         "S",

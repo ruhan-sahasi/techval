@@ -41,7 +41,7 @@ from techval.errors import ConfigError, NotMeaningfulError
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
 from techval.market import CsvSource, MarketData
-from techval.ml.features import LookaheadError
+from techval.ml.features import LookaheadError, assert_point_in_time
 from techval.ml.forecast import (
     DELISTED_CIKS,
     DELISTED_UNIVERSE,
@@ -57,6 +57,7 @@ from techval.ml.forecast import (
     fit_fade,
     growth_path_for_dcf,
     is_delisted,
+    survivorship_bias,
 )
 from techval.ml.protocol import EvalResult, ModelCard
 from techval.wacc import compute_wacc
@@ -244,8 +245,6 @@ def test_a_filer_that_stopped_filing_has_no_label_for_its_last_year(panel):
 
 def test_a_provenance_violation_raises_rather_than_scoring_well(panel):
     """Seed one figure filed after the observation date and the panel is not evidence."""
-    from techval.ml.features import assert_point_in_time
-
     row = _observation(panel, "DDOG", 2023).feature_row()
     assert_point_in_time(row)  # clean to start with
 
@@ -826,8 +825,6 @@ def test_survivorship_is_worth_nearly_as_much_as_the_whole_model(
 
 def test_the_survivorship_refit_is_reported_as_a_pair(panel):
     """Both fits, side by side, so the bias is a number rather than a warning."""
-    from techval.ml.forecast import survivorship_bias
-
     one_year = Assumptions()
     one_year.ml.forecast.enabled = True
     one_year.ml.forecast.horizon_years = 1

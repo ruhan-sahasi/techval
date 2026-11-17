@@ -25,6 +25,7 @@ from techval.edgar import CompanyFacts, DimensionedFact
 from techval.errors import ConfigError, MissingDataError
 from techval.tmt.segments import (
     RECONCILIATION_TOLERANCE,
+    _annual_from_facts,
     build_segments,
 )
 
@@ -620,8 +621,6 @@ def test_a_filer_that_changed_revenue_tags_falls_back_to_its_live_annual_revenue
     the "latest" annual revenue is four years stale; read from the tag that runs
     latest, it is the year the segments describe.
     """
-    from techval.tmt.segments import _annual_from_facts
-
     facts = CompanyFacts(
         facts_payload(
             {

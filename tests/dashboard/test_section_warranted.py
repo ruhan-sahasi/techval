@@ -16,6 +16,7 @@ move this file too.
 
 from __future__ import annotations
 
+import gzip
 import json
 import math
 from contextlib import contextmanager
@@ -23,6 +24,7 @@ from datetime import date
 
 import pytest
 
+from techval.commands_peers import _load_observations
 from techval.dashboard.collect import entry_module
 from techval.dashboard.sections import warranted as S
 from techval.dashboard.snapshot import to_jsonable, validate_section
@@ -402,8 +404,6 @@ def test_the_caution_quotes_the_partial_refit_and_names_the_fix():
 
 @pytest.fixture(scope="module")
 def committed_audit() -> S.Audit:
-    from techval.commands_peers import _load_observations
-
     panel = _load_observations(FIXTURES / S.PANEL)
     audit, problem = S.read_audit(FIXTURES / S.AUDIT, panel)
     assert problem is None
@@ -420,10 +420,6 @@ def test_the_committed_audit_describes_the_committed_panel(committed_audit):
 
 
 def test_an_audit_of_another_recording_is_not_read_as_evidence(tmp_path):
-    import gzip
-
-    from techval.commands_peers import _load_observations
-
     panel = _load_observations(FIXTURES / S.PANEL)
     with gzip.open(FIXTURES / S.AUDIT, "rt") as handle:
         raw = json.load(handle)

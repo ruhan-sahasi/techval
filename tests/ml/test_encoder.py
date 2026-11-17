@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 from datetime import date
 
+import joblib
 import numpy as np
 import pytest
 
@@ -35,6 +36,8 @@ from techval.ml.encoder import (
     PeerDataset,
     PeerEncoder,
     TwoTowerEncoder,
+    _batches,
+    _fit_space,
     ablate_towers,
     build_dataset,
     cache_path,
@@ -375,8 +378,6 @@ def test_a_batch_never_holds_two_pairs_of_one_group_or_one_positive_twice(synthe
     and two rows sharing a positive would ask the softmax to choose between two
     correct answers.
     """
-    from techval.ml.encoder import _batches, _fit_space
-
     a = Assumptions()
     space = _fit_space(
         synthetic, max(_DATES), a, text_dim=16, min_df=2, max_df=0.95
@@ -412,8 +413,6 @@ def test_the_vocabulary_is_fitted_only_on_documents_the_fold_could_see(synthetic
     than trusted: the 2021 fit is built from the 2021 corpus and cannot contain
     a term that first appears in 2023.
     """
-    from techval.ml.encoder import _fit_space
-
     a = Assumptions()
     early = _fit_space(synthetic, _DATES[0], a, text_dim=16, min_df=2, max_df=0.95)
     late = _fit_space(synthetic, _DATES[-1], a, text_dim=16, min_df=2, max_df=0.95)
@@ -425,8 +424,6 @@ def test_the_vocabulary_is_fitted_only_on_documents_the_fold_could_see(synthetic
 
 def test_standardisation_is_fitted_on_the_training_window_only(synthetic):
     """The mean the encoder centres on belongs to the training rows and no others."""
-    from techval.ml.encoder import _fit_space
-
     a = Assumptions()
     early = _fit_space(synthetic, _DATES[0], a, text_dim=16, min_df=2, max_df=0.95)
     late = _fit_space(synthetic, _DATES[-1], a, text_dim=16, min_df=2, max_df=0.95)
@@ -637,8 +634,6 @@ def test_a_fit_saved_before_the_record_existed_says_it_cannot_answer(
     every company would be a claim rather than a refusal, so the loader says
     what it does not know and puts it in the model's notes.
     """
-    import joblib
-
     encoder, cold = fitted_with_a_cold_company
     path = encoder.save(cache_path(ml_assumptions))
     payload = joblib.load(path)
