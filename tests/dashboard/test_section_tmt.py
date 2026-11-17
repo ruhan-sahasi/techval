@@ -27,10 +27,13 @@ from types import SimpleNamespace
 
 import pytest
 
+from techval.config import Assumptions
 from techval.dashboard.collect import CollectContext, collect_section
 from techval.dashboard.sections import section_module
 from techval.dashboard.sections import tmt as T
 from techval.dashboard.snapshot import to_jsonable, validate_section
+from techval.errors import TechvalError
+from techval.tmt.sotp import value_segments
 from conftest import FIXTURES
 from .walk import ROOT, SNAPSHOT, kit_charts, numbers_at
 
@@ -494,10 +497,6 @@ def test_the_splunk_multiple_counts_the_current_debt_on_file_at_the_announcement
 
 def test_the_sum_of_the_parts_refusal_is_what_the_module_itself_says(collected):
     """Not a paraphrase: the collector asks value_segments and quotes the answer."""
-    from techval.config import Assumptions
-    from techval.errors import TechvalError
-    from techval.tmt.sotp import value_segments
-
     segments = [SimpleNamespace(name=n, operating_income=1.0, revenue=1.0) for n in
                 ("Entertainment", "Experiences", "Sports")]
     with pytest.raises(TechvalError) as exc:
