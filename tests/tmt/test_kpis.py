@@ -50,7 +50,7 @@ from techval.tmt.kpis import (
     settings_from_assumptions,
 )
 
-from conftest import AS_OF, FIXTURES, load_facts
+from conftest import AS_OF, FIXTURES, load_facts, load_instance_file
 
 # A filer with no company facts at all. Used where the point of the test is the
 # instance document, so that anything the assertion sees demonstrably came from
@@ -59,20 +59,8 @@ NO_COMPANY_FACTS = {"cik": 0, "entityName": "Instance Only Inc", "facts": {"us-g
 
 
 def load_instance(ticker: str) -> tuple[list[DimensionedFact], str, date]:
-    """One committed instance document, in the shape ``EdgarClient`` returns."""
-    payload = json.loads((FIXTURES / f"instance_kpis_{ticker}.json").read_text())
-    facts = [
-        DimensionedFact(
-            tag=row["tag"],
-            value=row["value"],
-            unit=row["unit"],
-            start=date.fromisoformat(row["start"]) if row["start"] else None,
-            end=date.fromisoformat(row["end"]),
-            dimensions=row["dimensions"],
-        )
-        for row in payload["facts"]
-    ]
-    return facts, payload["_accession"], date.fromisoformat(payload["_filed"])
+    """One committed KPI instance document, in the shape ``EdgarClient`` returns."""
+    return load_instance_file(FIXTURES / f"instance_kpis_{ticker}.json")
 
 
 class KpiClient:
