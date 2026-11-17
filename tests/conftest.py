@@ -128,9 +128,14 @@ def client() -> FixtureClient:
     return FixtureClient()
 
 
+def market_at(today: date) -> MarketData:
+    """Market data from the committed closes, as it stood on ``today``."""
+    return MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=today)
+
+
 @pytest.fixture
 def market() -> MarketData:
-    return MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=AS_OF)
+    return market_at(AS_OF)
 
 
 @pytest.fixture

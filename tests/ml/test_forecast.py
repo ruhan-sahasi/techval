@@ -36,11 +36,10 @@ import pytest
 from techval import tags
 from techval.config import Assumptions
 from techval.dcf import project, run_dcf
-from techval.edgar import CompanyFacts, HttpCache, Provenance
+from techval.edgar import CompanyFacts, Provenance
 from techval.errors import ConfigError, NotMeaningfulError
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
-from techval.market import CsvSource, MarketData
 from techval.ml.features import LookaheadError, assert_point_in_time
 from techval.ml.forecast import (
     DELISTED_CIKS,
@@ -62,7 +61,7 @@ from techval.ml.forecast import (
 from techval.ml.protocol import EvalResult, ModelCard
 from techval.wacc import compute_wacc
 
-from conftest import AS_OF, FIXTURES, PRICES, load_facts
+from conftest import AS_OF, FIXTURES, load_facts, market_at
 
 
 def _blob() -> dict:
@@ -691,7 +690,7 @@ def test_a_survivors_only_fit_fades_more_slowly(panel, fade_assumptions):
 def ddog_valuation(fade_assumptions):
     """Datadog priced off the committed fixtures, ready for two growth paths."""
     fin = build_financials("DDOG", facts=load_facts("DDOG"))
-    market = MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=AS_OF)
+    market = market_at(AS_OF)
     bridge = build_ev_bridge(fin, market.spot("DDOG"), fade_assumptions)
     wacc = compute_wacc(fin, bridge, market, fade_assumptions)
     return fin, bridge, wacc

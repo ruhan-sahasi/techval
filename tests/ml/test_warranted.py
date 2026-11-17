@@ -32,11 +32,10 @@ import numpy as np
 import pytest
 
 from techval.config import Assumptions
-from techval.edgar import CompanyFacts, HttpCache
+from techval.edgar import CompanyFacts
 from techval.errors import ConfigError, NotMeaningfulError
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
-from techval.market import CsvSource, MarketData
 from techval.ml import warranted as W
 from techval.ml.warranted import (
     BANNED_FEATURES,
@@ -49,7 +48,7 @@ from techval.ml.warranted import (
 from techval.tmt.metrics import build_metrics
 from techval.tmt.taxonomy import SubVertical
 
-from conftest import FIXTURES, PRICES, load_payload
+from conftest import FIXTURES, load_payload, market_at
 
 PANEL_FIXTURE = FIXTURES / "warranted" / "observations.json.gz"
 
@@ -111,7 +110,7 @@ def tiny(payloads) -> ObservationPanel:
         TINY_TICKERS,
         TINY_DATES,
         lambda when: PinnedClient(payloads, when),
-        lambda when: MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=when),
+        market_at,
         TINY_VERTICALS,
         assumptions,
         current_client=PinnedClient(payloads, None),
@@ -506,7 +505,7 @@ def test_an_unresolved_basis_costs_the_row_and_names_the_reason(payloads, monkey
         ["DDOG"],
         TINY_DATES[:2],
         lambda when: PinnedClient(payloads, when),
-        lambda when: MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=when),
+        market_at,
         TINY_VERTICALS,
         assumptions,
         current_client=PinnedClient(payloads, None),
@@ -529,7 +528,7 @@ def test_the_enterprise_value_needs_no_correction(tiny, payloads):
     assert all(o.basis_factor == pytest.approx(1.0) for o in early)
 
     sample = early[-1]
-    market = MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=sample.as_of)
+    market = market_at(sample.as_of)
     facts = CompanyFacts(payloads["CRWD"], "CRWD", knowledge_date=sample.as_of)
     fin = build_financials("CRWD", facts=facts)
     bridge = build_ev_bridge(fin, market.spot("CRWD"), Assumptions())
@@ -561,7 +560,7 @@ def test_the_enterprise_value_is_the_bridge_and_not_a_reimplementation(tiny, pay
     unsplit = [o for o in tiny.observations if o.basis_factor == 1.0]
     assert unsplit
     sample = unsplit[-1]
-    market = MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=sample.as_of)
+    market = market_at(sample.as_of)
     facts = CompanyFacts(payloads[sample.ticker], sample.ticker, knowledge_date=sample.as_of)
     fin = build_financials(sample.ticker, facts=facts)
     bridge = build_ev_bridge(fin, market.spot(sample.ticker), Assumptions())
@@ -583,7 +582,7 @@ def test_an_unprofitable_filer_is_refused_on_ev_ebitda_and_named(payloads):
         TINY_TICKERS,
         TINY_DATES,
         lambda when: PinnedClient(payloads, when),
-        lambda when: MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=when),
+        market_at,
         TINY_VERTICALS,
         assumptions,
         current_client=PinnedClient(payloads, None),
@@ -762,7 +761,7 @@ def test_a_company_with_no_classification_is_recorded_not_dropped(payloads):
         TINY_TICKERS,
         TINY_DATES[:2],
         lambda when: PinnedClient(payloads, when),
-        lambda when: MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=when),
+        market_at,
         {"DDOG": "infrastructure_software"},
         assumptions,
         current_client=PinnedClient(payloads, None),
@@ -805,7 +804,7 @@ def test_an_unknown_target_is_refused(payloads):
             ["DDOG"],
             TINY_DATES[:1],
             lambda when: PinnedClient(payloads, when),
-            lambda when: MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=when),
+            market_at,
             TINY_VERTICALS,
             Assumptions(),
             current_client=PinnedClient(payloads, None),

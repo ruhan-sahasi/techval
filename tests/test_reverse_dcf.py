@@ -15,11 +15,10 @@ import pytest
 import techval.anchors as A
 import techval.reverse_dcf as R
 from techval.config import Assumptions
-from techval.edgar import HttpCache
 from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
-from techval.market import CsvSource, MarketData
+from techval.market import CsvSource
 from techval.reverse_dcf import (
     DURATION_HORIZON,
     FRONTIER_MARGINS,
@@ -45,7 +44,7 @@ from techval.reverse_dcf import (
 from techval.simulation import run_simulation
 from techval.wacc import compute_wacc
 
-from conftest import PRICES, load_facts, load_payload
+from conftest import AS_OF, PRICES, load_facts, load_payload, market_at
 
 PRICE = 225.27
 
@@ -56,7 +55,7 @@ def case() -> Case:
     a.market.risk_free_rate = 0.0483
     facts = load_facts("DDOG")
     fin = build_financials("DDOG", facts=facts)
-    market = MarketData(CsvSource(PRICES), HttpCache(enabled=False), today=date(2026, 9, 10))
+    market = market_at(AS_OF)
     bridge = build_ev_bridge(fin, market.spot("DDOG"), a)
     wacc = compute_wacc(fin, bridge, market, a)
     return Case(fin=fin, bridge=bridge, wacc=wacc, assumptions=a)
