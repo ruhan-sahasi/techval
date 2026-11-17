@@ -59,7 +59,7 @@ def test_an_unreadable_entry_is_a_miss_and_refit_rebuilds(tmp_path):
     assert cached_fit("probe", [panel], modules, lambda: "never", cache) == "refit"
 
 
-def test_no_cache_root_means_no_disk_cache(tmp_path):
+def test_no_cache_root_means_no_disk_cache():
     calls = []
     for _ in range(2):
         cached_fit("probe", [], (), lambda: calls.append(1), None)

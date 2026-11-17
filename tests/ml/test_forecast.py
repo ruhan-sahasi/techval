@@ -837,7 +837,7 @@ def test_the_survivorship_refit_is_reported_as_a_pair(panel):
     assert report["gap_1y"] > 0
 
 
-def test_a_path_with_no_assumed_tail_says_it_ends_on_a_cliff(panel, fade_assumptions):
+def test_a_path_with_no_assumed_tail_says_it_ends_on_a_cliff(panel):
     """Fitting every projection year hands a 20% grower to a 2.5% perpetuity."""
     five = Assumptions()
     five.market.risk_free_rate = 0.0483

@@ -163,7 +163,7 @@ def test_index_treats_share_classes_of_one_cik_as_one_company(index):
     assert index.cik_of["GOOG"] == index.cik_of["GOOGL"]
 
 
-def test_the_state_of_incorporation_marker_is_not_part_of_the_name(client):
+def test_the_state_of_incorporation_marker_is_not_part_of_the_name():
     """The SEC's ticker file appends "/DE" to a title and no proxy ever writes it.
 
     Left in, the marker tokenises into a trailing "de", the suffix stripper
@@ -209,7 +209,7 @@ def test_the_state_of_incorporation_marker_is_not_part_of_the_name(client):
     ]
 
 
-def test_a_registrants_symbols_are_ranked_by_the_commissions_own_order(client):
+def test_a_registrants_symbols_are_ranked_by_the_commissions_own_order():
     """Two symbols on one CIK are not always two share classes, and the short one loses.
 
     Comcast files its common stock as CMCSA and an exchangeable debenture as CCZ,
@@ -243,7 +243,7 @@ def test_a_registrants_symbols_are_ranked_by_the_commissions_own_order(client):
     assert segment_names("ComcastNetflix, Inc.", index)[0] == ["CMCSA", "NFLX"]
 
 
-def test_index_survives_a_malformed_row_without_losing_the_rest(client):
+def test_index_survives_a_malformed_row_without_losing_the_rest():
     class Bent(FixtureProxyClient):
         def _get_json(self, url):
             rows = dict(super()._get_json(url))
@@ -255,7 +255,7 @@ def test_index_survives_a_malformed_row_without_losing_the_rest(client):
     assert any("malformed" in n for n in index.notes)
 
 
-def test_index_refuses_an_empty_ticker_file(client):
+def test_index_refuses_an_empty_ticker_file():
     class Empty(FixtureProxyClient):
         def _get_json(self, url):
             return {}
@@ -703,7 +703,7 @@ def test_a_flagged_group_contributes_no_training_pairs(index):
     assert peer_pairs([group]) == []
 
 
-def test_collect_leaves_a_failed_parse_out_unless_asked_for_it(client, index):
+def test_collect_leaves_a_failed_parse_out_unless_asked_for_it(index):
     class OneBadProxy(FixtureProxyClient):
         def filing_text(self, ticker, filing):
             return (
@@ -841,7 +841,7 @@ def test_a_cache_written_by_an_older_parser_is_re_read(client, index, tmp_path):
     assert again[0].peers != ["WRONG"]
 
 
-def test_two_runs_agree_exactly(client, index, tmp_path):
+def test_two_runs_agree_exactly(index, tmp_path):
     """Determinism is not optional beside a valuation."""
     a = Assumptions()
     a.ml.cache_dir = str(tmp_path / "one")

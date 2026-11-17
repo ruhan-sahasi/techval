@@ -534,7 +534,7 @@ def test_asking_for_a_company_outside_the_fitted_universe_says_so(fitted):
         fitted.neighbours("NOSUCHCO")
 
 
-def test_a_saved_encoder_reloads_to_the_same_rankings(fitted, ml_assumptions, tmp_path):
+def test_a_saved_encoder_reloads_to_the_same_rankings(fitted, ml_assumptions):
     path = cache_path(ml_assumptions)
     fitted.save(path)
     assert path.exists()
