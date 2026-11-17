@@ -222,7 +222,7 @@ def test_item_1a_is_never_swallowed_by_item_1():
 # --------------------------------------------------------------------------- #
 
 
-def test_ddog_item_1_is_the_business_description(ddog, ddog_filing):
+def test_ddog_item_1_is_the_business_description(ddog):
     """Thousands of words of prose, not a list of section names and page numbers."""
     business = ddog.business
     assert business is not None

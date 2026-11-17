@@ -408,7 +408,7 @@ def test_refusals_are_not_cached(sections, root, assumptions):
     assert sections.modules["fade"].CALLS == [1, 1]
 
 
-def test_no_cache_bypasses_it(sections, root, assumptions, tmp_path):
+def test_no_cache_bypasses_it(sections, root, assumptions):
     sections.install("encoder", FIGURE, inputs=["panel.json"])
     _collect(root, assumptions)
     _, runs = _collect(root, assumptions, use_cache=False)

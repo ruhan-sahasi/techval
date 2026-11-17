@@ -395,7 +395,7 @@ def test_knowledge_date_hides_facts_filed_later():
     assert all(f.filed <= date(2026, 3, 1) for f in past.facts(tag))
 
 
-def test_knowledge_date_falls_back_to_the_filing_of_record(crwd):
+def test_knowledge_date_falls_back_to_the_filing_of_record():
     """Hiding a later restatement must expose the earlier figure, not a gap.
 
     CrowdStrike's fiscal 2024 net income reads 89.3mm in the 10-K filed in 2024

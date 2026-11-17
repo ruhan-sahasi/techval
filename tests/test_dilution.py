@@ -477,7 +477,7 @@ def test_options_without_a_strike_fall_back_rather_than_guess(ddog, tsm):
     assert "no weighted-average exercise price is tagged" in count.flags[0]
 
 
-def test_strikeless_option_block_raises(ddog):
+def test_strikeless_option_block_raises():
     with pytest.raises(MissingDataError) as exc:
         treasury_stock_shares(
             [AwardBlock("option", count=1.0, strike=None, source_tag="t")],

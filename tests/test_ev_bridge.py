@@ -7,7 +7,7 @@ import pytest
 from techval.ev_bridge import build_ev_bridge, equity_value_from_ev
 
 
-def test_bridge_is_the_stated_identity(ddog, ddog_bridge):
+def test_bridge_is_the_stated_identity(ddog_bridge):
     b = ddog_bridge
     assert b.equity_value == pytest.approx(b.price * b.diluted_shares)
     assert b.enterprise_value == pytest.approx(
@@ -29,7 +29,7 @@ def test_net_debt_is_ev_less_equity(ddog_bridge):
     )
 
 
-def test_walking_back_from_ev_returns_equity_value(ddog, ddog_bridge):
+def test_walking_back_from_ev_returns_equity_value(ddog_bridge):
     """The two directions must reconcile, or a DCF and a comp cannot be compared."""
     recovered = equity_value_from_ev(ddog_bridge.enterprise_value, ddog_bridge)
     assert recovered == pytest.approx(ddog_bridge.equity_value)
@@ -330,7 +330,7 @@ def test_the_telecom_enterprise_value_reconciles_to_the_balance_sheet(vz, assump
 
 
 def test_a_net_cash_bridge_says_why_it_is_below_the_market_capitalisation(
-    ddog, ddog_bridge
+    ddog_bridge
 ):
     """An enterprise value below market cap is arithmetic, and is also what a
     debt figure read as zero looks like. The bridge says which.

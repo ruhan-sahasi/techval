@@ -557,7 +557,7 @@ def test_decoupled_decay_is_not_the_same_as_l2_in_the_gradient():
     assert np.all(coupled < optimum)
 
 
-def test_adam_keeps_separate_moments_per_parameter(rng):
+def test_adam_keeps_separate_moments_per_parameter():
     """Two arrays stepped by one optimiser must not share state."""
     first = np.zeros(2)
     second = np.zeros(2)

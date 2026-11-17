@@ -608,7 +608,7 @@ def test_an_unprofitable_filer_is_refused_on_ev_ebitda_and_named(payloads):
 # --------------------------------------------------------------------------- #
 
 
-def test_a_lessor_tagging_only_its_services_revenue_is_caught(split_facts):
+def test_a_lessor_tagging_only_its_services_revenue_is_caught():
     """Crown Castle resolves a thirty-first of its revenue and nothing complains.
 
     The ladder ranks the ASC 606 concept first, which is right for an operating

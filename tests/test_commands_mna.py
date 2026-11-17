@@ -839,7 +839,7 @@ def test_a_dataset_missing_its_roster_names_the_file(tmp_path):
     assert "universe.json" in result.output
 
 
-def test_a_screen_date_the_panel_does_not_carry_is_refused_with_the_range(tmp_path):
+def test_a_screen_date_the_panel_does_not_carry_is_refused_with_the_range():
     result = runner.invoke(
         C.app,
         ["targets", "--dataset", str(MNA), "--screen-on", "1999-01-01"],

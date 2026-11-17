@@ -419,7 +419,7 @@ def test_the_committed_audit_describes_the_committed_panel(committed_audit):
     assert filers["VZ"] == (22, 22) and filers["WBD"] == (14, 14) and filers["TMUS"] == (2, 15)
 
 
-def test_an_audit_of_another_recording_is_not_read_as_evidence(committed_audit, tmp_path):
+def test_an_audit_of_another_recording_is_not_read_as_evidence(tmp_path):
     import gzip
 
     from techval.commands_peers import _load_observations
