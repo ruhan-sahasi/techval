@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from datetime import date
 
+from techval import tags
 from techval.edgar import CompanyFacts
 
 from conftest import FIXTURES, facts_payload
@@ -41,8 +42,6 @@ def test_the_duration_series_follows_a_filer_that_changed_revenue_tags():
     so the latest annual revenue a segment note falls back to is years stale and
     the consolidated total for a recent period is not found.
     """
-    from techval import tags
-
     facts = CompanyFacts(
         facts_payload(
             {
@@ -58,8 +57,6 @@ def test_the_duration_series_follows_a_filer_that_changed_revenue_tags():
 
 
 def test_two_tags_running_to_the_same_end_keep_the_ladders_order():
-    from techval import tags
-
     facts = CompanyFacts(
         facts_payload(
             {
