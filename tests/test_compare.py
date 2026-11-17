@@ -23,7 +23,7 @@ from techval.dashboard.snapshot import Snapshot, load_snapshot
 from techval.market import CsvSource
 from techval.tearsheet import RecordedFacts
 
-from conftest import FIXTURES
+from conftest import FIXTURES, PRICES
 
 AS_OF = date(2026, 9, 9)
 
@@ -31,7 +31,7 @@ AS_OF = date(2026, 9, 9)
 def sources(observations=None):
     return E.Sources(
         client=RecordedFacts(FIXTURES),
-        prices=CsvSource(FIXTURES / "prices"),
+        prices=CsvSource(PRICES),
         record=lambda *args, **kwargs: nullcontext(),
         facts_name=str,
         prices_name=str,
@@ -110,7 +110,7 @@ def test_the_takeaway_names_the_price_that_asks_the_most(compared):
 
 def test_the_comparison_is_a_one_section_page_that_validates(fade_observations):
     snap = build_comparison(
-        ["DDOG", "DIS", "NOPE"], assumptions(), client=RecordedFacts(FIXTURES), prices=CsvSource(FIXTURES / "prices"),
+        ["DDOG", "DIS", "NOPE"], assumptions(), client=RecordedFacts(FIXTURES), prices=CsvSource(PRICES),
         price_feed="csv", observations=fade_observations, panel="tests/fixtures/fade_companyfacts.json.gz",
         today=AS_OF, collected_at="2026-09-09", commit="abc1234",
     )

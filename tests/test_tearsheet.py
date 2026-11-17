@@ -15,7 +15,7 @@ from techval.dashboard.snapshot import Snapshot, load_snapshot
 from techval.market import CsvSource
 from techval.tearsheet import RecordedFacts, build_tearsheet
 
-from conftest import FIXTURES
+from conftest import FIXTURES, PRICES
 
 AS_OF = date(2026, 9, 9)
 
@@ -25,7 +25,7 @@ def sheet(ticker, peers=(), observations=None):
     a.market.risk_free_rate = 0.0483
     a.comps.peers = list(peers)
     return build_tearsheet(
-        ticker, a, client=RecordedFacts(FIXTURES), prices=CsvSource(FIXTURES / "prices"), price_feed="csv",
+        ticker, a, client=RecordedFacts(FIXTURES), prices=CsvSource(PRICES), price_feed="csv",
         observations=observations, panel="tests/fixtures/fade_companyfacts.json.gz",
         today=AS_OF, collected_at="2026-10-11", commit="abc1234",
     )
