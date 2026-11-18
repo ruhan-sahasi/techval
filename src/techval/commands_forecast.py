@@ -1048,6 +1048,21 @@ def _read_rows(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
+def _cell(path: Path, line: int, column: str, text: str | None, parse, what: str):
+    """One cell of a recorded file read with ``parse``, or a refusal saying where.
+
+    A spreadsheet writes #N/A for a missing value and 3/31/2024 for a date, and
+    either raised a ValueError that no command catches. ``line`` counts the
+    header as line one, which is where an editor puts the row.
+    """
+    try:
+        return parse(text)
+    except (TypeError, ValueError):
+        raise ConfigError(
+            f"{path} line {line}: {column} is {text!r}, which is not {what}."
+        ) from None
+
+
 def _scores_from_csv(
     path: Path, column: str, negate: bool, limit_to: set[str] | None
 ) -> list[Score]:
@@ -1077,15 +1092,17 @@ def _scores_from_csv(
             "that carries the score; this file has " + ", ".join(sorted(header))
         )
     out: list[Score] = []
-    for row in rows:
+    for line, row in enumerate(rows, start=2):
         ticker = row["ticker"].upper()
         if limit_to and ticker not in limit_to:
             continue
         raw = row[column]
         if raw is None or raw == "":
             continue
-        value = float(raw)
-        when = date.fromisoformat(row["as_of"])
+        value = _cell(path, line, column, raw, float, "a number")
+        when = _cell(
+            path, line, "as_of", row["as_of"], date.fromisoformat, "a YYYY-MM-DD date"
+        )
         out.append(
             Score(
                 ticker=ticker,
@@ -1121,13 +1138,15 @@ def _prices_from_csv(path: Path, limit_to: set[str] | None) -> dict[str, PriceSe
             "file is long format: ticker, date, close."
         )
     by_ticker: dict[str, list[tuple[date, float]]] = {}
-    for row in rows:
+    for line, row in enumerate(rows, start=2):
         ticker = row["ticker"].upper()
         if limit_to and ticker not in limit_to:
             continue
-        by_ticker.setdefault(ticker, []).append(
-            (date.fromisoformat(row["date"]), float(row["close"]))
+        when = _cell(
+            path, line, "date", row["date"], date.fromisoformat, "a YYYY-MM-DD date"
         )
+        close = _cell(path, line, "close", row["close"], float, "a number")
+        by_ticker.setdefault(ticker, []).append((when, close))
     if not by_ticker:
         raise ConfigError(f"{path} carries no price series for the requested universe")
     out: dict[str, PriceSeries] = {}
