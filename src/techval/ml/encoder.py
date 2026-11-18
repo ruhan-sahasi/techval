@@ -146,8 +146,18 @@ from .evaluation import (
     walk_forward_folds,
 )
 from .features import MATRIX_COLUMNS, FeaturePanel, FeatureRow
-from .nn import Adam, Dropout, L2Normalize, Layer, Linear, ReLU, Sequential, Tanh, train
-from .nn import info_nce_in_batch
+from .nn import (
+    Adam,
+    Dropout,
+    L2Normalize,
+    Layer,
+    Linear,
+    ReLU,
+    Sequential,
+    Tanh,
+    info_nce_in_batch,
+    train,
+)
 from .peer_labels import PeerGroup
 from .protocol import EvalResult, ModelCard, spearman
 from .text import TextCorpus, TextFeatures, fit_text_features, transform

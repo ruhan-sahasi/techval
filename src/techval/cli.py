@@ -46,15 +46,59 @@ from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
 
-from .comps import run_comps
+from .anchors import LABELS as RECORD_LABELS, record_case, unanchored
 from .apv import run_apv
-from .commands_forecast import app as _forecast_app
+from .backtest import (
+    ForwardPrices,
+    edgar_client_factory,
+    market_factory_from,
+    run_backtest,
+)
 from .commands_cache import app as _cache_app
 from .commands_expectations import app as _expectations_app
-from .commands_tearsheet import app as _tearsheet_app
+from .commands_forecast import app as _forecast_app
 from .commands_mna import app as _mna_app
 from .commands_peers import app as _peers_app
+from .commands_tearsheet import app as _tearsheet_app
 from .commands_tmt import app as _tmt_app
+from .comps import run_comps
+from .config import Assumptions, ml_cache_root
+from .dashboard import (
+    collect_snapshot,
+    dump_snapshot,
+    load_snapshot,
+    write_dashboard,
+)
+from .dashboard.collect import SectionRun
+from .dashboard.sections import SECTION_IDS, section_module
+from .dcf import run_dcf, sensitivity_wacc_exit, sensitivity_wacc_growth
+from .dilution import build_share_count
+from .edgar import EdgarClient, HttpCache
+from .errors import ConfigError, MissingDataError, TechvalError
+from .ev_bridge import build_ev_bridge
+from .financials import build_financials
+from .football import FootballRow, football_field
+from .market import MarketData, make_price_source
+from .merger import run_merger
+from .ml.forecast import compare_fade
+from .ml.mna import fit_propensity
+from .ml.signals import Score, test_signal
+from .ml.warranted import fit_warranted
+from .options import CONFIG, FROM_RECORD, NO_CACHE, OPEN_PAGE
+from .simulation import run_simulation
+from .terminal import (
+    format_money,
+    format_multiple,
+    format_pct,
+    make_console,
+    print_notes,
+    print_refusal,
+    print_rule,
+)
+from .tmt.precedents import build_precedents
+from .tmt.segments import build_segments
+from .tmt.sotp import run_sotp
+from .wacc import compute_wacc, estimate_beta
 
 # The optional sections below reuse the command modules' own loaders and
 # renderers rather than growing second copies here. A warranted-multiple table
@@ -74,51 +118,6 @@ from .commands_peers import (
     _load_observations,
 )
 from .commands_tmt import _period_gap_flag, _render_sotp, load_plan as _load_sotp_plan
-from .dashboard import (
-    collect_snapshot,
-    dump_snapshot,
-    load_snapshot,
-    write_dashboard,
-)
-from .dashboard.collect import SectionRun
-from .dashboard.sections import SECTION_IDS, section_module
-from .errors import MissingDataError
-from .ml.forecast import compare_fade
-from .ml.mna import fit_propensity
-from .ml.signals import Score, test_signal
-from .ml.warranted import fit_warranted
-from .options import CONFIG, FROM_RECORD, NO_CACHE, OPEN_PAGE
-from .terminal import (
-    format_money,
-    format_multiple,
-    format_pct,
-    make_console,
-    print_notes,
-    print_refusal,
-    print_rule,
-)
-from .tmt.precedents import build_precedents
-from .tmt.segments import build_segments
-from .tmt.sotp import run_sotp
-from .backtest import (
-    ForwardPrices,
-    edgar_client_factory,
-    market_factory_from,
-    run_backtest,
-)
-from .dilution import build_share_count
-from .anchors import LABELS as RECORD_LABELS, record_case, unanchored
-from .config import Assumptions, ml_cache_root
-from .dcf import run_dcf, sensitivity_wacc_exit, sensitivity_wacc_growth
-from .edgar import EdgarClient, HttpCache
-from .errors import ConfigError, TechvalError
-from .ev_bridge import build_ev_bridge
-from .financials import build_financials
-from .football import FootballRow, football_field
-from .market import MarketData, make_price_source
-from .merger import run_merger
-from .simulation import run_simulation
-from .wacc import compute_wacc, estimate_beta
 
 app = typer.Typer(
     add_completion=False,
