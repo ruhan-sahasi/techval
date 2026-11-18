@@ -1103,6 +1103,17 @@ def test_a_plan_with_no_segments_is_refused(tmp_path):
     assert "carries no 'segments' mapping" in result.stdout
 
 
+def test_a_plan_the_yaml_parser_rejects_is_refused_at_its_line(tmp_path):
+    """A stray indent was a ScannerError, and no command catches one."""
+    result = sotp(
+        tmp_path, "segments:\n  Entertainment:\n    metric: ebitda\n     multiple: 9\n"
+    )
+    assert result.exit_code == 1
+    text = "".join(result.stdout.split())
+    assert "couldnotbereadasYAML" in text
+    assert "line4" in text
+
+
 def test_sotp_shows_the_multiple_its_source_and_the_value_it_bought(tmp_path):
     result = sotp(tmp_path)
     assert result.exit_code == 0

@@ -26,6 +26,22 @@ from pydantic import (
 from .errors import ConfigError
 
 
+def read_yaml(path: Path) -> object:
+    """A YAML file's contents, or a ConfigError naming the file and the reason.
+
+    A file the parser rejects raised ``yaml.YAMLError``, and an impossible date
+    such as ``as_of: 2024-13-01`` the ValueError from ``datetime.date``, and no
+    command catches either, so a stray indent ended in a traceback. The file is
+    handed over as bytes, so the parser settles the encoding, as YAML specifies,
+    and the line it points at carries the file's name.
+    """
+    try:
+        with Path(path).open("rb") as handle:
+            return yaml.safe_load(handle)
+    except (yaml.YAMLError, ValueError) as exc:
+        raise ConfigError(f"{path} could not be read as YAML. {exc}") from exc
+
+
 class _Base(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -928,7 +944,7 @@ class Assumptions(_Base):
         p = Path(path)
         if not p.exists():
             raise ConfigError(f"assumptions file not found: {p}")
-        raw = yaml.safe_load(p.read_text()) or {}
+        raw = read_yaml(p) or {}
         try:
             return cls.model_validate(raw)
         except ValidationError as exc:

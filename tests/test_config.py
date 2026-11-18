@@ -156,6 +156,24 @@ def test_a_hand_written_consistency_check_is_not_swallowed(tmp_path):
     assert "outgrows its own economy" in str(exc.value)
 
 
+def test_a_file_the_yaml_parser_rejects_is_a_refusal_naming_the_line(tmp_path):
+    """The parser's own error got past every command, as ValidationError once did."""
+    path = _write(tmp_path, "dcf:\n  projection_years: 5\n   terminal_growth: 0.03\n")
+    with pytest.raises(ConfigError) as exc:
+        Assumptions.load(path)
+    message = str(exc.value)
+    assert f"{path} could not be read as YAML" in message
+    assert f'in "{path}", line 3' in message
+
+
+def test_an_impossible_unquoted_date_is_a_refusal(tmp_path):
+    """YAML reads 2024-13-01 as a date, and datetime refuses it with a ValueError."""
+    path = _write(tmp_path, "as_of: 2024-13-01\n")
+    with pytest.raises(ConfigError) as exc:
+        Assumptions.load(path)
+    assert f"{path} could not be read as YAML. month must be in 1..12" in str(exc.value)
+
+
 # --------------------------------------------------------------------------- #
 # a setting that reaches no code says so
 # --------------------------------------------------------------------------- #

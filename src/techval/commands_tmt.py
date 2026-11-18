@@ -71,14 +71,13 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import typer
-import yaml
 from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
 
 from . import tags
 from .comps import prior_year_end
-from .config import Assumptions
+from .config import Assumptions, read_yaml
 from .edgar import EdgarClient, HttpCache
 from .errors import ConfigError, MissingDataError, TechvalError
 from .ev_bridge import build_ev_bridge
@@ -1528,7 +1527,7 @@ def load_plan(path: Path) -> dict:
     """
     if not path.exists():
         raise ConfigError(f"plan file not found: {path}")
-    raw = yaml.safe_load(path.read_text()) or {}
+    raw = read_yaml(path) or {}
     if not isinstance(raw, dict):
         raise ConfigError(
             f"{path} should be a mapping with a 'segments' key. See --emit-plan."
