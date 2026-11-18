@@ -224,11 +224,13 @@ def _open_text(path: Path) -> io.TextIOBase:
 
     Every recorded panel in this repository is gzipped because the uncompressed
     ones run to tens of megabytes, and a user who unzips one to look at it should
-    not then have to zip it again to feed it back in.
+    not then have to zip it again to feed it back in. ``utf-8-sig`` reads plain
+    UTF-8 and also drops the byte-order mark a spreadsheet's "CSV UTF-8" export
+    starts with, which plain UTF-8 keeps as part of the first column's name.
     """
     if path.suffix == ".gz":
-        return gzip.open(path, "rt", encoding="utf-8")
-    return path.open("r", encoding="utf-8")
+        return gzip.open(path, "rt", encoding="utf-8-sig")
+    return path.open("r", encoding="utf-8-sig")
 
 
 # --------------------------------------------------------------------------- #

@@ -117,3 +117,18 @@ def test_a_history_reads_each_treasury_year_once(monkeypatch):
     assert sum(1 for r in rows if not r["refused"]) >= 8
     years = sorted(int(u.split("daily-treasury-rates.csv/")[1].split("/")[0]) for u in asked)
     assert years == sorted(set(years)) and len(years) <= 4
+
+
+def test_a_csv_saved_with_a_byte_order_mark_keeps_its_date_column(tmp_path):
+    """A spreadsheet's "CSV UTF-8" export starts with a byte-order mark.
+
+    Read as plain UTF-8 the mark became part of the first header, so no row had
+    a Date, every row was skipped, and the refusal suggested a delisted ticker
+    or dates outside the window.
+    """
+    (tmp_path / "ABC.csv").write_text(
+        "\ufeffDate,Close\n2025-01-02,100.0\n2025-01-03,101.5\n", encoding="utf-8"
+    )
+    series = CsvSource(tmp_path).fetch("ABC", date(2025, 1, 1), date(2025, 2, 1))
+    assert series.dates == [date(2025, 1, 2), date(2025, 1, 3)]
+    assert list(series.closes) == [100.0, 101.5]

@@ -746,10 +746,11 @@ _PANEL_KEYS = ("ticker", "as_of", "knowledge_date", "statement_date")
 def _open_panel(directory: Path):
     """The panel CSV, gzipped or not, or a refusal naming both paths tried."""
     gz, plain = directory / "panel.csv.gz", directory / "panel.csv"
+    # utf-8-sig, so a panel saved back from a spreadsheet keeps its first column.
     if gz.exists():
-        return gzip.open(gz, "rt", newline="")
+        return gzip.open(gz, "rt", encoding="utf-8-sig", newline="")
     if plain.exists():
-        return plain.open("rt", newline="")
+        return plain.open("rt", encoding="utf-8-sig", newline="")
     raise MissingDataError(
         "feature panel",
         hint=f"no panel.csv.gz and no panel.csv in {directory}",
