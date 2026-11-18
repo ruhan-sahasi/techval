@@ -1888,7 +1888,7 @@ def sotp(
         report = build_segments(ticker, client, assumptions)
 
         if emit_plan is not None:
-            emit_plan.write_text(plan_skeleton(report))
+            emit_plan.write_text(plan_skeleton(report), encoding="utf-8")
             console.print(
                 f"Wrote a skeleton for {len(report.segments)} segment(s) to "
                 f"[bold]{escape(str(emit_plan))}[/bold]. Fill in every multiple and every "

@@ -798,7 +798,7 @@ def load_dataset(
         if not path.exists():
             raise MissingDataError(what, hint=f"no file at {path}")
 
-    universe = build_universe(json.loads(roster_path.read_text()))
+    universe = build_universe(json.loads(roster_path.read_text(encoding="utf-8")))
 
     events = [
         DealEvent(
@@ -809,7 +809,7 @@ def load_dataset(
             acquirer=e.get("acquirer"),
             source_form=e.get("source_form"),
         )
-        for e in json.loads(events_path.read_text())
+        for e in json.loads(events_path.read_text(encoding="utf-8"))
     ]
 
     rows: list[FeatureRow] = []

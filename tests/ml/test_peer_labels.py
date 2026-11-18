@@ -841,6 +841,19 @@ def test_a_cache_written_by_an_older_parser_is_re_read(client, index, tmp_path):
     assert again[0].peers != ["WRONG"]
 
 
+def test_a_cache_entry_that_is_not_utf8_text_is_a_miss(client, index, tmp_path):
+    """A damaged entry is read again, as an unparseable one already was."""
+    a = Assumptions()
+    a.ml.cache_dir = str(tmp_path)
+    collect_peer_groups(["DDOG"], client, index, assumptions=a)
+    next((tmp_path / "peer_groups").glob("*.json")).write_bytes(b"\xff\xfe\x00")
+
+    reads = client.text_calls
+    again = collect_peer_groups(["DDOG"], client, index, assumptions=a)
+    assert client.text_calls == reads + 1
+    assert again[0].peers
+
+
 def test_two_runs_agree_exactly(index, tmp_path):
     """Determinism is not optional beside a valuation."""
     a = Assumptions()

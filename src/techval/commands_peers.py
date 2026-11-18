@@ -269,10 +269,10 @@ def _read_json(path: Path, *, what: str) -> Any:
         )
     try:
         if path.suffix == ".gz":
-            with gzip.open(path, "rt") as handle:
+            with gzip.open(path, "rt", encoding="utf-8") as handle:
                 return json.load(handle)
-        return json.loads(path.read_text())
-    except (OSError, json.JSONDecodeError, EOFError) as exc:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, EOFError) as exc:
         raise ConfigError(f"{path} could not be read as {what}: {exc}") from None
 
 
