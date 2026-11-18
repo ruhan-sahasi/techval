@@ -21,6 +21,13 @@ console = make_console(120)
 
 CHECKOUT = Path(__file__).resolve().parent.parent.parent
 
+# Both commands read the fade panel, and say so in the same words.
+_PANELS = typer.Option(
+    None,
+    "--panels",
+    help="Directory holding fade_companyfacts.json.gz for base rates and scenarios. Defaults to tests/fixtures in this checkout.",
+)
+
 
 @app.command()
 def tearsheet(
@@ -29,11 +36,7 @@ def tearsheet(
     no_cache: bool = NO_CACHE,
     out: Path = typer.Option(None, "--out", "-o", help="Where to write the page. Default: out/tearsheet_<TICKER>.html."),
     facts_dir: Path = FACTS_DIR,
-    panels: Path = typer.Option(
-        None,
-        "--panels",
-        help="Directory holding fade_companyfacts.json.gz for base rates and scenarios. Defaults to tests/fixtures in this checkout.",
-    ),
+    panels: Path = _PANELS,
     open_page: bool = OPEN_PAGE,
     from_record: bool = FROM_RECORD,
 ) -> None:
@@ -96,11 +99,7 @@ def compare(
     no_cache: bool = NO_CACHE,
     out: Path = typer.Option(None, "--out", "-o", help="Where to write the page. Default: out/compare.html."),
     facts_dir: Path = FACTS_DIR,
-    panels: Path = typer.Option(
-        None,
-        "--panels",
-        help="Directory holding fade_companyfacts.json.gz for base rates and scenarios. Defaults to tests/fixtures in this checkout.",
-    ),
+    panels: Path = _PANELS,
     peers_from_set: bool = typer.Option(
         False, "--peers-from-set", help="Value each company against the rest of the set as its peers."
     ),

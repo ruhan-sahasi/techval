@@ -33,6 +33,17 @@ console = make_console(120)
 
 CHECKOUT_PANELS = Path(__file__).resolve().parent.parent.parent / "tests" / "fixtures"
 
+# The options two of these commands take, each written once so the two cannot drift.
+_FACTS = typer.Option(
+    None, "--facts", help="Recorded companyfacts payload for TICKER, instead of a live SEC call."
+)
+_PANELS = typer.Option(
+    None,
+    "--panels",
+    help="Directory holding fade_companyfacts.json.gz for base rates. Defaults to tests/fixtures in this checkout.",
+)
+_JSON = typer.Option(False, "--json", help="Print the whole result as JSON.")
+
 LEVER_NAMES = {
     "discount_rate": "Discount rate",
     "first_year_growth": "First-year growth",
@@ -95,18 +106,12 @@ def expectations(
     ticker: str,
     config: Path = CONFIG,
     no_cache: bool = NO_CACHE,
-    facts_file: Path = typer.Option(
-        None, "--facts", help="Recorded companyfacts payload for TICKER, instead of a live SEC call."
-    ),
+    facts_file: Path = _FACTS,
     price: float = typer.Option(
         None, "--price", help="Ask what this price assumes, instead of the last close."
     ),
-    panels: Path = typer.Option(
-        None,
-        "--panels",
-        help="Directory holding fade_companyfacts.json.gz for base rates. Defaults to tests/fixtures in this checkout.",
-    ),
-    as_json: bool = typer.Option(False, "--json", help="Print the whole result as JSON."),
+    panels: Path = _PANELS,
+    as_json: bool = _JSON,
     history: bool = typer.Option(
         False,
         "--history",
@@ -224,7 +229,7 @@ def expectations_screen(
     config: Path = CONFIG,
     no_cache: bool = NO_CACHE,
     facts_dir: Path = FACTS_DIR,
-    panels: Path = typer.Option(None, "--panels", help="Directory holding fade_companyfacts.json.gz for base rates."),
+    panels: Path = _PANELS,
     as_json: bool = typer.Option(False, "--json", help="Print the rows as JSON."),
     from_record: bool = FROM_RECORD,
 ) -> None:
@@ -289,16 +294,14 @@ def scenarios(
     ticker: str,
     config: Path = CONFIG,
     no_cache: bool = NO_CACHE,
-    facts_file: Path = typer.Option(
-        None, "--facts", help="Recorded companyfacts payload for TICKER, instead of a live SEC call."
-    ),
+    facts_file: Path = _FACTS,
     price: float = typer.Option(None, "--price", help="Weigh the scenarios against this price instead of the last close."),
     panels: Path = typer.Option(
         None,
         "--panels",
         help="Directory holding fade_companyfacts.json.gz. Defaults to tests/fixtures in this checkout.",
     ),
-    as_json: bool = typer.Option(False, "--json", help="Print the whole result as JSON."),
+    as_json: bool = _JSON,
     from_record: bool = FROM_RECORD,
 ) -> None:
     """Bear, base and bull from what similar company-years went on to do, valued through the engine's DCF."""

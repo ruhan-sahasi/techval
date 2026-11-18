@@ -1856,7 +1856,10 @@ def sotp(
     discount: float = typer.Option(
         None,
         "--discount",
-        help="Conglomerate discount as a decimal, overriding the plan. Default zero.",
+        help=(
+            "Conglomerate discount as a decimal, overriding the plan. Without it the "
+            "plan's conglomerate_discount applies, which is zero when the plan sets none."
+        ),
     ),
     on_negative: str = typer.Option(
         "raise",
