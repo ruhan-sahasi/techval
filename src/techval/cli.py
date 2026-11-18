@@ -659,7 +659,7 @@ def _render_comps(result) -> None:
     if result.exclusions:
         console.print("\n[bold yellow]Peers excluded[/bold yellow]")
         for e in result.exclusions:
-            console.print(f"  [yellow]- {e.ticker}: {e.reason}[/yellow]")
+            console.print(f"  [yellow]- {e.ticker}: {escape(e.reason)}[/yellow]")
     flags = [
         f"{p.ticker}: {f}" for p in result.peers for f in p.flags
     ]
@@ -1519,7 +1519,8 @@ def value(
             print_rule(console, "Warranted multiple")
             if warranted_error is not None:
                 console.print(
-                    f"[yellow]Warranted multiple not fitted: {warranted_error}[/yellow]"
+                    "[yellow]Warranted multiple not fitted: "
+                    f"{escape(str(warranted_error))}[/yellow]"
                 )
             else:
                 try:
@@ -1537,7 +1538,8 @@ def value(
             if warranted_error is not None:
                 console.print(
                     "[yellow]Signal test not run: the warranted fit whose residual "
-                    f"it scores could not be made: {warranted_error}[/yellow]"
+                    "it scores could not be made: "
+                    f"{escape(str(warranted_error))}[/yellow]"
                 )
             else:
                 try:

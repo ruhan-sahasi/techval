@@ -501,14 +501,24 @@ def test_the_cache_layout_is_still_the_first_candidate():
 
 
 @pytest.mark.parametrize("folder", ["artifacts [old]", "artifacts [/old]"])
-def test_a_section_that_cannot_run_quotes_the_path_as_written(folder, tmp_path):
+@pytest.mark.parametrize(
+    "flag,note",
+    [
+        ("ml.peers.enabled", "Learned comp set not run"),
+        ("ml.warranted.enabled", "Warranted multiple not fitted"),
+        ("ml.signals.enabled", "Signal test not run"),
+    ],
+)
+def test_a_section_that_cannot_run_quotes_the_path_as_written(
+    flag, note, folder, tmp_path
+):
     """The note a skipped section leaves is text too, for the reason below."""
-    config = _config(tmp_path, FLAG_BODIES["ml.peers.enabled"])
+    config = _config(tmp_path, FLAG_BODIES[flag])
     empty = tmp_path / folder
     empty.mkdir(parents=True)
     result = run_value("-c", str(config), "--ml-data", str(empty))
     assert result.exit_code == 0
-    assert "Learned comp set not run" in result.output
+    assert note in result.output
     assert "".join(str(empty).split()) in "".join(result.output.split())
 
 
