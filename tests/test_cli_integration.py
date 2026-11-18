@@ -822,6 +822,16 @@ def test_the_record_case_sets_the_dcf_from_the_filings_and_says_which_figures(tm
     )
 
 
+def test_the_chart_is_reported_where_it_was_written(tmp_path):
+    """A path is printed as text: ``[v2]`` in a folder name is not a style."""
+    out = tmp_path / "charts [v2]"
+    result = run_value("-c", str(_config(tmp_path)), "--out", str(out))
+    assert result.exit_code == 0
+    written = out / "DDOG_football.png"
+    assert written.exists()
+    assert "".join(str(written).split()) in "".join(result.output.split())
+
+
 def test_the_from_record_flag_does_what_the_setting_does(tmp_path):
     flag = run_value("-c", str(_config(tmp_path)), "--from-record")
     assert flag.exit_code == 0 and "The record case" in flag.output

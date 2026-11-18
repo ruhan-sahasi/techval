@@ -1198,9 +1198,10 @@ def _render_optional_fade(ticker, fin, bridge, wacc_result, assumptions, root) -
     )
     symbol = ticker.upper()
     console.print(
-        f"[dim]Fitting the fade curve on the recorded panel at {panel_path}. The "
-        "whole universe is fitted, not this company alone, because a curve "
-        "estimated on one filer's history is that filer's history.[/dim]"
+        "[dim]Fitting the fade curve on the recorded panel at "
+        f"{escape(str(panel_path))}. The whole universe is fitted, not this "
+        "company alone, because a curve estimated on one filer's history is that "
+        "filer's history.[/dim]"
     )
     # recorded_fit cuts the panel at assumptions.as_of before fitting. Without
     # that the option would be a lie: the panel builder pins every FEATURE to the
@@ -1569,7 +1570,7 @@ def value(
             growth_grid=growth_grid, exit_grid=exit_grid,
         )
         print_rule(console, "Output")
-        console.print(f"Football field written to [bold]{path}[/bold]")
+        console.print(f"Football field written to [bold]{escape(str(path))}[/bold]")
     except TechvalError as exc:
         print_refusal(console, exc)
         raise typer.Exit(1)

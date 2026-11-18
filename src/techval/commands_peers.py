@@ -127,6 +127,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import typer
+from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
 
@@ -1492,8 +1493,8 @@ def screen(
         console.print(
             f"\n[dim]{len(observations.observations):,} observations over "
             f"{len(observations.dates)} dates and {len(observations.tickers)} "
-            f"companies, from {panel_path}. Model: {model}. Demeaned by date: "
-            f"{fitted.demeaned}.[/dim]"
+            f"companies, from {escape(str(panel_path))}. Model: {model}. "
+            f"Demeaned by date: {fitted.demeaned}.[/dim]"
         )
 
         frame = fitted.extremes(n, when=as_of)
