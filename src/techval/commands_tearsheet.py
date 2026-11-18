@@ -14,7 +14,7 @@ from rich.markup import escape
 
 from .errors import TechvalError
 from .options import CONFIG, FACTS_DIR, FROM_RECORD, NO_CACHE, OPEN_PAGE
-from .terminal import make_console
+from .terminal import make_console, print_refusal
 
 app = typer.Typer()
 console = make_console(120)
@@ -71,7 +71,7 @@ def tearsheet(
         )
         write_dashboard(snap, path)
     except TechvalError as err:
-        console.print(f"[red]{escape(str(err))}[/red]")
+        print_refusal(console, err)
         raise typer.Exit(1)
 
     section = snap.sections["engine"]
@@ -142,7 +142,7 @@ def compare(
         )
         write_dashboard(snap, path)
     except TechvalError as err:
-        console.print(f"[red]{escape(str(err))}[/red]")
+        print_refusal(console, err)
         raise typer.Exit(1)
 
     section = snap.sections["compare"]

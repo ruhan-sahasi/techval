@@ -38,7 +38,6 @@ from pathlib import Path
 
 import pandas as pd
 import typer
-from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
 
@@ -90,6 +89,7 @@ from .terminal import (
     format_pct,
     make_console,
     print_notes,
+    print_refusal,
     print_rule,
 )
 from .tmt.precedents import build_precedents
@@ -1554,7 +1554,7 @@ def value(
         print_rule(console, "Output")
         console.print(f"Football field written to [bold]{path}[/bold]")
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -1659,7 +1659,7 @@ def comps(
             raise typer.Exit(1)
         _render_comps(run_comps(ticker, assumptions, client, market))
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -1746,7 +1746,7 @@ def merger(
         if getattr(r, "purchase_accounting", None) is not None:
             _render_purchase_accounting(r.purchase_accounting)
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -1855,7 +1855,7 @@ def backtest(
         print_notes(console, list(result.checks), heading="Cross-checks")
         print_notes(console, list(result.notes))
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -1888,7 +1888,7 @@ def fetch(
             f"{market.prices(ticker).last_date}.[/dim]"
         )
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -2066,7 +2066,7 @@ def dashboard(
 
             webbrowser.open(Path(out).resolve().as_uri())
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{escape(str(exc))}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 

@@ -91,6 +91,7 @@ from .terminal import (
     format_pct,
     make_console,
     print_notes,
+    print_refusal,
     print_rule,
 )
 from .tmt.precedents import (
@@ -720,7 +721,7 @@ def precedents(
         print_notes(console, list(result.flags), heading="Flags and refusals")
         print_notes(console, list(result.notes), heading="Standing notes")
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -1343,7 +1344,7 @@ def targets(
         print_notes(console, list(card.limitations), heading="Limitations")
         print_notes(console, list(result.notes) + list(panel.notes), heading="Notes")
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 

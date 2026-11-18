@@ -1,5 +1,6 @@
 """What the commands print with: a console, the rule over each section, the notes
-under it, and how money, percentages and multiples read in a table.
+under it, the refusal in place of a traceback, and how money, percentages and
+multiples read in a table.
 
 The commands are spread over cli.py and the commands_* modules that cli.py
 imports, so none of those modules can import these back from cli.py. They import
@@ -13,6 +14,7 @@ import math
 import sys
 
 from rich.console import Console
+from rich.markup import escape
 from rich.text import Text
 
 
@@ -35,6 +37,18 @@ def print_notes(console: Console, items, *, heading: str = "Notes") -> None:
     for n in items:
         style = "yellow" if str(n).upper().startswith(("FLAG", "WARN")) else "dim"
         console.print(Text(f"  - {n}", style=style))
+
+
+def print_refusal(console: Console, exc: Exception) -> None:
+    """A refusal, as every command prints one: the error's class, then its message.
+
+    The message is escaped because it can quote a path or a value, and rich
+    reads ``[...]`` in either as markup. Unescaped, ``[old]`` in a folder name
+    was taken for a style and dropped, so the refusal named a path that does
+    not exist, and ``[/old]`` was taken for a closing tag that matched nothing,
+    which replaced the refusal with a traceback.
+    """
+    console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{escape(str(exc))}")
 
 
 def _missing(v: float | None) -> bool:

@@ -126,7 +126,14 @@ from .ml.signals import (
     ev_revenue_scores,
 )
 from .options import CONFIG, NO_CACHE
-from .terminal import format_money, format_pct, make_console, print_notes, print_rule
+from .terminal import (
+    format_money,
+    format_pct,
+    make_console,
+    print_notes,
+    print_refusal,
+    print_rule,
+)
 from .wacc import compute_wacc
 
 app = typer.Typer(
@@ -177,12 +184,6 @@ def _kv(rows: Sequence[tuple[str, str]], *, title: str = "", bold: Sequence[str]
         style = "bold" if label in bold else ""
         t.add_row(Text(label, style=style), Text(shown, style=style))
     return t
-
-
-def _fail(exc: TechvalError) -> None:
-    """The clean refusal ``cli.py`` prints instead of a traceback."""
-    console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
-    raise typer.Exit(1)
 
 
 # --------------------------------------------------------------------------- #
@@ -979,7 +980,8 @@ def fade(
             configured_years=configured_years,
         )
     except TechvalError as exc:
-        _fail(exc)
+        print_refusal(console, exc)
+        raise typer.Exit(1)
 
 
 # --------------------------------------------------------------------------- #
@@ -1718,7 +1720,8 @@ def signal(
             print_rule(console, "Output")
             console.print(f"Company-date detail written to [bold]{csv_out}[/bold]")
     except TechvalError as exc:
-        _fail(exc)
+        print_refusal(console, exc)
+        raise typer.Exit(1)
 
 
 if __name__ == "__main__":
