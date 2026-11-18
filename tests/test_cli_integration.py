@@ -500,6 +500,33 @@ def test_the_cache_layout_is_still_the_first_candidate():
         assert "/" not in candidates[0], f"{key} does not try the flat cache name first"
 
 
+@pytest.mark.parametrize("folder", ["artifacts [old]", "artifacts [/old]"])
+def test_a_section_that_cannot_run_quotes_the_path_as_written(folder, tmp_path):
+    """The note a skipped section leaves is text too, for the reason below."""
+    config = _config(tmp_path, FLAG_BODIES["ml.peers.enabled"])
+    empty = tmp_path / folder
+    empty.mkdir(parents=True)
+    result = run_value("-c", str(config), "--ml-data", str(empty))
+    assert result.exit_code == 0
+    assert "Learned comp set not run" in result.output
+    assert "".join(str(empty).split()) in "".join(result.output.split())
+
+
+@pytest.mark.parametrize("folder", ["configs [old]", "configs [/old]"])
+def test_a_refusal_quotes_the_path_it_was_given_as_written(folder, tmp_path):
+    """The message reaches the terminal as text, whatever it quotes.
+
+    Read as rich markup, ``[old]`` in a folder name is a style, so it was
+    dropped and the refusal named a path that does not exist, and ``[/old]`` is
+    a closing tag that matches nothing, so the refusal became a traceback.
+    """
+    missing = tmp_path / folder / "assumptions.yaml"
+    result = run_value("-c", str(missing))
+    assert result.exit_code == 1
+    assert "ConfigError" in result.output
+    assert "".join(str(missing).split()) in "".join(result.output.split())
+
+
 def test_a_refusal_names_every_place_it_looked(tmp_path):
     """Both candidates, so a reader with either layout can see which one to fix."""
     empty = tmp_path / "no-artifacts"

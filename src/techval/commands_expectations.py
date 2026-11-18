@@ -24,7 +24,7 @@ from .anchors import summary as record_summary
 from .config import Assumptions, ml_cache_root
 from .errors import TechvalError
 from .options import CONFIG, FACTS_DIR, FROM_RECORD, NO_CACHE
-from .terminal import format_pct, make_console
+from .terminal import format_pct, make_console, print_refusal
 
 app = typer.Typer()
 # As in cli.py: a piped or redirected run gets a width that fits the tables
@@ -136,7 +136,7 @@ def expectations(
             dates = quarter_ends(today - timedelta(days=3 * 365), today)
             rows = expectations_history(co.payload, symbol, co.source, co.assumptions, dates)
     except TechvalError as err:
-        console.print(f"[red]{escape(str(err))}[/red]")
+        print_refusal(console, err)
         raise typer.Exit(1)
 
     if as_json:
@@ -255,7 +255,7 @@ def expectations_screen(
         observations, _ = _panel(Path(panels) if panels else CHECKOUT_PANELS, "", ml_cache_root(assumptions))
         rows = screen(payloads, source, assumptions, when, observations) + missing
     except TechvalError as err:
-        console.print(f"[red]{escape(str(err))}[/red]")
+        print_refusal(console, err)
         raise typer.Exit(1)
 
     if as_json:
@@ -318,7 +318,7 @@ def scenarios(
         result = value_scenarios(co.case, price if price is not None else co.spot, observations, trailing=trailing)
         calibration = band_coverage(observations)
     except TechvalError as err:
-        console.print(f"[red]{escape(str(err))}[/red]")
+        print_refusal(console, err)
         raise typer.Exit(1)
 
     if as_json:

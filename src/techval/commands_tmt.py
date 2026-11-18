@@ -85,7 +85,14 @@ from .financials import build_financials
 from .market import MarketData, make_price_source
 from .nlp.sections import load_sections
 from .options import CONFIG, NO_CACHE
-from .terminal import format_money, format_pct, make_console, print_notes, print_rule
+from .terminal import (
+    format_money,
+    format_pct,
+    make_console,
+    print_notes,
+    print_refusal,
+    print_rule,
+)
 from .tmt import kpis as kpi_module
 from .tmt import metrics as metric_module
 from .tmt.metrics import build_metrics
@@ -1309,7 +1316,7 @@ def kpis(
         print_notes(console, [mdna_note] + kpi_set.notes, heading="Sources")
         print_notes(console, kpi_set.flags, heading="Extraction flags")
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -1500,7 +1507,7 @@ def segments(
         print_notes(console, report.notes, heading="How the table was read")
         print_notes(console, report.flags, heading="Flags")
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -1953,7 +1960,7 @@ def sotp(
         )
         _render_sotp(result, fin, report)
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 

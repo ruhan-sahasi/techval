@@ -90,6 +90,7 @@ from .terminal import (
     format_pct,
     make_console,
     print_notes,
+    print_refusal,
     print_rule,
 )
 from .tmt.precedents import build_precedents
@@ -254,6 +255,15 @@ def _load(ticker: str, client, market, assumptions):
     price = market.spot(ticker)
     bridge = build_ev_bridge(fin, price, assumptions)
     return fin, price, bridge
+
+
+def _not_run(section: str, exc: TechvalError) -> None:
+    """The note an optional section leaves in the value report when it refuses.
+
+    The message is escaped for the reason ``print_refusal`` gives: it can quote
+    a path, and rich would read brackets in the path as markup.
+    """
+    console.print(f"[yellow]{section} not run: {escape(str(exc))}[/yellow]")
 
 
 # --------------------------------------------------------------------------- #
@@ -1346,7 +1356,7 @@ def value(
                 print_rule(console, "Share count")
                 console.print(
                     f"[yellow]Treasury stock count unavailable, falling back to "
-                    f"diluted WASO: {exc}[/yellow]"
+                    f"diluted WASO: {escape(str(exc))}[/yellow]"
                 )
 
         bridge = build_ev_bridge(fin, price, assumptions)
@@ -1413,7 +1423,8 @@ def value(
         except TechvalError as exc:
             print_rule(console, "Discounted cash flow")
             console.print(
-                f"[yellow]The DCF could not be formed and is omitted: {exc}[/yellow]"
+                "[yellow]The DCF could not be formed and is omitted: "
+                f"{escape(str(exc))}[/yellow]"
             )
 
         # Both read the DCF that was just built, so a failed DCF takes them with it
@@ -1428,14 +1439,14 @@ def value(
                 )
             except TechvalError as exc:
                 print_rule(console, "Monte Carlo")
-                console.print(f"[yellow]Simulation not run: {exc}[/yellow]")
+                _not_run("Simulation", exc)
 
         if d is not None and assumptions.apv.enabled:
             try:
                 _render_apv(run_apv(fin, bridge, w, d, assumptions))
             except TechvalError as exc:
                 print_rule(console, "Adjusted present value")
-                console.print(f"[yellow]APV not run: {exc}[/yellow]")
+                _not_run("APV", exc)
 
         # Where the recorded model artifacts live, resolved once and shared by
         # every fitted section below. A pure function of the flag and the
@@ -1453,7 +1464,7 @@ def value(
             try:
                 _render_optional_fade(ticker, fin, bridge, w, assumptions, root)
             except TechvalError as exc:
-                console.print(f"[yellow]Fitted growth path not run: {exc}[/yellow]")
+                _not_run("Fitted growth path", exc)
 
         # Beside the DCF, not instead of it. The sum of the parts needs only the
         # statements and the bridge, so unlike the simulation and the APV it is
@@ -1469,7 +1480,7 @@ def value(
                     ticker, fin, bridge, assumptions, client, sotp_plan
                 )
             except TechvalError as exc:
-                console.print(f"[yellow]Sum of the parts not run: {exc}[/yellow]")
+                _not_run("Sum of the parts", exc)
 
         if comps_result is not None:
             _render_comps(comps_result)
@@ -1484,7 +1495,7 @@ def value(
             try:
                 proposed_peers = _render_optional_peers(ticker, assumptions, root)
             except TechvalError as exc:
-                console.print(f"[yellow]Learned comp set not run: {exc}[/yellow]")
+                _not_run("Learned comp set", exc)
 
         # The warranted multiple and the signal test share one fit. The signal
         # section asks whether the residual the section above it just printed has
@@ -1514,7 +1525,8 @@ def value(
                     )
                 except TechvalError as exc:
                     console.print(
-                        f"[yellow]No warranted read for {ticker.upper()}: {exc}[/yellow]"
+                        f"[yellow]No warranted read for {ticker.upper()}: "
+                        f"{escape(str(exc))}[/yellow]"
                     )
 
         if assumptions.ml.signals.enabled:
@@ -1528,14 +1540,14 @@ def value(
                 try:
                     _render_optional_signal(assumptions, warranted_model, root)
                 except TechvalError as exc:
-                    console.print(f"[yellow]Signal test not run: {exc}[/yellow]")
+                    _not_run("Signal test", exc)
 
         if assumptions.ml.mna.propensity_enabled:
             print_rule(console, "Acquisition propensity")
             try:
                 _render_optional_propensity(ticker, assumptions, root)
             except TechvalError as exc:
-                console.print(f"[yellow]Propensity not run: {exc}[/yellow]")
+                _not_run("Propensity", exc)
 
         if assumptions.ml.mna.precedents_enabled:
             print_rule(console, "Precedent transactions")
@@ -1545,7 +1557,7 @@ def value(
                     assumptions, client, market, hand or proposed_peers
                 )
             except TechvalError as exc:
-                console.print(f"[yellow]Precedents not run: {exc}[/yellow]")
+                _not_run("Precedents", exc)
 
         path = _chart(
             ticker, fin, market, d, comps_result, price, out,
@@ -1554,7 +1566,7 @@ def value(
         print_rule(console, "Output")
         console.print(f"Football field written to [bold]{path}[/bold]")
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -1659,7 +1671,7 @@ def comps(
             raise typer.Exit(1)
         _render_comps(run_comps(ticker, assumptions, client, market))
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -1746,7 +1758,7 @@ def merger(
         if getattr(r, "purchase_accounting", None) is not None:
             _render_purchase_accounting(r.purchase_accounting)
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -1855,7 +1867,7 @@ def backtest(
         print_notes(console, list(result.checks), heading="Cross-checks")
         print_notes(console, list(result.notes))
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -1888,7 +1900,7 @@ def fetch(
             f"{market.prices(ticker).last_date}.[/dim]"
         )
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -2066,7 +2078,7 @@ def dashboard(
 
             webbrowser.open(Path(out).resolve().as_uri())
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{escape(str(exc))}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 

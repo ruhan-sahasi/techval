@@ -158,7 +158,13 @@ from .ml.warranted import (
     screen_frame,
 )
 from .options import CONFIG
-from .terminal import format_multiple, make_console, print_notes, print_rule
+from .terminal import (
+    format_multiple,
+    make_console,
+    print_notes,
+    print_refusal,
+    print_rule,
+)
 
 app = typer.Typer(
     add_completion=False,
@@ -1259,7 +1265,7 @@ def peers(
             ]
         )
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
@@ -1538,7 +1544,7 @@ def screen(
             ]
         )
     except TechvalError as exc:
-        console.print(f"\n[red bold]{type(exc).__name__}[/red bold]\n{exc}")
+        print_refusal(console, exc)
         raise typer.Exit(1)
 
 
