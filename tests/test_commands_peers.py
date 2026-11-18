@@ -46,16 +46,10 @@ from techval.commands_peers import (
     app,
 )
 from techval.config import Assumptions
-from techval.ml.encoder import (
-    EMBARGO_DAYS,
-    MIN_TRAIN_PAIRS,
-    ablation_folds,
-    build_dataset,
-)
+from techval.ml.encoder import EMBARGO_DAYS, MIN_TRAIN_PAIRS, ablation_folds
 from techval.ml.evaluation import walk_forward_folds
-from techval.ml.features import FEATURE_NAMES, FeaturePanel, FeatureRow
+from techval.ml.features import FEATURE_NAMES
 from techval.ml.peer_labels import PeerGroup
-from techval.ml.text import TextCorpus
 
 from conftest import FIXTURES, flat
 
@@ -804,64 +798,6 @@ def test_the_folds_this_command_supplies_clear_the_training_floor(real_dataset):
         embargo_days=EMBARGO_DAYS,
     )
     assert min(f.n_train for f in folds) >= MIN_TRAIN_PAIRS
-
-
-@pytest.fixture(scope="module")
-def real_dataset():
-    """The TMT seed universe's disclosed peer groups, read from proxies 2026-09-11."""
-    for name in ("peer_groups_tmt.json", "peer_panel_tmt.json", "peer_item1_tmt.json"):
-        if not (FIXTURES / name).exists():
-            pytest.skip(f"{name} is not committed")
-
-    panel_payload = json.loads((FIXTURES / "peer_panel_tmt.json").read_text())
-    panel = FeaturePanel(
-        rows=[
-            FeatureRow(
-                ticker=r["ticker"],
-                as_of=date.fromisoformat(r["as_of"]),
-                knowledge_date=date.fromisoformat(r["knowledge_date"])
-                if r["knowledge_date"]
-                else None,
-                values=r["values"],
-                missing=r["missing"],
-                statement_date=date.fromisoformat(r["statement_date"])
-                if r["statement_date"]
-                else None,
-                error=r["error"],
-            )
-            for r in panel_payload["rows"]
-        ],
-        random_seed=7,
-    )
-    item1 = json.loads((FIXTURES / "peer_item1_tmt.json").read_text())
-    names = item1["entity_names"]
-    corpora = {}
-    for iso, companies in item1["by_date"].items():
-        tickers = sorted(companies)
-        corpora[date.fromisoformat(iso)] = TextCorpus(
-            tickers=tickers,
-            documents=[companies[t]["item1"] for t in tickers],
-            as_of_by_ticker={
-                t: date.fromisoformat(companies[t]["filed"]) for t in tickers
-            },
-            source_accessions={t: companies[t]["accession"] for t in tickers},
-            entity_names={t: names[t] for t in tickers if names.get(t)},
-        )
-    groups = [
-        PeerGroup(
-            ticker=g["ticker"],
-            cik=g["cik"],
-            accession=g["accession"],
-            filed=date.fromisoformat(g["filed"]),
-            fiscal_year=g["fiscal_year"],
-            peers=g["peers"],
-            method=g["method"],
-            selection_criteria=g.get("selection_criteria"),
-            confidence=g["confidence"],
-        )
-        for g in json.loads((FIXTURES / "peer_groups_tmt.json").read_text())["groups"]
-    ]
-    return build_dataset(groups, panel, corpora)
 
 
 # --------------------------------------------------------------------------- #

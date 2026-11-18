@@ -210,6 +210,27 @@ def fade_observations():
     return fade_panel(FIXTURES).observations
 
 
+@pytest.fixture(scope="module")
+def real_dataset():
+    """The TMT seed universe's disclosed peer groups, read from proxies on 2026-09-11.
+
+    Read with the peers command's own readers. The panel and the Item 1 excerpts
+    behind it are point in time: each row was built through an EdgarClient pinned
+    to the row date and each document is the newest 10-K on file at that date.
+    See the fixture headers.
+    """
+    from techval.commands_peers import _load_corpora, _load_groups, _load_panel
+    from techval.ml.encoder import build_dataset
+
+    groups, panel, item1 = (
+        FIXTURES / f"peer_{part}_tmt.json" for part in ("groups", "panel", "item1")
+    )
+    for path in (groups, panel, item1):
+        if not path.exists():
+            pytest.skip(f"{path.name} is not committed")
+    return build_dataset(_load_groups(groups), _load_panel(panel), _load_corpora(item1))
+
+
 @pytest.fixture
 def ddog():
     return build_financials("DDOG", facts=load_facts("DDOG"))
