@@ -808,7 +808,7 @@ def _debt_figures(r: dict[str, Any], names: Mapping[str, str]) -> Built:
         text = f"{who(m)} reports {held}" + ("" if m["has_total"] else " and no total")
         if m["caught_by"]:
             text += (
-                f", which the debt cross-check sees, so its debt is refused rather "
+                ", which the debt cross-check sees, so its debt is refused rather "
                 "than read as zero"
             )
         else:

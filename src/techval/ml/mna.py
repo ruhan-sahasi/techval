@@ -1714,7 +1714,7 @@ def _limitations(
         "biased toward deals that were visible early.",
         "One deal per company. Where a company was bid for twice, only the "
         "earliest announcement is labelled and the later process is invisible.",
-        f"Labels come from merger filings, and a company that agreed to be bought "
+        "Labels come from merger filings, and a company that agreed to be bought "
         "without filing one of the forms the screen reads is a positive sitting "
         "in the negative class.",
         f"Walk-forward over {len(folds)} folds with a {horizon_months * 31 + gap_days}"

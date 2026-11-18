@@ -1411,12 +1411,12 @@ def _render_overlap_note(result: SignalResult) -> None:
     rho = ic.autocorrelations[0] if ic.autocorrelations else float("nan")
     console.print(
         "\n[bold]Why the two standard errors differ[/bold]\n"
-        f"  [dim]Overlapping windows do not on their own autocorrelate a "
-        f"cross-sectional coefficient: the correlation is computed inside one date, "
-        f"so a market move common to every name cancels out of it. What survives "
-        f"from one date to the next is the part of the ORDERING that persisted. "
-        f"Overlap plus a persistent score is what inflates a t-statistic, and every "
-        f"score in this package is persistent.[/dim]"
+        "  [dim]Overlapping windows do not on their own autocorrelate a "
+        "cross-sectional coefficient: the correlation is computed inside one date, "
+        "so a market move common to every name cancels out of it. What survives "
+        "from one date to the next is the part of the ORDERING that persisted. "
+        "Overlap plus a persistent score is what inflates a t-statistic, and every "
+        "score in this package is persistent.[/dim]"
     )
     if np.isfinite(rho) and abs(rho) >= 0.3:
         console.print(
