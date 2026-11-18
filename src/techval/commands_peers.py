@@ -158,7 +158,7 @@ from .ml.warranted import (
     fit_warranted,
     screen_frame,
 )
-from .options import CONFIG
+from .options import CONFIG, iso_date
 from .terminal import (
     format_multiple,
     make_console,
@@ -1049,6 +1049,7 @@ def peers(
         None,
         "--through",
         "--as-of",
+        callback=iso_date,
         help=(
             "Fit on pairs disclosed on or before this date (YYYY-MM-DD). This is "
             "what --as-of means here, and it pins less than --as-of pins on the "
@@ -1435,11 +1436,12 @@ def screen(
         None, "--panel", help="Recorded warranted-multiple observation panel (JSON or .json.gz)."
     ),
     model: str = typer.Option("mlp", "--model", help="'mlp' or 'ridge'."),
-    n: int = typer.Option(10, "--n", help="Names to show at each end."),
+    n: int = typer.Option(10, "--n", min=1, help="Names to show at each end."),
     when: str = typer.Option(
         None,
         "--date",
         "--as-of",
+        callback=iso_date,
         help=(
             "Screen date (YYYY-MM-DD). Default: latest. This is what --as-of "
             "means here: the rows read are the ones the recorded panel priced on "

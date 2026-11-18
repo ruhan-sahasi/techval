@@ -202,7 +202,9 @@ class CsvSource:
                 "price history", ticker=symbol, hint=f"no CSV at {path}"
             )
         rows = []
-        for r in csv.DictReader(io.StringIO(path.read_text())):
+        # utf-8-sig drops the byte-order mark a spreadsheet export starts with;
+        # kept, it renames the Date column and every row is skipped below.
+        for r in csv.DictReader(io.StringIO(path.read_text(encoding="utf-8-sig"))):
             try:
                 d = date.fromisoformat(r["Date"])
                 rows.append((d, float(r["Close"])))

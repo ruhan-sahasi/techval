@@ -71,20 +71,20 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import typer
-import yaml
+from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
 
 from . import tags
 from .comps import prior_year_end
-from .config import Assumptions
+from .config import Assumptions, read_yaml
 from .edgar import EdgarClient, HttpCache
 from .errors import ConfigError, MissingDataError, TechvalError
 from .ev_bridge import build_ev_bridge
 from .financials import build_financials
 from .market import MarketData, make_price_source
 from .nlp.sections import load_sections
-from .options import CONFIG, NO_CACHE
+from .options import CONFIG, NO_CACHE, iso_date
 from .terminal import (
     format_money,
     format_pct,
@@ -114,6 +114,7 @@ console = make_console(120)
 _ASOF = typer.Option(
     None,
     "--as-of",
+    callback=iso_date,
     help=(
         "Read the company as it was knowable on this date (YYYY-MM-DD). Facts "
         "filed later are discarded and prices stop there."
@@ -1300,7 +1301,7 @@ def kpis(
 
         if pack_refusal is not None:
             print_rule(console, "No computed metric pack")
-            console.print(f"[yellow]{pack_refusal}[/yellow]")
+            console.print(f"[yellow]{escape(pack_refusal)}[/yellow]")
         else:
             bridge, _price, price_note = _priced_bridge(ticker, fin, market, assumptions)
             pack = build_metrics(fin, pack_key, assumptions, kpis=merged, bridge=bridge)
@@ -1526,7 +1527,7 @@ def load_plan(path: Path) -> dict:
     """
     if not path.exists():
         raise ConfigError(f"plan file not found: {path}")
-    raw = yaml.safe_load(path.read_text()) or {}
+    raw = read_yaml(path) or {}
     if not isinstance(raw, dict):
         raise ConfigError(
             f"{path} should be a mapping with a 'segments' key. See --emit-plan."
@@ -1552,11 +1553,14 @@ def load_plan(path: Path) -> dict:
                 "bare multiple is a number, not an argument: state which peer set "
                 "and which statistic it came from."
             )
-        multiples[str(name)] = (
-            str(entry["metric"]),
-            float(entry["multiple"]),
-            str(entry["source"]),
-        )
+        try:
+            multiple = float(entry["multiple"])
+        except (TypeError, ValueError) as exc:
+            raise ConfigError(
+                f"segment {name!r} in {path} has multiple {entry['multiple']!r}, "
+                "which is not a number."
+            ) from exc
+        multiples[str(name)] = (str(entry["metric"]), multiple, str(entry["source"]))
     corporate = raw.get("corporate") or {}
     if not isinstance(corporate, dict):
         raise ConfigError(f"'corporate' in {path} should be a mapping.")
@@ -1887,7 +1891,7 @@ def sotp(
             emit_plan.write_text(plan_skeleton(report))
             console.print(
                 f"Wrote a skeleton for {len(report.segments)} segment(s) to "
-                f"[bold]{emit_plan}[/bold]. Fill in every multiple and every "
+                f"[bold]{escape(str(emit_plan))}[/bold]. Fill in every multiple and every "
                 "source, then rerun with --plan."
             )
             return

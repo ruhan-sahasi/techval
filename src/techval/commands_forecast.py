@@ -126,7 +126,7 @@ from .ml.signals import (
     SignalResult,
     ev_revenue_scores,
 )
-from .options import CONFIG, NO_CACHE
+from .options import CONFIG, NO_CACHE, iso_date
 from .terminal import (
     format_money,
     format_pct,
@@ -194,6 +194,7 @@ def _kv(rows: Sequence[tuple[str, str]], *, title: str = "", bold: Sequence[str]
 _ASOF = typer.Option(
     None,
     "--as-of",
+    callback=iso_date,
     help=(
         "Fit and value as at this date (YYYY-MM-DD). Facts filed later are discarded, "
         "prices stop there, and the panel is cut back to the filings and the forward "
@@ -224,11 +225,13 @@ def _open_text(path: Path) -> io.TextIOBase:
 
     Every recorded panel in this repository is gzipped because the uncompressed
     ones run to tens of megabytes, and a user who unzips one to look at it should
-    not then have to zip it again to feed it back in.
+    not then have to zip it again to feed it back in. ``utf-8-sig`` reads plain
+    UTF-8 and also drops the byte-order mark a spreadsheet's "CSV UTF-8" export
+    starts with, which plain UTF-8 keeps as part of the first column's name.
     """
     if path.suffix == ".gz":
-        return gzip.open(path, "rt", encoding="utf-8")
-    return path.open("r", encoding="utf-8")
+        return gzip.open(path, "rt", encoding="utf-8-sig")
+    return path.open("r", encoding="utf-8-sig")
 
 
 # --------------------------------------------------------------------------- #
@@ -1569,9 +1572,15 @@ def signal(
     universe: str = typer.Option(
         None, "--universe", help="Comma-separated tickers to restrict the panel to."
     ),
-    start: str = typer.Option(None, "--from", help="First rebalance date (YYYY-MM-DD), live builds."),
-    end: str = typer.Option(None, "--to", help="Last rebalance date (YYYY-MM-DD), live builds."),
-    every: int = typer.Option(3, "--every", help="Months between rebalances, live builds."),
+    start: str = typer.Option(
+        None, "--from", callback=iso_date, help="First rebalance date (YYYY-MM-DD), live builds."
+    ),
+    end: str = typer.Option(
+        None, "--to", callback=iso_date, help="Last rebalance date (YYYY-MM-DD), live builds."
+    ),
+    every: int = typer.Option(
+        3, "--every", min=1, help="Months between rebalances, live builds."
+    ),
     horizon: int = typer.Option(None, "--horizon", help="Forward return horizon in months."),
     buckets: int = typer.Option(None, "--buckets", help="Number of score buckets."),
     min_names: int = typer.Option(

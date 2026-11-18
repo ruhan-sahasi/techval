@@ -480,9 +480,14 @@ def test_a_single_source_candidate_is_named_loudly_and_kept_at_its_rank(capsys):
     assert "2 of the 4 companies in the candidate universe" in out
 
 
-def test_a_candidate_no_disclosed_group_mentions_at_all_says_so():
+def test_a_candidate_no_disclosed_group_mentions_at_all_says_so(capsys):
     ranked = [("XXXX", 0.5)]
     _render_thin_evidence("DIS", ranked, {}, ["XXXX"], {})
+    out = flat(capsys.readouterr().out)
+    assert "XXXX (name unknown) is ranked 1 of 1 for DIS at 0.5000" in out
+    assert "no disclosed group in the training window mentions it at all" in out
+    assert "one filer's proxy" not in out
+    assert "1 of the 1 companies in the candidate universe" in out
 
 
 def test_a_ranking_every_name_of_which_is_supported_prints_no_banner(capsys):

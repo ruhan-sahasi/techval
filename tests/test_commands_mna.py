@@ -37,6 +37,7 @@ appear before the first ranked name.
 
 from __future__ import annotations
 
+import csv
 import json
 import re
 from datetime import date
@@ -782,6 +783,16 @@ def test_load_dataset_reads_the_panel_the_roster_and_the_deals():
     assert len(events) == 107
     assert len(panel.rows) > 10_000
     assert panel.dates == sorted(panel.dates)
+
+
+def test_a_panel_saved_with_a_byte_order_mark_keeps_its_first_column(tmp_path):
+    """Saved back from a spreadsheet, the panel starts with a byte-order mark,
+    which plain UTF-8 would keep as part of the ticker column's name."""
+    (tmp_path / "panel.csv").write_text(
+        "\ufeffticker,as_of\nDDOG,2024-03-31\n", encoding="utf-8"
+    )
+    with C._open_panel(tmp_path) as handle:
+        assert next(csv.DictReader(handle)) == {"ticker": "DDOG", "as_of": "2024-03-31"}
 
 
 def test_load_dataset_keeps_the_departed_which_is_the_whole_experiment():

@@ -243,6 +243,63 @@ def test_each_mounted_command_answers_help(name):
     assert name in result.output
 
 
+WARRANTED_PANEL = str(FIXTURES / "warranted" / "observations.json.gz")
+
+
+def _usage_error(output: str) -> str:
+    """Typer's usage error as one line of plain text.
+
+    Typer draws the error in a box, so a long message wraps between border
+    characters, and under GITHUB_ACTIONS it forces colour on, so the message
+    carries escape codes that ``flat`` strips.
+    """
+    return flat(output.replace("\u2502", " "))
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["signal", "--every", "0"],
+        ["backtest", "DDOG", "--horizon", "0"],
+        ["screen", "--panel", WARRANTED_PANEL, "--n", "0"],
+        ["screen", "--panel", WARRANTED_PANEL, "--n", "-2"],
+    ],
+)
+def test_a_step_horizon_or_count_below_one_is_refused_as_typed(args):
+    """Each of these used to run. ``signal --every 0`` never left the loop that
+    lays out its rebalance dates, ``backtest --horizon 0`` scored every holding
+    over zero days, and ``screen --n 0`` printed every name where ``--n -2``
+    printed most of them twice."""
+    result = runner.invoke(C.app, args)
+    assert result.exit_code == 2
+    assert f"Invalid value for '{args[-2]}'" in _usage_error(result.output)
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["value", "DDOG", "--as-of", "2024-1-1"],
+        ["backtest", "DDOG", "--from", "2024-1-1", "--to", "2025-01-01"],
+        ["backtest", "DDOG", "--from", "2024-01-01", "--to", "2025-01-01", "--dates", "2024-1-1"],
+        ["signal", "--from", "2024-1-1"],
+        ["fade", "DDOG", "--as-of", "2024-1-1"],
+        ["peers", "DDOG", "--as-of", "2024-1-1"],
+        ["screen", "--panel", WARRANTED_PANEL, "--as-of", "2024-1-1"],
+        ["kpis", "DDOG", "--as-of", "2024-1-1"],
+        ["precedents", "RAMP", "--as-of", "2024-1-1"],
+        ["targets", "--dataset", str(FIXTURES / "mna"), "--screen-on", "2024-1-1"],
+    ],
+)
+def test_a_date_that_is_not_yyyy_mm_dd_is_refused_as_typed(args):
+    """Each of these read the date with ``date.fromisoformat`` inside a handler
+    that catches only the package's own errors, so 2024-1-1 was a traceback."""
+    result = runner.invoke(C.app, args)
+    assert result.exit_code == 2
+    text = _usage_error(result.output)
+    assert "Invalid value for" in text
+    assert "'2024-1-1' is not a YYYY-MM-DD date" in text
+
+
 # --------------------------------------------------------------------------- #
 # the base report does not move
 # --------------------------------------------------------------------------- #

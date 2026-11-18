@@ -33,9 +33,10 @@ def test_info_counts_entries_and_bytes(tmp_path):
     result = runner.invoke(app, ["info", "--root", str(root)])
     assert result.exit_code == 0, result.output
     text = flat(result.output)
-    assert "3 entries" in text
-    assert "5.9 KB" in text or "6.0 KB" in text
-    assert "1 unfinished write" in text
+    assert "3 entries, 5.9 KB" in text
+    assert "older than 30 days: 2 entries, 4.9 KB" in text
+    assert "older than 365 days: 1 entry, 2.9 KB" in text
+    assert "1 unfinished write left by an interrupted fetch" in text
 
 
 def test_prune_removes_only_entries_older_than_the_cutoff(tmp_path):
@@ -44,7 +45,18 @@ def test_prune_removes_only_entries_older_than_the_cutoff(tmp_path):
     result = runner.invoke(app, ["prune", "--root", str(root), "--older-than", "30"])
     assert result.exit_code == 0, result.output
     assert sorted(p.name for p in root.iterdir()) == ["a.cache"]
-    assert "Removed 2 entries" in flat(result.output)
+    out = flat(result.output)
+    assert "Removed 2 entries older than 30 days and 1 unfinished write, 4.9 KB freed." in out
+
+
+def test_prune_counts_one_entry_as_one(tmp_path):
+    root = tmp_path / "cache"
+    seed(root)
+    result = runner.invoke(app, ["prune", "--root", str(root), "--older-than", "100"])
+    assert result.exit_code == 0, result.output
+    assert sorted(p.name for p in root.iterdir()) == ["a.cache", "b.cache"]
+    out = flat(result.output)
+    assert "Removed 1 entry older than 100 days and 1 unfinished write, 2.9 KB freed." in out
 
 
 def test_dry_run_removes_nothing_and_says_what_it_would(tmp_path):
@@ -53,7 +65,8 @@ def test_dry_run_removes_nothing_and_says_what_it_would(tmp_path):
     result = runner.invoke(app, ["prune", "--root", str(root), "--older-than", "30", "--dry-run"])
     assert result.exit_code == 0, result.output
     assert len(list(root.iterdir())) == 4
-    assert "Would remove 2 entries" in flat(result.output)
+    out = flat(result.output)
+    assert "Would remove 2 entries older than 30 days and 1 unfinished write, 4.9 KB." in out
 
 
 def test_a_missing_cache_is_reported_not_an_error(tmp_path):

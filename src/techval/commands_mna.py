@@ -84,7 +84,7 @@ from .errors import ConfigError, MissingDataError, TechvalError
 from .market import make_price_source
 from .ml.features import FEATURE_NAMES, FeaturePanel, FeatureRow
 from .ml.mna import DealEvent, PropensityResult, build_universe, fit_propensity
-from .options import CONFIG, NO_CACHE
+from .options import CONFIG, NO_CACHE, iso_date
 from .terminal import (
     format_money,
     format_multiple,
@@ -125,6 +125,7 @@ console = make_console(160)
 _ASOF = typer.Option(
     None,
     "--as-of",
+    callback=iso_date,
     help=(
         "Read the filing record as it stood on this date (YYYY-MM-DD). Documents "
         "filed later are discarded and prices stop there, so a historical run "
@@ -746,10 +747,11 @@ _PANEL_KEYS = ("ticker", "as_of", "knowledge_date", "statement_date")
 def _open_panel(directory: Path):
     """The panel CSV, gzipped or not, or a refusal naming both paths tried."""
     gz, plain = directory / "panel.csv.gz", directory / "panel.csv"
+    # utf-8-sig, so a panel saved back from a spreadsheet keeps its first column.
     if gz.exists():
-        return gzip.open(gz, "rt", newline="")
+        return gzip.open(gz, "rt", encoding="utf-8-sig", newline="")
     if plain.exists():
-        return plain.open("rt", newline="")
+        return plain.open("rt", encoding="utf-8-sig", newline="")
     raise MissingDataError(
         "feature panel",
         hint=f"no panel.csv.gz and no panel.csv in {directory}",
@@ -1207,6 +1209,7 @@ def targets(
     screen_on: str = typer.Option(
         None,
         "--screen-on",
+        callback=iso_date,
         help=(
             "Date to rank on (YYYY-MM-DD). Must be a date the panel carries. "
             "Defaults to the latest."

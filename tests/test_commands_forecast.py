@@ -42,7 +42,13 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from techval.commands_forecast import _rebalance_dates, _truncate_panel, app
+from techval.commands_forecast import (
+    _prices_from_csv,
+    _rebalance_dates,
+    _scores_from_csv,
+    _truncate_panel,
+    app,
+)
 from techval.edgar import CompanyFacts
 from techval.errors import ConfigError
 from techval.ml.forecast import build_fade_panel
@@ -941,6 +947,35 @@ def test_a_live_cheapness_run_without_a_window_is_refused_rather_than_guessed_at
     )
     assert result.exit_code == 1
     assert "needs --universe, --from and --to" in flat(result.output)
+
+
+def _write(path: Path, text: str) -> Path:
+    if path.suffix == ".gz":
+        with gzip.open(path, "wt", encoding="utf-8") as handle:
+            handle.write(text)
+    else:
+        path.write_text(text, encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize("suffix", [".csv", ".csv.gz"])
+def test_a_panel_saved_with_a_byte_order_mark_keeps_its_first_column(tmp_path, suffix):
+    """A spreadsheet's "CSV UTF-8" export starts with a byte-order mark.
+
+    Read as plain UTF-8 the mark became part of the first header, and each file
+    was refused for lacking a ticker column that it visibly had.
+    """
+    scores = _write(
+        tmp_path / f"scores{suffix}",
+        "\ufeffticker,as_of,ev_revenue\nddog,2024-03-31,12.5\n",
+    )
+    prices = _write(
+        tmp_path / f"closes{suffix}",
+        "\ufeffticker,date,close\nDDOG,2024-01-02,100\nDDOG,2024-01-03,101\n",
+    )
+    [score] = _scores_from_csv(scores, "ev_revenue", False, None)
+    assert (score.ticker, score.as_of, score.value) == ("DDOG", date(2024, 3, 31), 12.5)
+    assert list(_prices_from_csv(prices, None)["DDOG"].closes) == [100.0, 101.0]
 
 
 # --------------------------------------------------------------------------- #
