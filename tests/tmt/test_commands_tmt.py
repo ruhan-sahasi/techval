@@ -867,6 +867,14 @@ def test_a_forced_pack_lets_a_refused_bucket_through_deliberately():
     assert "Rule of 40 (EBITDA variant)" in result.stdout
 
 
+@pytest.mark.parametrize("typed", ["[software]", "[/software]"])
+def test_a_pack_name_that_is_not_one_is_quoted_as_typed(typed):
+    """The refusal is printed as text, so brackets copied from a usage line stay."""
+    result = run("kpis", "DDOG", "--metric-pack", typed)
+    assert result.exit_code == 0
+    assert f"--metric-pack '{typed}' is not a metric pack" in flat(result.stdout)
+
+
 def test_the_bridge_prints_one_line_per_figure_that_crossed_or_did_not():
     result = run("kpis", "DDOG", "--no-definitions")
     assert "How the disclosed figures reached the pack" in result.stdout
@@ -1066,6 +1074,18 @@ def test_the_skeleton_carries_the_filers_own_segment_names(tmp_path):
     # nobody chose turning up inside a valuation.
     assert "multiple: 0.0" in written
     assert 'source: ""' in written
+
+
+@pytest.mark.parametrize("folder", ["plans [v2]", "plans [/v2]"])
+def test_the_skeleton_is_reported_where_it_was_written(tmp_path, folder):
+    """A path is printed as text: brackets in a folder name are not a style."""
+    path = tmp_path / folder / "skeleton.yaml"
+    path.parent.mkdir(parents=True)
+    result = run("sotp", "DIS", "--emit-plan", str(path))
+    assert result.exit_code == 0
+    assert path.exists()
+    # rich folds a long temporary path mid-word, so compare without whitespace.
+    assert "".join(str(path).split()) in "".join(result.stdout.split())
 
 
 def test_a_multiple_without_a_source_is_refused(tmp_path):

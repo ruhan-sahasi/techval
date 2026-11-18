@@ -72,6 +72,7 @@ from pathlib import Path
 
 import typer
 import yaml
+from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
 
@@ -1300,7 +1301,7 @@ def kpis(
 
         if pack_refusal is not None:
             print_rule(console, "No computed metric pack")
-            console.print(f"[yellow]{pack_refusal}[/yellow]")
+            console.print(f"[yellow]{escape(pack_refusal)}[/yellow]")
         else:
             bridge, _price, price_note = _priced_bridge(ticker, fin, market, assumptions)
             pack = build_metrics(fin, pack_key, assumptions, kpis=merged, bridge=bridge)
@@ -1887,7 +1888,7 @@ def sotp(
             emit_plan.write_text(plan_skeleton(report))
             console.print(
                 f"Wrote a skeleton for {len(report.segments)} segment(s) to "
-                f"[bold]{emit_plan}[/bold]. Fill in every multiple and every "
+                f"[bold]{escape(str(emit_plan))}[/bold]. Fill in every multiple and every "
                 "source, then rerun with --plan."
             )
             return
