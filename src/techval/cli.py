@@ -1794,7 +1794,9 @@ def backtest(
     no_cache: bool = NO_CACHE,
     start: str = typer.Option(..., "--from", help="First valuation date (YYYY-MM-DD)."),
     end: str = typer.Option(..., "--to", help="Last valuation date (YYYY-MM-DD)."),
-    horizon: int = typer.Option(252, "--horizon", help="Forward return horizon in calendar days."),
+    horizon: int = typer.Option(
+        252, "--horizon", min=1, help="Forward return horizon in calendar days."
+    ),
     dates: str = typer.Option(None, "--dates", help="Explicit comma-separated dates, instead of quarter ends."),
 ) -> None:
     """Value a set of names at past dates and score against realised returns.

@@ -1435,7 +1435,7 @@ def screen(
         None, "--panel", help="Recorded warranted-multiple observation panel (JSON or .json.gz)."
     ),
     model: str = typer.Option("mlp", "--model", help="'mlp' or 'ridge'."),
-    n: int = typer.Option(10, "--n", help="Names to show at each end."),
+    n: int = typer.Option(10, "--n", min=1, help="Names to show at each end."),
     when: str = typer.Option(
         None,
         "--date",

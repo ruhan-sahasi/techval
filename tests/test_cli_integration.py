@@ -243,6 +243,28 @@ def test_each_mounted_command_answers_help(name):
     assert name in result.output
 
 
+WARRANTED_PANEL = str(FIXTURES / "warranted" / "observations.json.gz")
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["signal", "--every", "0"],
+        ["backtest", "DDOG", "--horizon", "0"],
+        ["screen", "--panel", WARRANTED_PANEL, "--n", "0"],
+        ["screen", "--panel", WARRANTED_PANEL, "--n", "-2"],
+    ],
+)
+def test_a_step_horizon_or_count_below_one_is_refused_as_typed(args):
+    """Each of these used to run. ``signal --every 0`` never left the loop that
+    lays out its rebalance dates, ``backtest --horizon 0`` scored every holding
+    over zero days, and ``screen --n 0`` printed every name where ``--n -2``
+    printed most of them twice."""
+    result = runner.invoke(C.app, args)
+    assert result.exit_code == 2
+    assert f"Invalid value for '{args[-2]}'" in result.output
+
+
 # --------------------------------------------------------------------------- #
 # the base report does not move
 # --------------------------------------------------------------------------- #

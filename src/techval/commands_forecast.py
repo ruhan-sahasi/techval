@@ -1571,7 +1571,9 @@ def signal(
     ),
     start: str = typer.Option(None, "--from", help="First rebalance date (YYYY-MM-DD), live builds."),
     end: str = typer.Option(None, "--to", help="Last rebalance date (YYYY-MM-DD), live builds."),
-    every: int = typer.Option(3, "--every", help="Months between rebalances, live builds."),
+    every: int = typer.Option(
+        3, "--every", min=1, help="Months between rebalances, live builds."
+    ),
     horizon: int = typer.Option(None, "--horizon", help="Forward return horizon in months."),
     buckets: int = typer.Option(None, "--buckets", help="Number of score buckets."),
     min_names: int = typer.Option(
