@@ -19,7 +19,7 @@ from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge, equity_value_from_ev
 from techval.financials import Financials
 
-from conftest import FixtureClient, facts_payload
+from conftest import FixtureClient, facts_payload, hand_financials
 
 
 @pytest.fixture
@@ -275,16 +275,12 @@ def test_negative_enterprise_value_withholds_ev_multiples(assumptions):
     so they are withheld with the reason on show while P/E, an equity multiple,
     survives on its own merits.
     """
-    fin = Financials(
+    fin = hand_financials(
         ticker="CASHBOX", entity_name="Cashbox", cik=1, as_of=date(2026, 6, 30),
         revenue=500.0, gross_profit=350.0, ebit=40.0, da=10.0, sbc=0.0,
         net_income=50.0, pretax_income=60.0, tax_expense=10.0,
-        interest_expense=0.0, operating_lease_cost=0.0, capex=5.0, cfo=None,
-        diluted_shares=100.0, basic_shares=100.0,
-        cash=2_000.0, short_term_investments=0.0, straight_debt=0.0,
-        convertible_debt=0.0, operating_lease_liability=0.0,
-        finance_lease_liability=0.0, nci=0.0, preferred=0.0,
-        current_assets=None, current_liabilities=None, deferred_revenue=0.0,
+        interest_expense=0.0, operating_lease_cost=0.0, capex=5.0,
+        diluted_shares=100.0, basic_shares=100.0, cash=2_000.0,
     )
     # Priced at 10.00 the equity is 1,000mm against 2,000mm of cash: EV -1,000mm.
     empty = CompanyFacts({"cik": 1, "entityName": "Cashbox", "facts": {}}, "CASHBOX")
@@ -365,16 +361,14 @@ def _real_target(assumptions, *, price=100.0, growth=0.25, margin=0.10):
     prior-year revenue to measure growth from, and the regression needs drivers,
     not a growth calculation.
     """
-    fin = Financials(
+    fin = hand_financials(
         ticker="TGT", entity_name="Warranted Inc", cik=1, as_of=date(2026, 6, 30),
         revenue=1_000.0, gross_profit=800.0, ebit=60.0, da=40.0, sbc=0.0,
         net_income=50.0, pretax_income=60.0, tax_expense=10.0,
-        interest_expense=12.0, operating_lease_cost=15.0, capex=30.0, cfo=None,
+        interest_expense=12.0, operating_lease_cost=15.0, capex=30.0,
         diluted_shares=100.0, basic_shares=98.0,
         cash=400.0, short_term_investments=100.0, straight_debt=600.0,
-        convertible_debt=0.0, operating_lease_liability=120.0,
-        finance_lease_liability=40.0, nci=10.0, preferred=0.0,
-        current_assets=None, current_liabilities=None, deferred_revenue=0.0,
+        operating_lease_liability=120.0, finance_lease_liability=40.0, nci=10.0,
     )
     facts = CompanyFacts({"cik": 1, "entityName": "Warranted Inc", "facts": {}}, "TGT")
     bridge = build_ev_bridge(fin, price, assumptions)

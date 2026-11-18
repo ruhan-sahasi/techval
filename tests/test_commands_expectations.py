@@ -3,28 +3,14 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from typer.testing import CliRunner
 
 from techval.cli import app
 
-from conftest import FIXTURES, flat
+from conftest import FIXTURES, flat, offline_config
 
 runner = CliRunner()
-
-
-def config(tmp_path: Path) -> Path:
-    path = tmp_path / "assumptions.yaml"
-    path.write_text(
-        "market:\n  risk_free_rate: 0.0483\n"
-        "price_source: csv\n"
-        f"price_csv_dir: {FIXTURES / 'prices'}\n"
-        "as_of: '2026-09-10'\n"
-        f"ml:\n  cache_dir: {tmp_path / 'ml'}\n",
-        encoding="utf-8",
-    )
-    return path
 
 
 def run(tmp_path, *extra):
@@ -32,7 +18,7 @@ def run(tmp_path, *extra):
         app,
         [
             "expectations", "DDOG",
-            "--config", str(config(tmp_path)),
+            "--config", str(offline_config(tmp_path)),
             "--facts", str(FIXTURES / "companyfacts_DDOG.json"),
             "--panels", str(FIXTURES),
             *extra,
@@ -75,7 +61,7 @@ def test_without_panels_it_runs_and_says_there_are_no_base_rates(tmp_path):
         app,
         [
             "expectations", "DDOG",
-            "--config", str(config(tmp_path)),
+            "--config", str(offline_config(tmp_path)),
             "--facts", str(FIXTURES / "companyfacts_DDOG.json"),
             "--panels", str(empty),
         ],
@@ -106,7 +92,7 @@ def test_the_screen_ranks_names_by_how_rarely_their_implied_growth_happened(tmp_
         app,
         [
             "expectations-screen", "DDOG", "CRWD", "MDB", "ZS", "DIS",
-            "--config", str(config(tmp_path)),
+            "--config", str(offline_config(tmp_path)),
             "--facts-dir", str(FIXTURES),
             "--panels", str(FIXTURES),
         ],
@@ -122,7 +108,7 @@ def test_the_screen_ranks_names_by_how_rarely_their_implied_growth_happened(tmp_
 def test_a_screen_name_without_facts_is_named_not_fatal(tmp_path):
     result = runner.invoke(
         app,
-        ["expectations-screen", "DDOG", "NOPE", "--config", str(config(tmp_path)), "--facts-dir", str(FIXTURES), "--json"],
+        ["expectations-screen", "DDOG", "NOPE", "--config", str(offline_config(tmp_path)), "--facts-dir", str(FIXTURES), "--json"],
     )
     assert result.exit_code == 0, result.output
     rows = json.loads(result.output)
@@ -131,7 +117,7 @@ def test_a_screen_name_without_facts_is_named_not_fatal(tmp_path):
 
 
 def test_the_record_case_is_named_when_it_is_on(tmp_path):
-    path = config(tmp_path)
+    path = offline_config(tmp_path)
     path.write_text(path.read_text() + "dcf:\n  from_record: true\n", encoding="utf-8")
     result = runner.invoke(
         app,
@@ -147,7 +133,7 @@ def test_the_from_record_flag_reaches_expectations_and_the_screen(tmp_path):
     result = run(tmp_path, "--from-record")
     assert result.exit_code == 0, result.output
     assert "On the record case" in flat(result.output)
-    args = ["expectations-screen", "DDOG", "ZS", "--config", str(config(tmp_path)), "--facts-dir", str(FIXTURES), "--json"]
+    args = ["expectations-screen", "DDOG", "ZS", "--config", str(offline_config(tmp_path)), "--facts-dir", str(FIXTURES), "--json"]
     plain = {r["ticker"]: r for r in json.loads(runner.invoke(app, args).output)}
     record = {r["ticker"]: r for r in json.loads(runner.invoke(app, [*args, "--from-record"]).output)}
     assert record["DDOG"]["base_value"] != plain["DDOG"]["base_value"]

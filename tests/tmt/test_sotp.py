@@ -23,6 +23,8 @@ from techval.ev_bridge import EVBridge, equity_value_from_ev
 from techval.financials import Financials
 from techval.tmt.sotp import run_sotp, value_segments
 
+from conftest import hand_financials
+
 # --------------------------------------------------------------------------- #
 # a synthetic conglomerate. USD millions, shares millions, dollars per share.
 # --------------------------------------------------------------------------- #
@@ -49,36 +51,18 @@ CORP = {
 
 def _fin(revenue: float = 10_000.0) -> Financials:
     """Consolidated revenue is all the sum of the parts reads off the filer."""
-    return Financials(
+    return hand_financials(
         ticker="TMTCO",
         entity_name="TMT Holdings Inc",
         cik=1,
         as_of=date(2026, 9, 10),
         revenue=revenue,
-        gross_profit=None,
         ebit=1_600.0,
         da=1_000.0,
-        sbc=None,
         net_income=900.0,
-        pretax_income=None,
-        tax_expense=None,
-        interest_expense=None,
-        operating_lease_cost=None,
-        capex=None,
-        cfo=None,
         diluted_shares=1_000.0,
-        basic_shares=None,
         cash=1_000.0,
-        short_term_investments=0.0,
         straight_debt=5_000.0,
-        convertible_debt=0.0,
-        operating_lease_liability=0.0,
-        finance_lease_liability=0.0,
-        nci=0.0,
-        preferred=0.0,
-        current_assets=None,
-        current_liabilities=None,
-        deferred_revenue=0.0,
     )
 
 

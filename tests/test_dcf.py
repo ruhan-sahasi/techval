@@ -621,17 +621,9 @@ def test_tracking_the_carryforward_raises_the_valuation(
     assert sheltered > base
 
 
-def test_the_opening_balance_is_read_from_the_filings_when_the_assumption_is_null(
-    ddog, ddog_bridge, assumptions, wacc_result
-):
-    """OperatingLossCarryforwards is an instant, and an annual one.
-
-    The tax footnote is written once a year, so the newest fact can be almost
-    four quarters behind the balance sheet the rest of the model runs on.
-    Rejecting it for staleness would reject every filer, so it is taken and the
-    note says how old it is.
-    """
-    facts = CompanyFacts(
+def _carryforward_facts() -> CompanyFacts:
+    """A fact set holding only a 4.2bn carryforward, tagged at the 2025 year end."""
+    return CompanyFacts(
         {
             "entityName": "Datadog, Inc.",
             "cik": 1561550,
@@ -654,7 +646,19 @@ def test_the_opening_balance_is_read_from_the_filings_when_the_assumption_is_nul
         },
         "DDOG",
     )
-    ddog.facts = facts
+
+
+def test_the_opening_balance_is_read_from_the_filings_when_the_assumption_is_null(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """OperatingLossCarryforwards is an instant, and an annual one.
+
+    The tax footnote is written once a year, so the newest fact can be almost
+    four quarters behind the balance sheet the rest of the model runs on.
+    Rejecting it for staleness would reject every filer, so it is taken and the
+    note says how old it is.
+    """
+    ddog.facts = _carryforward_facts()
     assumptions.dcf.nol.track = True
     assumptions.dcf.nol.opening_balance = None
 
@@ -672,27 +676,7 @@ def test_the_assumption_beats_the_tag(ddog, ddog_bridge, assumptions, wacc_resul
     jurisdiction and by expiry. Where the assumptions file carries a number it is
     the number a human looked up, so it wins.
     """
-    ddog.facts = CompanyFacts(
-        {
-            "facts": {
-                "us-gaap": {
-                    "OperatingLossCarryforwards": {
-                        "units": {
-                            "USD": [
-                                {
-                                    "val": 4_200_000_000,
-                                    "end": "2025-12-31",
-                                    "filed": "2026-02-20",
-                                    "form": "10-K",
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "DDOG",
-    )
+    ddog.facts = _carryforward_facts()
     assumptions.dcf.nol.track = True
     assumptions.dcf.nol.opening_balance = 900.0
     d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
