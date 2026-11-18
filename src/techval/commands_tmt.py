@@ -1553,11 +1553,14 @@ def load_plan(path: Path) -> dict:
                 "bare multiple is a number, not an argument: state which peer set "
                 "and which statistic it came from."
             )
-        multiples[str(name)] = (
-            str(entry["metric"]),
-            float(entry["multiple"]),
-            str(entry["source"]),
-        )
+        try:
+            multiple = float(entry["multiple"])
+        except (TypeError, ValueError) as exc:
+            raise ConfigError(
+                f"segment {name!r} in {path} has multiple {entry['multiple']!r}, "
+                "which is not a number."
+            ) from exc
+        multiples[str(name)] = (str(entry["metric"]), multiple, str(entry["source"]))
     corporate = raw.get("corporate") or {}
     if not isinstance(corporate, dict):
         raise ConfigError(f"'corporate' in {path} should be a mapping.")

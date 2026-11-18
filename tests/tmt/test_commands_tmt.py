@@ -1097,6 +1097,19 @@ def test_a_multiple_without_a_source_is_refused(tmp_path):
     assert "missing: source" in result.stdout
 
 
+@pytest.mark.parametrize("multiple", ["9x", "null", "[9, 10]"])
+def test_a_segment_multiple_that_is_not_a_number_is_refused(tmp_path, multiple):
+    """``float`` raised on each of these, so the answer was a traceback."""
+    result = sotp(
+        tmp_path,
+        "segments:\n  Entertainment:\n    metric: ebitda\n"
+        f"    multiple: {multiple}\n    source: diversified media peers\n",
+    )
+    assert result.exit_code == 1
+    assert "segment 'Entertainment'" in flat(result.stdout)
+    assert "which is not a number" in flat(result.stdout)
+
+
 def test_a_plan_with_no_segments_is_refused(tmp_path):
     result = sotp(tmp_path, "corporate:\n  cost: 10\n")
     assert result.exit_code == 1
