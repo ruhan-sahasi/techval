@@ -202,7 +202,11 @@ _ASOF = typer.Option(
 
 
 def _setup(config: Path | None, no_cache: bool, as_of: str | None = None):
-    """``cli._setup``, repeated here for the same reason the formatters are."""
+    """``cli._setup``, returning the cache and the price source as well.
+
+    Written out rather than imported because cli.py mounts this module, so an
+    import from cli.py at the top of it would close a cycle.
+    """
     assumptions = Assumptions.load(config)
     if as_of:
         assumptions.as_of = as_of
