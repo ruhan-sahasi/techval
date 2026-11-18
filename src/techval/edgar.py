@@ -1430,22 +1430,30 @@ def _local(tag: str) -> str:
 def strip_markup(body: bytes) -> str:
     """HTML or inline XBRL to readable text.
 
-    Uses lxml where available and falls back to a regex strip, because a filing
-    that cannot be parsed should still yield something a keyword search can run
-    over rather than raising and taking a whole screen down with it.
+    Uses lxml and falls back to a regex strip, because a filing that cannot be
+    parsed should still yield something a keyword search can run over rather
+    than raising and taking a whole screen down with it.
+
+    Scripts, styles and the inline XBRL header are dropped. The header holds
+    the hidden facts, the contexts and the units, which read as a run of CIKs,
+    dates and member names. The HTML parser keeps ``ix:header`` as a plain tag
+    name, so it is matched by that name: a query through the iXBRL namespace
+    matched nothing, and both 10-K texts recorded under tests/fixtures open
+    with some 24,000 characters of it. ``drop_tree`` rather than ``remove``,
+    because ``remove`` takes the element's tail with it, and the tail is the
+    text that follows the element in the document, as "12%" follows the script
+    in "Revenue grew <script>..</script>12%".
     """
     try:
         from lxml import html as lxml_html
 
         tree = lxml_html.fromstring(body)
-        for bad in tree.xpath("//script | //style | //ix:header", namespaces={
-            "ix": "http://www.xbrl.org/2013/inlineXBRL"
-        }):
-            bad.getparent().remove(bad)
+        for bad in tree.xpath("//script | //style | //*[name()='ix:header']"):
+            bad.drop_tree()
         text = tree.text_content()
     except Exception:
         raw = body.decode("utf-8", "replace")
-        raw = re.sub(r"(?is)<(script|style).*?</\1>", " ", raw)
+        raw = re.sub(r"(?is)<(script|style|ix:header).*?</\1>", " ", raw)
         text = re.sub(r"(?s)<[^>]+>", " ", raw)
 
     text = html.unescape(text)
