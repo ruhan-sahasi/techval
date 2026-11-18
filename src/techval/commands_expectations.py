@@ -224,7 +224,11 @@ def expectations_screen(
     config: Path = CONFIG,
     no_cache: bool = NO_CACHE,
     facts_dir: Path = FACTS_DIR,
-    panels: Path = typer.Option(None, "--panels", help="Directory holding fade_companyfacts.json.gz for base rates."),
+    panels: Path = typer.Option(
+        None,
+        "--panels",
+        help="Directory holding fade_companyfacts.json.gz for base rates. Defaults to tests/fixtures in this checkout.",
+    ),
     as_json: bool = typer.Option(False, "--json", help="Print the rows as JSON."),
     from_record: bool = FROM_RECORD,
 ) -> None:
