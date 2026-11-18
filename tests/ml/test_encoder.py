@@ -21,7 +21,6 @@ Nothing here touches the network.
 
 from __future__ import annotations
 
-import json
 from datetime import date
 
 import joblib
@@ -53,12 +52,6 @@ from techval.ml.features import FEATURE_NAMES, MATRIX_COLUMNS, FeaturePanel, Fea
 from techval.ml.nn import gradient_check
 from techval.ml.peer_labels import PeerGroup
 from techval.ml.text import TextCorpus
-
-from conftest import FIXTURES
-
-PEER_FIXTURE = FIXTURES / "peer_groups_tmt.json"
-PANEL_FIXTURE = FIXTURES / "peer_panel_tmt.json"
-ITEM1_FIXTURE = FIXTURES / "peer_item1_tmt.json"
 
 
 # --------------------------------------------------------------------------- #
@@ -813,7 +806,9 @@ def test_the_ablation_reports_the_full_model_and_one_row_per_tower(synthetic, ev
     assert frame.loc[frame["group"] == "all features", "damage"].iloc[0] == 0.0
 
 
-def test_the_ablation_cuts_its_own_folds_deep_enough_to_fit_on_real_proxies(real):
+def test_the_ablation_cuts_its_own_folds_deep_enough_to_fit_on_real_proxies(
+    real_dataset,
+):
     """The default fold path, which is the one no test used to take.
 
     ``ablate_towers`` cut its folds on the rows of its own pair frame, where
@@ -830,7 +825,7 @@ def test_the_ablation_cuts_its_own_folds_deep_enough_to_fit_on_real_proxies(real
     the score.
     """
     frame = ablate_towers(
-        real,
+        real_dataset,
         Assumptions(),
         n_folds=2,
         dim=12,
@@ -870,89 +865,26 @@ def test_survivorship_lists_the_named_peers_the_universe_never_held():
 # --------------------------------------------------------------------------- #
 
 
-@pytest.fixture(scope="module")
-def real() -> PeerDataset:
-    """The TMT seed universe's disclosed peer groups, read from proxies on 2026-09-11.
-
-    The panel and the Item 1 excerpts behind it are point in time: each row was
-    built through an EdgarClient pinned to the row date and each document is the
-    newest 10-K on file at that date. See the fixture headers.
-    """
-    for path in (PEER_FIXTURE, PANEL_FIXTURE, ITEM1_FIXTURE):
-        if not path.exists():
-            pytest.skip(f"{path.name} is not committed")
-
-    panel_payload = json.loads(PANEL_FIXTURE.read_text())
-    rows = [
-        FeatureRow(
-            ticker=r["ticker"],
-            as_of=date.fromisoformat(r["as_of"]),
-            knowledge_date=date.fromisoformat(r["knowledge_date"])
-            if r["knowledge_date"]
-            else None,
-            values=r["values"],
-            missing=r["missing"],
-            statement_date=date.fromisoformat(r["statement_date"])
-            if r["statement_date"]
-            else None,
-            error=r["error"],
-        )
-        for r in panel_payload["rows"]
-    ]
-    panel = FeaturePanel(rows=rows, random_seed=7)
-
-    item1 = json.loads(ITEM1_FIXTURE.read_text())
-    names = item1["entity_names"]
-    corpora = {}
-    for iso, companies in item1["by_date"].items():
-        tickers = sorted(companies)
-        corpora[date.fromisoformat(iso)] = TextCorpus(
-            tickers=tickers,
-            documents=[companies[t]["item1"] for t in tickers],
-            as_of_by_ticker={
-                t: date.fromisoformat(companies[t]["filed"]) for t in tickers
-            },
-            source_accessions={t: companies[t]["accession"] for t in tickers},
-            entity_names={t: names[t] for t in tickers if names.get(t)},
-        )
-
-    groups = [
-        PeerGroup(
-            ticker=g["ticker"],
-            cik=g["cik"],
-            accession=g["accession"],
-            filed=date.fromisoformat(g["filed"]),
-            fiscal_year=g["fiscal_year"],
-            peers=g["peers"],
-            method=g["method"],
-            selection_criteria=g.get("selection_criteria"),
-            confidence=g["confidence"],
-        )
-        for g in json.loads(PEER_FIXTURE.read_text())["groups"]
-    ]
-    return build_dataset(groups, panel, corpora)
-
-
-def test_the_real_labels_are_dated_assertions_by_companies_that_exist(real):
-    assert len(real.groups) >= 30
-    assert len(real.examples) >= 500
-    for group in real.groups:
+def test_the_real_labels_are_dated_assertions_by_companies_that_exist(real_dataset):
+    assert len(real_dataset.groups) >= 30
+    assert len(real_dataset.examples) >= 500
+    for group in real_dataset.groups:
         assert group.filed is not None
         assert group.fiscal_year is not None
         assert 8 <= len(group.peers) <= 30
 
 
-def test_a_real_filers_own_features_predate_its_own_proxy(real):
+def test_a_real_filers_own_features_predate_its_own_proxy(real_dataset):
     """The reporting lag is in the construction, not in a rule.
 
     Every example's panel date is at or before the proxy that asserted it, so no
     figure on the row was filed in response to the year being scored.
     """
-    for e in real.examples:
+    for e in real_dataset.examples:
         assert e.as_of <= e.filed
 
 
-def test_the_universe_cannot_hold_every_named_peer_and_says_so(real):
+def test_the_universe_cannot_hold_every_named_peer_and_says_so(real_dataset):
     """The survivorship hole, measured rather than asserted.
 
     A candidate list built from an index of currently listed technology
@@ -961,7 +893,7 @@ def test_the_universe_cannot_hold_every_named_peer_and_says_so(real):
     that is missing bounds recall for every ranker at once, so it belongs beside
     the scores rather than inside them.
     """
-    assert real.dropped["peer not in the candidate universe"] > 0
-    named = {p for g in real.groups for p in g.peers}
-    inside = named & set(real.universe)
+    assert real_dataset.dropped["peer not in the candidate universe"] > 0
+    named = {p for g in real_dataset.groups for p in g.peers}
+    inside = named & set(real_dataset.universe)
     assert 0.3 < len(inside) / len(named) < 1.0

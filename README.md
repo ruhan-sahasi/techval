@@ -1638,6 +1638,7 @@ uv run techval targets --dataset tests/fixtures/mna --config assumptions.yaml
 # Pages and housekeeping
 uv run techval dashboard --config docs/dashboard/assumptions.yaml --collect   # the results page, from the fixtures
 uv run techval cache info                               # what the HTTP cache holds
+uv run techval cache prune --older-than 90 --dry-run    # what pruning entries over 90 days old would remove
 ```
 
 Every command starts in under a second; the libraries only some commands need

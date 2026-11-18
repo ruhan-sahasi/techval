@@ -1025,6 +1025,12 @@ class CompanyFacts:
             )
         return sorted(out, key=lambda f: (f.start or f.end, f.end))
 
+    def _entry_series(self, entry: str | tuple[str, ...]) -> list[Fact]:
+        """A ladder entry's duration facts: the tag's own, or the composite's sum."""
+        if isinstance(entry, str):
+            return [f for f in self.facts(entry) if not f.is_instant]
+        return self._composite_series(entry)
+
     def _largest_covering(
         self,
         entries: Sequence[str | tuple[str, ...]],
@@ -1045,11 +1051,7 @@ class CompanyFacts:
             return None
         best: tuple[str, tuple[float, list[Fact], str], float] | None = None
         for entry, name in zip(entries, names):
-            facts = (
-                [f for f in self.facts(entry) if not f.is_instant]
-                if isinstance(entry, str)
-                else self._composite_series(entry)
-            )
+            facts = self._entry_series(entry)
             if not facts:
                 continue
             got = trailing_twelve_months(facts, as_of, kind=kind)
@@ -1105,11 +1107,7 @@ class CompanyFacts:
         partial: list[str] = []
 
         for index, (entry, name) in enumerate(zip(ladder, names)):
-            facts = (
-                [f for f in self.facts(entry) if not f.is_instant]
-                if isinstance(entry, str)
-                else self._composite_series(entry)
-            )
+            facts = self._entry_series(entry)
             if not facts:
                 continue
             got = trailing_twelve_months(facts, as_of, kind=kind)
@@ -1150,11 +1148,7 @@ class CompanyFacts:
 
         if allow_annual_fallback:
             for entry, name in zip(ladder, names):
-                facts = (
-                    [f for f in self.facts(entry) if not f.is_instant]
-                    if isinstance(entry, str)
-                    else self._composite_series(entry)
-                )
+                facts = self._entry_series(entry)
                 fy = latest_annual(facts, as_of) if facts else None
                 if fy is not None:
                     return fy.val, Provenance(

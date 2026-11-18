@@ -95,6 +95,7 @@ from typing import Any
 
 import numpy as np
 import typer
+from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
 
@@ -907,7 +908,10 @@ def fade(
             assumptions.ml.forecast.enabled = True
 
         if panel_file is not None:
-            console.print(f"[dim]Fitting on the recorded panel at {panel_file}.[/dim]")
+            console.print(
+                "[dim]Fitting on the recorded panel at "
+                f"{escape(str(panel_file))}.[/dim]"
+            )
             panel, model = recorded_fit(panel_file, assumptions, only)
         else:
             console.print(
@@ -1722,7 +1726,9 @@ def signal(
         if csv_out is not None:
             result.frame().to_csv(csv_out, index=False)
             print_rule(console, "Output")
-            console.print(f"Company-date detail written to [bold]{csv_out}[/bold]")
+            console.print(
+                f"Company-date detail written to [bold]{escape(str(csv_out))}[/bold]"
+            )
     except TechvalError as exc:
         print_refusal(console, exc)
         raise typer.Exit(1)

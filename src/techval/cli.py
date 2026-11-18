@@ -12,12 +12,16 @@ The core valuation:
     techval backtest           value a set of names at past dates and score them
     techval fetch  TICKER      warm the cache and print the provenance table
 
-Nine more are mounted from the four ``commands_*`` modules, which own their own
-rendering: ``kpis``, ``segments`` and ``sotp`` over ``techval.tmt``; ``peers``
-and ``screen`` over the fitted encoder and the warranted multiple; ``fade`` and
-``signal`` over the forecast and the harness; ``precedents`` and ``targets``
-over M&A. They are merged in flat rather than nested behind a group, so the
-invocation is the one each module documents for itself.
+Fourteen more are mounted from six ``commands_*`` modules, which own their own
+rendering: ``expectations``, ``expectations-screen`` and ``scenarios`` over the
+reverse DCF and the fade panel; ``tearsheet`` and ``compare``, which write the
+engine's results as a page; ``kpis``, ``segments`` and ``sotp`` over
+``techval.tmt``; ``peers`` and ``screen`` over the fitted encoder and the
+warranted multiple; ``fade`` and ``signal`` over the forecast and the harness;
+``precedents`` and ``targets`` over M&A. They are merged in flat rather than
+nested behind a group, so the invocation is the one each module documents for
+itself. The HTTP cache's ``info`` and ``prune`` are the exception, kept together
+as ``techval cache``.
 
 One more renders results rather than a valuation. ``techval dashboard`` runs
 each dashboard section's collector against the committed fixtures, writes what
@@ -42,15 +46,59 @@ from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
 
-from .comps import run_comps
+from .anchors import LABELS as RECORD_LABELS, record_case, unanchored
 from .apv import run_apv
-from .commands_forecast import app as _forecast_app
+from .backtest import (
+    ForwardPrices,
+    edgar_client_factory,
+    market_factory_from,
+    run_backtest,
+)
 from .commands_cache import app as _cache_app
 from .commands_expectations import app as _expectations_app
-from .commands_tearsheet import app as _tearsheet_app
+from .commands_forecast import app as _forecast_app
 from .commands_mna import app as _mna_app
 from .commands_peers import app as _peers_app
+from .commands_tearsheet import app as _tearsheet_app
 from .commands_tmt import app as _tmt_app
+from .comps import run_comps
+from .config import Assumptions, ml_cache_root
+from .dashboard import (
+    collect_snapshot,
+    dump_snapshot,
+    load_snapshot,
+    write_dashboard,
+)
+from .dashboard.collect import SectionRun
+from .dashboard.sections import SECTION_IDS, section_module
+from .dcf import run_dcf, sensitivity_wacc_exit, sensitivity_wacc_growth
+from .dilution import build_share_count
+from .edgar import EdgarClient, HttpCache
+from .errors import ConfigError, MissingDataError, TechvalError
+from .ev_bridge import build_ev_bridge
+from .financials import build_financials
+from .football import FootballRow, football_field
+from .market import MarketData, make_price_source
+from .merger import run_merger
+from .ml.forecast import compare_fade
+from .ml.mna import fit_propensity
+from .ml.signals import Score, test_signal
+from .ml.warranted import fit_warranted
+from .options import CONFIG, FROM_RECORD, NO_CACHE, OPEN_PAGE
+from .simulation import run_simulation
+from .terminal import (
+    format_money,
+    format_multiple,
+    format_pct,
+    make_console,
+    print_notes,
+    print_refusal,
+    print_rule,
+)
+from .tmt.precedents import build_precedents
+from .tmt.segments import build_segments
+from .tmt.sotp import run_sotp
+from .wacc import compute_wacc, estimate_beta
 
 # The optional sections below reuse the command modules' own loaders and
 # renderers rather than growing second copies here. A warranted-multiple table
@@ -70,51 +118,6 @@ from .commands_peers import (
     _load_observations,
 )
 from .commands_tmt import _period_gap_flag, _render_sotp, load_plan as _load_sotp_plan
-from .dashboard import (
-    collect_snapshot,
-    dump_snapshot,
-    load_snapshot,
-    write_dashboard,
-)
-from .dashboard.collect import SectionRun
-from .dashboard.sections import SECTION_IDS, section_module
-from .errors import MissingDataError
-from .ml.forecast import compare_fade
-from .ml.mna import fit_propensity
-from .ml.signals import Score, test_signal
-from .ml.warranted import fit_warranted
-from .options import CONFIG, FROM_RECORD, NO_CACHE, OPEN_PAGE
-from .terminal import (
-    format_money,
-    format_multiple,
-    format_pct,
-    make_console,
-    print_notes,
-    print_refusal,
-    print_rule,
-)
-from .tmt.precedents import build_precedents
-from .tmt.segments import build_segments
-from .tmt.sotp import run_sotp
-from .backtest import (
-    ForwardPrices,
-    edgar_client_factory,
-    market_factory_from,
-    run_backtest,
-)
-from .dilution import build_share_count
-from .anchors import LABELS as RECORD_LABELS, record_case, unanchored
-from .config import Assumptions, ml_cache_root
-from .dcf import run_dcf, sensitivity_wacc_exit, sensitivity_wacc_growth
-from .edgar import EdgarClient, HttpCache
-from .errors import ConfigError, TechvalError
-from .ev_bridge import build_ev_bridge
-from .financials import build_financials
-from .football import FootballRow, football_field
-from .market import MarketData, make_price_source
-from .merger import run_merger
-from .simulation import run_simulation
-from .wacc import compute_wacc, estimate_beta
 
 app = typer.Typer(
     add_completion=False,
@@ -148,8 +151,8 @@ def _mount(sub_app: typer.Typer, panel: str) -> None:
     """Mount a command module's commands at the top level, under a help heading.
 
     ``add_typer`` with no name merges the sub-app's commands into the parent
-    rather than nesting them behind a group, which is the shape all four command
-    modules document in their own docstrings: ``techval sotp DIS``, not
+    rather than nesting them behind a group, which is the shape each module
+    mounted this way documents in its own docstring: ``techval sotp DIS``, not
     ``techval tmt sotp DIS``. Nesting would have read better in ``--help`` and
     would have made those docstrings wrong, so the help panel carries the
     grouping instead and the invocation stays the one the modules advertise.
@@ -656,7 +659,7 @@ def _render_comps(result) -> None:
     if result.exclusions:
         console.print("\n[bold yellow]Peers excluded[/bold yellow]")
         for e in result.exclusions:
-            console.print(f"  [yellow]- {e.ticker}: {e.reason}[/yellow]")
+            console.print(f"  [yellow]- {e.ticker}: {escape(e.reason)}[/yellow]")
     flags = [
         f"{p.ticker}: {f}" for p in result.peers for f in p.flags
     ]
@@ -1195,9 +1198,10 @@ def _render_optional_fade(ticker, fin, bridge, wacc_result, assumptions, root) -
     )
     symbol = ticker.upper()
     console.print(
-        f"[dim]Fitting the fade curve on the recorded panel at {panel_path}. The "
-        "whole universe is fitted, not this company alone, because a curve "
-        "estimated on one filer's history is that filer's history.[/dim]"
+        "[dim]Fitting the fade curve on the recorded panel at "
+        f"{escape(str(panel_path))}. The whole universe is fitted, not this "
+        "company alone, because a curve estimated on one filer's history is that "
+        "filer's history.[/dim]"
     )
     # recorded_fit cuts the panel at assumptions.as_of before fitting. Without
     # that the option would be a lie: the panel builder pins every FEATURE to the
@@ -1516,7 +1520,8 @@ def value(
             print_rule(console, "Warranted multiple")
             if warranted_error is not None:
                 console.print(
-                    f"[yellow]Warranted multiple not fitted: {warranted_error}[/yellow]"
+                    "[yellow]Warranted multiple not fitted: "
+                    f"{escape(str(warranted_error))}[/yellow]"
                 )
             else:
                 try:
@@ -1534,7 +1539,8 @@ def value(
             if warranted_error is not None:
                 console.print(
                     "[yellow]Signal test not run: the warranted fit whose residual "
-                    f"it scores could not be made: {warranted_error}[/yellow]"
+                    "it scores could not be made: "
+                    f"{escape(str(warranted_error))}[/yellow]"
                 )
             else:
                 try:
@@ -1564,7 +1570,7 @@ def value(
             growth_grid=growth_grid, exit_grid=exit_grid,
         )
         print_rule(console, "Output")
-        console.print(f"Football field written to [bold]{path}[/bold]")
+        console.print(f"Football field written to [bold]{escape(str(path))}[/bold]")
     except TechvalError as exc:
         print_refusal(console, exc)
         raise typer.Exit(1)
