@@ -84,7 +84,7 @@ from .ml.forecast import compare_fade
 from .ml.mna import fit_propensity
 from .ml.signals import Score, test_signal
 from .ml.warranted import fit_warranted
-from .options import CONFIG, FROM_RECORD, NO_CACHE, OPEN_PAGE
+from .options import CONFIG, FROM_RECORD, NO_CACHE, OPEN_PAGE, iso_date, iso_dates
 from .simulation import run_simulation
 from .terminal import (
     format_money,
@@ -178,6 +178,7 @@ _OUT = typer.Option("out", "--out", "-o", help="Directory for chart output.")
 _ASOF = typer.Option(
     None,
     "--as-of",
+    callback=iso_date,
     help=(
         "Value the company as it was knowable on this date (YYYY-MM-DD). Facts filed "
         "later are discarded and prices stop there, so the run uses only information "
@@ -1792,12 +1793,21 @@ def backtest(
     tickers: str = typer.Argument(..., help="Comma-separated tickers, e.g. DDOG,MDB,ZS"),
     config: Path = CONFIG,
     no_cache: bool = NO_CACHE,
-    start: str = typer.Option(..., "--from", help="First valuation date (YYYY-MM-DD)."),
-    end: str = typer.Option(..., "--to", help="Last valuation date (YYYY-MM-DD)."),
+    start: str = typer.Option(
+        ..., "--from", callback=iso_date, help="First valuation date (YYYY-MM-DD)."
+    ),
+    end: str = typer.Option(
+        ..., "--to", callback=iso_date, help="Last valuation date (YYYY-MM-DD)."
+    ),
     horizon: int = typer.Option(
         252, "--horizon", min=1, help="Forward return horizon in calendar days."
     ),
-    dates: str = typer.Option(None, "--dates", help="Explicit comma-separated dates, instead of quarter ends."),
+    dates: str = typer.Option(
+        None,
+        "--dates",
+        callback=iso_dates,
+        help="Explicit comma-separated dates, instead of quarter ends.",
+    ),
 ) -> None:
     """Value a set of names at past dates and score against realised returns.
 

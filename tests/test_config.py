@@ -94,6 +94,18 @@ def test_a_date_that_is_not_a_date_is_still_refused(tmp_path):
     assert "as_of" in str(exc.value)
 
 
+@pytest.mark.parametrize("text", ["2024-1-1", "2024-13-01", "June 2024"])
+def test_a_string_that_is_not_a_date_is_refused_with_the_file_named(tmp_path, text):
+    """Quoted, any text passed, and the ValueError came later from
+    ``knowledge_date``, in whichever command first asked for the date."""
+    path = _write(tmp_path, f'as_of: "{text}"\n')
+    with pytest.raises(ConfigError) as exc:
+        Assumptions.load(path)
+    assert str(path) in str(exc.value)
+    assert "as_of" in str(exc.value)
+    assert f"{text!r} is not a YYYY-MM-DD date" in str(exc.value)
+
+
 def test_the_knowledge_date_is_as_of_read_back_as_a_date():
     """What every command hands the EDGAR client, including after --as-of sets it."""
     assumptions = Assumptions()

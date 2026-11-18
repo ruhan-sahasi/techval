@@ -3,10 +3,13 @@
 cli.py imports the commands_* modules, so none of them can import an option
 back from it. They import the shared ones from here, as they import what they
 print with from terminal.py. An option that reads differently from one command
-to the next, such as ``--as-of`` or ``--out``, stays with its command.
+to the next, such as ``--as-of`` or ``--out``, stays with its command, and
+takes ``iso_date`` from here when what it reads is a date.
 """
 
 from __future__ import annotations
+
+from datetime import date
 
 import typer
 
@@ -21,3 +24,25 @@ FACTS_DIR = typer.Option(
     help="A directory of recorded companyfacts_<TICKER>.json payloads, instead of live SEC calls.",
 )
 OPEN_PAGE = typer.Option(False, "--open", help="Open the page in the default browser once it is written.")
+
+
+def iso_date(value: str | None) -> str | None:
+    """A typed date, checked before the command runs and given in YYYY-MM-DD form.
+
+    Each command reads its dates with ``date.fromisoformat`` inside a handler
+    that catches only the package's own errors, so a date such as 2024-1-1
+    raised a ValueError that nothing caught and the answer was a traceback.
+    """
+    if value is None:
+        return None
+    try:
+        return date.fromisoformat(value).isoformat()
+    except ValueError:
+        raise typer.BadParameter(f"{value!r} is not a YYYY-MM-DD date") from None
+
+
+def iso_dates(value: str | None) -> str | None:
+    """A comma-separated list of dates, each checked as ``iso_date`` checks one."""
+    if value is None:
+        return None
+    return ",".join(iso_date(d.strip()) for d in value.split(",") if d.strip())

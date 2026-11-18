@@ -85,7 +85,7 @@ from .ev_bridge import build_ev_bridge
 from .financials import build_financials
 from .market import MarketData, make_price_source
 from .nlp.sections import load_sections
-from .options import CONFIG, NO_CACHE
+from .options import CONFIG, NO_CACHE, iso_date
 from .terminal import (
     format_money,
     format_pct,
@@ -115,6 +115,7 @@ console = make_console(120)
 _ASOF = typer.Option(
     None,
     "--as-of",
+    callback=iso_date,
     help=(
         "Read the company as it was knowable on this date (YYYY-MM-DD). Facts "
         "filed later are discarded and prices stop there."

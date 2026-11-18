@@ -126,7 +126,7 @@ from .ml.signals import (
     SignalResult,
     ev_revenue_scores,
 )
-from .options import CONFIG, NO_CACHE
+from .options import CONFIG, NO_CACHE, iso_date
 from .terminal import (
     format_money,
     format_pct,
@@ -194,6 +194,7 @@ def _kv(rows: Sequence[tuple[str, str]], *, title: str = "", bold: Sequence[str]
 _ASOF = typer.Option(
     None,
     "--as-of",
+    callback=iso_date,
     help=(
         "Fit and value as at this date (YYYY-MM-DD). Facts filed later are discarded, "
         "prices stop there, and the panel is cut back to the filings and the forward "
@@ -1571,8 +1572,12 @@ def signal(
     universe: str = typer.Option(
         None, "--universe", help="Comma-separated tickers to restrict the panel to."
     ),
-    start: str = typer.Option(None, "--from", help="First rebalance date (YYYY-MM-DD), live builds."),
-    end: str = typer.Option(None, "--to", help="Last rebalance date (YYYY-MM-DD), live builds."),
+    start: str = typer.Option(
+        None, "--from", callback=iso_date, help="First rebalance date (YYYY-MM-DD), live builds."
+    ),
+    end: str = typer.Option(
+        None, "--to", callback=iso_date, help="Last rebalance date (YYYY-MM-DD), live builds."
+    ),
     every: int = typer.Option(
         3, "--every", min=1, help="Months between rebalances, live builds."
     ),

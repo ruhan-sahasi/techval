@@ -265,6 +265,31 @@ def test_a_step_horizon_or_count_below_one_is_refused_as_typed(args):
     assert f"Invalid value for '{args[-2]}'" in result.output
 
 
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["value", "DDOG", "--as-of", "2024-1-1"],
+        ["backtest", "DDOG", "--from", "2024-1-1", "--to", "2025-01-01"],
+        ["backtest", "DDOG", "--from", "2024-01-01", "--to", "2025-01-01", "--dates", "2024-1-1"],
+        ["signal", "--from", "2024-1-1"],
+        ["fade", "DDOG", "--as-of", "2024-1-1"],
+        ["peers", "DDOG", "--as-of", "2024-1-1"],
+        ["screen", "--panel", WARRANTED_PANEL, "--as-of", "2024-1-1"],
+        ["kpis", "DDOG", "--as-of", "2024-1-1"],
+        ["precedents", "RAMP", "--as-of", "2024-1-1"],
+        ["targets", "--dataset", str(FIXTURES / "mna"), "--screen-on", "2024-1-1"],
+    ],
+)
+def test_a_date_that_is_not_yyyy_mm_dd_is_refused_as_typed(args):
+    """Each of these read the date with ``date.fromisoformat`` inside a handler
+    that catches only the package's own errors, so 2024-1-1 was a traceback."""
+    result = runner.invoke(C.app, args)
+    assert result.exit_code == 2
+    text = " ".join(result.output.replace("\u2502", " ").split())
+    assert "Invalid value for" in text
+    assert "'2024-1-1' is not a YYYY-MM-DD date" in text
+
+
 # --------------------------------------------------------------------------- #
 # the base report does not move
 # --------------------------------------------------------------------------- #

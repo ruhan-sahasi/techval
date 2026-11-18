@@ -890,11 +890,20 @@ class Assumptions(_Base):
 
         ``isoformat`` rather than ``str`` so a ``datetime`` written with a time
         on it loses the time instead of carrying it into a filename.
+
+        A quoted string is read as a date here too, so ``as_of: "2024-1-1"`` is
+        refused with the file named, rather than raising a ValueError from
+        ``knowledge_date`` in whichever command first asks for the date.
         """
         if isinstance(value, datetime):
             return value.date().isoformat()
         if isinstance(value, date):
             return value.isoformat()
+        if isinstance(value, str) and value:
+            try:
+                return date.fromisoformat(value).isoformat()
+            except ValueError:
+                raise ValueError(f"{value!r} is not a YYYY-MM-DD date") from None
         return value
 
     @property
