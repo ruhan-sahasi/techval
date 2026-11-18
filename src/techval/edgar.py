@@ -33,11 +33,13 @@ endpoint, then covers the trailing-twelve-month window exactly.
 from __future__ import annotations
 
 import hashlib
+import html
 import json
 import os
 import re
 import threading
 import time
+import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -1442,18 +1444,13 @@ def strip_markup(body: bytes) -> str:
             bad.getparent().remove(bad)
         text = tree.text_content()
     except Exception:
-        import re
-
         raw = body.decode("utf-8", "replace")
         raw = re.sub(r"(?is)<(script|style).*?</\1>", " ", raw)
         text = re.sub(r"(?s)<[^>]+>", " ", raw)
 
-    import html as _html
-    import re as _re
-
-    text = _html.unescape(text)
+    text = html.unescape(text)
     text = text.replace("\xa0", " ")
-    return _re.sub(r"[ \t]*\n[ \t]*", "\n", _re.sub(r"[ \t]+", " ", text)).strip()
+    return re.sub(r"[ \t]*\n[ \t]*", "\n", re.sub(r"[ \t]+", " ", text)).strip()
 
 
 def parse_instance(xml_bytes: bytes) -> list[DimensionedFact]:
@@ -1464,8 +1461,6 @@ def parse_instance(xml_bytes: bytes) -> list[DimensionedFact]:
     that where a namespace map does not. Facts whose value is not numeric, and
     footnote or schema-reference elements, are skipped rather than coerced.
     """
-    import xml.etree.ElementTree as ET
-
     root = ET.fromstring(xml_bytes)
 
     contexts: dict[str, tuple[date | None, date | None, dict[str, str]]] = {}

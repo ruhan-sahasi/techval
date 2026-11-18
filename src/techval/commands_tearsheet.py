@@ -7,10 +7,12 @@ payloads with --facts-dir. See ``techval.tearsheet``.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import typer
 from rich.markup import escape
+from rich.table import Table
 
 from .errors import TechvalError
 from .options import CONFIG, FACTS_DIR, FROM_RECORD, NO_CACHE, OPEN_PAGE
@@ -107,8 +109,6 @@ def compare(
     as_json: bool = typer.Option(False, "--json", help="Print the table, the takeaway and the refusals as JSON."),
 ) -> None:
     """Several companies through the same engine on one page: values, returns and scenarios side by side."""
-    from rich.table import Table
-
     from .cli import _setup
     from .commands_expectations import CHECKOUT_PANELS, _panel
     from .compare import build_comparison
@@ -146,8 +146,6 @@ def compare(
 
     section = snap.sections["compare"]
     if as_json:
-        import json
-
         typer.echo(
             json.dumps(
                 {

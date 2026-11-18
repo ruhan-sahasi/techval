@@ -12,6 +12,8 @@ dropping it from the set.
 
 from __future__ import annotations
 
+import time
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import date
 
@@ -235,9 +237,6 @@ def build_comparison(
     peers_from_set: bool = False,
 ):
     """Measure the set and wrap the comparison as a one-section page."""
-    import time
-    from contextlib import nullcontext
-
     from .dashboard.snapshot import Snapshot, to_jsonable, validate_section
 
     sources = E.Sources(
