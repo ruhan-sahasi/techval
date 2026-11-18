@@ -34,6 +34,10 @@ def _size(n: float) -> str:
     return f"{n:,.1f} GB"
 
 
+def _count(n: int, one: str, many: str) -> str:
+    return f"{n:,} {one if n == 1 else many}"
+
+
 def _entries(root: Path) -> list[Path]:
     return sorted(root.glob("*.cache"))
 
@@ -48,7 +52,7 @@ def info(root: Path = _ROOT) -> None:
     entries = _entries(root)
     temps = list(root.glob("*.tmp"))
     total = sum(p.stat().st_size for p in entries)
-    console.print(f"{escape(str(root))}: {len(entries):,} entries, {_size(total)}")
+    console.print(f"{escape(str(root))}: {_count(len(entries), 'entry', 'entries')}, {_size(total)}")
     if entries:
         now = time.time()
         ages = [(now - p.stat().st_mtime) / DAY for p in entries]
@@ -57,9 +61,9 @@ def info(root: Path = _ROOT) -> None:
             old = [p for p, a in zip(entries, ages) if a > cutoff]
             if old:
                 freed = sum(p.stat().st_size for p in old)
-                console.print(f"  older than {cutoff} days: {len(old):,} entries, {_size(freed)}")
+                console.print(f"  older than {cutoff} days: {_count(len(old), 'entry', 'entries')}, {_size(freed)}")
     if temps:
-        console.print(f"{len(temps)} unfinished write{'s' if len(temps) != 1 else ''} left by an interrupted fetch")
+        console.print(f"{_count(len(temps), 'unfinished write', 'unfinished writes')} left by an interrupted fetch")
 
 
 @app.command()
@@ -78,9 +82,12 @@ def prune(
     # An unfinished write is never valid, whatever its age.
     temps = list(root.glob("*.tmp"))
     freed = sum(p.stat().st_size for p in old + temps)
+    what = f"{_count(len(old), 'entry', 'entries')} older than {older_than:g} days"
+    if temps:
+        what += f" and {_count(len(temps), 'unfinished write', 'unfinished writes')}"
     if dry_run:
-        console.print(f"Would remove {len(old):,} entries older than {older_than:g} days, {_size(freed)}.")
+        console.print(f"Would remove {what}, {_size(freed)}.")
         return
     for path in old + temps:
         path.unlink(missing_ok=True)
-    console.print(f"Removed {len(old):,} entries older than {older_than:g} days, {_size(freed)} freed.")
+    console.print(f"Removed {what}, {_size(freed)} freed.")
