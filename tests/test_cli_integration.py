@@ -270,7 +270,7 @@ def test_default_run_never_touches_the_optional_machinery(monkeypatch, tmp_path)
 
 
 def test_default_report_carries_no_optional_heading(tmp_path):
-    """None of the six sections appears unless it is asked for."""
+    """None of the seven sections appears unless it is asked for."""
     result = run_value("-c", str(_config(tmp_path)))
     assert result.exit_code == 0
     for flag, heading in OPTIONAL_SECTIONS.items():

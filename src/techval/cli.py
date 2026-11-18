@@ -12,12 +12,16 @@ The core valuation:
     techval backtest           value a set of names at past dates and score them
     techval fetch  TICKER      warm the cache and print the provenance table
 
-Nine more are mounted from the four ``commands_*`` modules, which own their own
-rendering: ``kpis``, ``segments`` and ``sotp`` over ``techval.tmt``; ``peers``
-and ``screen`` over the fitted encoder and the warranted multiple; ``fade`` and
-``signal`` over the forecast and the harness; ``precedents`` and ``targets``
-over M&A. They are merged in flat rather than nested behind a group, so the
-invocation is the one each module documents for itself.
+Fourteen more are mounted from six ``commands_*`` modules, which own their own
+rendering: ``expectations``, ``expectations-screen`` and ``scenarios`` over the
+reverse DCF and the fade panel; ``tearsheet`` and ``compare``, which write the
+engine's results as a page; ``kpis``, ``segments`` and ``sotp`` over
+``techval.tmt``; ``peers`` and ``screen`` over the fitted encoder and the
+warranted multiple; ``fade`` and ``signal`` over the forecast and the harness;
+``precedents`` and ``targets`` over M&A. They are merged in flat rather than
+nested behind a group, so the invocation is the one each module documents for
+itself. The HTTP cache's ``info`` and ``prune`` are the exception, kept together
+as ``techval cache``.
 
 One more renders results rather than a valuation. ``techval dashboard`` runs
 each dashboard section's collector against the committed fixtures, writes what
@@ -148,8 +152,8 @@ def _mount(sub_app: typer.Typer, panel: str) -> None:
     """Mount a command module's commands at the top level, under a help heading.
 
     ``add_typer`` with no name merges the sub-app's commands into the parent
-    rather than nesting them behind a group, which is the shape all four command
-    modules document in their own docstrings: ``techval sotp DIS``, not
+    rather than nesting them behind a group, which is the shape each module
+    mounted this way documents in its own docstring: ``techval sotp DIS``, not
     ``techval tmt sotp DIS``. Nesting would have read better in ``--help`` and
     would have made those docstrings wrong, so the help panel carries the
     grouping instead and the invocation stays the one the modules advertise.
