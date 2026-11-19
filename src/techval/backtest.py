@@ -636,10 +636,27 @@ def _quantile_returns(
             columns=_QUANTILE_COLUMNS, index=pd.Index([], name="Quintile")
         )
 
-    # Stable sort, so two identical upsides always land in the same buckets
-    # whatever order the run happened to produce them in.
+    n = upsides.shape[0]
     order = np.argsort(upsides, kind="mergesort")
-    groups = np.array_split(order, buckets)
+    # The bucket of each place in the ranked order, split as evenly as the count
+    # allows: the first n % buckets buckets take one name more.
+    bucket_at = np.empty(n, dtype=int)
+    for k, places in enumerate(np.array_split(np.arange(n), buckets)):
+        bucket_at[places] = k
+    # A run of identical upsides takes one bucket, the one holding the middle of
+    # the run. A stable sort alone kept such a run in the order the run produced
+    # it, so a cut could fall inside it and which name landed on which side of
+    # the cut moved with the order of the dates or the tickers.
+    ranked = upsides[order]
+    bucket = np.empty(n, dtype=int)
+    start = 0
+    while start < n:
+        end = start
+        while end + 1 < n and ranked[end + 1] == ranked[start]:
+            end += 1
+        bucket[order[start : end + 1]] = bucket_at[(start + end) // 2]
+        start = end + 1
+    groups = [np.flatnonzero(bucket == k) for k in range(buckets)]
     records = []
     labels = []
     for k, idx in enumerate(groups, start=1):
