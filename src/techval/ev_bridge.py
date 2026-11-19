@@ -46,6 +46,7 @@ from dataclasses import dataclass, field
 
 from . import tags
 from .config import Assumptions
+from .errors import ConfigError
 from .financials import Financials
 
 
@@ -267,11 +268,20 @@ def build_ev_bridge(
     # method. Pairing that count with a bridge that also carries the note as
     # equity would drop the instrument out of both sides of the valuation. Add
     # the conversion shares back here, where the treatment is decided.
-    if (
-        fin.valuation_shares
-        and treatment == "if_converted"
-        and conv_cfg.conversion_price
-    ):
+    if fin.valuation_shares and treatment == "if_converted":
+        if not conv_cfg.conversion_price:
+            # Only an explicit if_converted gets here without a price; auto
+            # carries unpriced notes as debt.
+            raise ConfigError(
+                f"convertibles.treatment is if_converted, so {fin.ticker}'s "
+                f"{fin.convertible_debt:,.0f}mm of convertible notes are carried as "
+                "equity, but the treasury-stock share count is built from shares "
+                "outstanding and the award tables and does not hold their "
+                "conversion shares. Without convertibles.conversion_price they "
+                "cannot be added, and the notes would be on neither side of the "
+                "bridge. Set the conversion price from the notes footnote, or set "
+                "convertibles.treatment to debt."
+            )
         conversion_shares = fin.convertible_debt / conv_cfg.conversion_price
         shares += conversion_shares
         notes.append(
