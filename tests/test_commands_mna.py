@@ -47,7 +47,6 @@ import pytest
 from typer.testing import CliRunner
 
 from techval import commands_mna as C
-from techval.errors import ConfigError
 from techval.edgar import (
     SEC_FACTS_URL,
     SEC_SUBMISSIONS_URL,
@@ -55,6 +54,9 @@ from techval.edgar import (
     EdgarClient,
     HttpCache,
 )
+
+from techval.errors import ConfigError
+from techval.ml.features import FEATURE_NAMES
 
 from conftest import FIXTURES, flat
 
@@ -793,6 +795,69 @@ def test_a_panel_saved_with_a_byte_order_mark_keeps_its_first_column(tmp_path):
     )
     with C._open_panel(tmp_path) as handle:
         assert next(csv.DictReader(handle)) == {"ticker": "DDOG", "as_of": "2024-03-31"}
+
+
+def _dataset(tmp_path: Path, panel_rows: list[str], events: str = "[]") -> Path:
+    """A one-registrant dataset with the panel's identity keys and one feature."""
+    (tmp_path / "universe.json").write_text(
+        '[{"ticker": "DDOG", "cik": 1561550}]', encoding="utf-8"
+    )
+    (tmp_path / "events.json").write_text(events, encoding="utf-8")
+    header = f"ticker,as_of,knowledge_date,statement_date,{FEATURE_NAMES[0]}\n"
+    (tmp_path / "panel.csv").write_text(
+        header + "".join(row + "\n" for row in panel_rows), encoding="utf-8"
+    )
+    return tmp_path
+
+
+GOOD_ROW = "DDOG,2024-03-31,2024-04-30,2023-12-31,1.5"
+
+
+@pytest.mark.parametrize(
+    "panel_rows, events, file, where",
+    [
+        (
+            ["DDOG,2024-03-31,2024-04-30,2023-12-31,#N/A"],
+            "[]",
+            "panel.csv",
+            f"line 2: {FEATURE_NAMES[0]} is '#N/A', which is not a number.",
+        ),
+        (
+            [GOOD_ROW, "DDOG,6/30/2024,2024-07-31,,1.5"],
+            "[]",
+            "panel.csv",
+            "line 3: as_of is '6/30/2024', which is not a YYYY-MM-DD date.",
+        ),
+        (
+            [GOOD_ROW],
+            '[{"ticker": "DDOG", "announced": "2024-01-02"},'
+            ' {"ticker": "MDB", "announced": "1/3/2024"}]',
+            "events.json",
+            "event 2: announced is '1/3/2024', which is not a YYYY-MM-DD date.",
+        ),
+        (
+            [GOOD_ROW],
+            '[{"ticker": "DDOG", "announced": "2024-01-02"},]',
+            "events.json",
+            "could not be read as the deal events",
+        ),
+    ],
+)
+def test_a_dataset_a_spreadsheet_or_an_editor_left_behind_is_refused_where_it_breaks(
+    tmp_path, panel_rows, events, file, where
+):
+    """Each of these raised a ValueError, which targets does not catch.
+
+    The panel loader opens the file as utf-8-sig so that one saved back from a
+    spreadsheet keeps its first column, and a spreadsheet writes #N/A for a gap
+    and 6/30/2024 for a date. A hand-edited events file breaks the same way.
+    """
+    directory = _dataset(tmp_path, panel_rows, events)
+    with pytest.raises(ConfigError) as exc:
+        C.load_dataset(directory)
+    message = str(exc.value)
+    assert message.startswith(str(directory / file))
+    assert where in message
 
 
 def test_load_dataset_keeps_the_departed_which_is_the_whole_experiment():

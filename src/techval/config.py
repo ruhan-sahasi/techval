@@ -42,6 +42,22 @@ def read_yaml(path: Path) -> object:
         raise ConfigError(f"{path} could not be read as YAML. {exc}") from exc
 
 
+def read_field(path: Path, where: str, field: str, text: object, parse, what: str):
+    """One field of a file a command was handed, read with ``parse``, or a refusal.
+
+    A spreadsheet writes #N/A for a gap and 3/31/2024 for a date, and either
+    raised a ValueError that no command catches. The ConfigError names the
+    file, ``where`` in it (a line of a CSV, an entry of a JSON list), the field
+    and the value, so the one bad cell can be found.
+    """
+    try:
+        return parse(text)
+    except (TypeError, ValueError):
+        raise ConfigError(
+            f"{path} {where}: {field} is {text!r}, which is not {what}."
+        ) from None
+
+
 class _Base(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
