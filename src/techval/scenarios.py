@@ -18,6 +18,7 @@ both as evidence.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 
 from .reverse_dcf import BASE_RATE_HORIZON, SIMILAR_BAND, path_cagr
 
@@ -317,8 +318,6 @@ def band_coverage(
     lopsided miss says the panel's history ran faster or slower than what
     followed.
     """
-    from datetime import date
-
     import numpy as np
 
     test_from = test_from or date(2016, 1, 1)

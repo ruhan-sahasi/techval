@@ -40,12 +40,14 @@ from typer.testing import CliRunner
 
 from techval.commands_peers import (
     _label_sources,
+    _read_json,
     _render_ablation,
     _render_thin_evidence,
     _tower_ablation,
     app,
 )
 from techval.config import Assumptions
+from techval.errors import ConfigError
 from techval.ml.encoder import EMBARGO_DAYS, MIN_TRAIN_PAIRS, ablation_folds
 from techval.ml.evaluation import walk_forward_folds
 from techval.ml.features import FEATURE_NAMES
@@ -478,6 +480,14 @@ def test_a_single_source_candidate_is_named_loudly_and_kept_at_its_rank(capsys):
     assert "printed at its rank rather than dropped" in out
     # T is in the universe and in no group at all, so two of the four are thin.
     assert "2 of the 4 companies in the candidate universe" in out
+
+
+def test_an_artifact_that_is_not_utf8_text_is_refused_by_name(tmp_path):
+    """Its UnicodeDecodeError was not among the errors read as a refusal."""
+    path = tmp_path / "peer_groups.json"
+    path.write_bytes(b"\xff\xfe\x00")
+    with pytest.raises(ConfigError, match="could not be read as peer groups"):
+        _read_json(path, what="peer groups")
 
 
 def test_a_candidate_no_disclosed_group_mentions_at_all_says_so(capsys):

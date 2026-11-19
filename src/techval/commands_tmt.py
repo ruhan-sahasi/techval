@@ -1822,7 +1822,7 @@ def _render_sotp(result, fin, report) -> None:
     )
     if result.conglomerate_discount_rate == 0.0:
         console.print(
-            f"[dim]No conglomerate discount was applied. Lang and Stulz and Berger "
+            "[dim]No conglomerate discount was applied. Lang and Stulz and Berger "
             "and Ofek find diversified firms trading 5 to 15 percent below the sum "
             "of imputed segment values; against that, a discount assumed rather "
             "than observed can be set to make any sum of the parts agree with any "
@@ -1888,7 +1888,7 @@ def sotp(
         report = build_segments(ticker, client, assumptions)
 
         if emit_plan is not None:
-            emit_plan.write_text(plan_skeleton(report))
+            emit_plan.write_text(plan_skeleton(report), encoding="utf-8")
             console.print(
                 f"Wrote a skeleton for {len(report.segments)} segment(s) to "
                 f"[bold]{escape(str(emit_plan))}[/bold]. Fill in every multiple and every "

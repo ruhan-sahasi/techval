@@ -991,10 +991,10 @@ def _notes(
             "that do not occur."
         )
     out.append(
-        f"The probabilities are under this distribution, not about the world. "
-        f"They are conditional on four standard deviations someone typed into the "
-        f"assumptions file and on the correlation matrix in this module. A tight "
-        f"distribution around a wrong central case is confidently wrong."
+        "The probabilities are under this distribution, not about the world. "
+        "They are conditional on four standard deviations someone typed into the "
+        "assumptions file and on the correlation matrix in this module. A tight "
+        "distribution around a wrong central case is confidently wrong."
     )
     out.append(
         "The tornado holds three drivers still while moving the fourth, so it "

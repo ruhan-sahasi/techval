@@ -91,7 +91,8 @@ def _fade_panel(fixtures: Path, cache_root: Path | None, refit: bool):
         from ..edgar import CompanyFacts
         from .forecast import build_fade_panel, fade_universe
 
-        blob = json.load(gzip.open(fixtures / FADE_PANEL, "rt"))
+        with gzip.open(fixtures / FADE_PANEL, "rt", encoding="utf-8") as handle:
+            blob = json.load(handle)
 
         class _Client:
             def company_facts(self, ticker: str) -> CompanyFacts:

@@ -978,6 +978,48 @@ def test_a_panel_saved_with_a_byte_order_mark_keeps_its_first_column(tmp_path, s
     assert list(_prices_from_csv(prices, None)["DDOG"].closes) == [100.0, 101.0]
 
 
+@pytest.mark.parametrize(
+    "reader, body, where",
+    [
+        (
+            "scores",
+            "ticker,as_of,ev_revenue\nDDOG,2024-03-31,12.5\nMDB,2024-03-31,#N/A\n",
+            "line 3: ev_revenue is '#N/A', which is not a number.",
+        ),
+        (
+            "scores",
+            "ticker,as_of,ev_revenue\nDDOG,3/31/2024,12.5\n",
+            "line 2: as_of is '3/31/2024', which is not a YYYY-MM-DD date.",
+        ),
+        (
+            "prices",
+            "ticker,date,close\nDDOG,2024-01-02,100\nDDOG,1/3/2024,101\n",
+            "line 3: date is '1/3/2024', which is not a YYYY-MM-DD date.",
+        ),
+        (
+            "prices",
+            "ticker,date,close\nDDOG,2024-01-02,#N/A\n",
+            "line 2: close is '#N/A', which is not a number.",
+        ),
+    ],
+)
+def test_a_cell_a_spreadsheet_wrote_is_refused_with_its_line(
+    tmp_path, reader, body, where
+):
+    """#N/A and 3/31/2024 are how a spreadsheet saves a gap and a date.
+
+    Each raised a ValueError, which the signal command does not catch, so a
+    panel exported from one ended in a traceback rather than a refusal.
+    """
+    path = _write(tmp_path / f"{reader}.csv", body)
+    with pytest.raises(ConfigError) as exc:
+        if reader == "scores":
+            _scores_from_csv(path, "ev_revenue", False, None)
+        else:
+            _prices_from_csv(path, None)
+    assert str(exc.value) == f"{path} {where}"
+
+
 # --------------------------------------------------------------------------- #
 # Rebalance dates
 # --------------------------------------------------------------------------- #

@@ -1409,8 +1409,8 @@ def _cache_read(accession: str, assumptions: Assumptions | None) -> PeerGroup | 
     if not path.exists():
         return None
     try:
-        payload = json.loads(path.read_text())
-    except (OSError, json.JSONDecodeError):
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return None
     if payload.get("parser_version") != PARSER_VERSION:
         return None
@@ -1457,7 +1457,7 @@ def _cache_write(
                 }
             )
         tmp = path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(payload, indent=2, sort_keys=True))
+        tmp.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
         tmp.replace(path)
     except OSError:
         # An unwritable cache slows the next build down. It is not a reason to
@@ -1862,7 +1862,8 @@ def build_peer_artifacts(
             },
             indent=1,
         )
-        + "\n"
+        + "\n",
+        encoding="utf-8",
     )
     written["groups"] = groups_path
 
@@ -1892,7 +1893,8 @@ def build_peer_artifacts(
             },
             indent=1,
         )
-        + "\n"
+        + "\n",
+        encoding="utf-8",
     )
     written["panel"] = panel_path
 
@@ -1914,7 +1916,8 @@ def build_peer_artifacts(
             },
             indent=1,
         )
-        + "\n"
+        + "\n",
+        encoding="utf-8",
     )
     written["item1"] = item1_path
 

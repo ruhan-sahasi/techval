@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
@@ -153,8 +154,6 @@ class NasdaqSource:
             cache=self.cache,
             headers={"User-Agent": _BROWSER_UA, "Accept": "application/json"},
         )
-        import json
-
         try:
             payload = json.loads(body)
         except json.JSONDecodeError as exc:

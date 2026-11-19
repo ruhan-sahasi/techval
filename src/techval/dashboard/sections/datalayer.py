@@ -434,7 +434,7 @@ def split_consistency(payloads: Mapping[str, dict]) -> dict[str, Any]:
 def read_closes(path, ticker: str) -> list[tuple[date, float]]:
     """One ticker's daily closes from the committed signal price series, oldest first."""
     rows = []
-    with gzip.open(path, "rt", newline="") as fh:
+    with gzip.open(path, "rt", encoding="utf-8", newline="") as fh:
         for row in csv.DictReader(fh):
             if row["ticker"] == ticker:
                 rows.append((date.fromisoformat(row["date"]), float(row["close"])))
@@ -808,7 +808,7 @@ def _debt_figures(r: dict[str, Any], names: Mapping[str, str]) -> Built:
         text = f"{who(m)} reports {held}" + ("" if m["has_total"] else " and no total")
         if m["caught_by"]:
             text += (
-                f", which the debt cross-check sees, so its debt is refused rather "
+                ", which the debt cross-check sees, so its debt is refused rather "
                 "than read as zero"
             )
         else:

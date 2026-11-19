@@ -13,8 +13,9 @@ bear, base and bull case valued through the same DCF.
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import typer
 from rich.markup import escape
@@ -66,8 +67,6 @@ def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path 
     Returns the assumptions, the price source, the market, the raw companyfacts
     payload, the reverse-DCF ``Case`` and the last close.
     """
-    from types import SimpleNamespace
-
     from .anchors import record_case
     from .edgar import CompanyFacts, EdgarClient, HttpCache
     from .ev_bridge import build_ev_bridge
@@ -133,8 +132,6 @@ def expectations(
         )
         rows = None
         if history:
-            from datetime import timedelta
-
             from .reverse_dcf import expectations_history, quarter_ends
 
             today = co.market.today

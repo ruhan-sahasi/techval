@@ -19,6 +19,7 @@ Money is USD millions, per-share figures dollars, rates decimals.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Callable
 
 from .config import Assumptions
@@ -596,8 +597,6 @@ def price_in_simulation(case: Case, price: float) -> dict | None:
 
 def quarter_ends(first, last) -> list:
     """Calendar quarter ends falling between ``first`` and ``last``, inclusive."""
-    from datetime import date
-
     return [
         date(year, month, day)
         for year in range(first.year, last.year + 1)
