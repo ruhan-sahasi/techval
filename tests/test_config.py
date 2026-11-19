@@ -166,6 +166,27 @@ def test_a_file_the_yaml_parser_rejects_is_a_refusal_naming_the_line(tmp_path):
     assert f'in "{path}", line 3' in message
 
 
+@pytest.mark.parametrize(
+    "body, held", [("- dcf\n- comps\n", "a list"), ("just text\n", "a single value")]
+)
+def test_a_file_that_is_not_a_mapping_is_refused_by_what_it_holds(tmp_path, body, held):
+    """pydantic named the root as an empty location and the model as its type."""
+    path = _write(tmp_path, body)
+    with pytest.raises(ConfigError) as exc:
+        Assumptions.load(path)
+    assert str(exc.value) == (
+        f"{path} should be a mapping of assumption sections, such as dcf: and "
+        f"comps:, and holds {held}."
+    )
+
+
+def test_a_directory_named_as_the_file_is_refused(tmp_path):
+    """open() raised IsADirectoryError, which no command catches."""
+    with pytest.raises(ConfigError) as exc:
+        Assumptions.load(tmp_path)
+    assert str(exc.value) == f"{tmp_path} could not be opened: Is a directory."
+
+
 def test_an_impossible_unquoted_date_is_a_refusal(tmp_path):
     """YAML reads 2024-13-01 as a date, and datetime refuses it with a ValueError."""
     path = _write(tmp_path, "as_of: 2024-13-01\n")
