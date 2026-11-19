@@ -24,6 +24,7 @@ from rich.table import Table
 from .anchors import summary as record_summary
 from .config import Assumptions, ml_cache_root
 from .errors import TechvalError
+from .inputs import read_json
 from .options import CONFIG, FACTS_DIR, FROM_RECORD, NO_CACHE
 from .terminal import format_pct, make_console, print_refusal
 
@@ -83,7 +84,7 @@ def _company(symbol: str, config: Path | None, no_cache: bool, facts_file: Path 
     source = make_price_source(assumptions.price_source, cache, assumptions.price_csv_dir)
     market = MarketData(source, cache, today=knowledge or date.today())
     if facts_file is not None:
-        payload = json.loads(Path(facts_file).read_text(encoding="utf-8"))
+        payload = read_json(Path(facts_file), "a companyfacts payload", dict)
     else:
         payload = EdgarClient(cache).company_facts(symbol).raw
     facts = CompanyFacts(payload, symbol, knowledge_date=knowledge)
@@ -251,7 +252,11 @@ def expectations_screen(
                 if not path.is_file():
                     missing.append({"ticker": symbol, "refused": f"no recorded payload at {path}"})
                     continue
-                payloads[symbol] = json.loads(path.read_text(encoding="utf-8"))
+                try:
+                    payloads[symbol] = read_json(path, "a companyfacts payload", dict)
+                except TechvalError as err:
+                    missing.append({"ticker": symbol, "refused": str(err)})
+                    continue
             else:
                 payloads[symbol] = client.company_facts(symbol).raw
         observations, _ = _panel(Path(panels) if panels else CHECKOUT_PANELS, "", ml_cache_root(assumptions))

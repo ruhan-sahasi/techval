@@ -116,6 +116,48 @@ def test_a_screen_name_without_facts_is_named_not_fatal(tmp_path):
     assert "companyfacts_NOPE.json" in nope["refused"]
 
 
+def test_a_screen_name_whose_payload_is_not_json_is_named_not_fatal(tmp_path):
+    """A blocked SEC request saved as the payload ended the whole screen.
+
+    It raised a JSONDecodeError, which the command does not catch; it is now one
+    refused row, as a missing payload already was.
+    """
+    facts = tmp_path / "facts"
+    facts.mkdir()
+    ddog = (FIXTURES / "companyfacts_DDOG.json").read_bytes()
+    (facts / "companyfacts_DDOG.json").write_bytes(ddog)
+    (facts / "companyfacts_MDB.json").write_text(
+        "<html>Request Rate Threshold Exceeded</html>", encoding="utf-8"
+    )
+    result = runner.invoke(
+        app,
+        [
+            "expectations-screen", "DDOG", "MDB",
+            "--config", str(offline_config(tmp_path)),
+            "--facts-dir", str(facts),
+            "--json",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    rows = {r["ticker"]: r for r in json.loads(result.output)}
+    assert "could not be read as a companyfacts payload" in rows["MDB"]["refused"]
+    assert rows["DDOG"]["refused"] is None
+
+
+def test_a_facts_file_that_is_not_there_is_refused_not_raised(tmp_path):
+    result = runner.invoke(
+        app,
+        [
+            "expectations", "DDOG",
+            "--config", str(offline_config(tmp_path)),
+            "--facts", str(tmp_path / "companyfacts_DDOG.json"),
+            "--panels", str(FIXTURES),
+        ],
+    )
+    assert result.exit_code == 1
+    assert "could not be opened: No such file or directory" in flat(result.output)
+
+
 def test_the_record_case_is_named_when_it_is_on(tmp_path):
     path = offline_config(tmp_path)
     path.write_text(path.read_text() + "dcf:\n  from_record: true\n", encoding="utf-8")

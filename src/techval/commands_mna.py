@@ -67,7 +67,6 @@ from __future__ import annotations
 
 import csv
 import gzip
-import json
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -81,7 +80,7 @@ from rich.text import Text
 from .config import Assumptions
 from .edgar import EdgarClient, HttpCache
 from .errors import ConfigError, MissingDataError, TechvalError
-from .inputs import read_field
+from .inputs import read_field, read_json
 from .market import make_price_source
 from .ml.features import FEATURE_NAMES, FeaturePanel, FeatureRow
 from .ml.mna import DealEvent, PropensityResult, build_universe, fit_propensity
@@ -760,14 +759,6 @@ def _open_panel(directory: Path):
     )
 
 
-def _read_json(path: Path, what: str) -> Any:
-    """A JSON file of the dataset, or a refusal naming it."""
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ConfigError(f"{path} could not be read as the {what}: {exc}") from None
-
-
 def load_dataset(
     directory: Path,
 ) -> tuple[FeaturePanel, Any, list[DealEvent], dict[tuple[str, date], dict[str, float | None]]]:
@@ -808,7 +799,7 @@ def load_dataset(
         if not path.exists():
             raise MissingDataError(what, hint=f"no file at {path}")
 
-    universe = build_universe(_read_json(roster_path, "universe roster"))
+    universe = build_universe(read_json(roster_path, "the universe roster", list))
 
     events = [
         DealEvent(
@@ -826,7 +817,7 @@ def load_dataset(
             acquirer=e.get("acquirer"),
             source_form=e.get("source_form"),
         )
-        for i, e in enumerate(_read_json(events_path, "deal events"), start=1)
+        for i, e in enumerate(read_json(events_path, "the deal events", list), start=1)
     ]
 
     rows: list[FeatureRow] = []

@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import gzip
 import io
+import json
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -30,6 +32,46 @@ def open_text(path: Path) -> io.TextIOBase:
     if path.suffix == ".gz":
         return gzip.open(path, "rt", encoding="utf-8-sig")
     return path.open("r", encoding="utf-8-sig")
+
+
+def _json_kind(value: Any) -> str:
+    if isinstance(value, dict):
+        return "an object"
+    if isinstance(value, list):
+        return "an array"
+    if isinstance(value, str):
+        return "a string"
+    if value is None:
+        return "null"
+    return "a number" if not isinstance(value, bool) else "true or false"
+
+
+def read_json(path: Path, what: str, shape: type | None = None) -> Any:
+    """A JSON file's contents, gzipped or not, or a refusal naming the file.
+
+    A recorded companyfacts payload is the file most often wrong in a way its
+    name does not show: the SEC answers a request it will not serve with an
+    HTML page, and saved under a ``.json`` name that page raised a
+    JSONDecodeError, as did a file cut short. ``shape``, ``dict`` or ``list``,
+    is what the caller goes on to read the contents as, so an array where an
+    object belongs is refused here rather than as an AttributeError later.
+    """
+    try:
+        with open_text(Path(path)) as handle:
+            data = json.load(handle)
+    except (gzip.BadGzipFile, EOFError, UnicodeDecodeError, ValueError) as exc:
+        # JSONDecodeError is a ValueError; BadGzipFile is an OSError, so it is
+        # caught here, before the OSError of a file that would not open.
+        raise ConfigError(f"{path} could not be read as {what}: {exc}") from exc
+    except OSError as exc:
+        reason = exc.strerror or exc
+        raise ConfigError(f"{path} could not be opened: {reason}.") from exc
+    if shape is not None and not isinstance(data, shape):
+        raise ConfigError(
+            f"{path} could not be read as {what}: it holds {_json_kind(data)}, "
+            f"not {_json_kind(shape())}."
+        )
+    return data
 
 
 def read_yaml(path: Path) -> object:

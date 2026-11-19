@@ -85,7 +85,6 @@ are defined.
 from __future__ import annotations
 
 import csv
-import json
 from collections.abc import Sequence
 from datetime import date, timedelta
 from pathlib import Path
@@ -102,7 +101,7 @@ from .edgar import CompanyFacts, EdgarClient, HttpCache
 from .errors import ConfigError, MissingDataError, TechvalError
 from .ev_bridge import build_ev_bridge
 from .financials import build_financials
-from .inputs import open_text, read_field
+from .inputs import open_text, read_field, read_json
 from .market import MarketData, PriceSeries, make_price_source
 from .ml import signals as signals_module
 from .ml.forecast import (
@@ -266,8 +265,7 @@ def _recorded_panel(path: Path, assumptions: Assumptions, only: set[str] | None)
     the ones that no longer exist, and ``classify`` resolves a ticker through the
     SEC's current ticker file, in which a delisted company does not appear.
     """
-    with open_text(path) as handle:
-        blob = json.load(handle)
+    blob = read_json(path, "a recorded fade panel", dict)
     payloads = blob.get("payloads")
     meta = blob.get("meta")
     if not isinstance(payloads, dict) or not isinstance(meta, dict):
@@ -941,8 +939,7 @@ def fade(
         # The valuation half. Facts from a recorded payload where one was given,
         # so the whole command can run with no network at all.
         if facts_file is not None:
-            with open_text(facts_file) as handle:
-                payload = json.load(handle)
+            payload = read_json(facts_file, "a companyfacts payload", dict)
             knowledge = assumptions.knowledge_date
             fin = build_financials(
                 symbol, facts=CompanyFacts(payload, symbol, knowledge_date=knowledge)

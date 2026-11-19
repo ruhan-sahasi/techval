@@ -116,7 +116,6 @@ than it earned.
 
 from __future__ import annotations
 
-import gzip
 import hashlib
 import json
 from dataclasses import dataclass
@@ -133,6 +132,7 @@ from rich.text import Text
 
 from .config import Assumptions, ml_cache_root
 from .errors import ConfigError, MissingDataError, TechvalError
+from .inputs import read_json
 from .ml.encoder import (
     EMBARGO_DAYS,
     MIN_TRAIN_PAIRS,
@@ -267,13 +267,7 @@ def _read_json(path: Path, *, what: str) -> Any:
                 "observation panel"
             ),
         )
-    try:
-        if path.suffix == ".gz":
-            with gzip.open(path, "rt", encoding="utf-8") as handle:
-                return json.load(handle)
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError, EOFError) as exc:
-        raise ConfigError(f"{path} could not be read as {what}: {exc}") from None
+    return read_json(path, what)
 
 
 def _need(payload: Any, key: str, path: Path) -> Any:
