@@ -123,6 +123,7 @@ reconciliation whatever that flag says.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -404,11 +405,17 @@ def run_apv(
     terminal_flow = terminal_value_w * (wacc - g)
 
     pv_explicit_u, pv_terminal_u, _ = _value_at(ku, flows, terminal_flow, g, mid_year)
-    # A tracked balance left at year N, valued at Ku as the shelter inside the
-    # explicit flows already is, so the WACC value and this one hold the same asset.
-    carried = _carryforward_after(
-        dcf_result.projections[-1], assumptions, _tax_rate(fin, assumptions)[0], ku, g
-    )
+    # A tracked balance left at year N, valued as the DCF values it, at the
+    # projection's own tax rate, so every rebuild of the WACC value holds it too.
+    projection_tax = _tax_rate(fin, assumptions)[0]
+
+    def carried_at(rate: float) -> float:
+        return _carryforward_after(
+            dcf_result.projections[-1], assumptions, projection_tax, rate, g
+        )
+
+    # At Ku here, as the shelter inside the explicit flows already is.
+    carried = carried_at(ku)
     unlevered_value = pv_explicit_u + pv_terminal_u + carried
 
     wacc_enterprise_value = (
@@ -514,6 +521,7 @@ def run_apv(
             g=g,
             flows=flows,
             terminal_flow=terminal_flow,
+            carried_at=carried_at,
             mid_year=mid_year,
             pv_tax_shield=pv_tax_shield,
             pv_shield_terminal=pv_shield_terminal,
@@ -662,6 +670,7 @@ def _reconciliation(
     g: float,
     flows: np.ndarray,
     terminal_flow: float,
+    carried_at: Callable[[float], float],
     mid_year: bool,
     pv_tax_shield: float,
     pv_shield_terminal: float,
@@ -683,11 +692,12 @@ def _reconciliation(
 
     # The rebuild has to reproduce the DCF before anything is compared against
     # it. If it does not, the two are not on the same clock and every line below
-    # is measuring the wrong thing.
+    # is measuring the wrong thing. ``carried_at`` values a tax-loss balance left
+    # at year N, which the DCF's enterprise value holds beside its terminal value.
     pv_explicit_w, pv_terminal_rebuilt, _ = _value_at(
         wacc, flows, terminal_flow, g, mid_year
     )
-    rebuilt = pv_explicit_w + pv_terminal_rebuilt
+    rebuilt = pv_explicit_w + pv_terminal_rebuilt + carried_at(wacc)
     if abs(rebuilt - wacc_enterprise_value) > _REBUILD_TOLERANCE * max(
         abs(wacc_enterprise_value), 1.0
     ):
@@ -779,7 +789,7 @@ def _reconciliation(
     if implied_wacc > g:
         value_at_implied = sum(
             _value_at(implied_wacc, flows, terminal_flow, g, mid_year)[:2]
-        )
+        ) + carried_at(implied_wacc)
         line += (
             f" Discounting the same flows at it is worth "
             f"{value_at_implied - wacc_enterprise_value:,.0f}mm of enterprise value."
