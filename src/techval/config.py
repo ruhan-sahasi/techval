@@ -13,7 +13,6 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Literal
 
-import yaml
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -24,42 +23,7 @@ from pydantic import (
 )
 
 from .errors import ConfigError
-
-
-def read_yaml(path: Path) -> object:
-    """A YAML file's contents, or a ConfigError naming the file and the reason.
-
-    A file the parser rejects raised ``yaml.YAMLError``, and an impossible date
-    such as ``as_of: 2024-13-01`` the ValueError from ``datetime.date``, and no
-    command catches either, so a stray indent ended in a traceback. The file is
-    handed over as bytes, so the parser settles the encoding, as YAML specifies,
-    and the line it points at carries the file's name. A path that cannot be
-    opened, a directory or a file without read permission, is refused too.
-    """
-    try:
-        with Path(path).open("rb") as handle:
-            return yaml.safe_load(handle)
-    except OSError as exc:
-        reason = exc.strerror or exc
-        raise ConfigError(f"{path} could not be opened: {reason}.") from exc
-    except (yaml.YAMLError, ValueError) as exc:
-        raise ConfigError(f"{path} could not be read as YAML. {exc}") from exc
-
-
-def read_field(path: Path, where: str, field: str, text: object, parse, what: str):
-    """One field of a file a command was handed, read with ``parse``, or a refusal.
-
-    A spreadsheet writes #N/A for a gap and 3/31/2024 for a date, and either
-    raised a ValueError that no command catches. The ConfigError names the
-    file, ``where`` in it (a line of a CSV, an entry of a JSON list), the field
-    and the value, so the one bad cell can be found.
-    """
-    try:
-        return parse(text)
-    except (TypeError, ValueError):
-        raise ConfigError(
-            f"{path} {where}: {field} is {text!r}, which is not {what}."
-        ) from None
+from .inputs import read_yaml
 
 
 class _Base(BaseModel):

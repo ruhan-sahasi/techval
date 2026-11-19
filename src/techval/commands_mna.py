@@ -78,9 +78,10 @@ import typer
 from rich.table import Table
 from rich.text import Text
 
-from .config import Assumptions, read_field
+from .config import Assumptions
 from .edgar import EdgarClient, HttpCache
 from .errors import ConfigError, MissingDataError, TechvalError
+from .inputs import read_field
 from .market import make_price_source
 from .ml.features import FEATURE_NAMES, FeaturePanel, FeatureRow
 from .ml.mna import DealEvent, PropensityResult, build_universe, fit_propensity

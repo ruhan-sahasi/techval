@@ -77,11 +77,12 @@ from rich.text import Text
 
 from . import tags
 from .comps import prior_year_end
-from .config import Assumptions, read_yaml
+from .config import Assumptions
 from .edgar import EdgarClient, HttpCache
 from .errors import ConfigError, MissingDataError, TechvalError
 from .ev_bridge import build_ev_bridge
 from .financials import build_financials
+from .inputs import read_yaml
 from .market import MarketData, make_price_source
 from .nlp.sections import load_sections
 from .options import CONFIG, NO_CACHE, iso_date

@@ -3,7 +3,7 @@
 Without one, Python reads and writes with the locale's encoding, which is UTF-8
 on macOS and Linux and cp1252 on a stock Windows install, so the same file
 decodes one way here and another there. Binary modes are exempt, which covers
-``config.read_yaml``: it hands the parser bytes so that YAML settles the
+``inputs.read_yaml``: it hands the parser bytes so that YAML settles the
 encoding itself.
 """
 

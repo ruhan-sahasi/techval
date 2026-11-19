@@ -85,8 +85,6 @@ are defined.
 from __future__ import annotations
 
 import csv
-import gzip
-import io
 import json
 from collections.abc import Sequence
 from datetime import date, timedelta
@@ -99,11 +97,12 @@ from rich.markup import escape
 from rich.table import Table
 from rich.text import Text
 
-from .config import Assumptions, read_field
+from .config import Assumptions
 from .edgar import CompanyFacts, EdgarClient, HttpCache
 from .errors import ConfigError, MissingDataError, TechvalError
 from .ev_bridge import build_ev_bridge
 from .financials import build_financials
+from .inputs import open_text, read_field
 from .market import MarketData, PriceSeries, make_price_source
 from .ml import signals as signals_module
 from .ml.forecast import (
@@ -220,20 +219,6 @@ def _setup(config: Path | None, no_cache: bool, as_of: str | None = None):
     return assumptions, client, market, cache, source
 
 
-def _open_text(path: Path) -> io.TextIOBase:
-    """Read a ``.gz`` the same way as a plain file.
-
-    Every recorded panel in this repository is gzipped because the uncompressed
-    ones run to tens of megabytes, and a user who unzips one to look at it should
-    not then have to zip it again to feed it back in. ``utf-8-sig`` reads plain
-    UTF-8 and also drops the byte-order mark a spreadsheet's "CSV UTF-8" export
-    starts with, which plain UTF-8 keeps as part of the first column's name.
-    """
-    if path.suffix == ".gz":
-        return gzip.open(path, "rt", encoding="utf-8-sig")
-    return path.open("r", encoding="utf-8-sig")
-
-
 # --------------------------------------------------------------------------- #
 # The fade panel: live, or from a recorded blob
 # --------------------------------------------------------------------------- #
@@ -281,7 +266,7 @@ def _recorded_panel(path: Path, assumptions: Assumptions, only: set[str] | None)
     the ones that no longer exist, and ``classify`` resolves a ticker through the
     SEC's current ticker file, in which a delisted company does not appear.
     """
-    with _open_text(path) as handle:
+    with open_text(path) as handle:
         blob = json.load(handle)
     payloads = blob.get("payloads")
     meta = blob.get("meta")
@@ -956,7 +941,7 @@ def fade(
         # The valuation half. Facts from a recorded payload where one was given,
         # so the whole command can run with no network at all.
         if facts_file is not None:
-            with _open_text(facts_file) as handle:
+            with open_text(facts_file) as handle:
                 payload = json.load(handle)
             knowledge = assumptions.knowledge_date
             fin = build_financials(
@@ -1044,7 +1029,7 @@ _KNOWN_SCORES: dict[str, dict[str, Any]] = {
 
 
 def _read_rows(path: Path) -> list[dict[str, str]]:
-    with _open_text(path) as handle:
+    with open_text(path) as handle:
         return list(csv.DictReader(handle))
 
 
