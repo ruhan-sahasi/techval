@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from techval.errors import ConfigError, MissingDataError, NotMeaningfulError
+from techval.ev_bridge import build_ev_bridge
 from techval.market import PriceSeries
 from techval.wacc import (
     BetaEstimate,
@@ -202,6 +203,23 @@ def test_net_cash_company_is_flagged(ddog, ddog_bridge, market, assumptions):
     assert ddog_bridge.net_debt < 0
     w = compute_wacc(ddog, ddog_bridge, market, assumptions)
     assert any("net cash" in n.lower() for n in w.notes)
+
+
+def test_the_net_cash_note_states_the_gap_rather_than_calling_it_small(
+    zs, market, assumptions
+):
+    """Zscaler is net cash, but its convertible is carried as debt at a 6% weight.
+
+    The note said the WACC was its cost of equity "to within a few basis points"
+    whatever the weight; here the two are 33bp apart.
+    """
+    bridge = build_ev_bridge(zs, market.spot("ZS"), assumptions)
+    w = compute_wacc(zs, bridge, market, assumptions)
+    note = next(n for n in w.notes if "net cash" in n)
+    assert round((w.cost_of_equity - w.wacc) * 1e4) == 33
+    assert note.endswith(
+        "At a 6.0% debt weight the WACC is 33bp below the cost of equity."
+    )
 
 
 def test_buildup_names_a_source_for_every_input(ddog, ddog_bridge, market, assumptions):

@@ -541,6 +541,7 @@ def project(
     price: float | None = None,
     *,
     growth_path: Sequence[float] | None = None,
+    shares: float | None = None,
 ) -> list[ProjectionYear]:
     """Build the explicit forecast.
 
@@ -562,6 +563,12 @@ def project(
     ``techval.ml.forecast`` fits a fade curve into, and it is a function
     argument rather than an assumption because a measured path has to be
     measured by somebody, not typed into a file.
+
+    ``shares`` is the count year one starts from, ``fin.shares_for_valuation``
+    when left None. The valuation path passes the bridge's count, which differs
+    only where the bridge added an in-the-money convertible's conversion shares
+    to a treasury-stock count; per-share values divide by the same count the
+    equity value was bridged on.
     """
     cfg = assumptions.dcf
     if fin.revenue <= 0:
@@ -608,7 +615,7 @@ def project(
     rows: list[ProjectionYear] = []
     revenue = fin.revenue
     nwc_prev = cfg.nwc_pct_revenue * fin.revenue
-    shares = fin.shares_for_valuation
+    shares = fin.shares_for_valuation if shares is None else shares
     for i in range(n):
         revenue = revenue * (1.0 + float(growth[i]))
         ebit = revenue * float(margin[i])
@@ -1013,7 +1020,13 @@ def run_dcf(
     if cfg.nol.track:
         notes.append(_opening_nol(fin, assumptions)[1])
 
-    projections = project(fin, assumptions, price=bridge.price, growth_path=growth_path)
+    projections = project(
+        fin,
+        assumptions,
+        price=bridge.price,
+        growth_path=growth_path,
+        shares=bridge.diluted_shares,
+    )
     if growth_path is not None:
         notes.append(
             "The revenue growth path was supplied by the caller rather than faded "
@@ -1766,7 +1779,9 @@ def sensitivity_wacc_growth(
     printed number invites someone to read it.
     """
     cfg = assumptions.dcf
-    projections = project(fin, assumptions, price=bridge.price)
+    projections = project(
+        fin, assumptions, price=bridge.price, shares=bridge.diluted_shares
+    )
     n = len(projections)
     fcff = np.array([p.fcff for p in projections])
     flow = projections[-1].fcff_taxed_in_full
@@ -1825,7 +1840,9 @@ def sensitivity_wacc_exit(
             "passed in."
         )
 
-    projections = project(fin, assumptions, price=bridge.price)
+    projections = project(
+        fin, assumptions, price=bridge.price, shares=bridge.diluted_shares
+    )
     n = len(projections)
     fcff = np.array([p.fcff for p in projections])
     shares = projections[-1].shares_outstanding

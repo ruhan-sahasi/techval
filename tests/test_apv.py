@@ -23,7 +23,13 @@ import pytest
 
 from techval.apv import APVResult, run_apv, unlevered_cost_of_equity
 from techval.config import Assumptions
-from techval.dcf import project, run_dcf
+from techval.dcf import (
+    _carryforward_after,
+    _tax_rate,
+    discount_factors,
+    project,
+    run_dcf,
+)
 from techval.errors import ConfigError, NotMeaningfulError
 from techval.ev_bridge import EVBridge, build_ev_bridge
 from techval.financials import Financials
@@ -257,6 +263,42 @@ def test_a_carryforward_left_at_year_n_reaches_apv_as_it_reaches_the_wacc_value(
     assert result.total_value == pytest.approx(
         dcf_result.enterprise_value_gordon, rel=1e-12
     )
+    # The reconciliation's own rebuild holds the balance too, so it does not
+    # report two valuations that agree to the cent as different.
+    assert not [c for c in result.checks if c.startswith("FLAG: re-discounting")]
+
+
+def test_condition_two_values_the_carryforward_at_the_implied_rate(
+    zs, assumptions, market
+):
+    """Zscaler carries debt, so condition 2 re-discounts at the WACC its asset beta
+    implies. Its value there has to hold the balance left at year N, as the DCF's
+    does, or the gap it reports is the carryforward rather than the rate.
+    """
+    assumptions.dcf.nol.track = True
+    assumptions.dcf.nol.opening_balance = 3_000.0
+    _, wacc_result, dcf_result, result = _stack(zs, assumptions, market)
+    assert dcf_result.carryforward_value > 0
+    assert not [c for c in result.checks if c.startswith("FLAG: re-discounting")]
+
+    g = assumptions.dcf.terminal_growth
+    n = len(dcf_result.projections)
+    flows = np.array([p.fcff for p in dcf_result.projections])
+    terminal_flow = dcf_result.terminal_gordon.value * (dcf_result.wacc - g)
+    w = wacc_result
+    implied = (
+        result.unlevered_cost_of_equity
+        - w.weight_debt * w.tax_rate * w.pretax_cost_of_debt
+    )
+    tax = _tax_rate(zs, assumptions)[0]
+    at_implied = (
+        flows @ discount_factors(n, implied, True)
+        + terminal_flow / (implied - g) * (1 + implied) ** -(n - 0.5)
+        + _carryforward_after(dcf_result.projections[-1], assumptions, tax, implied, g)
+    )
+    line = next(c for c in result.checks if "Condition 2" in c)
+    swing = at_implied - dcf_result.enterprise_value
+    assert f"Discounting the same flows at it is worth {swing:,.0f}mm" in line
 
 
 def test_no_debt_returns_a_zero_shield_rather_than_dividing_by_leverage(

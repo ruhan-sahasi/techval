@@ -147,6 +147,11 @@ class AwardBlock:
     source_tag: str
 
 
+#: ``ShareCount.method`` for a count built from the award tables. Every other
+#: method is diluted WASO, configured or fallen back to.
+TREASURY_STOCK_METHOD = "treasury stock method"
+
+
 @dataclass
 class ShareCount:
     """A share count with the walk that produced it, in millions of shares."""
@@ -164,6 +169,11 @@ class ShareCount:
     method: str
     notes: list[str] = field(default_factory=list)
     flags: list[str] = field(default_factory=list)
+
+    @property
+    def from_awards(self) -> bool:
+        """True for a treasury-stock count, False where diluted WASO stands in."""
+        return self.method == TREASURY_STOCK_METHOD
 
     @property
     def gap_shares(self) -> float:
@@ -743,7 +753,7 @@ def build_share_count(
         diluted_waso=fin.diluted_shares,
         as_of=basic_date,
         accession=accession,
-        method="treasury stock method",
+        method=TREASURY_STOCK_METHOD,
         notes=notes,
         flags=[],
     )

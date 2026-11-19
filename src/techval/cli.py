@@ -1356,7 +1356,12 @@ def value(
             try:
                 sc = build_share_count(ticker, price, fin, assumptions, client)
                 _render_share_count(sc)
-                fin.valuation_shares = sc.fully_diluted
+                # Only a count built from the award tables replaces diluted WASO.
+                # A fallback IS diluted WASO, which already holds an in-the-money
+                # convertible's shares, and the bridge adds those to any count
+                # set here.
+                if sc.from_awards:
+                    fin.valuation_shares = sc.fully_diluted
             except TechvalError as exc:
                 print_rule(console, "Share count")
                 console.print(
@@ -1839,10 +1844,12 @@ def backtest(
             assumptions,
             edgar_client_factory(cache),
             market_factory_from(source, cache),
+            # The scoring prices span the dates valued, which --dates may set
+            # outside the --from/--to window.
             ForwardPrices(
                 source,
-                start=first - timedelta(days=400),
-                end=last + timedelta(days=horizon + 30),
+                start=min(when) - timedelta(days=400),
+                end=max(when) + timedelta(days=horizon + 30),
             ),
             horizon_days=horizon,
         )

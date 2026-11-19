@@ -19,7 +19,9 @@ from datetime import date, timedelta
 
 import numpy as np
 import pytest
+from typer.testing import CliRunner
 
+import techval.cli as cli
 import techval.market as M
 from techval.backtest import (
     FAILED,
@@ -40,7 +42,7 @@ from techval.errors import ConfigError
 from techval.financials import build_financials
 from techval.market import CsvSource, MarketData
 
-from conftest import PRICES, load_facts, load_payload
+from conftest import PRICES, flat, load_facts, load_payload, offline_config
 
 
 # The fixture price CSVs run 2023-09-01 to 2026-09-09. Dates are picked so that
@@ -876,3 +878,54 @@ def _scored_pairs(result: BacktestResult) -> list[tuple[float, float]]:
             continue
         out.append((obs.upside, fr.total_return))
     return out
+
+
+def test_the_stale_close_flag_counts_only_names_that_were_valued(
+    assumptions, market_factory, source
+):
+    """A name that failed made no call, so its stale entry close is not one.
+
+    The scoring series here stops on 2024-08-16, eighteen days before the
+    valuation date. DDOG is valued and MDB fails, and the flag counted both.
+    """
+    result = run_backtest(
+        ["DDOG", "MDB"],
+        [date(2024, 9, 3)],
+        assumptions,
+        dated_client_factory,
+        market_factory,
+        ForwardPrices(source, start=date(2023, 1, 1), end=date(2024, 8, 16)),
+    )
+    assert [o.valued for o in result.observations] == [True, False]
+    flag = next(c for c in result.checks if "scored from a close" in c)
+    assert flag.startswith("FLAG: 1 valued observations were scored from a close")
+
+
+# --------------------------------------------------------------------------- #
+# The command
+# --------------------------------------------------------------------------- #
+
+
+def test_dates_outside_the_from_to_window_are_scored_over_their_own_span(
+    tmp_path, monkeypatch
+):
+    """--dates replaces the quarter ends, but the scoring prices were read for
+    the --from/--to window, so a date after it had no exit close and was dropped
+    as an observation with no completed horizon."""
+    factory = lambda cache=None: dated_client_factory  # noqa: E731
+    monkeypatch.setattr(cli, "edgar_client_factory", factory)
+    result = CliRunner().invoke(
+        cli.app,
+        [
+            "backtest", "DDOG",
+            "--config", str(offline_config(tmp_path)),
+            "--no-cache",
+            "--from", "2024-01-01",
+            "--to", "2024-03-31",
+            "--dates", "2025-03-03",
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    text = flat(result.output)
+    assert "1 observations carry both an upside and a completed" in text
+    assert "have no completed horizon" not in text

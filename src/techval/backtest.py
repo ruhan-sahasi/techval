@@ -858,18 +858,23 @@ def run_backtest(
             "measured from a different point than the call was made."
         )
 
+    # Valued observations only: a name that failed or was skipped made no call,
+    # and its entry close is never used.
     old_prices = [
-        r
-        for r in returns
-        if r.entry_date is not None
+        o
+        for o in observations
+        if o.valued
+        and (r := by_key.get((o.ticker, o.as_of))) is not None
+        and r.entry_date is not None
         and (r.as_of - r.entry_date).days > stale_price_days
     ]
     if old_prices:
         checks.append(
-            f"FLAG: {len(old_prices)} observations were priced from a close more "
-            f"than {stale_price_days} days before their valuation date. The price "
-            "series does not really cover those dates, and both the call and the "
-            "return start from a stale mark."
+            f"FLAG: {len(old_prices)} valued observations were scored from a close "
+            f"more than {stale_price_days} days before their valuation date. The "
+            "scoring price series does not really cover those dates, so the return "
+            "starts from a stale mark, as does the call wherever the valuation read "
+            "the same series."
         )
 
     if n_paired < min_observations:
