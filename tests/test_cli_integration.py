@@ -978,3 +978,36 @@ def test_the_merger_command_repays_the_targets_borrowings_when_told_to(tmp_path)
         "Prepayment premium on them 460",
     ):
         assert text in out, text
+
+
+# --------------------------------------------------------------------------- #
+# the share count the bridge divides by
+# --------------------------------------------------------------------------- #
+
+
+def test_a_treasury_stock_count_that_fell_back_takes_no_conversion_shares(
+    tmp_path, monkeypatch
+):
+    """The fallback is diluted WASO, which already holds the conversion shares.
+
+    The command set it as the valuation count all the same, and the bridge,
+    reading any such count as one built from the award tables, added Datadog's
+    6.65mm conversion shares a second time: 373.6mm and an enterprise value of
+    79,172mm where diluted WASO gives 366.9mm and 77,674mm.
+    """
+
+    def unreadable(self, ticker, forms=("10-K", "10-Q")):
+        raise MissingDataError(
+            "XBRL instance document", ticker=ticker, hint="unreadable"
+        )
+
+    monkeypatch.setattr(FixtureClient, "instance_facts", unreadable)
+    config = _config(
+        tmp_path,
+        "dilution:\n  method: treasury_stock\n"
+        "convertibles:\n  conversion_price: 148.15\n",
+    )
+    text = flat(run_value("-c", str(config)).stdout)
+    assert "Method: diluted WASO fallback" in text
+    assert "conversion shares to the treasury stock count" not in text
+    assert "Enterprise value 77,673.9" in text

@@ -1356,7 +1356,12 @@ def value(
             try:
                 sc = build_share_count(ticker, price, fin, assumptions, client)
                 _render_share_count(sc)
-                fin.valuation_shares = sc.fully_diluted
+                # Only a count built from the award tables replaces diluted WASO.
+                # A fallback IS diluted WASO, which already holds an in-the-money
+                # convertible's shares, and the bridge adds those to any count
+                # set here.
+                if sc.from_awards:
+                    fin.valuation_shares = sc.fully_diluted
             except TechvalError as exc:
                 print_rule(console, "Share count")
                 console.print(
