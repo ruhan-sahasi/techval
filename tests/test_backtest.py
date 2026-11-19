@@ -880,6 +880,27 @@ def _scored_pairs(result: BacktestResult) -> list[tuple[float, float]]:
     return out
 
 
+def test_the_stale_close_flag_counts_only_names_that_were_valued(
+    assumptions, market_factory, source
+):
+    """A name that failed made no call, so its stale entry close is not one.
+
+    The scoring series here stops on 2024-08-16, eighteen days before the
+    valuation date. DDOG is valued and MDB fails, and the flag counted both.
+    """
+    result = run_backtest(
+        ["DDOG", "MDB"],
+        [date(2024, 9, 3)],
+        assumptions,
+        dated_client_factory,
+        market_factory,
+        ForwardPrices(source, start=date(2023, 1, 1), end=date(2024, 8, 16)),
+    )
+    assert [o.valued for o in result.observations] == [True, False]
+    flag = next(c for c in result.checks if "scored from a close" in c)
+    assert flag.startswith("FLAG: 1 valued observations were scored from a close")
+
+
 # --------------------------------------------------------------------------- #
 # The command
 # --------------------------------------------------------------------------- #
