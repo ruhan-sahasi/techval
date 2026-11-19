@@ -1839,10 +1839,12 @@ def backtest(
             assumptions,
             edgar_client_factory(cache),
             market_factory_from(source, cache),
+            # The scoring prices span the dates valued, which --dates may set
+            # outside the --from/--to window.
             ForwardPrices(
                 source,
-                start=first - timedelta(days=400),
-                end=last + timedelta(days=horizon + 30),
+                start=min(when) - timedelta(days=400),
+                end=max(when) + timedelta(days=horizon + 30),
             ),
             horizon_days=horizon,
         )
