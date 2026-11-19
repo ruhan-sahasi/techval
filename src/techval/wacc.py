@@ -72,7 +72,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import date, timedelta
 
 import numpy as np
 
@@ -86,6 +86,12 @@ from .market import MarketData, PriceSeries
 # the standard error on the slope is wide enough that the point estimate is not
 # worth quoting, and it is roughly seven months of trading.
 MIN_OBSERVATIONS = 30
+
+# How much shorter than market.beta_lookback_years the weeks regressed on may run
+# before the source line says so: a weekend and a holiday at the far end of the
+# closes held move the first paired week by a few days, and two weeks is one
+# weekly return either way.
+_LOOKBACK_SLACK_YEARS = 14 / 365.25
 
 # The Bloomberg weight on the regression slope, with 1 - this on the market beta
 # of 1.0. Named because the Vasicek path has to rescale the standard error by the
@@ -181,6 +187,15 @@ class BetaEstimate:
     adjustment: str = "raw"
     shrunk_beta: float | None = None
     shrink_weight: float | None = None
+    first_week: date | None = None
+    last_week: date | None = None
+
+    @property
+    def span_years(self) -> float | None:
+        """The years the regression covered, the first return's own week included."""
+        if self.first_week is None or self.last_week is None:
+            return None
+        return ((self.last_week - self.first_week).days + 7) / 365.25
 
     def as_row(self) -> dict:
         return {
@@ -301,7 +316,7 @@ def relever(beta_u: float, debt_to_equity: float, tax_rate: float) -> float:
 
 def _aligned_weekly_returns(
     stock: PriceSeries, market: PriceSeries, lookback_years: float | None
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, list[date]]:
     """Paired weekly returns on the dates both series actually priced.
 
     Regressing two return vectors by position rather than by date is the quiet
@@ -322,11 +337,13 @@ def _aligned_weekly_returns(
 
     xs: list[float] = []
     ys: list[float] = []
+    weeks: list[date] = []
     for d, r in zip(s_dates, s_ret):
         if d in by_date:
             xs.append(float(by_date[d]))
             ys.append(float(r))
-    return np.asarray(xs, dtype=float), np.asarray(ys, dtype=float)
+            weeks.append(d)
+    return np.asarray(xs, dtype=float), np.asarray(ys, dtype=float), weeks
 
 
 def estimate_beta(
@@ -356,7 +373,7 @@ def estimate_beta(
             f"unknown beta adjustment {adjustment!r}; expected 'raw' or 'blume'"
         )
 
-    x, y = _aligned_weekly_returns(stock, market, lookback_years)
+    x, y, weeks = _aligned_weekly_returns(stock, market, lookback_years)
     n = int(x.size)
     if n < min_observations:
         raise MissingDataError(
@@ -418,6 +435,8 @@ def estimate_beta(
         tax_rate=tax_rate,
         note=note,
         adjustment=adjustment,
+        first_week=weeks[0],
+        last_week=weeks[-1],
     )
 
 
@@ -802,11 +821,30 @@ def compute_wacc(
         )
         levered_beta = regression.adjusted_beta
         unlevered_beta = regression.unlevered_beta
+        asked = mkt_cfg.beta_lookback_years
+        span = regression.span_years
+        # The span the weeks regressed on actually cover, where it falls short of
+        # the lookback asked for: a recent listing, or closes that start late.
+        short = span is not None and span < asked - _LOOKBACK_SLACK_YEARS
+        window = f"{span:.1f}y of the {asked:g}y asked" if short else f"{asked:g}y"
         beta_source = (
             f"OLS of {regression.n_observations} weekly returns on "
-            f"{mkt_cfg.market_index} over {mkt_cfg.beta_lookback_years:g}y, "
+            f"{mkt_cfg.market_index} over {window}, "
             f"s.e. {regression.stderr:,.2f}, {mkt_cfg.beta_adjustment} adjustment"
         )
+        if short:
+            stock_start = market_data.prices(fin.ticker).dates[0]
+            index_start = market_data.prices(mkt_cfg.market_index).dates[0]
+            why = (
+                f"{fin.ticker}'s closes start on {stock_start}"
+                if stock_start > index_start
+                else f"the {mkt_cfg.market_index} closes held start on {index_start}"
+            )
+            notes.append(
+                f"The beta regression covers {span:.1f} years of weekly returns, "
+                f"{regression.first_week} to {regression.last_week}, not the "
+                f"{asked:g} years market.beta_lookback_years asks for, because {why}."
+            )
         unlevered_source = (
             f"Hamada at {debt_to_equity:,.2f}x D/E and a {tax_rate:.1%} tax rate"
         )

@@ -222,6 +222,34 @@ def test_the_net_cash_note_states_the_gap_rather_than_calling_it_small(
     )
 
 
+def _beta_source(wacc_result) -> str:
+    return next(r["source"] for r in wacc_result.buildup_rows() if "OLS" in r["source"])
+
+
+def test_a_lookback_longer_than_the_closes_held_names_the_span_regressed(
+    ddog, ddog_bridge, market, assumptions
+):
+    """A valuation reads three years of closes, so five years asked was three.
+
+    The regression ran on the 156 weeks it had while its source line said five
+    years, the same estimate as a three-year lookback under a different name.
+    """
+    assumptions.market.beta_lookback_years = 5.0
+    w = compute_wacc(ddog, ddog_bridge, market, assumptions)
+    assert "over 3.0y of the 5y asked" in _beta_source(w)
+    note = next(n for n in w.notes if "beta regression covers" in n)
+    assert "not the 5 years market.beta_lookback_years asks for" in note
+    assert "because the SPY closes held start on" in note
+
+
+def test_a_lookback_the_closes_cover_is_named_as_asked(
+    ddog, ddog_bridge, market, assumptions
+):
+    w = compute_wacc(ddog, ddog_bridge, market, assumptions)
+    assert "over 2y," in _beta_source(w)
+    assert not [n for n in w.notes if "beta regression covers" in n]
+
+
 def test_buildup_names_a_source_for_every_input(ddog, ddog_bridge, market, assumptions):
     """The table is the audit trail; a row without a source is not auditable."""
     w = compute_wacc(ddog, ddog_bridge, market, assumptions)
