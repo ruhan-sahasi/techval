@@ -317,13 +317,18 @@ def relever(beta_u: float, debt_to_equity: float, tax_rate: float) -> float:
 def _aligned_weekly_returns(
     stock: PriceSeries, market: PriceSeries, lookback_years: float | None
 ) -> tuple[np.ndarray, np.ndarray, list[date]]:
-    """Paired weekly returns on the dates both series actually priced.
+    """Paired weekly returns over the periods both series actually priced.
 
     Regressing two return vectors by position rather than by date is the quiet
     killer here. A peer that listed eighteen months ago has fewer weeks than the
     index, and zipping them together pairs its first week against the index's
     first week two years earlier. The slope that comes back is arithmetic
     performed on unrelated numbers, and it looks entirely plausible on screen.
+
+    Pairing on the day a return ends is not enough either. After a week with no
+    close, a halt or a hole in the feed, the stock's next return spans both
+    weeks, and paired against the index's one-week return it puts a multi-week
+    move beside a one-week one. Returns are paired on the period they cover.
     """
     if lookback_years is not None:
         anchor = min(stock.last_date, market.last_date)
@@ -331,18 +336,18 @@ def _aligned_weekly_returns(
         stock = stock.window(cut)
         market = market.window(cut)
 
-    s_dates, s_ret = stock.weekly_returns()
-    m_dates, m_ret = market.weekly_returns()
-    by_date = dict(zip(m_dates, m_ret))
+    s_starts, s_ends, s_ret = stock.weekly_return_periods()
+    m_starts, m_ends, m_ret = market.weekly_return_periods()
+    by_period = dict(zip(zip(m_starts, m_ends), m_ret))
 
     xs: list[float] = []
     ys: list[float] = []
     weeks: list[date] = []
-    for d, r in zip(s_dates, s_ret):
-        if d in by_date:
-            xs.append(float(by_date[d]))
+    for start, end, r in zip(s_starts, s_ends, s_ret):
+        if (start, end) in by_period:
+            xs.append(float(by_period[(start, end)]))
             ys.append(float(r))
-            weeks.append(d)
+            weeks.append(end)
     return np.asarray(xs, dtype=float), np.asarray(ys, dtype=float), weeks
 
 
