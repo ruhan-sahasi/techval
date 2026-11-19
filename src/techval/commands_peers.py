@@ -1043,8 +1043,12 @@ def peers(
     text: Path = typer.Option(
         None, "--text", help="Recorded business descriptions by date (JSON)."
     ),
-    n: int = typer.Option(None, "--n", help="Peers to show. Default ml.peers.n_peers."),
-    k: int = typer.Option(10, "--k", help="Rank cut-off the evaluation reports."),
+    n: int = typer.Option(
+        None, "--n", min=1, help="Peers to show. Default ml.peers.n_peers."
+    ),
+    k: int = typer.Option(
+        10, "--k", min=1, help="Rank cut-off the evaluation reports."
+    ),
     through: str = typer.Option(
         None,
         "--through",
@@ -1123,7 +1127,7 @@ def peers(
             use_cache=cache,
         )
         encoder = bundle.encoder
-        shown = int(n) if n else int(assumptions.ml.peers.n_peers)
+        shown = int(n) if n is not None else int(assumptions.ml.peers.n_peers)
         ranked = encoder.neighbours(target, shown, apply_size_gate=size_gate)
 
         names: dict[str, str] = {}

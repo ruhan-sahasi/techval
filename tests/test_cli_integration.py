@@ -263,13 +263,20 @@ def _usage_error(output: str) -> str:
         ["backtest", "DDOG", "--horizon", "0"],
         ["screen", "--panel", WARRANTED_PANEL, "--n", "0"],
         ["screen", "--panel", WARRANTED_PANEL, "--n", "-2"],
+        ["peers", "DDOG", "--n", "0"],
+        ["peers", "DDOG", "--n", "-3"],
+        ["peers", "DDOG", "--k", "0"],
     ],
 )
 def test_a_step_horizon_or_count_below_one_is_refused_as_typed(args):
-    """Each of these used to run. ``signal --every 0`` never left the loop that
-    lays out its rebalance dates, ``backtest --horizon 0`` scored every holding
-    over zero days, and ``screen --n 0`` printed every name where ``--n -2``
-    printed most of them twice."""
+    """Each of these used to run, or failed late under another name.
+
+    ``signal --every 0`` never left the loop that lays out its rebalance dates,
+    ``backtest --horizon 0`` scored every holding over zero days, and ``screen
+    --n 0`` printed every name where ``--n -2`` printed most of them twice.
+    ``peers --n 0`` fitted the encoder and showed the default eight, and ``peers
+    --n -3`` or ``--k 0`` fitted it and then refused "k must be at least 1".
+    """
     result = runner.invoke(C.app, args)
     assert result.exit_code == 2
     assert f"Invalid value for '{args[-2]}'" in _usage_error(result.output)
