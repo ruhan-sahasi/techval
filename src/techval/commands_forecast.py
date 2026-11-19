@@ -1616,7 +1616,10 @@ def signal(
         True, "--series/--no-series", help="Print the coefficient series date by date."
     ),
     csv_out: Path = typer.Option(
-        None, "--csv", help="Write one row per attempted company-date, failures kept."
+        None,
+        "--csv",
+        dir_okay=False,
+        help="Write one row per attempted company-date, failures kept.",
     ),
 ) -> None:
     """Test whether a score predicted forward returns. The answer is allowed to be no.
@@ -1740,7 +1743,12 @@ def signal(
         )
 
         if csv_out is not None:
-            result.frame().to_csv(csv_out, index=False)
+            try:
+                csv_out.parent.mkdir(parents=True, exist_ok=True)
+                result.frame().to_csv(csv_out, index=False)
+            except OSError as exc:
+                reason = exc.strerror or exc
+                raise ConfigError(f"{csv_out} could not be written: {reason}.") from exc
             print_rule(console, "Output")
             console.print(
                 f"Company-date detail written to [bold]{escape(str(csv_out))}[/bold]"

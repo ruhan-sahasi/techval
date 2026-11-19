@@ -1855,6 +1855,7 @@ def sotp(
     emit_plan: Path = typer.Option(
         None,
         "--emit-plan",
+        dir_okay=False,
         help="Write a skeleton plan carrying this filer's own segment names, and stop.",
     ),
     discount: float = typer.Option(
@@ -1888,7 +1889,14 @@ def sotp(
         report = build_segments(ticker, client, assumptions)
 
         if emit_plan is not None:
-            emit_plan.write_text(plan_skeleton(report), encoding="utf-8")
+            try:
+                emit_plan.parent.mkdir(parents=True, exist_ok=True)
+                emit_plan.write_text(plan_skeleton(report), encoding="utf-8")
+            except OSError as exc:
+                reason = exc.strerror or exc
+                raise ConfigError(
+                    f"{emit_plan} could not be written: {reason}."
+                ) from exc
             console.print(
                 f"Wrote a skeleton for {len(report.segments)} segment(s) to "
                 f"[bold]{escape(str(emit_plan))}[/bold]. Fill in every multiple and every "
