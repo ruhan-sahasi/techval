@@ -11,7 +11,6 @@ ran to, and its basis of preparation lists them in place of fixture digests.
 
 from __future__ import annotations
 
-import json
 import time
 from contextlib import contextmanager
 from datetime import date
@@ -22,6 +21,7 @@ from .config import Assumptions
 from .dashboard.collect import entry_module
 from .dashboard.sections import engine as E
 from .dashboard.snapshot import Snapshot, to_jsonable, validate_section
+from .inputs import read_json
 
 
 class RecordedFacts:
@@ -38,7 +38,7 @@ class RecordedFacts:
         path = self.directory / f"companyfacts_{ticker.upper()}.json"
         if not path.is_file():
             raise MissingDataError("companyfacts", ticker=ticker.upper(), hint=f"no recorded payload at {path}")
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = read_json(path, "a companyfacts payload", dict)
         return CompanyFacts(payload, ticker, knowledge_date=self.knowledge_date)
 
     def ticker_to_cik(self, ticker: str) -> int:

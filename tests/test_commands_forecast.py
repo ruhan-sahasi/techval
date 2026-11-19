@@ -807,10 +807,12 @@ def test_the_company_date_detail_keeps_the_rows_that_could_not_be_scored(
     It would also make it disagree with the run, and the count of what could not be
     scored is part of the result. The recorded panel carries 2,992 company-dates of
     which 2,604 reached a coefficient, and the 388 censored at the edge of the
-    price data have to be visible somewhere.
+    price data have to be visible somewhere. The folder named need not exist: it
+    is made, as the chart and page writers make theirs, rather than the finished
+    run ending in a FileNotFoundError.
     """
     config = write_config(tmp_path_factory.mktemp("cfg"))
-    out = tmp_path / "detail.csv"
+    out = tmp_path / "runs" / "detail.csv"
     result = runner.invoke(
         app,
         [
@@ -838,6 +840,12 @@ def test_the_company_date_detail_keeps_the_rows_that_could_not_be_scored(
 # --------------------------------------------------------------------------- #
 # signal: refusals
 # --------------------------------------------------------------------------- #
+
+
+def test_a_folder_named_as_the_detail_file_is_refused_before_the_run(tmp_path):
+    result = runner.invoke(app, ["signal", "--csv", str(tmp_path)])
+    assert result.exit_code == 2
+    assert "Invalid value for '--csv'" in flat(result.output.replace("\u2502", " "))
 
 
 def test_the_echoed_settings_are_the_ones_the_run_used_not_the_ones_on_file(

@@ -13,7 +13,6 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Literal
 
-import yaml
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -24,22 +23,7 @@ from pydantic import (
 )
 
 from .errors import ConfigError
-
-
-def read_yaml(path: Path) -> object:
-    """A YAML file's contents, or a ConfigError naming the file and the reason.
-
-    A file the parser rejects raised ``yaml.YAMLError``, and an impossible date
-    such as ``as_of: 2024-13-01`` the ValueError from ``datetime.date``, and no
-    command catches either, so a stray indent ended in a traceback. The file is
-    handed over as bytes, so the parser settles the encoding, as YAML specifies,
-    and the line it points at carries the file's name.
-    """
-    try:
-        with Path(path).open("rb") as handle:
-            return yaml.safe_load(handle)
-    except (yaml.YAMLError, ValueError) as exc:
-        raise ConfigError(f"{path} could not be read as YAML. {exc}") from exc
+from .inputs import read_yaml
 
 
 class _Base(BaseModel):
@@ -945,11 +929,19 @@ class Assumptions(_Base):
         if not p.exists():
             raise ConfigError(f"assumptions file not found: {p}")
         raw = read_yaml(p) or {}
+        if not isinstance(raw, dict):
+            held = "a list" if isinstance(raw, list) else "a single value"
+            raise ConfigError(
+                f"{p} should be a mapping of assumption sections, such as dcf: and "
+                f"comps:, and holds {held}."
+            )
         try:
             return cls.model_validate(raw)
         except ValidationError as exc:
             problems = "; ".join(
                 ".".join(str(part) for part in error["loc"]) + ": " + error["msg"]
+                if error["loc"]
+                else error["msg"]
                 for error in exc.errors()
             )
             raise ConfigError(f"{p} was not accepted. {problems}") from exc

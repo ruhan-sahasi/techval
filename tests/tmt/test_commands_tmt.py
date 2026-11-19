@@ -1076,6 +1076,21 @@ def test_the_skeleton_carries_the_filers_own_segment_names(tmp_path):
     assert 'source: ""' in written
 
 
+def test_the_skeleton_is_written_into_a_folder_that_did_not_exist(tmp_path):
+    """The write raised FileNotFoundError, where the chart writers make theirs."""
+    path = tmp_path / "plans" / "2026" / "skeleton.yaml"
+    result = run("sotp", "DIS", "--emit-plan", str(path))
+    assert result.exit_code == 0
+    assert "  Entertainment:" in path.read_text(encoding="utf-8")
+
+
+def test_a_folder_named_as_the_skeleton_is_refused_before_the_run(tmp_path):
+    result = runner.invoke(C.app, ["sotp", "DIS", "--emit-plan", str(tmp_path)])
+    assert result.exit_code == 2
+    text = flat(result.output.replace("\u2502", " "))
+    assert "Invalid value for '--emit-plan'" in text
+
+
 @pytest.mark.parametrize("folder", ["plans [v2]", "plans [/v2]"])
 def test_the_skeleton_is_reported_where_it_was_written(tmp_path, folder):
     """A path is printed as text: brackets in a folder name are not a style."""

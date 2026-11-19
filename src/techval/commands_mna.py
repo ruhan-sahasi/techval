@@ -67,7 +67,6 @@ from __future__ import annotations
 
 import csv
 import gzip
-import json
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -81,6 +80,7 @@ from rich.text import Text
 from .config import Assumptions
 from .edgar import EdgarClient, HttpCache
 from .errors import ConfigError, MissingDataError, TechvalError
+from .inputs import read_field, read_json
 from .market import make_price_source
 from .ml.features import FEATURE_NAMES, FeaturePanel, FeatureRow
 from .ml.mna import DealEvent, PropensityResult, build_universe, fit_propensity
@@ -742,6 +742,7 @@ def precedents(
 #: else that is not in FEATURE_NAMES is carried as a derived extra, which is how
 #: mna_net_cash_to_assets reaches build_matrix.
 _PANEL_KEYS = ("ticker", "as_of", "knowledge_date", "statement_date")
+_ISO_DATE = "a YYYY-MM-DD date"
 
 
 def _open_panel(directory: Path):
@@ -798,23 +799,31 @@ def load_dataset(
         if not path.exists():
             raise MissingDataError(what, hint=f"no file at {path}")
 
-    universe = build_universe(json.loads(roster_path.read_text(encoding="utf-8")))
+    universe = build_universe(read_json(roster_path, "the universe roster", list))
 
     events = [
         DealEvent(
             ticker=str(e["ticker"]).upper(),
-            announced=date.fromisoformat(e["announced"]),
+            announced=read_field(
+                events_path,
+                f"event {i}",
+                "announced",
+                e.get("announced"),
+                date.fromisoformat,
+                _ISO_DATE,
+            ),
             completed=bool(e.get("completed")),
             name=str(e.get("name") or ""),
             acquirer=e.get("acquirer"),
             source_form=e.get("source_form"),
         )
-        for e in json.loads(events_path.read_text(encoding="utf-8"))
+        for i, e in enumerate(read_json(events_path, "the deal events", list), start=1)
     ]
 
     rows: list[FeatureRow] = []
     extras: dict[tuple[str, date], dict[str, float | None]] = {}
     with _open_panel(directory) as fh:
+        panel_path = Path(fh.name)
         reader = csv.DictReader(fh)
         header = list(reader.fieldnames or ())
         missing_keys = [k for k in _PANEL_KEYS if k not in header]
@@ -827,28 +836,37 @@ def load_dataset(
         feature_cols = [c for c in header if c in set(FEATURE_NAMES)]
         extra_cols = [c for c in header if c not in set(FEATURE_NAMES) and c not in _PANEL_KEYS]
         for rec in reader:
-            when = date.fromisoformat(rec["as_of"])
-            values: dict[str, float | None] = {
-                name: (None if rec.get(name, "") == "" else float(rec[name]))
-                for name in FEATURE_NAMES
-            }
+            # line_num is the line the row ended on, header counted as line one.
+            where = f"line {reader.line_num}"
+
+            def number(name: str) -> float | None:
+                text = rec.get(name, "")
+                if text == "":
+                    return None
+                return read_field(panel_path, where, name, text, float, "a number")
+
+            def day(name: str) -> date:
+                return read_field(
+                    panel_path, where, name, rec[name], date.fromisoformat, _ISO_DATE
+                )
+
+            when = day("as_of")
+            values = {name: number(name) for name in FEATURE_NAMES}
             rows.append(
                 FeatureRow(
                     ticker=str(rec["ticker"]).upper(),
                     as_of=when,
-                    knowledge_date=date.fromisoformat(rec["knowledge_date"]),
+                    knowledge_date=day("knowledge_date"),
                     values=values,
                     missing=[n for n, v in values.items() if v is None],
                     statement_date=(
-                        date.fromisoformat(rec["statement_date"])
-                        if rec["statement_date"]
-                        else None
+                        day("statement_date") if rec["statement_date"] else None
                     ),
                 )
             )
             if extra_cols:
                 extras[(str(rec["ticker"]).upper(), when)] = {
-                    c: (None if rec[c] == "" else float(rec[c])) for c in extra_cols
+                    c: number(c) for c in extra_cols
                 }
     if not rows:
         raise MissingDataError(

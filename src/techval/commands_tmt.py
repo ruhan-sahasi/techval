@@ -77,11 +77,12 @@ from rich.text import Text
 
 from . import tags
 from .comps import prior_year_end
-from .config import Assumptions, read_yaml
+from .config import Assumptions
 from .edgar import EdgarClient, HttpCache
 from .errors import ConfigError, MissingDataError, TechvalError
 from .ev_bridge import build_ev_bridge
 from .financials import build_financials
+from .inputs import read_yaml
 from .market import MarketData, make_price_source
 from .nlp.sections import load_sections
 from .options import CONFIG, NO_CACHE, iso_date
@@ -1855,6 +1856,7 @@ def sotp(
     emit_plan: Path = typer.Option(
         None,
         "--emit-plan",
+        dir_okay=False,
         help="Write a skeleton plan carrying this filer's own segment names, and stop.",
     ),
     discount: float = typer.Option(
@@ -1888,7 +1890,14 @@ def sotp(
         report = build_segments(ticker, client, assumptions)
 
         if emit_plan is not None:
-            emit_plan.write_text(plan_skeleton(report), encoding="utf-8")
+            try:
+                emit_plan.parent.mkdir(parents=True, exist_ok=True)
+                emit_plan.write_text(plan_skeleton(report), encoding="utf-8")
+            except OSError as exc:
+                reason = exc.strerror or exc
+                raise ConfigError(
+                    f"{emit_plan} could not be written: {reason}."
+                ) from exc
             console.print(
                 f"Wrote a skeleton for {len(report.segments)} segment(s) to "
                 f"[bold]{escape(str(emit_plan))}[/bold]. Fill in every multiple and every "

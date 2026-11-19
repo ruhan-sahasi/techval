@@ -85,9 +85,6 @@ are defined.
 from __future__ import annotations
 
 import csv
-import gzip
-import io
-import json
 from collections.abc import Sequence
 from datetime import date, timedelta
 from pathlib import Path
@@ -104,6 +101,7 @@ from .edgar import CompanyFacts, EdgarClient, HttpCache
 from .errors import ConfigError, MissingDataError, TechvalError
 from .ev_bridge import build_ev_bridge
 from .financials import build_financials
+from .inputs import open_text, read_field, read_json
 from .market import MarketData, PriceSeries, make_price_source
 from .ml import signals as signals_module
 from .ml.forecast import (
@@ -220,20 +218,6 @@ def _setup(config: Path | None, no_cache: bool, as_of: str | None = None):
     return assumptions, client, market, cache, source
 
 
-def _open_text(path: Path) -> io.TextIOBase:
-    """Read a ``.gz`` the same way as a plain file.
-
-    Every recorded panel in this repository is gzipped because the uncompressed
-    ones run to tens of megabytes, and a user who unzips one to look at it should
-    not then have to zip it again to feed it back in. ``utf-8-sig`` reads plain
-    UTF-8 and also drops the byte-order mark a spreadsheet's "CSV UTF-8" export
-    starts with, which plain UTF-8 keeps as part of the first column's name.
-    """
-    if path.suffix == ".gz":
-        return gzip.open(path, "rt", encoding="utf-8-sig")
-    return path.open("r", encoding="utf-8-sig")
-
-
 # --------------------------------------------------------------------------- #
 # The fade panel: live, or from a recorded blob
 # --------------------------------------------------------------------------- #
@@ -281,8 +265,7 @@ def _recorded_panel(path: Path, assumptions: Assumptions, only: set[str] | None)
     the ones that no longer exist, and ``classify`` resolves a ticker through the
     SEC's current ticker file, in which a delisted company does not appear.
     """
-    with _open_text(path) as handle:
-        blob = json.load(handle)
+    blob = read_json(path, "a recorded fade panel", dict)
     payloads = blob.get("payloads")
     meta = blob.get("meta")
     if not isinstance(payloads, dict) or not isinstance(meta, dict):
@@ -956,8 +939,7 @@ def fade(
         # The valuation half. Facts from a recorded payload where one was given,
         # so the whole command can run with no network at all.
         if facts_file is not None:
-            with _open_text(facts_file) as handle:
-                payload = json.load(handle)
+            payload = read_json(facts_file, "a companyfacts payload", dict)
             knowledge = assumptions.knowledge_date
             fin = build_financials(
                 symbol, facts=CompanyFacts(payload, symbol, knowledge_date=knowledge)
@@ -1044,23 +1026,8 @@ _KNOWN_SCORES: dict[str, dict[str, Any]] = {
 
 
 def _read_rows(path: Path) -> list[dict[str, str]]:
-    with _open_text(path) as handle:
+    with open_text(path) as handle:
         return list(csv.DictReader(handle))
-
-
-def _cell(path: Path, line: int, column: str, text: str | None, parse, what: str):
-    """One cell of a recorded file read with ``parse``, or a refusal saying where.
-
-    A spreadsheet writes #N/A for a missing value and 3/31/2024 for a date, and
-    either raised a ValueError that no command catches. ``line`` counts the
-    header as line one, which is where an editor puts the row.
-    """
-    try:
-        return parse(text)
-    except (TypeError, ValueError):
-        raise ConfigError(
-            f"{path} line {line}: {column} is {text!r}, which is not {what}."
-        ) from None
 
 
 def _scores_from_csv(
@@ -1092,6 +1059,7 @@ def _scores_from_csv(
             "that carries the score; this file has " + ", ".join(sorted(header))
         )
     out: list[Score] = []
+    # The header is line one, which is where an editor puts the first row.
     for line, row in enumerate(rows, start=2):
         ticker = row["ticker"].upper()
         if limit_to and ticker not in limit_to:
@@ -1099,9 +1067,10 @@ def _scores_from_csv(
         raw = row[column]
         if raw is None or raw == "":
             continue
-        value = _cell(path, line, column, raw, float, "a number")
-        when = _cell(
-            path, line, "as_of", row["as_of"], date.fromisoformat, "a YYYY-MM-DD date"
+        where = f"line {line}"
+        value = read_field(path, where, column, raw, float, "a number")
+        when = read_field(
+            path, where, "as_of", row["as_of"], date.fromisoformat, "a YYYY-MM-DD date"
         )
         out.append(
             Score(
@@ -1142,10 +1111,11 @@ def _prices_from_csv(path: Path, limit_to: set[str] | None) -> dict[str, PriceSe
         ticker = row["ticker"].upper()
         if limit_to and ticker not in limit_to:
             continue
-        when = _cell(
-            path, line, "date", row["date"], date.fromisoformat, "a YYYY-MM-DD date"
+        where = f"line {line}"
+        when = read_field(
+            path, where, "date", row["date"], date.fromisoformat, "a YYYY-MM-DD date"
         )
-        close = _cell(path, line, "close", row["close"], float, "a number")
+        close = read_field(path, where, "close", row["close"], float, "a number")
         by_ticker.setdefault(ticker, []).append((when, close))
     if not by_ticker:
         raise ConfigError(f"{path} carries no price series for the requested universe")
@@ -1628,7 +1598,10 @@ def signal(
         True, "--series/--no-series", help="Print the coefficient series date by date."
     ),
     csv_out: Path = typer.Option(
-        None, "--csv", help="Write one row per attempted company-date, failures kept."
+        None,
+        "--csv",
+        dir_okay=False,
+        help="Write one row per attempted company-date, failures kept.",
     ),
 ) -> None:
     """Test whether a score predicted forward returns. The answer is allowed to be no.
@@ -1752,7 +1725,12 @@ def signal(
         )
 
         if csv_out is not None:
-            result.frame().to_csv(csv_out, index=False)
+            try:
+                csv_out.parent.mkdir(parents=True, exist_ok=True)
+                result.frame().to_csv(csv_out, index=False)
+            except OSError as exc:
+                reason = exc.strerror or exc
+                raise ConfigError(f"{csv_out} could not be written: {reason}.") from exc
             print_rule(console, "Output")
             console.print(
                 f"Company-date detail written to [bold]{escape(str(csv_out))}[/bold]"
