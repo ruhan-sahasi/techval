@@ -57,10 +57,11 @@ through market.peer_beta_method.
 D/(D+E) using gross debt, not net. The interest tax shield attaches to the debt
 outstanding, not to a net position, and netting cash against debt in the weights
 would credit the firm with a shield it does not receive. The practical
-consequence is that a net-cash software company has a debt weight near zero and a
-WACC that is its cost of equity to within a few basis points. The output says so,
-because a WACC page that shows a 3% after-tax cost of debt invites the reader to
-think it mattered.
+consequence is that a net-cash software company often has a debt weight near zero
+and a WACC within a few basis points of its cost of equity, though not always: a
+convertible carried as debt can leave a net-cash filer with a weight of several
+percent. The output says how far apart the two are, because a WACC page that shows
+a 3% after-tax cost of debt invites the reader to think it mattered.
 
 Rates are decimals, money is USD millions, and every assumption is read from the
 Assumptions object.
@@ -902,11 +903,15 @@ def compute_wacc(
         )
 
     if bridge.net_debt < 0:
+        # The gap is stated rather than assumed small: a net-cash filer can still
+        # carry a debt weight of several percent.
+        gap = cost_of_equity - wacc
         notes.append(
             f"{fin.ticker} is net cash by {-bridge.net_debt:,.0f}mm. Weights still use "
             f"gross debt of {debt:,.0f}mm, because the tax shield attaches to debt "
             f"outstanding and not to a net position. At a {weight_debt:.1%} debt "
-            "weight the WACC is its cost of equity to within a few basis points."
+            f"weight the WACC is {abs(gap) * 1e4:,.0f}bp "
+            f"{'below' if gap >= 0 else 'above'} the cost of equity."
         )
         if bridge.convertible_debt > 0 and bridge.convertible_in_debt == 0:
             notes.append(
