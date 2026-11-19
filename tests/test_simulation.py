@@ -866,8 +866,9 @@ def test_ten_thousand_draws_complete_quickly(ddog, ddog_bridge, wacc_result, sim
     assert elapsed < 5.0
 
 
+@pytest.mark.parametrize("conversion_price", [None, 148.15])
 def test_simulation_uses_the_same_share_count_as_the_dcf(
-    ddog, ddog_bridge, market, assumptions
+    ddog, market, assumptions, conversion_price
 ):
     """A treasury stock count must reach the vectorised path too.
 
@@ -875,16 +876,26 @@ def test_simulation_uses_the_same_share_count_as_the_dcf(
     every call. Starting from diluted WASO here while run_dcf started from a
     point-in-time count put a 2.9% wedge between them, and the reconciliation
     correctly refused to run rather than publishing a distribution around a
-    per-share figure the DCF itself would not produce. Both now divide by
-    Financials.shares_for_valuation.
+    per-share figure the DCF itself would not produce. Both now divide by the
+    bridge's count, which holds the conversion shares the bridge adds to a
+    treasury stock count when the notes are in the money; dividing by the
+    count without them put both 1.8% high, together.
     """
-    w = compute_wacc(ddog, ddog_bridge, market, assumptions)
+    assumptions.convertibles.treatment = "debt" if conversion_price is None else "auto"
+    assumptions.convertibles.conversion_price = conversion_price
+    ddog.valuation_shares = ddog.diluted_shares * 1.03
+    # Built after the count is set, as the value command builds it.
+    bridge = build_ev_bridge(ddog, market.spot("DDOG"), assumptions)
+    w = compute_wacc(ddog, bridge, market, assumptions)
     assumptions.simulation.draws = 500
 
-    ddog.valuation_shares = ddog.diluted_shares * 1.03
-    sim = run_simulation(ddog, ddog_bridge, w, assumptions)
+    sim = run_simulation(ddog, bridge, w, assumptions)
 
     # The reconciliation inside run_simulation is the real assertion; reaching
     # here at all means it held. This pins the resulting level.
     assert sim.central_per_share > 0
     assert sim.per_share.p5 < sim.per_share.p50 < sim.per_share.p95
+    equity = run_dcf(ddog, bridge, w, assumptions).equity_value
+    assert sim.central_per_share == pytest.approx(
+        equity / bridge.diluted_shares, rel=1e-3
+    )

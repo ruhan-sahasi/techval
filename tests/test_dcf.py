@@ -20,7 +20,11 @@ from techval.dcf import (
 )
 from techval.edgar import CompanyFacts
 from techval.errors import ConfigError
-from techval.ev_bridge import build_ev_bridge, equity_value_from_ev
+from techval.ev_bridge import (
+    build_ev_bridge,
+    equity_value_from_dcf_ev,
+    equity_value_from_ev,
+)
 from techval.wacc import compute_wacc
 
 from conftest import load_facts
@@ -1204,3 +1208,30 @@ def test_the_method_setting_picks_the_headline_and_leaves_the_rest_alone(
     # The per-method figures are identical under either setting.
     assert driver_led.per_share_gordon == pytest.approx(gordon_led.per_share_gordon)
     assert driver_led.per_share_exit == pytest.approx(gordon_led.per_share_exit)
+
+
+def test_per_share_divides_by_the_count_the_equity_was_bridged_on(
+    ddog, assumptions, market
+):
+    """A treasury-stock count with an in-the-money convertible beside it.
+
+    The bridge adds the notes' conversion shares to the count, because it
+    carries the notes as equity; the DCF divided by the count without them,
+    which put Datadog's value per share 1.8% high, and walking the market's own
+    enterprise value back through it did not return the market price.
+    """
+    price = market.spot("DDOG")
+    assumptions.convertibles.treatment = "auto"
+    assumptions.convertibles.conversion_price = 148.15
+    ddog.valuation_shares = 377.73
+    bridge = build_ev_bridge(ddog, price, assumptions)
+    wacc = compute_wacc(ddog, bridge, market, assumptions)
+    result = run_dcf(ddog, bridge, wacc, assumptions)
+
+    shares = 377.73 + ddog.convertible_debt / 148.15
+    assert bridge.diluted_shares == pytest.approx(shares)
+    assert result.shares_for_value == pytest.approx(shares)
+    assert result.per_share == pytest.approx(result.equity_value / shares)
+    walked = equity_value_from_dcf_ev(bridge.enterprise_value, bridge)
+    assert walked / result.shares_for_value == pytest.approx(price)
+
