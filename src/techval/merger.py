@@ -165,6 +165,8 @@ class Consideration:
     # Convertible notes the offer converts: the bridge at the offer price carries
     # them as equity, so the price buys their shares and no liability survives.
     convertible_converted: float = 0.0
+    # Their shares the price buys on top of diluted WASO, which left them out.
+    conversion_shares_bought: float = 0.0
 
     @property
     def target_net_debt(self) -> float:
@@ -557,7 +559,26 @@ def build_consideration(
 
     tgt_bridge = build_ev_bridge(tgt_fin, offer_price, assumptions)
 
-    equity_purchase_price = offer_price * tgt_fin.diluted_shares
+    # Notes the offer converts are bought through their shares. Where the filer
+    # left those shares out of diluted WASO, antidilutive at the market price,
+    # the price buys them on top of it; otherwise the notes leave net debt and
+    # never reach the share count, and a cent of offer above the conversion
+    # price would knock their principal off the price paid.
+    converted = (
+        tgt_fin.convertible_debt
+        if tgt_bridge.convertible_treatment == "if_converted"
+        else 0.0
+    )
+    bought = _conversion_shares_outside_waso(tgt_fin, assumptions) if converted else 0.0
+    if bought:
+        notes.append(
+            f"{tgt_fin.ticker}'s {converted:,.0f}mm of convertible notes convert at "
+            f"the {offer_price:,.2f} offer, but their {bought:,.2f}mm conversion "
+            "shares are not in diluted WASO, where the filer left them out as "
+            "antidilutive, so the equity purchase price buys them on top of it."
+        )
+
+    equity_purchase_price = offer_price * (tgt_fin.diluted_shares + bought)
     enterprise_purchase_price = equity_purchase_price + _net_debt(tgt_bridge)
 
     pct_cash = m.pct_cash
@@ -623,12 +644,26 @@ def build_consideration(
         pct_stock=pct_stock,
         target_debt_repaid=repaid,
         refinancing_premium_paid=premium_paid,
-        convertible_converted=(
-            tgt_fin.convertible_debt
-            if tgt_bridge.convertible_treatment == "if_converted"
-            else 0.0
-        ),
+        convertible_converted=converted,
+        conversion_shares_bought=bought,
     )
+
+
+def _conversion_shares_outside_waso(
+    tgt_fin: Financials, assumptions: Assumptions
+) -> float:
+    """The shares converted notes create that diluted WASO does not hold.
+
+    The bridge's own test: diluted WASO holds them where it runs above basic by
+    at least their number. Without a conversion price or a basic count there is
+    nothing to test, and nothing is added.
+    """
+    price = assumptions.convertibles.conversion_price
+    if not price or tgt_fin.basic_shares is None:
+        return 0.0
+    implied = tgt_fin.convertible_debt / price
+    held = tgt_fin.diluted_shares - tgt_fin.basic_shares
+    return implied if held < implied else 0.0
 
 
 def _sources_and_uses(

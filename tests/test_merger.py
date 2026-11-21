@@ -1212,6 +1212,31 @@ def test_the_sources_and_uses_sentence_names_every_use(hand_case):
     )
 
 
+def test_notes_the_offer_converts_are_bought_where_waso_left_them_out(hand_case):
+    """Out of the money at 25.00 and in at the offer, with a 30.00 conversion price.
+
+    Diluted WASO, struck where the notes were antidilutive, holds none of their
+    16.67mm conversion shares. At an offer of 30.01 the offer bridge took the
+    500mm out of net debt and the price never bought the shares, so one cent of
+    offer above 29.99 knocked 498mm off the price paid.
+    """
+    _, a, acq, tgt = hand_case
+    a.convertibles.conversion_price = 30.0
+    tgt = replace(tgt, convertible_debt=500.0, basic_shares=100.0, diluted_shares=100.0)
+    a.merger.offer_premium = None
+
+    def priced(offer):
+        a.merger.offer_price_per_share = offer
+        return _rerun(acq, tgt, a)
+
+    below = priced(29.99).consideration.enterprise_purchase_price
+    above = priced(30.01)
+    assert below == pytest.approx(2999.0 + 500.0)
+    paid = above.consideration.enterprise_purchase_price
+    assert paid == pytest.approx(30.01 * (100.0 + 500.0 / 30.0))
+    assert any("on top of it" in n for n in above.notes)
+
+
 def test_notes_the_offer_converts_are_not_deducted_from_book_equity(pa_case):
     """In the money, the notes' shares are in the price paid, so they are equity.
 
