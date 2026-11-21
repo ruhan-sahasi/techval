@@ -1607,10 +1607,14 @@ def build_purchase_accounting(
         working = base_revenue * compounding * (nwc_pct or 0.0)
         change_in_working_capital = working - working_before
         working_before = working
+        # The financing fees were paid at close, out of the sources and uses, so
+        # their amortisation is a book charge here and goes back in, as the
+        # intangible amortisation does; its tax deduction stays in the taxes.
         cash_flow = (
             pretax
             - cash_taxes
             + amortisation
+            + fee
             + da
             - revenue * capex_pct
             - change_in_working_capital

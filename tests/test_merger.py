@@ -1179,6 +1179,25 @@ def test_refinancing_needs_the_targets_interest_expense(hand_case):
         _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=None), a)
 
 
+def test_the_sweep_does_not_pay_the_financing_fees_a_second_time(pa_case):
+    """The fees are paid at close, out of the sources and uses.
+
+    Their amortisation is a book charge, and the sweep's cash flow took it off
+    as cash, 10mm a year of 70mm over seven years. What the fees change in a
+    year's cash is the interest on the 70mm borrowed to pay them, after tax,
+    and the tax the amortisation saves.
+    """
+    _, a, acq, tgt = pa_case
+    a.merger.financing_fees = 0.0
+    without = _rerun(acq, tgt, a).purchase_accounting.years[0].cash_flow
+    a.merger.financing_fees = 70.0
+    a.merger.financing_fee_amort_years = 7
+    with_fees = _rerun(acq, tgt, a).purchase_accounting.years[0].cash_flow
+    rate = a.tax.marginal_tax_rate
+    interest = 70.0 * a.merger.cost_of_new_debt
+    assert with_fees - without == pytest.approx(-interest * (1 - rate) + 10.0 * rate)
+
+
 def test_the_headline_leverage_counts_refinanced_debt_once(hand_case):
     """The check printed by default, which f6ba5a8 left counting the debt twice.
 
