@@ -218,6 +218,26 @@ def test_product_lines_and_eliminations_are_not_segments(dis, names):
     assert any("Segment Eliminations is a reconciling item" in n for n in dis.notes)
 
 
+def test_a_sub_segment_is_not_read_as_another_segment(assumptions):
+    """srt:SubsegmentsAxis ends in "segmentsaxis" too.
+
+    So Cruises, part of Parks and disclosed on that axis alone, was read as a
+    third business beside the segment that already holds it, and its revenue
+    counted twice in the table, which still footed.
+    """
+    def on(member):
+        return {SEGMENT_AXIS: f"x:{member}Member"}
+
+    facts = [
+        fact(REVENUE, 10_000.0),
+        fact(REVENUE, 6_000.0, on("Media")),
+        fact(REVENUE, 4_000.0, on("Parks")),
+        fact(REVENUE, 150.0, {"srt:SubsegmentsAxis": "x:CruisesMember"}),
+    ]
+    report = build_segments("TMTCO", HandWritten(facts), assumptions)
+    assert sorted(s.name for s in report.segments) == ["Media", "Parks"]
+
+
 def test_depreciation_and_combined_da_are_separate_lines(dis):
     """825 of Entertainment D&A against 773 of depreciation.
 

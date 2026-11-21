@@ -84,6 +84,9 @@ RECONCILIATION_TOLERANCE = 0.02
 # Axis local names, lowercased. Filers bind taxonomies to different prefixes, so
 # only the local name is worth comparing.
 _SEGMENT_AXIS_SUFFIX = "segmentsaxis"
+# srt:SubsegmentsAxis ends the same way, but cuts a segment finer: read as a
+# segment, a sub-segment would sit beside the segment that already holds it.
+_SUBSEGMENT_AXIS_SUFFIX = "subsegmentsaxis"
 _GEOGRAPHY_AXIS = "statementgeographicalaxis"
 _QUALIFIER_AXIS = "consolidationitemsaxis"
 _OPERATING_SEGMENTS = "operatingsegments"
@@ -308,7 +311,8 @@ def _classify(fact: DimensionedFact) -> tuple[str, str] | None:
     if len(dims) > 1:
         return None
     axis, member = next(iter(dims.items()))
-    if axis.endswith(_SEGMENT_AXIS_SUFFIX):
+    subsegment = axis.endswith(_SUBSEGMENT_AXIS_SUFFIX)
+    if axis.endswith(_SEGMENT_AXIS_SUFFIX) and not subsegment:
         return "s", member
     if axis == _GEOGRAPHY_AXIS:
         return "g", member
