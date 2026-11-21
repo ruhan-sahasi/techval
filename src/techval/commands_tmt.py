@@ -85,7 +85,7 @@ from .financials import build_financials
 from .inputs import read_yaml
 from .market import MarketData, make_price_source
 from .nlp.sections import load_sections
-from .options import CONFIG, NO_CACHE, iso_date
+from .options import CONFIG, NO_CACHE, iso_date, one_of
 from .terminal import (
     format_money,
     format_pct,
@@ -1870,6 +1870,7 @@ def sotp(
     on_negative: str = typer.Option(
         "raise",
         "--on-negative",
+        callback=one_of("raise", "nil"),
         help=(
             "What to do with a loss-making segment given an earnings multiple: "
             "raise (default) or nil."
@@ -1972,7 +1973,7 @@ def sotp(
             corporate_multiple=loaded["corporate_multiple"],
             corporate_multiple_source=loaded["corporate_multiple_source"],
             conglomerate_discount=float(rate),
-            on_negative="nil" if str(on_negative).lower() == "nil" else "raise",
+            on_negative=on_negative,
         )
         _render_sotp(result, fin, report)
     except TechvalError as exc:
