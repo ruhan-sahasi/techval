@@ -2074,12 +2074,16 @@ def run_merger(
         # Cash spent on the deal leaves the balance sheet, so it RAISES net debt.
         # Post-deal debt is D_acq + D_tgt + new debt; post-deal cash is
         # C_acq + C_tgt - cash used. Net debt is the difference, which puts cash
-        # used on the same side as new borrowing, not against it.
+        # used on the same side as new borrowing, not against it. Borrowings
+        # repaid at close are in the target's net debt and, through the facility
+        # that repaid them, in the new debt too; they are counted once, as in the
+        # purchase-accounting leverage check.
         pf_net_debt = (
             _net_debt(acq_bridge)
             + _net_debt(tgt_bridge)
             + cons.new_debt
             + cons.cash_used
+            - cons.target_debt_repaid
         )
         if pf_earnings > 0:
             position = (

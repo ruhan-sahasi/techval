@@ -1179,6 +1179,26 @@ def test_refinancing_needs_the_targets_interest_expense(hand_case):
         _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=None), a)
 
 
+def test_the_headline_leverage_counts_refinanced_debt_once(hand_case):
+    """The check printed by default, which f6ba5a8 left counting the debt twice.
+
+    Refinanced, the target's 500mm left its net debt and joined the facility,
+    and the headline added both: 375mm of net cash where assuming the same
+    borrowings gives 875mm. Net debt at close does not depend on who holds it.
+    """
+    _, a, acq, tgt = hand_case
+    tgt = replace(tgt, straight_debt=500.0, interest_expense=25.0)
+
+    def leverage(result):
+        return next(c for c in result.checks if c.startswith("Pro forma net"))
+
+    assumed = leverage(_rerun(acq, tgt, a))
+    a.merger.refinance_target_debt = True
+    refinanced = leverage(_rerun(acq, tgt, a))
+    assert assumed.startswith("Pro forma net cash of 875mm")
+    assert refinanced == assumed
+
+
 def test_refinancing_moves_the_interest_in_the_roll_forward_and_counts_the_debt_once(pa_case):
     """The roll-forward agrees with the walk, and leverage does not double the repaid debt."""
     r, a, acq, tgt = pa_case
