@@ -1564,7 +1564,10 @@ def load_plan(path: Path) -> dict:
                 f"segment {name!r} in {path} has multiple {entry['multiple']!r}, "
                 "which is not a number."
             ) from exc
-        multiples[str(name)] = (str(entry["metric"]), multiple, str(entry["source"]))
+        # A source left empty in YAML is null, which str() would turn into the
+        # word "None" and so past the refusal of a multiple with no source.
+        source = "" if entry["source"] is None else str(entry["source"])
+        multiples[str(name)] = (str(entry["metric"]), multiple, source)
     corporate = raw.get("corporate") or {}
     if not isinstance(corporate, dict):
         raise ConfigError(f"'corporate' in {path} should be a mapping.")

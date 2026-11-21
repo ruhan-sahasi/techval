@@ -1125,6 +1125,17 @@ def test_a_segment_multiple_that_is_not_a_number_is_refused(tmp_path, multiple):
     assert "which is not a number" in flat(result.stdout)
 
 
+def test_a_source_left_empty_is_refused_as_a_blank_one_is(tmp_path):
+    """YAML reads ``source:`` with nothing after it as null, which became "None"."""
+    result = sotp(
+        tmp_path,
+        "segments:\n  Entertainment:\n    metric: ebitda\n    multiple: 9.0\n"
+        "    source:\n",
+    )
+    assert result.exit_code == 1
+    assert "with no source" in flat(result.stdout)
+
+
 def test_a_plan_with_no_segments_is_refused(tmp_path):
     result = sotp(tmp_path, "corporate:\n  cost: 10\n")
     assert result.exit_code == 1
