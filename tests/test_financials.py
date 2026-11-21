@@ -970,3 +970,18 @@ def test_a_diluted_count_filed_too_thinly_to_tile_is_refused_not_replaced():
     payload["facts"]["us-gaap"]["WeightedAverageNumberOfDilutedSharesOutstanding"] = rows
     with pytest.raises(MissingDataError, match="diluted shares"):
         build_financials("DDOG", facts=CompanyFacts(payload, "DDOG"))
+
+
+def test_notes_tagged_as_long_term_debt_as_well_are_counted_once():
+    """Zscaler tags its convertible notes as LongTermDebt too.
+
+    Until mid-2025 nothing ranks above LongTermDebt on its straight-debt
+    ladder, so the notes were read there and again on the convertible line:
+    2,282mm of debt in the bridge against the 1,141mm Zscaler owed.
+    """
+    facts = load_facts("ZS", knowledge_date=date(2024, 3, 15))
+    fin = build_financials("ZS", facts=facts)
+    assert fin.as_of == date(2024, 1, 31)
+    assert fin.straight_debt == 0.0
+    assert fin.convertible_debt == pytest.approx(1141.011)
+    assert any("notes tagged twice" in w for w in fin.warnings)
