@@ -8,6 +8,7 @@ engine's own DCF and getting the price out.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import date
 
 import pytest
@@ -256,6 +257,22 @@ def test_market_expectations_gathers_every_lever_with_base_rates(case, fade_obse
     payload = exp.to_dict()
     json.dumps(payload)
     assert payload["frontier"][0]["margin"] == 0.10
+
+
+def test_a_base_case_below_zero_is_compared_in_dollars_not_as_a_share(case):
+    """Zscaler's record case is worth -13.74 against a 166.10 close.
+
+    The share 166.10 / -13.74 - 1 is negative, so the line said the price was
+    "1309% below" a base it stands 179.84 above.
+    """
+    exp = replace(
+        market_expectations(case, PRICE, trailing_growth=None),
+        ticker="ZS", price=166.10, base_value=-13.74,
+    )
+    assert exp.summary()[0] == (
+        "ZS closed at 166.10; the engine's base case is worth -13.74, so the price "
+        "is 179.84 above it."
+    )
 
 
 def test_without_a_panel_there_are_no_base_rates_and_it_says_why(case):

@@ -406,10 +406,16 @@ class MarketExpectations:
         return next(s for s in self.solves if s.lever == lever)
 
     def summary(self) -> list[str]:
-        gap = self.price / self.base_value - 1
+        if self.base_value > 0:
+            gap = self.price / self.base_value - 1
+            versus = f"{abs(gap):.0%} {'above' if gap >= 0 else 'below'} it"
+        else:
+            # A share of a base at or below zero has no meaning, and its sign
+            # flips; the price stands above any such base by the difference.
+            versus = f"{self.price - self.base_value:,.2f} above it"
         out = [
             f"{self.ticker} closed at {self.price:,.2f}; the engine's base case is worth "
-            f"{self.base_value:,.2f}, so the price is {abs(gap):.0%} {'above' if gap >= 0 else 'below'} it."
+            f"{self.base_value:,.2f}, so the price is {versus}."
         ]
         out += [s.sentence for s in self.solves]
         if self.simulation:
