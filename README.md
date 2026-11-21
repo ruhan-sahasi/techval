@@ -1196,11 +1196,11 @@ on top of that double-counts the instrument, by $986mm in Datadog's case.
 
 ### Beta is the median of peer asset betas, relevered
 
-Each peer's levered beta is unlevered at its own D/E and tax rate, the median of
-those is taken, and the result is relevered at the target's capital structure,
-so what gets pooled is business risk and not financing policy. Regressions are
-joined on the dates the two series actually share, never zipped by position, and
-R-squared and the standard error are printed, because a beta of 1.42 on an
+Each peer's levered beta is unlevered at its own D/E and the marginal tax rate,
+the median of those is taken, and the result is relevered at the target's capital
+structure, so what gets pooled is business risk and not financing policy. Weekly
+returns are paired over the periods both series cover, never zipped by position,
+and R-squared and the standard error are printed, because a beta of 1.42 on an
 R-squared of 0.11 is not something the market told you with confidence.
 
 `peer_beta_method: vasicek` shrinks each asset beta toward the cross-sectional

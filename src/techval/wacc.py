@@ -26,8 +26,9 @@ stated in the output rather than buried.
 of the business and the leverage of the balance sheet, mixed together. Averaging
 raw betas across a peer set therefore averages capital structures that have
 nothing to do with each other. Hamada strips the leverage out of each peer at its
-own debt-to-equity ratio and its own tax rate, the median of those unlevered
-betas is taken, and the result is relevered at the target's ratio. The median
+own debt-to-equity ratio and the tax rate the caller unlevers it at, which the
+value command sets to the marginal rate for every peer; the median of those
+unlevered betas is taken, and the result is relevered at the target's ratio. The median
 rather than the mean, because one peer with a broken regression, a recent IPO or
 a takeover rumour in the window should not be able to move the answer.
 
@@ -810,8 +811,16 @@ def compute_wacc(
             + pooling_sentence
         )
         notes.extend(pool_notes)
+        # Each estimate records the rate it was unlevered at, so the line says
+        # which: one rate shared by every peer, or each peer's own.
+        rates = {round(e.tax_rate, 6) for e in peer_betas}
+        at_tax = (
+            f"a {peer_betas[0].tax_rate:.1%} tax rate"
+            if len(rates) == 1
+            else "its own tax rate"
+        )
         unlevered_source = (
-            f"Hamada on each peer at its own D/E and tax rate, then the "
+            f"Hamada on each peer at its own D/E and {at_tax}, then the "
             f"{pool_label}. {mkt_cfg.beta_adjustment} adjustment applied to each "
             "peer regression"
         )

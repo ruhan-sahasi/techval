@@ -305,6 +305,8 @@ def test_peer_betas_are_unlevered_then_relevered(ddog, ddog_bridge, market, assu
     sources = {r["label"]: r["source"] for r in w.buildup_rows()}
     assert "peer" in sources["Levered beta"].lower()
     assert all(t in sources["Levered beta"] for t in ("CRWD", "MDB", "ZS"))
+    # The rate each peer was unlevered at, not a claim that it was its own.
+    assert "at its own D/E and a 24.0% tax rate" in sources["Unlevered beta"]
 
 
 # --------------------------------------------------------------------------- #
