@@ -266,6 +266,7 @@ def _usage_error(output: str) -> str:
         ["peers", "DDOG", "--n", "0"],
         ["peers", "DDOG", "--n", "-3"],
         ["peers", "DDOG", "--k", "0"],
+        ["targets", "--dataset", str(FIXTURES / "mna"), "--top", "0"],
     ],
 )
 def test_a_step_horizon_or_count_below_one_is_refused_as_typed(args):
@@ -275,7 +276,8 @@ def test_a_step_horizon_or_count_below_one_is_refused_as_typed(args):
     ``backtest --horizon 0`` scored every holding over zero days, and ``screen
     --n 0`` printed every name where ``--n -2`` printed most of them twice.
     ``peers --n 0`` fitted the encoder and showed the default eight, and ``peers
-    --n -3`` or ``--k 0`` fitted it and then refused "k must be at least 1".
+    --n -3`` or ``--k 0`` fitted it and then refused "k must be at least 1", as
+    ``targets --top 0`` did after its walk-forward fit.
     """
     result = runner.invoke(C.app, args)
     assert result.exit_code == 2

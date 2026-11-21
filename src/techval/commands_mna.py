@@ -1233,7 +1233,9 @@ def targets(
             "Defaults to the latest."
         ),
     ),
-    top: int = typer.Option(20, "--top", "-k", help="Names on the printed list."),
+    top: int = typer.Option(
+        20, "--top", "-k", min=1, help="Names on the printed list."
+    ),
     sub_vertical: str = typer.Option(
         None, "--sub-vertical", help="Show only this sub-vertical on the list."
     ),
