@@ -680,7 +680,10 @@ def _statement_kpis(fin, facts) -> tuple[dict[str, float], list[dict[str, object
             prior_end,
         ),
     ):
-        raw, prov = facts.resolve_ttm(concept, ladder, when, required=False)
+        guard = tags.REVENUE_COMPONENT_GUARD if ladder is tags.REVENUE else None
+        raw, prov = facts.resolve_ttm(
+            concept, ladder, when, required=False, component_guard=guard
+        )
         if raw is None:
             continue
         values[key] = raw / _MM
@@ -1561,7 +1564,10 @@ def load_plan(path: Path) -> dict:
                 f"segment {name!r} in {path} has multiple {entry['multiple']!r}, "
                 "which is not a number."
             ) from exc
-        multiples[str(name)] = (str(entry["metric"]), multiple, str(entry["source"]))
+        # A source left empty in YAML is null, which str() would turn into the
+        # word "None" and so past the refusal of a multiple with no source.
+        source = "" if entry["source"] is None else str(entry["source"])
+        multiples[str(name)] = (str(entry["metric"]), multiple, source)
     corporate = raw.get("corporate") or {}
     if not isinstance(corporate, dict):
         raise ConfigError(f"'corporate' in {path} should be a mapping.")
@@ -1838,7 +1844,10 @@ def _render_sotp(result, fin, report) -> None:
         "whole are measured over different windows.[/dim]"
     )
     print_notes(console, result.checks, heading="Cross-checks")
-    print_notes(console, result.flags, heading="Flags")
+    # The segment reader's flags first: a figure tagged twice, or a residual no
+    # reconciling item explains, is a doubt about the inputs every part rests on,
+    # and the segments command prints them for the same reason.
+    print_notes(console, [*report.flags, *result.flags], heading="Flags")
     print_notes(console, result.notes)
 
 

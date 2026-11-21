@@ -80,7 +80,12 @@ def trailing_growth(fin, facts) -> tuple[float, str] | None:
     both can be tiled; otherwise the latest fiscal year against the one before.
     """
     try:
-        prior, _ = facts.resolve_ttm("revenue", tags.REVENUE, _a_year_before(fin.as_of))
+        prior, _ = facts.resolve_ttm(
+            "revenue",
+            tags.REVENUE,
+            _a_year_before(fin.as_of),
+            component_guard=tags.REVENUE_COMPONENT_GUARD,
+        )
     except TechvalError:
         prior = None
     if prior:

@@ -8,6 +8,7 @@ engine's own DCF and getting the price out.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import date
 
 import pytest
@@ -258,6 +259,22 @@ def test_market_expectations_gathers_every_lever_with_base_rates(case, fade_obse
     assert payload["frontier"][0]["margin"] == 0.10
 
 
+def test_a_base_case_below_zero_is_compared_in_dollars_not_as_a_share(case):
+    """Zscaler's record case is worth -13.74 against a 166.10 close.
+
+    The share 166.10 / -13.74 - 1 is negative, so the line said the price was
+    "1309% below" a base it stands 179.84 above.
+    """
+    exp = replace(
+        market_expectations(case, PRICE, trailing_growth=None),
+        ticker="ZS", price=166.10, base_value=-13.74,
+    )
+    assert exp.summary()[0] == (
+        "ZS closed at 166.10; the engine's base case is worth -13.74, so the price "
+        "is 179.84 above it."
+    )
+
+
 def test_without_a_panel_there_are_no_base_rates_and_it_says_why(case):
     exp = market_expectations(case, PRICE, trailing_growth=None)
     assert exp.base_rates == {}
@@ -377,6 +394,27 @@ def test_the_screen_ranks_the_most_demanding_prices_first(fade_observations):
     assert ddog["scenario_side"] == "above" and ddog["price"] > ddog["scenario_bull"]
     dis = next(r for r in rows if r["ticker"] == "DIS")
     assert dis["scenario_side"] == "bear" and 0.5 < dis["scenario_weight"] < 1.0
+
+
+@pytest.mark.parametrize("panel", [False, True])
+def test_a_ticker_the_dcf_refuses_is_a_row_at_the_foot_not_the_end(
+    fade_observations, panel
+):
+    """At a 5.5% terminal growth and a 1% risk-free rate, Disney's WACC is 5.24%.
+
+    The DCF refuses it there, and did so outside the refusal handling: through
+    the scenarios with a panel, through the base case without one. The whole
+    screen raised, where the docstring keeps such a ticker at the foot.
+    """
+    a = pinned_assumptions()
+    a.market.risk_free_rate = 0.01
+    a.dcf.terminal_growth = 0.055
+    payloads = {t: load_payload(t) for t in ("DDOG", "CRWD", "DIS")}
+    observations = fade_observations if panel else None
+    rows = screen(payloads, CsvSource(PRICES), a, date(2026, 9, 9), observations)
+    assert [r["ticker"] for r in rows if r["refused"]] == ["DIS"]
+    assert rows[-1]["ticker"] == "DIS"
+    assert "is not below the WACC" in rows[-1]["refused"]
 
 
 def test_a_changed_valuation_leaves_the_case_it_came_from_alone(case):

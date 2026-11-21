@@ -25,6 +25,15 @@ REVENUE = [
     "SalesRevenueServicesNet",
 ]
 
+# A revenue tag reporting more than ten times another tag's figure for the same
+# window is the total and the other is a component. Ten rather than two: the
+# genuine scope disagreements in the TMT universe, revenue before or after
+# billable expenses at Interpublic, services revenue against total at Starz, run
+# two to five times and picking the larger of those by rule would be a thumb on
+# the scale. Every read of REVENUE passes it, so a year and the year before it
+# come from the same tag. See CompanyFacts.resolve_ttm.
+REVENUE_COMPONENT_GUARD = 10.0
+
 COST_OF_REVENUE = [
     "CostOfRevenue",
     "CostOfGoodsAndServicesSold",
