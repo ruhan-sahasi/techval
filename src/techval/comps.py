@@ -513,7 +513,7 @@ def compute_peer_metrics(
         ev_revenue=take("EV/Revenue", ev_numerator, fin.revenue, ""),
         ev_gross_profit=take(
             "EV/Gross Profit",
-            ev,
+            ev_numerator,
             fin.gross_profit,
             "gross profit is not tagged in this filer's statements"
             if fin.gross_profit is None

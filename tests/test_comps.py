@@ -287,6 +287,8 @@ def test_negative_enterprise_value_withholds_ev_multiples(assumptions):
     m = compute_peer_metrics(fin, empty, 10.0, assumptions)
     assert m.enterprise_value <= 0
     assert m.ev_revenue is None and m.ev_ebitda is None and m.ev_ebit is None
+    # EV/Gross Profit has no ceiling to catch it, and came through at -2.9x.
+    assert m.ev_gross_profit is None
     assert m.pe is not None and m.pe > 0
     assert any("not positive" in f for f in m.flags)
 
