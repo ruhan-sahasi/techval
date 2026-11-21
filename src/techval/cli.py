@@ -174,7 +174,9 @@ _mount(_forecast_app, "Forecasts and signal testing")
 _mount(_mna_app, "M&A")
 app.add_typer(_cache_app, rich_help_panel="Housekeeping")
 
-_OUT = typer.Option("out", "--out", "-o", help="Directory for chart output.")
+_OUT = typer.Option(
+    Path("out"), "--out", "-o", file_okay=False, help="Directory for chart output."
+)
 _ASOF = typer.Option(
     None,
     "--as-of",
@@ -1314,7 +1316,7 @@ def value(
     ticker: str,
     config: Path = CONFIG,
     no_cache: bool = NO_CACHE,
-    out: str = _OUT,
+    out: Path = _OUT,
     as_of: str = _ASOF,
     ml_data: Path = typer.Option(
         None,

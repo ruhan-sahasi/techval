@@ -15,6 +15,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from .errors import ConfigError
+
 _INK = "#1a1a1a"
 _MUTED = "#8a8a8a"
 _BAR = "#4a6fa5"
@@ -63,7 +65,11 @@ def football_field(
         raise ValueError("football field needs at least one methodology range")
 
     out = Path(out_path)
-    out.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        out.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        reason = exc.strerror or exc
+        raise ConfigError(f"{out.parent} could not be made: {reason}.") from exc
 
     height = 1.6 + 0.62 * len(rows)
     fig, ax = plt.subplots(figsize=(9.5, height))
@@ -161,6 +167,11 @@ def football_field(
         )
 
     fig.tight_layout()
-    fig.savefig(out, dpi=170, bbox_inches="tight", facecolor="white")
-    plt.close(fig)
+    try:
+        fig.savefig(out, dpi=170, bbox_inches="tight", facecolor="white")
+    except OSError as exc:
+        reason = exc.strerror or exc
+        raise ConfigError(f"{out} could not be written: {reason}.") from exc
+    finally:
+        plt.close(fig)
     return out

@@ -981,6 +981,32 @@ def test_the_merger_command_repays_the_targets_borrowings_when_told_to(tmp_path)
 
 
 # --------------------------------------------------------------------------- #
+# where the chart goes
+# --------------------------------------------------------------------------- #
+
+
+def test_a_file_named_as_the_chart_folder_is_refused_before_the_valuation(tmp_path):
+    """The valuation ran in full, then the chart's mkdir raised FileExistsError."""
+    named = tmp_path / "charts"
+    named.write_text("a file where the chart folder belongs", encoding="utf-8")
+    args = ["value", "DDOG", "--as-of", AS_OF, "--out", str(named)]
+    result = runner.invoke(C.app, args)
+    assert result.exit_code == 2
+    assert "Invalid value for '--out'" in _usage_error(result.output)
+
+
+def test_a_chart_folder_that_cannot_be_made_is_refused_with_its_path(tmp_path):
+    """Below a file, the folder cannot be made, and the refusal says where."""
+    (tmp_path / "charts").write_text("a file", encoding="utf-8")
+    folder = tmp_path / "charts" / "2026"
+    result = run_value("-c", str(_config(tmp_path)), "--out", str(folder))
+    assert result.exit_code == 1
+    # rich folds a long temporary path mid-word, so compare without whitespace.
+    expected = "".join(f"{folder} could not be made".split())
+    assert expected in "".join(result.stdout.split())
+
+
+# --------------------------------------------------------------------------- #
 # the share count the bridge divides by
 # --------------------------------------------------------------------------- #
 
