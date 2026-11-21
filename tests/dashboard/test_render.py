@@ -195,6 +195,16 @@ def test_write_dashboard_writes_the_page(tmp_path):
     assert out.read_bytes() == render_dashboard(make_snapshot(), assets).encode("utf-8")
 
 
+def test_a_page_that_cannot_be_written_is_refused_with_its_path(tmp_path):
+    """The page is built by the time it is written, and an OSError then was a
+    traceback from every command that writes one."""
+    assets = make_assets(tmp_path / "assets")
+    (tmp_path / "docs").write_text("a file where a folder belongs", encoding="utf-8")
+    out = tmp_path / "docs" / "index.html"
+    with pytest.raises(ConfigError, match=f"{out} could not be written"):
+        write_dashboard(make_snapshot(), out, assets)
+
+
 def test_a_missing_asset_is_named(tmp_path):
     assets = make_assets(tmp_path)
     (assets / "sections" / "tmt.js").unlink()

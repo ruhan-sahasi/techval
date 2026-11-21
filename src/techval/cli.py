@@ -1967,10 +1967,15 @@ def dashboard(
     snapshot: Path = typer.Option(
         Path("docs/dashboard/snapshot.json"),
         "--snapshot",
+        dir_okay=False,
         help="The results snapshot to collect into, or to render from.",
     ),
     out: Path = typer.Option(
-        Path("docs/dashboard/index.html"), "--out", "-o", help="Where to write the page."
+        Path("docs/dashboard/index.html"),
+        "--out",
+        "-o",
+        dir_okay=False,
+        help="Where to write the page.",
     ),
     collect: bool = typer.Option(
         None,

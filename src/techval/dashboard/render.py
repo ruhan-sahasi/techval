@@ -31,6 +31,7 @@ from importlib.resources.abc import Traversable
 from pathlib import Path
 from typing import Any
 
+from ..errors import ConfigError
 from .sections import SECTION_IDS
 from .snapshot import Snapshot
 
@@ -158,7 +159,13 @@ def write_dashboard(
     """Render the page and write it, creating the directory if needed."""
     path = Path(out_path)
     page = render_dashboard(snapshot, assets_dir)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    # LF on every platform, so a page rendered on Windows diffs clean.
-    path.write_text(page, encoding="utf-8", newline="\n")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        # LF on every platform, so a page rendered on Windows diffs clean.
+        path.write_text(page, encoding="utf-8", newline="\n")
+    except OSError as exc:
+        # The page is built by now; the commands catch TechvalError, so the
+        # path and the reason reach the user rather than a traceback.
+        reason = exc.strerror or exc
+        raise ConfigError(f"{path} could not be written: {reason}.") from exc
     return path
