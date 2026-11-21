@@ -696,44 +696,14 @@ def screen(payloads: dict, source, assumptions: Assumptions, when, observations=
     rows = []
     for ticker, payload in payloads.items():
         row = {"ticker": ticker, "refused": None}
+        # The whole row, not only the solves: the scenarios and the base case
+        # value the company too, and a refusal there is this ticker's alone.
         try:
-            case, price = case_at(payload, ticker, source, assumptions, when)
-            rate = implied_discount_rate(case, price)
-            growth = implied_first_year_growth(case, price)
+            row.update(
+                _screen_row(ticker, payload, source, assumptions, when, observations)
+            )
         except TechvalError as err:
             row["refused"] = str(err).splitlines()[0]
-            rows.append(row)
-            continue
-        base = scenarios = None
-        if observations is not None:
-            from .scenarios import value_scenarios
-
-            own = [o for o in observations if o.ticker == ticker and o.growth is not None]
-            trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
-            scenarios = value_scenarios(case, price, observations, trailing=trailing)
-        if observations is not None and growth.reached:
-            base = growth_base_rate(
-                observations,
-                implied_cagr=path_cagr(growth.extras["path"], BASE_RATE_HORIZON),
-                trailing=trailing,
-                revenue_mm=case.fin.revenue,
-            )
-        sim = price_in_simulation(case, price)
-        row.update(
-            price=round(price, 4),
-            base_value=round(case.value(), 4),
-            wacc=round(case.wacc.wacc, 6),
-            implied_return=None if rate.implied is None else round(rate.implied, 6),
-            implied_growth=None if growth.implied is None else round(growth.implied, 6),
-            base_share=None if base is None else base["all"]["share"],
-            base_hits=None if base is None else base["all"]["hits"],
-            base_n=None if base is None else base["all"]["n"],
-            simulated_above=None if sim is None else sim["share_above"],
-            scenario_weighted=None if scenarios is None else round(scenarios.weighted, 4),
-            scenario_bull=None if scenarios is None else round(scenarios.scenario("bull").value, 4),
-            scenario_side=None if scenarios is None else scenarios.implied["side"],
-            scenario_weight=None if scenarios is None else scenarios.implied["weight"],
-        )
         rows.append(row)
 
     def order(r):
@@ -744,3 +714,42 @@ def screen(payloads: dict, source, assumptions: Assumptions, when, observations=
         return (0 if r["implied_growth"] is not None else 1, share, ret)
 
     return sorted(rows, key=order)
+
+
+def _screen_row(ticker, payload, source, assumptions, when, observations) -> dict:
+    """One ticker's columns in ``screen``; raises the pipeline's error to refuse it."""
+    case, price = case_at(payload, ticker, source, assumptions, when)
+    rate = implied_discount_rate(case, price)
+    growth = implied_first_year_growth(case, price)
+    base = scenarios = None
+    if observations is not None:
+        from .scenarios import value_scenarios
+
+        own = [o for o in observations if o.ticker == ticker and o.growth is not None]
+        trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
+        scenarios = value_scenarios(case, price, observations, trailing=trailing)
+    if observations is not None and growth.reached:
+        base = growth_base_rate(
+            observations,
+            implied_cagr=path_cagr(growth.extras["path"], BASE_RATE_HORIZON),
+            trailing=trailing,
+            revenue_mm=case.fin.revenue,
+        )
+    sim = price_in_simulation(case, price)
+    return dict(
+        price=round(price, 4),
+        base_value=round(case.value(), 4),
+        wacc=round(case.wacc.wacc, 6),
+        implied_return=None if rate.implied is None else round(rate.implied, 6),
+        implied_growth=None if growth.implied is None else round(growth.implied, 6),
+        base_share=None if base is None else base["all"]["share"],
+        base_hits=None if base is None else base["all"]["hits"],
+        base_n=None if base is None else base["all"]["n"],
+        simulated_above=None if sim is None else sim["share_above"],
+        scenario_weighted=None if scenarios is None else round(scenarios.weighted, 4),
+        scenario_bull=(
+            None if scenarios is None else round(scenarios.scenario("bull").value, 4)
+        ),
+        scenario_side=None if scenarios is None else scenarios.implied["side"],
+        scenario_weight=None if scenarios is None else scenarios.implied["weight"],
+    )
