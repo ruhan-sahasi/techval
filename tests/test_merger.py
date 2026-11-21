@@ -1212,6 +1212,30 @@ def test_the_sources_and_uses_sentence_names_every_use(hand_case):
     )
 
 
+def test_notes_the_offer_converts_are_not_deducted_from_book_equity(pa_case):
+    """In the money, the notes' shares are in the price paid, so they are equity.
+
+    500mm of notes convertible at 20.00 are 25mm shares, inside the 100mm of
+    diluted WASO. Book equity still deducted the principal as a liability, so
+    the same company bought the day after the notes converted had 500mm more
+    book equity and 348mm less goodwill.
+    """
+    _, a, acq, tgt = pa_case
+    a.convertibles.conversion_price = 20.0
+    outstanding = replace(
+        tgt, convertible_debt=500.0, basic_shares=75.0, diluted_shares=100.0
+    )
+    converted = replace(
+        tgt, convertible_debt=0.0, basic_shares=100.0, diluted_shares=100.0
+    )
+
+    before = _rerun(acq, converted, a).purchase_accounting.opening
+    after = _rerun(acq, outstanding, a).purchase_accounting.opening
+    assert after.target_book_equity == pytest.approx(600.0)
+    assert after.target_book_equity == pytest.approx(before.target_book_equity)
+    assert after.goodwill_created == pytest.approx(before.goodwill_created)
+
+
 def test_the_headline_leverage_counts_refinanced_debt_once(hand_case):
     """The check printed by default, which f6ba5a8 left counting the debt twice.
 

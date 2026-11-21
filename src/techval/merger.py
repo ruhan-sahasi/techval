@@ -162,6 +162,9 @@ class Consideration:
     # with any prepayment premium paid on them.
     target_debt_repaid: float = 0.0
     refinancing_premium_paid: float = 0.0
+    # Convertible notes the offer converts: the bridge at the offer price carries
+    # them as equity, so the price buys their shares and no liability survives.
+    convertible_converted: float = 0.0
 
     @property
     def target_net_debt(self) -> float:
@@ -620,6 +623,11 @@ def build_consideration(
         pct_stock=pct_stock,
         target_debt_repaid=repaid,
         refinancing_premium_paid=premium_paid,
+        convertible_converted=(
+            tgt_fin.convertible_debt
+            if tgt_bridge.convertible_treatment == "if_converted"
+            else 0.0
+        ),
     )
 
 
@@ -1189,7 +1197,9 @@ def _rule_of_thumb_checks(
 # --------------------------------------------------------------------------- #
 
 
-def _target_book_equity(tgt_fin: Financials, notes: list[str]) -> float:
+def _target_book_equity(
+    tgt_fin: Financials, notes: list[str], converted: float = 0.0
+) -> float:
     """Book equity acquired, built from the balance sheet items this engine carries.
 
     Goodwill is the price paid less the book equity bought, so this figure sets
@@ -1241,7 +1251,11 @@ def _target_book_equity(tgt_fin: Financials, notes: list[str]) -> float:
 
     financing = tgt_fin.current_financing
     working = tgt_fin.current_assets - tgt_fin.current_liabilities + (financing or 0.0)
-    book = working - tgt_fin.total_debt_ex_leases - tgt_fin.nci - tgt_fin.preferred
+    # Notes the offer converts become equity at close, and the price paid buys
+    # their shares, so deducting them as a liability too would count the claim
+    # twice and push their principal into goodwill.
+    borrowings = tgt_fin.total_debt_ex_leases - converted
+    book = working - borrowings - tgt_fin.nci - tgt_fin.preferred
     inside = (
         f", after taking back out the {financing:,.0f}mm of current debt and leases "
         "inside current liabilities so that a borrowing is deducted once and a lease "
@@ -1251,9 +1265,15 @@ def _target_book_equity(tgt_fin: Financials, notes: list[str]) -> float:
         "it is inside current liabilities and deducted a second time with the "
         "borrowings"
     )
+    kept = (
+        f", the {converted:,.0f}mm of convertible notes the offer converts left in "
+        "because the price buys their shares"
+        if converted
+        else ""
+    )
     notes.append(
         f"Book equity acquired of {book:,.0f}mm is working capital of "
-        f"{working:,.0f}mm less {tgt_fin.total_debt_ex_leases:,.0f}mm of borrowings "
+        f"{working:,.0f}mm less {borrowings:,.0f}mm of borrowings{kept} "
         f"and any preferred or minority interest{inside}. Lease liabilities are left "
         "out because their right-of-use assets are not carried here and deducting "
         "one side alone would invent goodwill; non-current operating assets are "
@@ -1288,7 +1308,7 @@ def _opening_balance_sheet(
     pa = assumptions.merger.purchase_accounting
 
     price = cons.equity_purchase_price
-    book = _target_book_equity(tgt_fin, notes)
+    book = _target_book_equity(tgt_fin, notes, cons.convertible_converted)
     excess = price - book
     dta = (
         tax_rate * pa.target_carryforward
