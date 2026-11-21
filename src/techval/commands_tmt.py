@@ -680,7 +680,10 @@ def _statement_kpis(fin, facts) -> tuple[dict[str, float], list[dict[str, object
             prior_end,
         ),
     ):
-        raw, prov = facts.resolve_ttm(concept, ladder, when, required=False)
+        guard = tags.REVENUE_COMPONENT_GUARD if ladder is tags.REVENUE else None
+        raw, prov = facts.resolve_ttm(
+            concept, ladder, when, required=False, component_guard=guard
+        )
         if raw is None:
             continue
         values[key] = raw / _MM

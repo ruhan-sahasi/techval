@@ -334,8 +334,15 @@ def _revenue_growth(
     the comparison is twelve reported months against twelve reported months.
     """
     prior_as_of = prior_year_end(fin.as_of, facts)
+    # Through the guard current revenue went through, or a filer whose
+    # top-ranked tag is a component compares this year's total with last
+    # year's component.
     raw, prov = facts.resolve_ttm(
-        "prior-year revenue", tags.REVENUE, prior_as_of, required=False
+        "prior-year revenue",
+        tags.REVENUE,
+        prior_as_of,
+        required=False,
+        component_guard=tags.REVENUE_COMPONENT_GUARD,
     )
     if raw is None:
         flags.append(

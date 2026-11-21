@@ -268,6 +268,38 @@ def test_growth_survives_a_retired_revenue_tag():
     assert growth == pytest.approx(188 / 156 - 1)
 
 
+def test_prior_year_revenue_goes_through_the_guard_current_revenue_does():
+    """Charter's shape: a disaggregation component ranked above the total.
+
+    Current revenue came from Revenues, the component being more than ten times
+    smaller; the year before was read without that guard and came from the
+    component, so growth across the two read 61x rather than 1.5%.
+    """
+    ends = ["2024-09-30", "2024-12-31", "2025-03-31", "2025-06-30",
+            "2025-09-30", "2025-12-31", "2026-03-31", "2026-06-30"]
+    starts = ["2024-07-01", "2024-10-01", "2025-01-01", "2025-04-01",
+              "2025-07-01", "2025-10-01", "2026-01-01", "2026-04-01"]
+    total = [13_500.0 + 50 * i for i in range(8)]
+    component = [220.0 + 2 * i for i in range(8)]
+    payload = facts_payload(
+        {
+            "RevenueFromContractWithCustomerIncludingAssessedTax": [
+                (s, e, v * 1e6) for s, e, v in zip(starts, ends, component)
+            ],
+            "Revenues": [(s, e, v * 1e6) for s, e, v in zip(starts, ends, total)],
+        }
+    )
+    fin = hand_financials(
+        ticker="CABLE", entity_name="Cable", cik=1, as_of=date(2026, 6, 30),
+        revenue=sum(total[4:]), ebit=3_000.0, net_income=1_200.0,
+        diluted_shares=150.0,
+    )
+    flags: list[str] = []
+    growth = _revenue_growth(fin, CompanyFacts(payload, "CABLE"), flags)
+    assert growth == pytest.approx(sum(total[4:]) / sum(total[:4]) - 1)
+    assert flags == []
+
+
 def test_negative_enterprise_value_withholds_ev_multiples(assumptions):
     """Cash above market cap plus debt makes every EV multiple negative.
 

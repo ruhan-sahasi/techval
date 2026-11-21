@@ -228,15 +228,6 @@ _MM = 1e6
 # same question of concepts the ladders never resolve from.
 _INSTANT_TOLERANCE_DAYS = 20
 
-# A revenue tag reporting more than ten times another tag's figure for the same
-# window is the total and the other is a component. Ten rather than two: the
-# genuine scope disagreements in the TMT universe, revenue before or after
-# billable expenses at Interpublic, services revenue against total at Starz, run
-# two to five times and picking the larger of those by rule would be a thumb on
-# the scale. See CompanyFacts.resolve_ttm.
-_REVENUE_COMPONENT_GUARD = 10.0
-
-
 @dataclass
 class _DebtLadder:
     """What the three debt ladders resolved, and out of which tags.
@@ -567,7 +558,9 @@ def build_financials(
     # Nothing below the top line gets the guard: EBIT and net income pass
     # through zero, and a ratio test on a concept that passes through zero fires
     # at random.
-    revenue = flow("revenue", tags.REVENUE, component_guard=_REVENUE_COMPONENT_GUARD)
+    revenue = flow(
+        "revenue", tags.REVENUE, component_guard=tags.REVENUE_COMPONENT_GUARD
+    )
     try:
         ebit = flow("EBIT", tags.EBIT)
     except MissingDataError as missing:

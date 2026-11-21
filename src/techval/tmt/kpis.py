@@ -1195,7 +1195,12 @@ def derive_billings(
     statement_end = max(ends)
 
     try:
-        revenue, prov = facts.resolve_ttm("revenue", tags.REVENUE, statement_end)
+        revenue, prov = facts.resolve_ttm(
+            "revenue",
+            tags.REVENUE,
+            statement_end,
+            component_guard=tags.REVENUE_COMPONENT_GUARD,
+        )
     except MissingDataError:
         return None
     if revenue is None:
@@ -2070,7 +2075,12 @@ def _trailing_revenue(facts: CompanyFacts, as_of: date) -> float | None:
     if not ends:
         return None
     try:
-        value, _prov = facts.resolve_ttm("revenue", tags.REVENUE, max(ends))
+        value, _prov = facts.resolve_ttm(
+            "revenue",
+            tags.REVENUE,
+            max(ends),
+            component_guard=tags.REVENUE_COMPONENT_GUARD,
+        )
     except MissingDataError:
         return None
     return None if value is None else value / _MM
