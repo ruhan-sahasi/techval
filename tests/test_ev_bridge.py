@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge, equity_value_from_ev
 
 
@@ -245,6 +246,23 @@ def test_conversion_shares_are_added_to_a_treasury_stock_count(
     assert b.convertible_in_debt == 0.0
     assert b.diluted_shares == pytest.approx(expected)
     assert any("conversion shares to the treasury" in n for n in b.notes)
+
+
+def test_if_converted_without_a_price_beside_a_treasury_stock_count_is_refused(
+    ddog, assumptions, market
+):
+    """With no price the conversion shares cannot be added to the count.
+
+    The notes were still kept out of debt, so they were on neither side of the
+    bridge, with no note saying so: Datadog's 986mm left enterprise value at
+    80,106mm, against 81,604mm with the shares added or 81,091mm with the notes
+    carried as debt.
+    """
+    assumptions.convertibles.treatment = "if_converted"
+    assumptions.convertibles.conversion_price = None
+    ddog.valuation_shares = 377.73
+    with pytest.raises(ConfigError, match="would be on neither side of the bridge"):
+        build_ev_bridge(ddog, market.spot("DDOG"), assumptions)
 
 
 def test_no_conversion_shares_are_added_when_the_note_is_debt(

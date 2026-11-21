@@ -112,6 +112,17 @@ class PriceSeries:
         the slope downward, and monthly returns leave too few observations for a
         two-year window to say anything.
         """
+        _, ends, returns = self.weekly_return_periods()
+        return ends, returns
+
+    def weekly_return_periods(self) -> tuple[list[date], list[date], np.ndarray]:
+        """Each week's return with the closes it runs between: from, to, return.
+
+        Each return runs from the last close of one week with a close to the
+        last close of the next, so after a week with none it spans both. The
+        start travels with it so that a caller pairing two series can pair
+        returns over the same period, not merely ending on the same day.
+        """
         by_week: dict[tuple[int, int], tuple[date, float]] = {}
         for d, c in zip(self.dates, self.closes):
             iso = d.isocalendar()
@@ -121,10 +132,10 @@ class PriceSeries:
                 by_week[key] = (d, float(c))
         ordered = [by_week[k] for k in sorted(by_week)]
         if len(ordered) < 3:
-            return [], np.array([])
-        dts = [d for d, _ in ordered][1:]
+            return [], [], np.array([])
+        dts = [d for d, _ in ordered]
         px = np.array([p for _, p in ordered])
-        return dts, px[1:] / px[:-1] - 1.0
+        return dts[:-1], dts[1:], px[1:] / px[:-1] - 1.0
 
 
 class PriceSource(Protocol):

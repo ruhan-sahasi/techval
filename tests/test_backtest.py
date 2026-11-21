@@ -29,6 +29,7 @@ from techval.backtest import (
     BacktestResult,
     ForwardPrices,
     LookaheadError,
+    _quantile_returns,
     assert_no_lookahead,
     forward_return,
     market_factory_from,
@@ -733,6 +734,25 @@ def test_two_identical_runs_agree_exactly(assumptions, source, cache):
     assert a.notes == b.notes
     assert a.quantile_returns.equals(b.quantile_returns)
     assert a.to_frame().equals(b.to_frame())
+
+
+def test_tied_upsides_share_a_bucket_whatever_order_they_arrive_in():
+    """Two names valued off the same close and filings carry the same upside.
+
+    Valued on a Friday and the Saturday after, they did, and with the cut
+    between second and third place falling inside the tie, a stable sort put
+    whichever came first in the lower bucket; reversing the dates swapped the
+    returns of buckets two and three, and of four and five.
+    """
+    upsides = np.array([0.10, 0.20, 0.20, 0.30, 0.40, 0.50, 0.50, 0.60, 0.70, 0.80])
+    rets = np.array([0.01, 0.02, 0.09, 0.03, 0.04, 0.05, 0.11, 0.06, 0.07, 0.08])
+    forward = _quantile_returns(upsides, rets)
+    flipped = np.array([0, 2, 1, 3, 4, 6, 5, 7, 8, 9])
+    backward = _quantile_returns(upsides[flipped], rets[flipped])
+    assert forward.equals(backward)
+    # Without ties the split is the even one it was: two names a bucket.
+    untied = _quantile_returns(np.arange(10.0), rets)
+    assert untied["n"].tolist() == [2, 2, 2, 2, 2]
 
 
 def test_the_order_of_the_ticker_list_does_not_move_the_statistics(

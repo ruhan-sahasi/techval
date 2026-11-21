@@ -125,6 +125,28 @@ def test_returns_are_paired_by_date_not_by_position():
     assert est.raw_beta == pytest.approx(1.0, rel=1e-6)
 
 
+def test_a_return_across_weeks_with_no_close_is_not_paired_with_one_week():
+    """A halt or a hole in the feed leaves the stock's next return spanning it.
+
+    Paired on the day it ended, that four-week return sat beside the index's
+    one-week return, a multi-week move regressed on a one-week one. The stock
+    here returns exactly 1.5 times the index in every week it priced.
+    """
+    rng = np.random.default_rng(5)
+    m_ret = rng.normal(0.0, 0.02, 80)
+    fridays = [date(2024, 1, 5) + timedelta(days=7 * i) for i in range(81)]
+    m_px = 100 * np.cumprod(np.concatenate([[1.0], 1 + m_ret]))
+    s_px = 100 * np.cumprod(np.concatenate([[1.0], 1 + 1.5 * m_ret]))
+    market = PriceSeries("M", fridays, m_px, "test")
+    priced = [i for i in range(81) if i not in (40, 41, 42)]
+    stock = PriceSeries("S", [fridays[i] for i in priced], s_px[priced], "test")
+
+    est = estimate_beta(stock, market, lookback_years=None)
+    # 80 weeks less the three with no close and the one return spanning them.
+    assert est.n_observations == 76
+    assert est.raw_beta == pytest.approx(1.5, rel=1e-9)
+
+
 def test_too_few_observations_raises_naming_the_count():
     rng = np.random.default_rng(3)
     px = list(100 * np.cumprod(1 + rng.normal(0, 0.02, 12)))
@@ -220,6 +242,34 @@ def test_the_net_cash_note_states_the_gap_rather_than_calling_it_small(
     assert note.endswith(
         "At a 6.0% debt weight the WACC is 33bp below the cost of equity."
     )
+
+
+def _beta_source(wacc_result) -> str:
+    return next(r["source"] for r in wacc_result.buildup_rows() if "OLS" in r["source"])
+
+
+def test_a_lookback_longer_than_the_closes_held_names_the_span_regressed(
+    ddog, ddog_bridge, market, assumptions
+):
+    """A valuation reads three years of closes, so five years asked was three.
+
+    The regression ran on the 156 weeks it had while its source line said five
+    years, the same estimate as a three-year lookback under a different name.
+    """
+    assumptions.market.beta_lookback_years = 5.0
+    w = compute_wacc(ddog, ddog_bridge, market, assumptions)
+    assert "over 3.0y of the 5y asked" in _beta_source(w)
+    note = next(n for n in w.notes if "beta regression covers" in n)
+    assert "not the 5 years market.beta_lookback_years asks for" in note
+    assert "because the SPY closes held start on" in note
+
+
+def test_a_lookback_the_closes_cover_is_named_as_asked(
+    ddog, ddog_bridge, market, assumptions
+):
+    w = compute_wacc(ddog, ddog_bridge, market, assumptions)
+    assert "over 2y," in _beta_source(w)
+    assert not [n for n in w.notes if "beta regression covers" in n]
 
 
 def test_buildup_names_a_source_for_every_input(ddog, ddog_bridge, market, assumptions):
