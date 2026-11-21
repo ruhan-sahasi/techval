@@ -287,6 +287,21 @@ def test_a_step_horizon_or_count_below_one_is_refused_as_typed(args):
 @pytest.mark.parametrize(
     "args",
     [
+        ["sotp", "DIS", "--on-negative", "nill"],
+        ["screen", "--panel", WARRANTED_PANEL, "--model", "ridg"],
+    ],
+)
+def test_a_word_outside_an_options_choices_is_refused_as_typed(args):
+    """``--on-negative`` read any word but nil as raise, so a typo ran the other
+    mode without saying so; ``--model`` refused only once the panel was read."""
+    result = runner.invoke(C.app, args)
+    assert result.exit_code == 2
+    assert f"Invalid value for '{args[-2]}'" in _usage_error(result.output)
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
         ["value", "DDOG", "--as-of", "2024-1-1"],
         ["backtest", "DDOG", "--from", "2024-1-1", "--to", "2025-01-01"],
         ["backtest", "DDOG", "--from", "2024-01-01", "--to", "2025-01-01", "--dates", "2024-1-1"],

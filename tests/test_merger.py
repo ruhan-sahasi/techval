@@ -1179,6 +1179,108 @@ def test_refinancing_needs_the_targets_interest_expense(hand_case):
         _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=None), a)
 
 
+def test_the_sweep_does_not_pay_the_financing_fees_a_second_time(pa_case):
+    """The fees are paid at close, out of the sources and uses.
+
+    Their amortisation is a book charge, and the sweep's cash flow took it off
+    as cash, 10mm a year of 70mm over seven years. What the fees change in a
+    year's cash is the interest on the 70mm borrowed to pay them, after tax,
+    and the tax the amortisation saves.
+    """
+    _, a, acq, tgt = pa_case
+    a.merger.financing_fees = 0.0
+    without = _rerun(acq, tgt, a).purchase_accounting.years[0].cash_flow
+    a.merger.financing_fees = 70.0
+    a.merger.financing_fee_amort_years = 7
+    with_fees = _rerun(acq, tgt, a).purchase_accounting.years[0].cash_flow
+    rate = a.tax.marginal_tax_rate
+    interest = 70.0 * a.merger.cost_of_new_debt
+    assert with_fees - without == pytest.approx(-interest * (1 - rate) + 10.0 * rate)
+
+
+def test_the_sources_and_uses_sentence_names_every_use(hand_case):
+    """Refinanced, the sentence listed 3,250mm of uses under a 3,760mm total."""
+    _, a, acq, tgt = hand_case
+    a.merger.refinance_target_debt = True
+    a.merger.refinancing_premium = 0.02
+    result = _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=25.0), a)
+    line = next(c for c in result.checks if c.startswith("Sources and uses balance"))
+    assert line.startswith("Sources and uses balance at 3,760mm")
+    assert (
+        "3,250mm of equity purchased, 500mm of target borrowings repaid, 10mm of "
+        "prepayment premium plus 0mm of fees." in line
+    )
+
+
+def test_notes_the_offer_converts_are_bought_where_waso_left_them_out(hand_case):
+    """Out of the money at 25.00 and in at the offer, with a 30.00 conversion price.
+
+    Diluted WASO, struck where the notes were antidilutive, holds none of their
+    16.67mm conversion shares. At an offer of 30.01 the offer bridge took the
+    500mm out of net debt and the price never bought the shares, so one cent of
+    offer above 29.99 knocked 498mm off the price paid.
+    """
+    _, a, acq, tgt = hand_case
+    a.convertibles.conversion_price = 30.0
+    tgt = replace(tgt, convertible_debt=500.0, basic_shares=100.0, diluted_shares=100.0)
+    a.merger.offer_premium = None
+
+    def priced(offer):
+        a.merger.offer_price_per_share = offer
+        return _rerun(acq, tgt, a)
+
+    below = priced(29.99).consideration.enterprise_purchase_price
+    above = priced(30.01)
+    assert below == pytest.approx(2999.0 + 500.0)
+    paid = above.consideration.enterprise_purchase_price
+    assert paid == pytest.approx(30.01 * (100.0 + 500.0 / 30.0))
+    assert any("on top of it" in n for n in above.notes)
+
+
+def test_notes_the_offer_converts_are_not_deducted_from_book_equity(pa_case):
+    """In the money, the notes' shares are in the price paid, so they are equity.
+
+    500mm of notes convertible at 20.00 are 25mm shares, inside the 100mm of
+    diluted WASO. Book equity still deducted the principal as a liability, so
+    the same company bought the day after the notes converted had 500mm more
+    book equity and 348mm less goodwill.
+    """
+    _, a, acq, tgt = pa_case
+    a.convertibles.conversion_price = 20.0
+    outstanding = replace(
+        tgt, convertible_debt=500.0, basic_shares=75.0, diluted_shares=100.0
+    )
+    converted = replace(
+        tgt, convertible_debt=0.0, basic_shares=100.0, diluted_shares=100.0
+    )
+
+    before = _rerun(acq, converted, a).purchase_accounting.opening
+    after = _rerun(acq, outstanding, a).purchase_accounting.opening
+    assert after.target_book_equity == pytest.approx(600.0)
+    assert after.target_book_equity == pytest.approx(before.target_book_equity)
+    assert after.goodwill_created == pytest.approx(before.goodwill_created)
+
+
+def test_the_headline_leverage_counts_refinanced_debt_once(hand_case):
+    """The check printed by default, which f6ba5a8 left counting the debt twice.
+
+    Refinanced, the target's 500mm left its net debt and joined the facility,
+    and the headline added both: 375mm of net cash where assuming the same
+    borrowings gives 875mm. Net debt at close does not depend on who holds it.
+    """
+    _, a, acq, tgt = hand_case
+    tgt = replace(tgt, straight_debt=500.0, interest_expense=25.0)
+
+    def leverage(result):
+        return next(c for c in result.checks if c.startswith("Pro forma net"))
+
+    assumed = leverage(_rerun(acq, tgt, a))
+    a.merger.refinance_target_debt = True
+    refinanced = leverage(_rerun(acq, tgt, a))
+    assert assumed.startswith("Pro forma net cash of 875mm")
+    assert refinanced == assumed
+
+
 def test_refinancing_moves_the_interest_in_the_roll_forward_and_counts_the_debt_once(pa_case):
     """The roll-forward agrees with the walk, and leverage does not double the repaid debt."""
     r, a, acq, tgt = pa_case

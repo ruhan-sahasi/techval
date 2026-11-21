@@ -162,6 +162,11 @@ class Consideration:
     # with any prepayment premium paid on them.
     target_debt_repaid: float = 0.0
     refinancing_premium_paid: float = 0.0
+    # Convertible notes the offer converts: the bridge at the offer price carries
+    # them as equity, so the price buys their shares and no liability survives.
+    convertible_converted: float = 0.0
+    # Their shares the price buys on top of diluted WASO, which left them out.
+    conversion_shares_bought: float = 0.0
 
     @property
     def target_net_debt(self) -> float:
@@ -554,7 +559,26 @@ def build_consideration(
 
     tgt_bridge = build_ev_bridge(tgt_fin, offer_price, assumptions)
 
-    equity_purchase_price = offer_price * tgt_fin.diluted_shares
+    # Notes the offer converts are bought through their shares. Where the filer
+    # left those shares out of diluted WASO, antidilutive at the market price,
+    # the price buys them on top of it; otherwise the notes leave net debt and
+    # never reach the share count, and a cent of offer above the conversion
+    # price would knock their principal off the price paid.
+    converted = (
+        tgt_fin.convertible_debt
+        if tgt_bridge.convertible_treatment == "if_converted"
+        else 0.0
+    )
+    bought = _conversion_shares_outside_waso(tgt_fin, assumptions) if converted else 0.0
+    if bought:
+        notes.append(
+            f"{tgt_fin.ticker}'s {converted:,.0f}mm of convertible notes convert at "
+            f"the {offer_price:,.2f} offer, but their {bought:,.2f}mm conversion "
+            "shares are not in diluted WASO, where the filer left them out as "
+            "antidilutive, so the equity purchase price buys them on top of it."
+        )
+
+    equity_purchase_price = offer_price * (tgt_fin.diluted_shares + bought)
     enterprise_purchase_price = equity_purchase_price + _net_debt(tgt_bridge)
 
     pct_cash = m.pct_cash
@@ -620,7 +644,26 @@ def build_consideration(
         pct_stock=pct_stock,
         target_debt_repaid=repaid,
         refinancing_premium_paid=premium_paid,
+        convertible_converted=converted,
+        conversion_shares_bought=bought,
     )
+
+
+def _conversion_shares_outside_waso(
+    tgt_fin: Financials, assumptions: Assumptions
+) -> float:
+    """The shares converted notes create that diluted WASO does not hold.
+
+    The bridge's own test: diluted WASO holds them where it runs above basic by
+    at least their number. Without a conversion price or a basic count there is
+    nothing to test, and nothing is added.
+    """
+    price = assumptions.convertibles.conversion_price
+    if not price or tgt_fin.basic_shares is None:
+        return 0.0
+    implied = tgt_fin.convertible_debt / price
+    held = tgt_fin.diluted_shares - tgt_fin.basic_shares
+    return implied if held < implied else 0.0
 
 
 def _sources_and_uses(
@@ -1189,7 +1232,9 @@ def _rule_of_thumb_checks(
 # --------------------------------------------------------------------------- #
 
 
-def _target_book_equity(tgt_fin: Financials, notes: list[str]) -> float:
+def _target_book_equity(
+    tgt_fin: Financials, notes: list[str], converted: float = 0.0
+) -> float:
     """Book equity acquired, built from the balance sheet items this engine carries.
 
     Goodwill is the price paid less the book equity bought, so this figure sets
@@ -1241,7 +1286,11 @@ def _target_book_equity(tgt_fin: Financials, notes: list[str]) -> float:
 
     financing = tgt_fin.current_financing
     working = tgt_fin.current_assets - tgt_fin.current_liabilities + (financing or 0.0)
-    book = working - tgt_fin.total_debt_ex_leases - tgt_fin.nci - tgt_fin.preferred
+    # Notes the offer converts become equity at close, and the price paid buys
+    # their shares, so deducting them as a liability too would count the claim
+    # twice and push their principal into goodwill.
+    borrowings = tgt_fin.total_debt_ex_leases - converted
+    book = working - borrowings - tgt_fin.nci - tgt_fin.preferred
     inside = (
         f", after taking back out the {financing:,.0f}mm of current debt and leases "
         "inside current liabilities so that a borrowing is deducted once and a lease "
@@ -1251,9 +1300,15 @@ def _target_book_equity(tgt_fin: Financials, notes: list[str]) -> float:
         "it is inside current liabilities and deducted a second time with the "
         "borrowings"
     )
+    kept = (
+        f", the {converted:,.0f}mm of convertible notes the offer converts left in "
+        "because the price buys their shares"
+        if converted
+        else ""
+    )
     notes.append(
         f"Book equity acquired of {book:,.0f}mm is working capital of "
-        f"{working:,.0f}mm less {tgt_fin.total_debt_ex_leases:,.0f}mm of borrowings "
+        f"{working:,.0f}mm less {borrowings:,.0f}mm of borrowings{kept} "
         f"and any preferred or minority interest{inside}. Lease liabilities are left "
         "out because their right-of-use assets are not carried here and deducting "
         "one side alone would invent goodwill; non-current operating assets are "
@@ -1288,7 +1343,7 @@ def _opening_balance_sheet(
     pa = assumptions.merger.purchase_accounting
 
     price = cons.equity_purchase_price
-    book = _target_book_equity(tgt_fin, notes)
+    book = _target_book_equity(tgt_fin, notes, cons.convertible_converted)
     excess = price - book
     dta = (
         tax_rate * pa.target_carryforward
@@ -1607,10 +1662,14 @@ def build_purchase_accounting(
         working = base_revenue * compounding * (nwc_pct or 0.0)
         change_in_working_capital = working - working_before
         working_before = working
+        # The financing fees were paid at close, out of the sources and uses, so
+        # their amortisation is a book charge here and goes back in, as the
+        # intangible amortisation does; its tax deduction stays in the taxes.
         cash_flow = (
             pretax
             - cash_taxes
             + amortisation
+            + fee
             + da
             - revenue * capex_pct
             - change_in_working_capital
@@ -2050,11 +2109,21 @@ def run_merger(
     )
 
     total_uses = next(v for _, label, v in sources_uses if label == "Total uses")
+    # Every use is named, so the figures in the sentence add to the total in it.
+    refinanced = (
+        f", {cons.target_debt_repaid:,.0f}mm of target borrowings repaid"
+        if cons.target_debt_repaid
+        else ""
+    ) + (
+        f", {cons.refinancing_premium_paid:,.0f}mm of prepayment premium"
+        if cons.refinancing_premium_paid
+        else ""
+    )
     checks.append(
         f"Sources and uses balance at {total_uses:,.0f}mm: "
         f"{cons.new_debt:,.0f}mm of new debt, {cons.cash_used:,.0f}mm of balance "
         f"sheet cash and {cons.stock_consideration:,.0f}mm of stock against "
-        f"{cons.equity_purchase_price:,.0f}mm of equity purchased plus "
+        f"{cons.equity_purchase_price:,.0f}mm of equity purchased{refinanced} plus "
         f"{assumptions.merger.deal_fees + assumptions.merger.financing_fees:,.0f}mm "
         "of fees."
     )
@@ -2074,12 +2143,16 @@ def run_merger(
         # Cash spent on the deal leaves the balance sheet, so it RAISES net debt.
         # Post-deal debt is D_acq + D_tgt + new debt; post-deal cash is
         # C_acq + C_tgt - cash used. Net debt is the difference, which puts cash
-        # used on the same side as new borrowing, not against it.
+        # used on the same side as new borrowing, not against it. Borrowings
+        # repaid at close are in the target's net debt and, through the facility
+        # that repaid them, in the new debt too; they are counted once, as in the
+        # purchase-accounting leverage check.
         pf_net_debt = (
             _net_debt(acq_bridge)
             + _net_debt(tgt_bridge)
             + cons.new_debt
             + cons.cash_used
+            - cons.target_debt_repaid
         )
         if pf_earnings > 0:
             position = (

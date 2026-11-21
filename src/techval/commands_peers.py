@@ -158,7 +158,7 @@ from .ml.warranted import (
     fit_warranted,
     screen_frame,
 )
-from .options import CONFIG, iso_date
+from .options import CONFIG, iso_date, one_of
 from .terminal import (
     format_multiple,
     make_console,
@@ -1433,7 +1433,9 @@ def screen(
     panel: Path = typer.Option(
         None, "--panel", help="Recorded warranted-multiple observation panel (JSON or .json.gz)."
     ),
-    model: str = typer.Option("mlp", "--model", help="'mlp' or 'ridge'."),
+    model: str = typer.Option(
+        "mlp", "--model", callback=one_of("mlp", "ridge"), help="'mlp' or 'ridge'."
+    ),
     n: int = typer.Option(10, "--n", min=1, help="Names to show at each end."),
     when: str = typer.Option(
         None,
