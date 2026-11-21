@@ -1799,10 +1799,16 @@ def backtest(
     config: Path = CONFIG,
     no_cache: bool = NO_CACHE,
     start: str = typer.Option(
-        ..., "--from", callback=iso_date, help="First valuation date (YYYY-MM-DD)."
+        None,
+        "--from",
+        callback=iso_date,
+        help="First valuation date (YYYY-MM-DD). Not needed with --dates.",
     ),
     end: str = typer.Option(
-        ..., "--to", callback=iso_date, help="Last valuation date (YYYY-MM-DD)."
+        None,
+        "--to",
+        callback=iso_date,
+        help="Last valuation date (YYYY-MM-DD). Not needed with --dates.",
     ),
     horizon: int = typer.Option(
         252, "--horizon", min=1, help="Forward return horizon in calendar days."
@@ -1824,12 +1830,17 @@ def backtest(
     try:
         assumptions, _client, _market = _setup(config, no_cache)
         names = [t.strip().upper() for t in tickers.split(",") if t.strip()]
-        first, last = date.fromisoformat(start), date.fromisoformat(end)
-        when = (
-            [date.fromisoformat(d.strip()) for d in dates.split(",") if d.strip()]
-            if dates
-            else _quarter_ends(first, last)
-        )
+        # --dates names the valuation dates outright, so the window that would
+        # otherwise lay out quarter ends is needed only without it.
+        if dates:
+            when = [date.fromisoformat(d) for d in dates.split(",")]
+        elif start and end:
+            when = _quarter_ends(date.fromisoformat(start), date.fromisoformat(end))
+        else:
+            raise ConfigError(
+                "backtest needs its valuation dates: list them with --dates, or "
+                "give --from and --to and every quarter end between them is used."
+            )
         if not when:
             console.print("[red]No valuation dates in that window.[/red]")
             raise typer.Exit(1)

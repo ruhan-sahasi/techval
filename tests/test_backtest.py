@@ -949,3 +949,21 @@ def test_dates_outside_the_from_to_window_are_scored_over_their_own_span(
     text = flat(result.output)
     assert "1 observations carry both an upside and a completed" in text
     assert "have no completed horizon" not in text
+
+
+def test_dates_alone_are_enough_to_run(tmp_path, monkeypatch):
+    """--from and --to were required with --dates, and then ignored."""
+    factory = lambda cache=None: dated_client_factory  # noqa: E731
+    monkeypatch.setattr(cli, "edgar_client_factory", factory)
+    config = str(offline_config(tmp_path))
+    result = CliRunner().invoke(
+        cli.app,
+        ["backtest", "DDOG", "--config", config, "--no-cache", "--dates", "2025-03-03"],
+    )
+    assert result.exit_code == 0, result.output
+    assert "1 observations carry both an upside and a completed" in flat(result.output)
+
+    neither = CliRunner().invoke(cli.app, ["backtest", "DDOG", "--config", config])
+    assert neither.exit_code == 1
+    assert "list them with --dates, or give --from and --to" in flat(neither.output)
+
