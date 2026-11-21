@@ -2054,11 +2054,21 @@ def run_merger(
     )
 
     total_uses = next(v for _, label, v in sources_uses if label == "Total uses")
+    # Every use is named, so the figures in the sentence add to the total in it.
+    refinanced = (
+        f", {cons.target_debt_repaid:,.0f}mm of target borrowings repaid"
+        if cons.target_debt_repaid
+        else ""
+    ) + (
+        f", {cons.refinancing_premium_paid:,.0f}mm of prepayment premium"
+        if cons.refinancing_premium_paid
+        else ""
+    )
     checks.append(
         f"Sources and uses balance at {total_uses:,.0f}mm: "
         f"{cons.new_debt:,.0f}mm of new debt, {cons.cash_used:,.0f}mm of balance "
         f"sheet cash and {cons.stock_consideration:,.0f}mm of stock against "
-        f"{cons.equity_purchase_price:,.0f}mm of equity purchased plus "
+        f"{cons.equity_purchase_price:,.0f}mm of equity purchased{refinanced} plus "
         f"{assumptions.merger.deal_fees + assumptions.merger.financing_fees:,.0f}mm "
         "of fees."
     )

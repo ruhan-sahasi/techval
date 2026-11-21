@@ -1198,6 +1198,20 @@ def test_the_sweep_does_not_pay_the_financing_fees_a_second_time(pa_case):
     assert with_fees - without == pytest.approx(-interest * (1 - rate) + 10.0 * rate)
 
 
+def test_the_sources_and_uses_sentence_names_every_use(hand_case):
+    """Refinanced, the sentence listed 3,250mm of uses under a 3,760mm total."""
+    _, a, acq, tgt = hand_case
+    a.merger.refinance_target_debt = True
+    a.merger.refinancing_premium = 0.02
+    result = _rerun(acq, replace(tgt, straight_debt=500.0, interest_expense=25.0), a)
+    line = next(c for c in result.checks if c.startswith("Sources and uses balance"))
+    assert line.startswith("Sources and uses balance at 3,760mm")
+    assert (
+        "3,250mm of equity purchased, 500mm of target borrowings repaid, 10mm of "
+        "prepayment premium plus 0mm of fees." in line
+    )
+
+
 def test_the_headline_leverage_counts_refinanced_debt_once(hand_case):
     """The check printed by default, which f6ba5a8 left counting the debt twice.
 
