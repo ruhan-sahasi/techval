@@ -1136,6 +1136,41 @@ def test_a_source_left_empty_is_refused_as_a_blank_one_is(tmp_path):
     assert "with no source" in flat(result.stdout)
 
 
+def test_the_sum_of_the_parts_prints_the_segment_readers_flags(tmp_path, monkeypatch):
+    """A figure tagged twice is resolved to the first, with a flag saying so.
+
+    The segments command printed that flag and the sum of the parts, which values
+    the figure, did not: Experiences' operating income tagged a second time at
+    8,995 ahead of the filed 9,995 went into the valuation without a word.
+    """
+    payload = json.loads((FIXTURES / "instance_facts_DIS.json").read_text())
+    payload["facts"].insert(
+        0,
+        {
+            "tag": "OperatingIncomeLoss",
+            "value": 8995e6,
+            "unit": "USD",
+            "start": "2024-09-29",
+            "end": "2025-09-27",
+            "dimensions": {"StatementBusinessSegmentsAxis": "ExperiencesSegmentMember"},
+        },
+    )
+    doubled = tmp_path / "instance_facts_DIS.json"
+    doubled.write_text(json.dumps(payload))
+
+    def client(cache, knowledge_date=None):
+        served = FixtureClient(knowledge_date)
+        served.instance["DIS"] = doubled
+        return served
+
+    monkeypatch.setattr(C, "EdgarClient", client)
+    result = sotp(tmp_path)
+    assert result.exit_code == 0
+    assert "OperatingIncomeLoss is tagged twice for ExperiencesSegmentMember" in flat(
+        result.stdout
+    )
+
+
 def test_a_plan_with_no_segments_is_refused(tmp_path):
     result = sotp(tmp_path, "corporate:\n  cost: 10\n")
     assert result.exit_code == 1

@@ -1844,7 +1844,10 @@ def _render_sotp(result, fin, report) -> None:
         "whole are measured over different windows.[/dim]"
     )
     print_notes(console, result.checks, heading="Cross-checks")
-    print_notes(console, result.flags, heading="Flags")
+    # The segment reader's flags first: a figure tagged twice, or a residual no
+    # reconciling item explains, is a doubt about the inputs every part rests on,
+    # and the segments command prints them for the same reason.
+    print_notes(console, [*report.flags, *result.flags], heading="Flags")
     print_notes(console, result.notes)
 
 
