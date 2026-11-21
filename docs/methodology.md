@@ -814,7 +814,8 @@ overridden outright, and the default is not the obvious one.
 sheet date. Averaging opening and closing debt would be better, and is what a
 credit analyst would do, but only one balance-sheet instant is normalized here,
 so the period-end balance is what there is. For an issuer that borrowed heavily
-during the year this understates the divisor and overstates the implied rate.
+during the year this overstates the divisor, since the interest accrued on the
+smaller balance it carried for most of the year, and so understates the rate.
 Either way it is a backward-looking *accounting* yield, not a market one. For a company whose
 borrowings are zero-coupon convertible notes it returns something near 0.5%,
 which is not a rate anyone would lend at. The engine therefore rejects any book
