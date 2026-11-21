@@ -6,6 +6,7 @@ import json
 import re
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from techval.cli import app
@@ -92,3 +93,14 @@ def test_compare_json_carries_the_rows_and_the_refusals(tmp_path):
     payload = json.loads(result.output)
     assert [r["company"] for r in payload["rows"]] == ["DDOG"]
     assert payload["refused"][0]["what"] == "NOPE" and out.exists()
+
+
+@pytest.mark.parametrize("command", [["tearsheet", "DDOG"], ["compare", "DDOG", "ZS"]])
+def test_a_folder_named_as_the_page_is_refused_before_the_page_is_built(
+    tmp_path, command
+):
+    """The page was built and then written to the folder: IsADirectoryError."""
+    result = runner.invoke(app, [*command, "--out", str(tmp_path)])
+    assert result.exit_code == 2
+    assert "Invalid value for '--out'" in flat(result.output.replace("\u2502", " "))
+

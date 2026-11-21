@@ -174,7 +174,9 @@ _mount(_forecast_app, "Forecasts and signal testing")
 _mount(_mna_app, "M&A")
 app.add_typer(_cache_app, rich_help_panel="Housekeeping")
 
-_OUT = typer.Option("out", "--out", "-o", help="Directory for chart output.")
+_OUT = typer.Option(
+    Path("out"), "--out", "-o", file_okay=False, help="Directory for chart output."
+)
 _ASOF = typer.Option(
     None,
     "--as-of",
@@ -1314,7 +1316,7 @@ def value(
     ticker: str,
     config: Path = CONFIG,
     no_cache: bool = NO_CACHE,
-    out: str = _OUT,
+    out: Path = _OUT,
     as_of: str = _ASOF,
     ml_data: Path = typer.Option(
         None,
@@ -1799,10 +1801,16 @@ def backtest(
     config: Path = CONFIG,
     no_cache: bool = NO_CACHE,
     start: str = typer.Option(
-        ..., "--from", callback=iso_date, help="First valuation date (YYYY-MM-DD)."
+        None,
+        "--from",
+        callback=iso_date,
+        help="First valuation date (YYYY-MM-DD). Not needed with --dates.",
     ),
     end: str = typer.Option(
-        ..., "--to", callback=iso_date, help="Last valuation date (YYYY-MM-DD)."
+        None,
+        "--to",
+        callback=iso_date,
+        help="Last valuation date (YYYY-MM-DD). Not needed with --dates.",
     ),
     horizon: int = typer.Option(
         252, "--horizon", min=1, help="Forward return horizon in calendar days."
@@ -1824,12 +1832,17 @@ def backtest(
     try:
         assumptions, _client, _market = _setup(config, no_cache)
         names = [t.strip().upper() for t in tickers.split(",") if t.strip()]
-        first, last = date.fromisoformat(start), date.fromisoformat(end)
-        when = (
-            [date.fromisoformat(d.strip()) for d in dates.split(",") if d.strip()]
-            if dates
-            else _quarter_ends(first, last)
-        )
+        # --dates names the valuation dates outright, so the window that would
+        # otherwise lay out quarter ends is needed only without it.
+        if dates:
+            when = [date.fromisoformat(d) for d in dates.split(",")]
+        elif start and end:
+            when = _quarter_ends(date.fromisoformat(start), date.fromisoformat(end))
+        else:
+            raise ConfigError(
+                "backtest needs its valuation dates: list them with --dates, or "
+                "give --from and --to and every quarter end between them is used."
+            )
         if not when:
             console.print("[red]No valuation dates in that window.[/red]")
             raise typer.Exit(1)
@@ -1956,10 +1969,15 @@ def dashboard(
     snapshot: Path = typer.Option(
         Path("docs/dashboard/snapshot.json"),
         "--snapshot",
+        dir_okay=False,
         help="The results snapshot to collect into, or to render from.",
     ),
     out: Path = typer.Option(
-        Path("docs/dashboard/index.html"), "--out", "-o", help="Where to write the page."
+        Path("docs/dashboard/index.html"),
+        "--out",
+        "-o",
+        dir_okay=False,
+        help="Where to write the page.",
     ),
     collect: bool = typer.Option(
         None,
