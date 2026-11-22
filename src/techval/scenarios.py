@@ -258,32 +258,40 @@ def value_scenarios(case, price: float, observations, *, trailing: float | None)
 def implied_weight(scenarios: list[Scenario], price: float) -> dict:
     """The weight the price puts on one tail, the other two held in their stated ratio.
 
-    A price above the weighted value is read as a heavier bull case, with bear
-    and base kept in proportion; below it, as a heavier bear case, with base and
-    bull kept in proportion. Outside the three values no weighting reaches the
-    price, and the reading says how far outside rather than inventing a fourth
-    scenario.
+    A price above the weighted value is read as a heavier weight on the most
+    valuable scenario, the bull case as a rule, with the other two kept in
+    proportion; below it, as a heavier weight on the least valuable. Outside the
+    three values no weighting reaches the price, and the reading says how far
+    outside rather than inventing a fourth scenario.
     """
     by = {s.name: s for s in scenarios}
-    bear, base, bull = by["bear"], by["base"], by["bull"]
-    if price > bull.value:
+    # By value, not by name. The bull path is usually worth most, but where each
+    # extra dollar of revenue costs the case more than it returns, the faster
+    # path is worth less and the names run backwards.
+    named = (by["bear"], by["base"], by["bull"])
+    lowest, _, highest = sorted(named, key=lambda s: s.value)
+    if price > highest.value:
+        times = (
+            f", {price / highest.value:.1f} times the value of the path the "
+            f"{_ordinal(highest.quantile)} percentile took"
+            if highest.value > 0
+            else ""
+        )
         return {
             "side": "above",
             "weight": None,
             "sentence": (
-                f"At {price:,.2f} the price is above even the bull case, {bull.value:,.2f}, "
-                f"{price / bull.value:.1f} times the value of the path the "
-                f"{_ordinal(bull.quantile)} percentile took; "
-                "no weighting of the three reaches it."
+                f"At {price:,.2f} the price is above even the {highest.name} case, "
+                f"{highest.value:,.2f}{times}; no weighting of the three reaches it."
             ),
         }
-    if price < bear.value:
+    if price < lowest.value:
         return {
             "side": "below",
             "weight": None,
             "sentence": (
-                f"At {price:,.2f} the price is below even the bear case, {bear.value:,.2f}; "
-                "no weighting of the three reaches it."
+                f"At {price:,.2f} the price is below even the {lowest.name} case, "
+                f"{lowest.value:,.2f}; no weighting of the three reaches it."
             ),
         }
 
@@ -292,7 +300,8 @@ def implied_weight(scenarios: list[Scenario], price: float) -> dict:
         return (price - rest) / (tail.value - rest) if tail.value != rest else tail.weight
 
     weighted = sum(s.weight * s.value for s in scenarios)
-    tail, (a, b) = (bull, (bear, base)) if price >= weighted else (bear, (base, bull))
+    tail = highest if price >= weighted else lowest
+    a, b = (s for s in scenarios if s is not tail)
     w = solve(tail, a, b)
     return {
         "side": tail.name,
