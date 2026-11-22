@@ -42,6 +42,12 @@ class Case:
     wacc: object
     assumptions: Assumptions
 
+    @property
+    def discount_rate(self) -> float:
+        """The rate the base case is discounted at: dcf.wacc_override where set."""
+        override = self.assumptions.dcf.wacc_override
+        return override if override is not None else self.wacc.wacc
+
     def with_dcf(self, **dcf_changes) -> "Case":
         """The same company under changed ``assumptions.dcf`` fields, as an independent copy.
 
@@ -151,7 +157,7 @@ def implied_discount_rate(case: Case, price: float) -> Solve:
     g = case.assumptions.dcf.terminal_growth
     lo, hi = g + RATE_FLOOR_ABOVE_G, RATE_CEILING
     root = solve_monotone(_guarded(lambda r: case.value(wacc_override=r)), price, lo, hi)
-    assumed = case.assumptions.dcf.wacc_override or case.wacc.wacc
+    assumed = case.discount_rate
     if root.reached:
         sentence = (
             f"At {price:,.2f} a buyer earns {root.x:.2%} a year if the base case holds, "
@@ -710,7 +716,7 @@ def expectations_history(payload: dict, ticker: str, source, assumptions: Assump
         row.update(
             price=round(price, 4),
             base_value=round(base_value, 4),
-            wacc=round(case.wacc.wacc, 6),
+            wacc=round(case.discount_rate, 6),
             implied_return=None if rate.implied is None else round(rate.implied, 6),
             implied_growth=None if growth.implied is None else round(growth.implied, 6),
             revenue_mm=round(case.fin.revenue, 2),
@@ -786,7 +792,7 @@ def _screen_row(ticker, payload, source, assumptions, when, observations) -> dic
     return dict(
         price=round(price, 4),
         base_value=round(case.value(), 4),
-        wacc=round(case.wacc.wacc, 6),
+        wacc=round(case.discount_rate, 6),
         implied_return=None if rate.implied is None else round(rate.implied, 6),
         implied_growth=None if growth.implied is None else round(growth.implied, 6),
         # Where the growth solve found no root: the edge it stopped at, and

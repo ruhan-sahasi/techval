@@ -503,6 +503,23 @@ def test_a_frontier_row_missed_at_the_low_edge_says_so(case):
     assert {_growth_needed(r) for r in rows} == {"below -50%"}
 
 
+def test_the_screen_and_history_show_the_rate_the_base_case_used(fade_observations):
+    """Under dcf.wacc_override the base case is discounted at the override.
+
+    Both tables showed the computed WACC beside a base value discounted at
+    something else: 11.86% against a 9% override.
+    """
+    a = pinned_assumptions()
+    a.dcf.wacc_override = 0.09
+    when = date(2026, 9, 9)
+    payloads = {"DDOG": load_payload("DDOG")}
+    (row,) = screen(payloads, CsvSource(PRICES), a, when, fade_observations)
+    assert row["wacc"] == 0.09
+    source = CsvSource(PRICES)
+    (dated,) = expectations_history(payloads["DDOG"], "DDOG", source, a, [when])
+    assert dated["wacc"] == 0.09
+
+
 def test_a_changed_valuation_leaves_the_case_it_came_from_alone(case):
     before = case.assumptions.model_dump()
     moved = case.with_dcf(wacc_override=0.2, ebit_margin_terminal=0.4)
