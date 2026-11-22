@@ -158,12 +158,28 @@ def implied_discount_rate(case: Case, price: float) -> Solve:
             f"against a cost of capital of {assumed:.2%}."
         )
         return Solve("discount_rate", price, assumed, root.x, (lo, hi), sentence=sentence)
-    sentence = (
-        f"Even discounted at {RATE_CEILING:.0%} the base case is worth {root.edge_value:,.2f}, "
-        f"above the {price:,.2f} price: the price assumes less than the base case."
-        if root.edge_x == hi
-        else f"No rate above terminal growth plus half a point reaches {price:,.2f}."
-    )
+    # Which way the price misses decides the sentence, not which edge is
+    # nearer: value usually falls as the rate rises, but where the base case's
+    # flows are negative on balance it rises, and the edges swap meaning.
+    above = root.edge_value < price
+    if not above and root.edge_x == hi:
+        sentence = (
+            f"Even discounted at {RATE_CEILING:.0%} the base case is worth "
+            f"{root.edge_value:,.2f}, above the {price:,.2f} price: the price assumes "
+            "less than the base case."
+        )
+    elif above and root.edge_x == lo:
+        sentence = (
+            f"No rate above terminal growth plus half a point reaches {price:,.2f}."
+        )
+    else:
+        sentence = (
+            f"No rate from {lo:.1%} to {hi:.0%} reaches {price:,.2f}: the base case is "
+            f"worth {'at most' if above else 'at least'} {root.edge_value:,.2f}, at "
+            f"{root.edge_x:.1%}. Its value rises with the rate, the mark of flows that "
+            "are negative on balance, so the price assumes "
+            f"{'more' if above else 'less'} than the base case."
+        )
     return Solve(
         "discount_rate", price, assumed, None, (lo, hi), root.edge_x, root.edge_value, sentence
     )
@@ -198,15 +214,29 @@ def implied_first_year_growth(case: Case, price: float) -> Solve:
         return Solve(
             "first_year_growth", price, assumed, root.x, (lo, hi), sentence=sentence, extras={"path": path}
         )
-    if root.edge_x == hi:
+    # As with the rate: which way the price misses decides the sentence. Where
+    # each extra dollar of revenue costs the case more than it returns, value
+    # FALLS with growth, and the nearer edge to a price above every value is the
+    # low one.
+    above = root.edge_value < price
+    if above and root.edge_x == hi:
         sentence = (
             f"No first-year growth up to {hi:.0%} reaches {price:,.2f}: at {hi:.0%}, fading to "
             f"{cfg.revenue_growth_terminal:.1%}, the DCF is worth {root.edge_value:,.2f}."
         )
-    else:
+    elif not above and root.edge_x == lo:
         sentence = (
             f"Even shrinking {abs(lo):.0%} next year the DCF is worth {root.edge_value:,.2f}, above "
             f"the {price:,.2f} price: the price assumes a contraction this lever cannot express."
+        )
+    else:
+        sentence = (
+            f"No first-year growth from {lo:.0%} to {hi:.0%} reaches {price:,.2f}: "
+            f"the DCF is worth {'at most' if above else 'at least'} "
+            f"{root.edge_value:,.2f}, at "
+            f"{root.edge_x:.0%}. Growth lowers its value here, because each extra "
+            "dollar of revenue costs this case more than it returns, so the price "
+            f"assumes {'more' if above else 'less'} than the base case."
         )
     return Solve(
         "first_year_growth", price, assumed, None, (lo, hi), root.edge_x, root.edge_value, sentence

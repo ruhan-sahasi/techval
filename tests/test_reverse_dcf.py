@@ -149,6 +149,39 @@ def test_no_terminal_margin_alone_reaches_datadogs_price(case):
     assert "95%" in solve.sentence
 
 
+def _record_case(ticker: str) -> tuple[Case, float]:
+    """The case --from-record builds, which for a loss-maker runs backwards."""
+    a = pinned_assumptions()
+    a.dcf.from_record = True
+    facts = load_facts(ticker)
+    fin = build_financials(ticker, facts=facts)
+    market = market_at(AS_OF)
+    spot = market.spot(ticker)
+    bridge = build_ev_bridge(fin, spot, a)
+    anchored, _ = A.record_case(a, fin, facts)
+    return Case(fin, bridge, compute_wacc(fin, bridge, market, a), anchored), spot
+
+
+def test_a_lever_that_runs_backwards_misses_in_the_right_direction():
+    """Zscaler's record case loses money at a -4% terminal margin.
+
+    So its value rises with the rate and falls with growth: 8.00 at a 40% rate
+    and 0.73 shrinking 50% next year, both far below the 166.10 close. The
+    sentences assumed value always falls with the rate and rises with growth,
+    and called each of those the price assuming less than the base case.
+    """
+    record, spot = _record_case("ZS")
+    rate = implied_discount_rate(record, spot)
+    growth = implied_first_year_growth(record, spot)
+    assert not rate.reached and not growth.reached
+    assert rate.edge_value < spot and growth.edge_value < spot
+    for solve in (rate, growth):
+        assert "worth at most" in solve.sentence
+        assert "the price assumes more than the base case" in solve.sentence
+        assert "less than the base case" not in solve.sentence
+        assert "contraction" not in solve.sentence
+
+
 def test_a_reachable_margin_round_trips(case):
     target = case.value(ebit_margin_terminal=0.45)
     solve = implied_terminal_margin(case, target)
