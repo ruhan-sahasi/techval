@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 
+import pytest
 from typer.testing import CliRunner
 
 from techval.cli import app
+from techval.commands_expectations import _growth_needed
 
 from conftest import FIXTURES, flat, offline_config
 
@@ -179,3 +181,21 @@ def test_the_from_record_flag_reaches_expectations_and_the_screen(tmp_path):
     plain = {r["ticker"]: r for r in json.loads(runner.invoke(app, args).output)}
     record = {r["ticker"]: r for r in json.loads(runner.invoke(app, [*args, "--from-record"]).output)}
     assert record["DDOG"]["base_value"] != plain["DDOG"]["base_value"]
+
+
+@pytest.mark.parametrize(
+    "missed, edge, label",
+    [
+        ("above", 3.0, "beyond 300%"),
+        ("below", -0.5, "below -50%"),
+        ("above", -0.5, "out of reach"),
+    ],
+)
+def test_the_screen_says_which_way_the_growth_needed_is_out_of_reach(
+    missed, edge, label
+):
+    """Every unreached row read "beyond 300%", including a price below anything
+    growth down to -50% reaches, and one that no growth reaches because growth
+    costs the case value."""
+    row = {"implied_growth": None, "growth_missed": missed, "growth_edge": edge}
+    assert _growth_needed(row) == label

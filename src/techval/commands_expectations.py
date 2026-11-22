@@ -282,13 +282,25 @@ def expectations_screen(
         table.add_row(
             r["ticker"], f"{r['price']:,.2f}", f"{r['base_value']:,.2f}",
             format_pct(r["implied_return"]),
-            "beyond 300%" if r["implied_growth"] is None else format_pct(r["implied_growth"]),
+            _growth_needed(r),
             did, above, _against(r),
         )
     console.print(table)
     for r in rows:
         if r["refused"]:
             console.print(f"  {r['ticker']} refused: {escape(r['refused'])}", highlight=False)
+
+
+def _growth_needed(row: dict) -> str:
+    """The growth a screen row's price needs, or which way it is out of reach."""
+    if row["implied_growth"] is not None:
+        return format_pct(row["implied_growth"])
+    if row["growth_missed"] == "above" and row["growth_edge"] > 0:
+        return f"beyond {row['growth_edge']:.0%}"
+    if row["growth_missed"] == "below" and row["growth_edge"] < 0:
+        return f"below {row['growth_edge']:.0%}"
+    # A lever that runs backwards, where growth costs the case value.
+    return "out of reach"
 
 
 @app.command()

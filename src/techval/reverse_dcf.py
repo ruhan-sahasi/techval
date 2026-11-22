@@ -738,10 +738,15 @@ def screen(payloads: dict, source, assumptions: Assumptions, when, observations=
 
     def order(r):
         if r["refused"]:
-            return (2, 0.0, 0.0)
-        share = r["base_share"] if r["base_share"] is not None else 1.0
+            return (3, 0.0, 0.0)
         ret = r["implied_return"] if r["implied_return"] is not None else 1.0
-        return (0 if r["implied_growth"] is not None else 1, share, ret)
+        if r["implied_growth"] is None:
+            # A price above anything growth reaches needs more than any
+            # company-year did, so it is the most demanding there is; a price
+            # below everything growth reaches is the least.
+            return (0 if r["growth_missed"] == "above" else 2, 0.0, ret)
+        share = r["base_share"] if r["base_share"] is not None else 1.0
+        return (1, share, ret)
 
     return sorted(rows, key=order)
 
@@ -777,6 +782,14 @@ def _screen_row(ticker, payload, source, assumptions, when, observations) -> dic
         wacc=round(case.wacc.wacc, 6),
         implied_return=None if rate.implied is None else round(rate.implied, 6),
         implied_growth=None if growth.implied is None else round(growth.implied, 6),
+        # Where the growth solve found no root: the edge it stopped at, and
+        # whether the price sat above every value it reached or below.
+        growth_edge=growth.edge,
+        growth_missed=(
+            None
+            if growth.reached
+            else "above" if growth.edge_value < price else "below"
+        ),
         base_share=None if base is None else base["all"]["share"],
         base_hits=None if base is None else base["all"]["hits"],
         base_n=None if base is None else base["all"]["n"],

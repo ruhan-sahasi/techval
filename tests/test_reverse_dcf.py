@@ -471,6 +471,25 @@ def test_the_screen_counts_base_rates_over_the_years_the_path_runs(fade_observat
     assert (rows[0]["base_hits"], rows[0]["base_n"]) == (every["hits"], every["n"])
 
 
+def test_a_price_no_growth_reaches_is_the_most_demanding_of_the_screen(
+    fade_observations,
+):
+    """At an 11% terminal margin CrowdStrike's DCF reaches 194.23 at 300% growth.
+
+    Its 207.80 close needs more than any first-year growth the bracket holds,
+    which none of the panel's company-years printed, and the screen ranked it
+    last, below Disney's 21.7%, because its growth solve found no root.
+    """
+    a = pinned_assumptions()
+    a.dcf.ebit_margin_terminal = 0.11
+    payloads = {t: load_payload(t) for t in ("DDOG", "CRWD", "MDB", "ZS", "DIS")}
+    rows = screen(payloads, CsvSource(PRICES), a, date(2026, 9, 9), fade_observations)
+    first = rows[0]
+    assert first["ticker"] == "CRWD" and first["implied_growth"] is None
+    assert (first["growth_missed"], first["growth_edge"]) == ("above", 3.0)
+    assert rows[-1]["ticker"] == "DIS"
+
+
 def test_a_changed_valuation_leaves_the_case_it_came_from_alone(case):
     before = case.assumptions.model_dump()
     moved = case.with_dcf(wacc_override=0.2, ebit_margin_terminal=0.4)
