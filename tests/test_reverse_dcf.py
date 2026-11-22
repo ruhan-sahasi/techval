@@ -15,6 +15,7 @@ import pytest
 
 import techval.anchors as A
 import techval.reverse_dcf as R
+from techval.commands_expectations import _growth_needed
 from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
@@ -488,6 +489,18 @@ def test_a_price_no_growth_reaches_is_the_most_demanding_of_the_screen(
     assert first["ticker"] == "CRWD" and first["implied_growth"] is None
     assert (first["growth_missed"], first["growth_edge"]) == ("above", 3.0)
     assert rows[-1]["ticker"] == "DIS"
+
+
+def test_a_frontier_row_missed_at_the_low_edge_says_so(case):
+    """At 10.00 Datadog's DCF is above the price even shrinking 50% next year.
+
+    The frontier kept only the edge's value, and the command printed every
+    unreached margin as "beyond 300%".
+    """
+    rows = growth_margin_frontier(case, 10.0)
+    assert all(r["implied_growth"] is None for r in rows)
+    assert {(r["growth_missed"], r["growth_edge"]) for r in rows} == {("below", -0.5)}
+    assert {_growth_needed(r) for r in rows} == {"below -50%"}
 
 
 def test_a_changed_valuation_leaves_the_case_it_came_from_alone(case):

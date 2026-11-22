@@ -402,17 +402,24 @@ def growth_margin_frontier(case: Case, price: float, margins=FRONTIER_MARGINS) -
     """The first-year growth the price needs at each terminal margin.
 
     Two levers that each fail alone can succeed together, and this is the
-    curve along which they trade: a row per margin, with the implied growth or
-    the value the growth bracket's edge reaches when even 300% will not do.
+    curve along which they trade: a row per margin, with the implied growth or,
+    where none in the bracket reaches the price, the edge the solve stopped at,
+    the value there, and whether the price sat above every value it reached or
+    below, as a screen row records them.
     """
     rows = []
     for m in margins:
         solve = implied_first_year_growth(case.with_dcf(ebit_margin_terminal=m), price)
+        missed = None
+        if not solve.reached:
+            missed = "above" if solve.edge_value < price else "below"
         rows.append(
             {
                 "margin": m,
                 "implied_growth": solve.implied,
                 "edge_value": None if solve.reached else solve.edge_value,
+                "growth_edge": solve.edge,
+                "growth_missed": missed,
             }
         )
     return rows

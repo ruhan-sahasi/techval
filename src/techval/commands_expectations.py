@@ -188,8 +188,7 @@ def _print(result) -> None:
     frontier.add_column("Terminal margin", justify="right")
     frontier.add_column("First-year growth", justify="right")
     for row in result.frontier:
-        need = format_pct(row["implied_growth"]) if row["implied_growth"] is not None else "beyond 300%"
-        frontier.add_row(format_pct(row["margin"]), need)
+        frontier.add_row(format_pct(row["margin"]), _growth_needed(row))
     console.print(frontier)
 
     for sentence in result.summary():
@@ -292,7 +291,8 @@ def expectations_screen(
 
 
 def _growth_needed(row: dict) -> str:
-    """The growth a screen row's price needs, or which way it is out of reach."""
+    """The growth a screen or frontier row's price needs, or which way it is out
+    of reach."""
     if row["implied_growth"] is not None:
         return format_pct(row["implied_growth"])
     if row["growth_missed"] == "above" and row["growth_edge"] > 0:
