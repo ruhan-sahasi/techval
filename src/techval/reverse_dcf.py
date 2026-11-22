@@ -42,6 +42,12 @@ class Case:
     wacc: object
     assumptions: Assumptions
 
+    @property
+    def discount_rate(self) -> float:
+        """The rate the base case is discounted at: dcf.wacc_override where set."""
+        override = self.assumptions.dcf.wacc_override
+        return override if override is not None else self.wacc.wacc
+
     def with_dcf(self, **dcf_changes) -> "Case":
         """The same company under changed ``assumptions.dcf`` fields, as an independent copy.
 
@@ -151,19 +157,35 @@ def implied_discount_rate(case: Case, price: float) -> Solve:
     g = case.assumptions.dcf.terminal_growth
     lo, hi = g + RATE_FLOOR_ABOVE_G, RATE_CEILING
     root = solve_monotone(_guarded(lambda r: case.value(wacc_override=r)), price, lo, hi)
-    assumed = case.assumptions.dcf.wacc_override or case.wacc.wacc
+    assumed = case.discount_rate
     if root.reached:
         sentence = (
             f"At {price:,.2f} a buyer earns {root.x:.2%} a year if the base case holds, "
             f"against a cost of capital of {assumed:.2%}."
         )
         return Solve("discount_rate", price, assumed, root.x, (lo, hi), sentence=sentence)
-    sentence = (
-        f"Even discounted at {RATE_CEILING:.0%} the base case is worth {root.edge_value:,.2f}, "
-        f"above the {price:,.2f} price: the price assumes less than the base case."
-        if root.edge_x == hi
-        else f"No rate above terminal growth plus half a point reaches {price:,.2f}."
-    )
+    # Which way the price misses decides the sentence, not which edge is
+    # nearer: value usually falls as the rate rises, but where the base case's
+    # flows are negative on balance it rises, and the edges swap meaning.
+    above = root.edge_value < price
+    if not above and root.edge_x == hi:
+        sentence = (
+            f"Even discounted at {RATE_CEILING:.0%} the base case is worth "
+            f"{root.edge_value:,.2f}, above the {price:,.2f} price: the price assumes "
+            "less than the base case."
+        )
+    elif above and root.edge_x == lo:
+        sentence = (
+            f"No rate above terminal growth plus half a point reaches {price:,.2f}."
+        )
+    else:
+        sentence = (
+            f"No rate from {lo:.1%} to {hi:.0%} reaches {price:,.2f}: the base case is "
+            f"worth {'at most' if above else 'at least'} {root.edge_value:,.2f}, at "
+            f"{root.edge_x:.1%}. Its value rises with the rate, the mark of flows that "
+            "are negative on balance, so the price assumes "
+            f"{'more' if above else 'less'} than the base case."
+        )
     return Solve(
         "discount_rate", price, assumed, None, (lo, hi), root.edge_x, root.edge_value, sentence
     )
@@ -198,15 +220,29 @@ def implied_first_year_growth(case: Case, price: float) -> Solve:
         return Solve(
             "first_year_growth", price, assumed, root.x, (lo, hi), sentence=sentence, extras={"path": path}
         )
-    if root.edge_x == hi:
+    # As with the rate: which way the price misses decides the sentence. Where
+    # each extra dollar of revenue costs the case more than it returns, value
+    # FALLS with growth, and the nearer edge to a price above every value is the
+    # low one.
+    above = root.edge_value < price
+    if above and root.edge_x == hi:
         sentence = (
             f"No first-year growth up to {hi:.0%} reaches {price:,.2f}: at {hi:.0%}, fading to "
             f"{cfg.revenue_growth_terminal:.1%}, the DCF is worth {root.edge_value:,.2f}."
         )
-    else:
+    elif not above and root.edge_x == lo:
         sentence = (
             f"Even shrinking {abs(lo):.0%} next year the DCF is worth {root.edge_value:,.2f}, above "
             f"the {price:,.2f} price: the price assumes a contraction this lever cannot express."
+        )
+    else:
+        sentence = (
+            f"No first-year growth from {lo:.0%} to {hi:.0%} reaches {price:,.2f}: "
+            f"the DCF is worth {'at most' if above else 'at least'} "
+            f"{root.edge_value:,.2f}, at "
+            f"{root.edge_x:.0%}. Growth lowers its value here, because each extra "
+            "dollar of revenue costs this case more than it returns, so the price "
+            f"assumes {'more' if above else 'less'} than the base case."
         )
     return Solve(
         "first_year_growth", price, assumed, None, (lo, hi), root.edge_x, root.edge_value, sentence
@@ -372,17 +408,24 @@ def growth_margin_frontier(case: Case, price: float, margins=FRONTIER_MARGINS) -
     """The first-year growth the price needs at each terminal margin.
 
     Two levers that each fail alone can succeed together, and this is the
-    curve along which they trade: a row per margin, with the implied growth or
-    the value the growth bracket's edge reaches when even 300% will not do.
+    curve along which they trade: a row per margin, with the implied growth or,
+    where none in the bracket reaches the price, the edge the solve stopped at,
+    the value there, and whether the price sat above every value it reached or
+    below, as a screen row records them.
     """
     rows = []
     for m in margins:
         solve = implied_first_year_growth(case.with_dcf(ebit_margin_terminal=m), price)
+        missed = None
+        if not solve.reached:
+            missed = "above" if solve.edge_value < price else "below"
         rows.append(
             {
                 "margin": m,
                 "implied_growth": solve.implied,
                 "edge_value": None if solve.reached else solve.edge_value,
+                "growth_edge": solve.edge,
+                "growth_missed": missed,
             }
         )
     return rows
@@ -673,7 +716,7 @@ def expectations_history(payload: dict, ticker: str, source, assumptions: Assump
         row.update(
             price=round(price, 4),
             base_value=round(base_value, 4),
-            wacc=round(case.wacc.wacc, 6),
+            wacc=round(case.discount_rate, 6),
             implied_return=None if rate.implied is None else round(rate.implied, 6),
             implied_growth=None if growth.implied is None else round(growth.implied, 6),
             revenue_mm=round(case.fin.revenue, 2),
@@ -708,10 +751,15 @@ def screen(payloads: dict, source, assumptions: Assumptions, when, observations=
 
     def order(r):
         if r["refused"]:
-            return (2, 0.0, 0.0)
-        share = r["base_share"] if r["base_share"] is not None else 1.0
+            return (3, 0.0, 0.0)
         ret = r["implied_return"] if r["implied_return"] is not None else 1.0
-        return (0 if r["implied_growth"] is not None else 1, share, ret)
+        if r["implied_growth"] is None:
+            # A price above anything growth reaches needs more than any
+            # company-year did, so it is the most demanding there is; a price
+            # below everything growth reaches is the least.
+            return (0 if r["growth_missed"] == "above" else 2, 0.0, ret)
+        share = r["base_share"] if r["base_share"] is not None else 1.0
+        return (1, share, ret)
 
     return sorted(rows, key=order)
 
@@ -744,9 +792,17 @@ def _screen_row(ticker, payload, source, assumptions, when, observations) -> dic
     return dict(
         price=round(price, 4),
         base_value=round(case.value(), 4),
-        wacc=round(case.wacc.wacc, 6),
+        wacc=round(case.discount_rate, 6),
         implied_return=None if rate.implied is None else round(rate.implied, 6),
         implied_growth=None if growth.implied is None else round(growth.implied, 6),
+        # Where the growth solve found no root: the edge it stopped at, and
+        # whether the price sat above every value it reached or below.
+        growth_edge=growth.edge,
+        growth_missed=(
+            None
+            if growth.reached
+            else "above" if growth.edge_value < price else "below"
+        ),
         base_share=None if base is None else base["all"]["share"],
         base_hits=None if base is None else base["all"]["hits"],
         base_n=None if base is None else base["all"]["n"],

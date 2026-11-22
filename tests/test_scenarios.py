@@ -159,6 +159,9 @@ def test_the_scenarios_follow_the_assumptions(case, fade_observations):
     assert usual.scenario("bear").value < result.scenario("bear").value
     assert result.scenario("bull").value < usual.scenario("bull").value
     assert [s.weight for s in result.scenarios] == [0.25, 0.5, 0.25]
+    # The sentence names the quantiles configured, not the default three.
+    assert "around the 25th, 50th and 75th percentile" in result.sentences[0]
+    assert "10th" not in result.sentences[0]
 
 
 def test_an_empty_panel_values_no_scenarios(case):
@@ -188,6 +191,24 @@ def test_a_richer_price_leans_on_the_bull_case_and_a_cheaper_one_on_the_bear():
     assert cheap["side"] == "bear"
     assert cheap["weight"] == pytest.approx((15 - 20 / 0.7) / (10 - 20 / 0.7))
     assert "on the bear case, against 30%" in cheap["sentence"]
+
+
+def test_scenarios_whose_values_run_backwards_are_weighted_by_value():
+    """MongoDB's record case loses money on extra revenue, so faster is worth less.
+
+    Bear came out at 28.91, base 27.49 and bull 23.80, and a price of 27.49,
+    exactly the base case, was read as "above even the bull case" and beyond
+    any weighting of the three.
+    """
+    backwards = three(bear=28.91, base=27.49, bull=23.80)
+    at_base = implied_weight(backwards, 27.49)
+    assert at_base["side"] != "above" and at_base["weight"] is not None
+    assert implied_weight(backwards, 30.0)["sentence"].startswith(
+        "At 30.00 the price is above even the bear case, 28.91"
+    )
+    assert implied_weight(backwards, 20.0)["sentence"].startswith(
+        "At 20.00 the price is below even the bull case, 23.80"
+    )
 
 
 def test_a_price_outside_the_scenarios_is_named_not_weighted():

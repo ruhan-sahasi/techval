@@ -15,6 +15,7 @@ import pytest
 
 import techval.anchors as A
 import techval.reverse_dcf as R
+from techval.commands_expectations import _growth_needed
 from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
@@ -147,6 +148,39 @@ def test_no_terminal_margin_alone_reaches_datadogs_price(case):
     assert solve.edge_value < PRICE
     assert case.value(ebit_margin_terminal=MARGIN_BRACKET[1]) == pytest.approx(solve.edge_value)
     assert "95%" in solve.sentence
+
+
+def _record_case(ticker: str) -> tuple[Case, float]:
+    """The case --from-record builds, which for a loss-maker runs backwards."""
+    a = pinned_assumptions()
+    a.dcf.from_record = True
+    facts = load_facts(ticker)
+    fin = build_financials(ticker, facts=facts)
+    market = market_at(AS_OF)
+    spot = market.spot(ticker)
+    bridge = build_ev_bridge(fin, spot, a)
+    anchored, _ = A.record_case(a, fin, facts)
+    return Case(fin, bridge, compute_wacc(fin, bridge, market, a), anchored), spot
+
+
+def test_a_lever_that_runs_backwards_misses_in_the_right_direction():
+    """Zscaler's record case loses money at a -4% terminal margin.
+
+    So its value rises with the rate and falls with growth: 8.00 at a 40% rate
+    and 0.73 shrinking 50% next year, both far below the 166.10 close. The
+    sentences assumed value always falls with the rate and rises with growth,
+    and called each of those the price assuming less than the base case.
+    """
+    record, spot = _record_case("ZS")
+    rate = implied_discount_rate(record, spot)
+    growth = implied_first_year_growth(record, spot)
+    assert not rate.reached and not growth.reached
+    assert rate.edge_value < spot and growth.edge_value < spot
+    for solve in (rate, growth):
+        assert "worth at most" in solve.sentence
+        assert "the price assumes more than the base case" in solve.sentence
+        assert "less than the base case" not in solve.sentence
+        assert "contraction" not in solve.sentence
 
 
 def test_a_reachable_margin_round_trips(case):
@@ -436,6 +470,54 @@ def test_the_screen_counts_base_rates_over_the_years_the_path_runs(fade_observat
     )
     every = expected.base_rates["first_year_growth"]["all"]
     assert (rows[0]["base_hits"], rows[0]["base_n"]) == (every["hits"], every["n"])
+
+
+def test_a_price_no_growth_reaches_is_the_most_demanding_of_the_screen(
+    fade_observations,
+):
+    """At an 11% terminal margin CrowdStrike's DCF reaches 194.23 at 300% growth.
+
+    Its 207.80 close needs more than any first-year growth the bracket holds,
+    which none of the panel's company-years printed, and the screen ranked it
+    last, below Disney's 21.7%, because its growth solve found no root.
+    """
+    a = pinned_assumptions()
+    a.dcf.ebit_margin_terminal = 0.11
+    payloads = {t: load_payload(t) for t in ("DDOG", "CRWD", "MDB", "ZS", "DIS")}
+    rows = screen(payloads, CsvSource(PRICES), a, date(2026, 9, 9), fade_observations)
+    first = rows[0]
+    assert first["ticker"] == "CRWD" and first["implied_growth"] is None
+    assert (first["growth_missed"], first["growth_edge"]) == ("above", 3.0)
+    assert rows[-1]["ticker"] == "DIS"
+
+
+def test_a_frontier_row_missed_at_the_low_edge_says_so(case):
+    """At 10.00 Datadog's DCF is above the price even shrinking 50% next year.
+
+    The frontier kept only the edge's value, and the command printed every
+    unreached margin as "beyond 300%".
+    """
+    rows = growth_margin_frontier(case, 10.0)
+    assert all(r["implied_growth"] is None for r in rows)
+    assert {(r["growth_missed"], r["growth_edge"]) for r in rows} == {("below", -0.5)}
+    assert {_growth_needed(r) for r in rows} == {"below -50%"}
+
+
+def test_the_screen_and_history_show_the_rate_the_base_case_used(fade_observations):
+    """Under dcf.wacc_override the base case is discounted at the override.
+
+    Both tables showed the computed WACC beside a base value discounted at
+    something else: 11.86% against a 9% override.
+    """
+    a = pinned_assumptions()
+    a.dcf.wacc_override = 0.09
+    when = date(2026, 9, 9)
+    payloads = {"DDOG": load_payload("DDOG")}
+    (row,) = screen(payloads, CsvSource(PRICES), a, when, fade_observations)
+    assert row["wacc"] == 0.09
+    source = CsvSource(PRICES)
+    (dated,) = expectations_history(payloads["DDOG"], "DDOG", source, a, [when])
+    assert dated["wacc"] == 0.09
 
 
 def test_a_changed_valuation_leaves_the_case_it_came_from_alone(case):
