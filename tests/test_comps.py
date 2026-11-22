@@ -18,7 +18,7 @@ from techval.comps import (
 from techval.edgar import CompanyFacts
 from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge, equity_value_from_ev
-from techval.financials import Financials
+from techval.financials import Financials, build_financials
 
 from conftest import FixtureClient, facts_payload, hand_financials
 
@@ -27,6 +27,31 @@ from conftest import FixtureClient, facts_payload, hand_financials
 def result(assumptions, market):
     assumptions.comps.peers = ["CRWD", "MDB", "ZS"]
     return run_comps("DDOG", assumptions, FixtureClient(), market)
+
+
+def test_the_target_is_priced_on_the_count_the_report_settled(assumptions, market):
+    """A treasury-stock count reaches the comps rows, as it reaches the bridge.
+
+    run_comps rebuilt the target from its filings and divided by diluted WASO,
+    so with Datadog's 377.73mm count settled above, the comps put its enterprise
+    value at 78,659mm against the bridge's 81,091mm, and every implied price
+    came out 2.9% high.
+    """
+    assumptions.comps.peers = ["CRWD", "MDB", "ZS"]
+    plain = run_comps("DDOG", assumptions, FixtureClient(), market)
+    settled = run_comps(
+        "DDOG", assumptions, FixtureClient(), market, valuation_shares=377.73
+    )
+    ddog = build_financials("DDOG", facts=FixtureClient().company_facts("DDOG"))
+    ddog.valuation_shares = 377.73
+    bridge = build_ev_bridge(ddog, market.spot("DDOG"), assumptions)
+    assert settled.target.enterprise_value == pytest.approx(bridge.enterprise_value)
+    assert settled.target.enterprise_value > plain.target.enterprise_value
+    frame = settled.implied
+    equity = frame.loc["EV/Revenue", "Implied price low"] * bridge.diluted_shares
+    assert equity == pytest.approx(
+        equity_value_from_ev(frame.loc["EV/Revenue", "Implied EV low"], bridge)
+    )
 
 
 def test_every_requested_peer_is_accounted_for(result, assumptions):
