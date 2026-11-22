@@ -736,6 +736,12 @@ def screen(payloads: dict, source, assumptions: Assumptions, when, observations=
     base-rate share, rarest first, then by implied return; a ticker the record
     cannot value is kept at the foot with its refusal.
     """
+    if observations is not None:
+        from .ml.forecast import known_on
+
+        # The panel as it stood on the screen's date: a dated screen that read
+        # all of it judged a price by growth and outcomes filed years later.
+        observations = known_on(observations, when)
     rows = []
     for ticker, payload in payloads.items():
         row = {"ticker": ticker, "refused": None}

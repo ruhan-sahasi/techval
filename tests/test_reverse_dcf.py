@@ -20,6 +20,7 @@ from techval.errors import ConfigError
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import build_financials
 from techval.market import CsvSource
+from techval.ml.forecast import known_on
 from techval.reverse_dcf import (
     DURATION_HORIZON,
     FRONTIER_MARGINS,
@@ -464,12 +465,34 @@ def test_the_screen_counts_base_rates_over_the_years_the_path_runs(fade_observat
     payloads = {"ZS": load_payload("ZS")}
     rows = screen(payloads, CsvSource(PRICES), a, when, fade_observations)
     case, price = R.case_at(load_payload("ZS"), "ZS", CsvSource(PRICES), a, when)
-    # The share of every company-year, which the trailing rate does not move.
+    # The share of every company-year, which the trailing rate does not move,
+    # on the panel as it stood on the date, as the expectations command reads it.
+    known = known_on(fade_observations, when)
     expected = market_expectations(
-        case, price, trailing_growth=None, observations=fade_observations
+        case, price, trailing_growth=None, observations=known
     )
     every = expected.base_rates["first_year_growth"]["all"]
     assert (rows[0]["base_hits"], rows[0]["base_n"]) == (every["hits"], every["n"])
+
+
+def test_a_dated_screen_reads_the_panel_as_it_stood_on_its_date(fade_observations):
+    """Datadog screened at 2024-12-31 against filings and outcomes known then.
+
+    The screen took its trailing growth from the FY2025 10-K, filed in February
+    2026, and counted 217 company-years whose five-year outcome was not public
+    until after its date: 8 of 1,662 where the panel as it stood gives 8 of
+    1,445.
+    """
+    when = date(2024, 12, 31)
+    payloads = {"DDOG": load_payload("DDOG")}
+    a = pinned_assumptions()
+    (row,) = screen(payloads, CsvSource(PRICES), a, when, fade_observations)
+    assert (row["base_hits"], row["base_n"]) == (8, 1445)
+    known = known_on(fade_observations, when)
+    assert all(o.as_of <= when for o in known)
+    assert all(d <= when for o in known for d in o.label_dates.values())
+    # The panel the cache hands every caller is left as it was.
+    assert any(o.as_of > when for o in fade_observations)
 
 
 def test_a_price_no_growth_reaches_is_the_most_demanding_of_the_screen(

@@ -126,7 +126,10 @@ def expectations(
     try:
         co = _company(symbol, config, no_cache, facts_file, from_record)
         observations, trailing = _panel(
-            Path(panels) if panels else CHECKOUT_PANELS, symbol, ml_cache_root(co.assumptions)
+            Path(panels) if panels else CHECKOUT_PANELS,
+            symbol,
+            ml_cache_root(co.assumptions),
+            co.market.today,
         )
         result = market_expectations(
             co.case, price if price is not None else co.spot, trailing_growth=trailing, observations=observations
@@ -155,18 +158,21 @@ def expectations(
         _print_history(symbol, rows)
 
 
-def _panel(directory: Path, symbol: str, cache_root: Path | None = None):
+def _panel(directory: Path, symbol: str, cache_root: Path | None, when: date):
     """The fade panel's observations and the company's own trailing growth, if both exist.
 
-    With a ``cache_root`` the built panel is kept on disk, keyed on the panel's
-    bytes and the code it is built through, so a second command does not pay
-    the two seconds the build takes.
+    As they stood on ``when``: a dated run that read the whole panel judged a
+    price by growth and outcomes filed after its date. With a ``cache_root`` the
+    built panel is kept on disk, keyed on the panel's bytes and the code it is
+    built through, so a second command does not pay the two seconds the build
+    takes.
     """
+    from .ml.forecast import known_on
     from .ml.panels import FADE_PANEL, fade_panel
 
     if not (directory / FADE_PANEL).is_file():
         return None, None
-    observations = fade_panel(directory, cache_root).observations
+    observations = known_on(fade_panel(directory, cache_root).observations, when)
     own = [o for o in observations if o.ticker == symbol and o.growth is not None]
     trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
     return observations, trailing
@@ -258,7 +264,12 @@ def expectations_screen(
                     continue
             else:
                 payloads[symbol] = client.company_facts(symbol).raw
-        observations, _ = _panel(Path(panels) if panels else CHECKOUT_PANELS, "", ml_cache_root(assumptions))
+        observations, _ = _panel(
+            Path(panels) if panels else CHECKOUT_PANELS,
+            "",
+            ml_cache_root(assumptions),
+            when,
+        )
         rows = screen(payloads, source, assumptions, when, observations) + missing
     except TechvalError as err:
         print_refusal(console, err)
@@ -324,7 +335,13 @@ def scenarios(
     symbol = ticker.upper()
     directory = Path(panels) if panels else CHECKOUT_PANELS
     try:
-        observations, trailing = _panel(directory, symbol, ml_cache_root(Assumptions.load(config)))
+        loaded = Assumptions.load(config)
+        observations, trailing = _panel(
+            directory,
+            symbol,
+            ml_cache_root(loaded),
+            loaded.knowledge_date or date.today(),
+        )
         if observations is None:
             console.print(
                 f"[red]There is no fade panel in {escape(str(directory))}, and the scenarios are read "

@@ -113,6 +113,7 @@ from .ml.forecast import (
     fade_universe,
     fit_fade,
     is_delisted,
+    known_on,
 )
 from .ml.signals import (
     _EXIT_ACQUIRED,
@@ -344,18 +345,11 @@ def _truncate_panel(panel: FadePanel, knowledge: date) -> FadePanel:
     cross-section and by nothing later. The bounds a surviving row was clipped to
     were all public by the knowledge date.
     """
-    kept = []
-    dropped_observations = 0
-    dropped_labels = 0
-    for observation in panel.observations:
-        if observation.as_of > knowledge:
-            dropped_observations += 1
-            continue
-        for horizon in [h for h, d in observation.label_dates.items() if d > knowledge]:
-            observation.labels.pop(horizon, None)
-            observation.label_dates.pop(horizon, None)
-            dropped_labels += 1
-        kept.append(observation)
+    kept = known_on(panel.observations, knowledge)
+    dropped_observations = len(panel.observations) - len(kept)
+    dropped_labels = sum(
+        len(o.label_dates) for o in panel.observations if o.as_of <= knowledge
+    ) - sum(len(o.label_dates) for o in kept)
     if not kept:
         raise ConfigError(
             f"no filing in this panel predates {knowledge}, so there is nothing to "
