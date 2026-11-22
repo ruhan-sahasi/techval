@@ -167,6 +167,10 @@ class Segment:
     period_start: date | None
     period_end: date
     notes: list[str] = field(default_factory=list)
+    # True for the row a filer with nothing on the segment axis gets: the whole
+    # company, undimensioned, whose operating income is already after corporate
+    # cost. A sum of the parts has nothing to break up in it.
+    undimensioned: bool = False
 
 
 @dataclass
@@ -731,6 +735,7 @@ def build_segments(
                 period_start=period[0],
                 period_end=period[1],
                 notes=["The whole company, undimensioned."],
+                undimensioned=True,
             )
         ]
         notes.append(

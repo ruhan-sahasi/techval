@@ -417,6 +417,27 @@ def test_a_ticker_the_dcf_refuses_is_a_row_at_the_foot_not_the_end(
     assert "is not below the WACC" in rows[-1]["refused"]
 
 
+def test_the_screen_counts_base_rates_over_the_years_the_path_runs(fade_observations):
+    """A three-year projection's implied CAGR against three-year outcomes.
+
+    The screen compared it with five-year ones, so its count disagreed with the
+    expectations command's for the same name: Zscaler 20 of 1,662 against 58 of
+    2,102.
+    """
+    a = pinned_assumptions()
+    a.dcf.projection_years = 3
+    when = date(2026, 9, 9)
+    payloads = {"ZS": load_payload("ZS")}
+    rows = screen(payloads, CsvSource(PRICES), a, when, fade_observations)
+    case, price = R.case_at(load_payload("ZS"), "ZS", CsvSource(PRICES), a, when)
+    # The share of every company-year, which the trailing rate does not move.
+    expected = market_expectations(
+        case, price, trailing_growth=None, observations=fade_observations
+    )
+    every = expected.base_rates["first_year_growth"]["all"]
+    assert (rows[0]["base_hits"], rows[0]["base_n"]) == (every["hits"], every["n"])
+
+
 def test_a_changed_valuation_leaves_the_case_it_came_from_alone(case):
     before = case.assumptions.model_dump()
     moved = case.with_dcf(wacc_override=0.2, ebit_margin_terminal=0.4)

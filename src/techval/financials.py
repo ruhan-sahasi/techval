@@ -616,6 +616,23 @@ def build_financials(
         instant("convertible notes, current", tags.CONVERTIBLE_CURRENT, default=0.0) or 0.0
     )
 
+    # A filer can tag its convertible notes on a straight-debt line as well as on
+    # the convertible ones: Zscaler's notes are its LongTermDebt too, which the
+    # straight ladder reaches when nothing ranks above it. The same balance to the
+    # dollar at the same date is the notes read twice, not a second borrowing,
+    # so it is counted once, as convertible debt, where the bridge decides what
+    # it is. A total holding the notes AND other borrowings is not told apart
+    # this way.
+    straight = debt.total
+    convertible = convertible_nc + convertible_cur
+    if convertible > 0 and abs(straight - convertible) < 1e-6:
+        warnings.append(
+            f"straight debt: {debt.describe()} reads {straight:,.1f}mm, the same "
+            f"balance as the convertible notes at {as_of}, so it is the notes tagged "
+            "twice and is counted once, as convertible debt"
+        )
+        straight = 0.0
+
     fin = Financials(
         ticker=ticker.upper(),
         entity_name=facts.entity_name,
@@ -646,8 +663,8 @@ def build_financials(
         short_term_investments=instant(
             "short-term investments", tags.SHORT_TERM_INVESTMENTS, default=0.0
         ),
-        straight_debt=debt.total,
-        convertible_debt=convertible_nc + convertible_cur,
+        straight_debt=straight,
+        convertible_debt=convertible,
         operating_lease_liability=operating_lease_nc + operating_lease_cur,
         finance_lease_liability=finance_lease_nc + finance_lease_cur,
         finance_lease_inside_debt=inside_debt,

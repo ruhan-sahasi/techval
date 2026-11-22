@@ -424,6 +424,22 @@ def test_no_segments_at_all_is_refused(assumptions):
         _run(assumptions, segments=[], **CORP)
 
 
+def test_the_whole_company_row_of_a_single_segment_filer_is_refused(assumptions):
+    """build_segments returns the whole company as one row when nothing is on the
+    segment axis, so the refusal above never fired: one part was valued, and told
+    its operating income was struck before a corporate cost it is already after.
+    """
+    whole = {
+        "name": "Cable Co",
+        "revenue": 10_000.0,
+        "operating_income": 1_900.0,
+        "da": 1_000.0,
+        "undimensioned": True,
+    }
+    with pytest.raises(MissingDataError, match="should be valued on the consolidated"):
+        _run(assumptions, segments=[whole], multiples={"Cable Co": MULTIPLES["Cable"]})
+
+
 # --------------------------------------------------------------------------- #
 # the checks printed beside the total
 # --------------------------------------------------------------------------- #

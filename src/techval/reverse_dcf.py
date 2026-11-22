@@ -729,9 +729,14 @@ def _screen_row(ticker, payload, source, assumptions, when, observations) -> dic
         trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
         scenarios = value_scenarios(case, price, observations, trailing=trailing)
     if observations is not None and growth.reached:
+        # Over the years the path runs, as market_expectations counts it: a
+        # three-year projection's CAGR against five-year outcomes is no match.
+        path = growth.extras["path"]
+        horizon = min(BASE_RATE_HORIZON, len(path))
         base = growth_base_rate(
             observations,
-            implied_cagr=path_cagr(growth.extras["path"], BASE_RATE_HORIZON),
+            implied_cagr=path_cagr(path, horizon),
+            horizon=horizon,
             trailing=trailing,
             revenue_mm=case.fin.revenue,
         )

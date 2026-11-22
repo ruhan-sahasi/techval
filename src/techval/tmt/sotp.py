@@ -418,7 +418,10 @@ def value_segments(
     ``assumptions`` supplies the lease convention. The multiples themselves are
     deliberately not in it, for the reason given in the module docstring.
     """
-    if not segments:
+    # The whole-company row build_segments returns for a filer with nothing on
+    # the segment axis is no part: valued alone, its operating income already
+    # after corporate cost, it drew a flag saying corporate cost was missing.
+    if not segments or all(_read(s, "undimensioned") for s in segments):
         raise MissingDataError(
             "segment detail",
             ticker=ticker,
