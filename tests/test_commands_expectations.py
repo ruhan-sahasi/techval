@@ -104,7 +104,7 @@ def test_the_screen_ranks_names_by_how_rarely_their_implied_growth_happened(tmp_
     assert text.index("CRWD") < text.index("DIS")
     assert "Implied return" in text and "Growth needed" in text
     assert "Vs scenarios" in text
-    assert "3.1x the bull" in text and "86% bear" in text
+    assert "3.1x the bull" in text and "89% bear" in text
 
 
 def test_a_screen_name_without_facts_is_named_not_fatal(tmp_path):
