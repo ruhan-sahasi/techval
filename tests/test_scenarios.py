@@ -159,6 +159,9 @@ def test_the_scenarios_follow_the_assumptions(case, fade_observations):
     assert usual.scenario("bear").value < result.scenario("bear").value
     assert result.scenario("bull").value < usual.scenario("bull").value
     assert [s.weight for s in result.scenarios] == [0.25, 0.5, 0.25]
+    # The sentence names the quantiles configured, not the default three.
+    assert "around the 25th, 50th and 75th percentile" in result.sentences[0]
+    assert "10th" not in result.sentences[0]
 
 
 def test_an_empty_panel_values_no_scenarios(case):

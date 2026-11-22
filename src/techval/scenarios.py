@@ -124,6 +124,14 @@ def fit_path(growth: list[float], years: int, terminal: float) -> list[float]:
     return list(growth) + [last + (terminal - last) * (i + 1) / rest for i in range(rest)]
 
 
+def _ordinal(quantile: float) -> str:
+    """0.1 as "10th", 0.33 as "33rd": the percentile a configured quantile names."""
+    n = round(quantile * 100)
+    if 10 <= n % 100 <= 20:
+        return f"{n}th"
+    return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }"
+
+
 @dataclass(frozen=True)
 class Scenario:
     """One scenario valued: its path through the engine's DCF, and its weight."""
@@ -164,7 +172,9 @@ class Scenarios:
         else:
             who = f"Of all {self.pool.n:,} labelled company-years"
         return [
-            f"{who}, the neighbourhoods around the 10th, 50th and 90th percentile compounded "
+            f"{who}, the neighbourhoods around the {_ordinal(bear.quantile)}, "
+            f"{_ordinal(base.quantile)} and {_ordinal(bull.quantile)} percentile "
+            "compounded "
             f"{bear.cagr:.1%}, {base.cagr:.1%} and {bull.cagr:.1%} a year over five years; on those "
             f"paths, with everything else at the base case, the engine values {self.ticker} at "
             f"{bear.value:,.2f}, {base.value:,.2f} and {bull.value:,.2f}.",
@@ -262,7 +272,8 @@ def implied_weight(scenarios: list[Scenario], price: float) -> dict:
             "weight": None,
             "sentence": (
                 f"At {price:,.2f} the price is above even the bull case, {bull.value:,.2f}, "
-                f"{price / bull.value:.1f} times the value of the path the 90th percentile took; "
+                f"{price / bull.value:.1f} times the value of the path the "
+                f"{_ordinal(bull.quantile)} percentile took; "
                 "no weighting of the three reaches it."
             ),
         }
