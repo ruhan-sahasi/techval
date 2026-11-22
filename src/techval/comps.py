@@ -131,8 +131,11 @@ class PeerMetrics:
     # at zero for the cash-rich and quietly unlever them at 0.0x.
     gross_debt: float
     revenue: float
+    # The denominators EV/EBITDA and EV/EBIT were struck on, which are EBITDA
+    # and EBIT before rent where leases are counted as debt. An implied value
+    # multiplies a multiple by these, so they must be the same figures.
     ebitda: float | None
-    ebit: float
+    ebit: float | None
     net_income: float
     gross_profit: float | None
     revenue_growth: float | None
@@ -510,7 +513,7 @@ def compute_peer_metrics(
         gross_debt=bridge.total_debt,
         revenue=fin.revenue,
         ebitda=ebitda,
-        ebit=fin.ebit,
+        ebit=ebit_den,
         net_income=fin.net_income,
         gross_profit=fin.gross_profit,
         revenue_growth=growth,

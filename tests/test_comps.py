@@ -9,6 +9,7 @@ import pytest
 
 from techval.comps import (
     PeerMetrics,
+    _implied_frame,
     _revenue_growth,
     compute_peer_metrics,
     fit_warranted_multiple,
@@ -298,6 +299,37 @@ def test_prior_year_revenue_goes_through_the_guard_current_revenue_does():
     growth = _revenue_growth(fin, CompanyFacts(payload, "CABLE"), flags)
     assert growth == pytest.approx(sum(total[4:]) / sum(total[:4]) - 1)
     assert flags == []
+
+
+def test_ev_ebit_is_applied_to_the_ebit_it_was_struck_on(assumptions):
+    """With leases counted as debt, a peer's EV/EBIT is over EBIT before rent.
+
+    The implied value multiplied that multiple by the target's GAAP EBIT, after
+    rent, so a target identical to its peers came out at 15.36 a share on
+    EV/EBIT against its own 20.00 on every other multiple.
+    """
+    assumptions.leases.capitalize_operating_leases = True
+
+    def filer(ticker):
+        return hand_financials(
+            ticker=ticker, entity_name=ticker, cik=1, as_of=date(2026, 6, 30),
+            revenue=1_000.0, gross_profit=800.0, ebit=60.0, da=40.0,
+            net_income=50.0, operating_lease_cost=15.0, diluted_shares=100.0,
+            cash=400.0, straight_debt=600.0, operating_lease_liability=120.0,
+        )
+
+    empty = CompanyFacts({"cik": 1, "entityName": "x", "facts": {}}, "X")
+    peers = [
+        compute_peer_metrics(filer(f"P{i}"), empty, 20.0, assumptions) for i in range(3)
+    ]
+    target_fin = filer("TGT")
+    target = compute_peer_metrics(target_fin, empty, 20.0, assumptions, is_target=True)
+    assert target.ebit == pytest.approx(75.0)
+    frame = _implied_frame(
+        target, target_fin, build_ev_bridge(target_fin, 20.0, assumptions), peers,
+        assumptions, [],
+    )
+    assert frame.loc["EV/EBIT", "Implied price low"] == pytest.approx(20.0)
 
 
 def test_negative_enterprise_value_withholds_ev_multiples(assumptions):
