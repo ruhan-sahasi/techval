@@ -2420,9 +2420,11 @@ reconciled down to consolidated operating income, so a corporate cost that does
 not actually close the footnote reconciliation is accepted as given. Nothing
 checks that the segment period matches the consolidated period. There is no tax
 leakage on a break-up, which is often what kills the pitch. And segment values
-are struck on a post-rent convention because no segment carries an allocated
-lease liability, so under the lease-inclusive bridge convention (§4.1) the gap
-is measured across two conventions and is flagged rather than corrected.
+are struck after rent, because no segment carries an allocated lease liability.
+Under the lease-inclusive bridge convention (§4.1) the parts are therefore set
+against the enterprise value before leases and walked to equity without the
+lease liability, as the DCF is, rather than charging the rent twice, and a note
+says so.
 
 ### 12.4 The operating metrics a sector is actually priced on
 
