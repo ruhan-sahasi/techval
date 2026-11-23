@@ -11,7 +11,7 @@ from typer.testing import CliRunner
 
 from techval.cli import app
 
-from conftest import FIXTURES, flat, offline_config
+from conftest import FIXTURES, flat, offline_config, usage_error
 
 runner = CliRunner()
 
@@ -102,5 +102,5 @@ def test_a_folder_named_as_the_page_is_refused_before_the_page_is_built(
     """The page was built and then written to the folder: IsADirectoryError."""
     result = runner.invoke(app, [*command, "--out", str(tmp_path)])
     assert result.exit_code == 2
-    assert "Invalid value for '--out'" in flat(result.output.replace("\u2502", " "))
+    assert "Invalid value for '--out'" in usage_error(result.output)
 

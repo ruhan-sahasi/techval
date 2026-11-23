@@ -162,6 +162,16 @@ def flat(text: str) -> str:
     return " ".join(re.sub(r"\x1b\[[0-9;]*m", "", text).split())
 
 
+def usage_error(output: str) -> str:
+    """Typer's usage error as one line of plain text.
+
+    Typer draws the error in a box, so a long message wraps between border
+    characters, and under GITHUB_ACTIONS it forces colour on, so the message
+    carries escape codes that ``flat`` strips.
+    """
+    return flat(output.replace("\u2502", " "))
+
+
 class FixtureClient:
     """Stands in for EdgarClient, reading the committed payloads."""
 

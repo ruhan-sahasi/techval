@@ -53,7 +53,7 @@ from techval.edgar import CompanyFacts
 from techval.errors import ConfigError
 from techval.ml.forecast import build_fade_panel
 
-from conftest import FIXTURES, flat
+from conftest import FIXTURES, flat, usage_error
 
 FADE_PANEL = FIXTURES / "fade_companyfacts.json.gz"
 DDOG_FACTS = FIXTURES / "companyfacts_DDOG.json"
@@ -845,7 +845,7 @@ def test_the_company_date_detail_keeps_the_rows_that_could_not_be_scored(
 def test_a_folder_named_as_the_detail_file_is_refused_before_the_run(tmp_path):
     result = runner.invoke(app, ["signal", "--csv", str(tmp_path)])
     assert result.exit_code == 2
-    assert "Invalid value for '--csv'" in flat(result.output.replace("\u2502", " "))
+    assert "Invalid value for '--csv'" in usage_error(result.output)
 
 
 def test_the_echoed_settings_are_the_ones_the_run_used_not_the_ones_on_file(

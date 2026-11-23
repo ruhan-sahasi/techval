@@ -49,7 +49,14 @@ from techval.financials import build_financials
 from techval.market import CsvSource
 from techval.merger import run_merger
 from techval.wacc import compute_wacc
-from conftest import FIXTURES, PRICES, flat, load_facts, load_instance_file
+from conftest import (
+    FIXTURES,
+    PRICES,
+    flat,
+    load_facts,
+    load_instance_file,
+    usage_error,
+)
 
 AS_OF = "2026-09-10"
 
@@ -246,16 +253,6 @@ def test_each_mounted_command_answers_help(name):
 WARRANTED_PANEL = str(FIXTURES / "warranted" / "observations.json.gz")
 
 
-def _usage_error(output: str) -> str:
-    """Typer's usage error as one line of plain text.
-
-    Typer draws the error in a box, so a long message wraps between border
-    characters, and under GITHUB_ACTIONS it forces colour on, so the message
-    carries escape codes that ``flat`` strips.
-    """
-    return flat(output.replace("\u2502", " "))
-
-
 @pytest.mark.parametrize(
     "args",
     [
@@ -281,7 +278,7 @@ def test_a_step_horizon_or_count_below_one_is_refused_as_typed(args):
     """
     result = runner.invoke(C.app, args)
     assert result.exit_code == 2
-    assert f"Invalid value for '{args[-2]}'" in _usage_error(result.output)
+    assert f"Invalid value for '{args[-2]}'" in usage_error(result.output)
 
 
 @pytest.mark.parametrize(
@@ -296,7 +293,7 @@ def test_a_word_outside_an_options_choices_is_refused_as_typed(args):
     mode without saying so; ``--model`` refused only once the panel was read."""
     result = runner.invoke(C.app, args)
     assert result.exit_code == 2
-    assert f"Invalid value for '{args[-2]}'" in _usage_error(result.output)
+    assert f"Invalid value for '{args[-2]}'" in usage_error(result.output)
 
 
 @pytest.mark.parametrize(
@@ -319,7 +316,7 @@ def test_a_date_that_is_not_yyyy_mm_dd_is_refused_as_typed(args):
     that catches only the package's own errors, so 2024-1-1 was a traceback."""
     result = runner.invoke(C.app, args)
     assert result.exit_code == 2
-    text = _usage_error(result.output)
+    text = usage_error(result.output)
     assert "Invalid value for" in text
     assert "'2024-1-1' is not a YYYY-MM-DD date" in text
 
@@ -1009,7 +1006,7 @@ def test_a_file_named_as_the_chart_folder_is_refused_before_the_valuation(tmp_pa
     args = ["value", "DDOG", "--as-of", AS_OF, "--out", str(named)]
     result = runner.invoke(C.app, args)
     assert result.exit_code == 2
-    assert "Invalid value for '--out'" in _usage_error(result.output)
+    assert "Invalid value for '--out'" in usage_error(result.output)
 
 
 def test_a_chart_folder_that_cannot_be_made_is_refused_with_its_path(tmp_path):
