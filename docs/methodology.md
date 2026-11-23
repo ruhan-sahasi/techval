@@ -1311,9 +1311,11 @@ growth then drops to the terminal rate.
 The three are weighted 30/40/30. That is Swanson's rule, which approximates the
 mean of a skewed distribution from its P10, P50 and P90, where an equal split
 overweights both tails. A price above the weighted value is read as the weight
-it puts on the bull case, with bear and base held in proportion; a price below
-it, as the weight on the bear case. Outside all three, no weighting reaches the
-price, and the reading says how far outside it is rather than inventing a
+it puts on the most valuable of the three, the bull case as a rule, with the
+other two held in proportion; a price below it, as the weight on the least
+valuable. The scenarios are ranked by value rather than by name because a record
+case whose growth costs more than it returns makes the bull path the one worth
+least. Outside all three, no weighting reaches the price, and the reading says how far outside it is rather than inventing a
 fourth scenario. The percentiles, weights, neighbourhood and minimum pool sit
 in the `scenarios` block of the assumptions file, which refuses weights that do
 not sum to one and percentiles that do not rise from bear to bull.
