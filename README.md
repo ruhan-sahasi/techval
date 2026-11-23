@@ -1399,7 +1399,7 @@ CRWD               3.1%          239.4%                  0 of 1,662
 DDOG               3.7%          155.2%                 11 of 1,662
 MDB                4.9%          129.1%                 23 of 1,662
 ZS                 5.6%           75.2%                141 of 1,662
-DIS               12.7%           -1.1%              1,398 of 1,662
+DIS               12.7%           -2.2%              1,428 of 1,662
 ```
 
 `--price` asks what any other price assumes and `--json` prints the whole

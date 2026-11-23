@@ -1282,7 +1282,7 @@ growth each price needs, so the most demanding price comes first:
 | DDOG | 225.27 | 36.65 | 3.7% | 155.2% | 11 of 1,662 | 0.0% |
 | MDB | 358.38 | 83.54 | 4.9% | 129.1% | 23 of 1,662 | 0.0% |
 | ZS | 166.10 | 66.08 | 5.6% | 75.2% | 141 of 1,662 | 0.1% |
-| DIS | 105.82 | 185.66 | 12.7% | -1.1% | 1,398 of 1,662 | 92.7% |
+| DIS | 105.82 | 191.48 | 12.7% | -2.2% | 1,428 of 1,662 | 93.7% |
 
 A name without filings or prices is listed as refused at the bottom, not
 dropped. The ranking is by base rate rather than by the gap to the base case,
@@ -1333,7 +1333,7 @@ its straight line from 20% to 5% compounds more slowly than the median similar
 company-year did. The 225.27 close is 3.1 times the bull case, so no weighting
 of the three reaches it. Across the screen in section 6.6, CrowdStrike trades
 at 8.3 times its bull case, MongoDB at 2.5 and Zscaler at 1.2, and Disney's
-price puts 86% on its bear case.
+price puts 89% on its bear case.
 
 **The band, scored on company-years it had not seen.** Every company-year filed
 from 2016 is set against the 10th-to-90th percentile band of its similar
