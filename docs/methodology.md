@@ -492,16 +492,17 @@ Either convention is defensible so long as it is applied consistently:
 
 | Enterprise value | pairs with | Earnings metric |
 |---|---|---|
-| Excluding lease liabilities | → | EBITDA (after rent) |
-| Including lease liabilities | → | EBITDAR (before rent) |
+| Excluding lease liabilities | → | EBITDA and EBIT (after rent) |
+| Including lease liabilities | → | EBITDAR and EBIT before rent |
 
 **Default: operating leases excluded, EBITDA basis.** That is how a US software
 comp set is normally quoted, and it avoids inventing an interest rate to unwind
 the rent charge.
 
 The engine reports both enterprise values regardless of the setting, and the
-earnings figure that pairs with the chosen one is only reachable through
-`EVBridge.multiple_denominator()`. A mismatch cannot happen by accident. If
+earnings figures that pair with the chosen one are only reachable through
+`EVBridge.multiple_denominator()` for EBITDA and `EVBridge.ebit_denominator()`
+for EBIT. A mismatch cannot happen by accident. If
 leases are capitalised and the filer does not disclose operating lease cost,
 EBITDAR cannot be formed and the affected multiples are suppressed rather than
 shown on an inconsistent basis.

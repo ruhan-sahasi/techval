@@ -1184,8 +1184,9 @@ Under ASC 842 the lease charge stays inside operating income as straight-line
 rent. It is not split into depreciation and interest the way IFRS 16 requires,
 so US-GAAP EBITDA is already *after* rent. Adding the liability to debt while
 dividing by that EBITDA charges the lease twice. Set
-`capitalize_operating_leases: true` and every multiple switches to EBITDAR
-automatically; the engine will not let the two conventions mix. Finance leases
+`capitalize_operating_leases: true` and EV/EBITDA switches to EBITDAR and
+EV/EBIT to EBIT before rent, for the peers and the target alike; the engine
+will not let the two conventions mix. Finance leases
 are debt either way.
 
 ### In-the-money convertibles are equity, not debt
