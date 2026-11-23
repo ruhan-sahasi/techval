@@ -1,8 +1,11 @@
 """Neural network primitives in numpy: forward passes, exact gradients, Adam.
 
-Every model in this package is fitted with the code in this file, and there is
-no framework underneath it. That is a deliberate choice resting on three facts
-about this problem, in descending order of how interesting they are.
+Every model in this package that learns by gradient descent (the peer encoder,
+the warranted-multiple network and the M&A propensity model) is fitted with the
+code in this file, and there is no framework underneath it; the growth-fade
+regressions and the filing-text TF-IDF and SVD come from scikit-learn. That is a
+deliberate choice resting on three facts about this problem, in descending order
+of how interesting they are.
 
 **A gradient a reader can check is worth more beside a valuation than one they
 cannot.** The engine's claim is that every number traces to a filing or to a
@@ -978,9 +981,6 @@ def train(
     epochs: int = 100,
     patience: int = 10,
     seed: int = 0,
-    *,
-    shuffle: bool = True,
-    min_delta: float = 0.0,
 ) -> TrainHistory:
     """Fit a model, stop when the held-out loss stops improving, keep the best epoch.
 
@@ -1001,12 +1001,12 @@ def train(
 
     **Early stopping.** After each epoch the held-out loss is computed with the
     model in evaluation mode, so dropout is off. An epoch that improves on the
-    best seen by more than ``min_delta`` resets the counter and its parameters
-    are snapshotted; ``patience`` consecutive epochs without such an improvement
-    end the run. The snapshot is then written back, so the model a caller holds
-    afterwards is the BEST epoch's and not the last one's. That distinction is
-    the whole point of the exercise and it is recorded in the history, so a
-    reader can tell a fit that converged from one that simply ran out of budget.
+    best seen resets the counter and its parameters are snapshotted;
+    ``patience`` consecutive epochs without an improvement end the run. The
+    snapshot is then written back, so the model a caller holds afterwards is
+    the BEST epoch's and not the last one's. That distinction is the whole
+    point of the exercise and it is recorded in the history, so a reader can
+    tell a fit that converged from one that simply ran out of budget.
     To disable early stopping, pass a patience at or above ``epochs``.
 
     Without ``val_batches`` nothing is held out, no stopping rule can fire, the
@@ -1025,8 +1025,6 @@ def train(
             f"patience must be at least 1, got {patience}. To turn early "
             "stopping off, pass a patience at or above the epoch budget"
         )
-    if min_delta < 0.0:
-        raise ConfigError(f"min_delta cannot be negative, got {min_delta}")
 
     train_set = list(batches)
     if not train_set:
@@ -1060,11 +1058,7 @@ def train(
 
     for epoch in range(epochs):
         model.train()
-        order = (
-            rng.permutation(len(train_set))
-            if shuffle
-            else np.arange(len(train_set))
-        )
+        order = rng.permutation(len(train_set))
         total = 0.0
         weight = 0.0
         for index in order:
@@ -1094,7 +1088,7 @@ def train(
         score = total / weight
         val_loss.append(score)
 
-        if score < best_score - min_delta:
+        if score < best_score:
             best_score = score
             best_epoch = epoch
             best_params = [p.copy() for p in params]

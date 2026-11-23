@@ -80,13 +80,13 @@ def cached_fit(
     return model
 
 
-def fade_panel(fixtures: Path, cache_root: Path | None = None, refit: bool = False):
+def fade_panel(fixtures: Path, cache_root: Path | None = None):
     """The point-in-time fade panel, for base rates and scenarios."""
-    return _fade_panel(Path(fixtures), None if cache_root is None else Path(cache_root), bool(refit))
+    return _fade_panel(Path(fixtures), None if cache_root is None else Path(cache_root))
 
 
 @lru_cache(maxsize=4)
-def _fade_panel(fixtures: Path, cache_root: Path | None, refit: bool):
+def _fade_panel(fixtures: Path, cache_root: Path | None):
     def build():
         from ..edgar import CompanyFacts
         from .forecast import build_fade_panel, fade_universe
@@ -101,4 +101,4 @@ def _fade_panel(fixtures: Path, cache_root: Path | None, refit: bool):
         universe = {t: v for t, v in fade_universe().items() if t in blob["payloads"]}
         return build_fade_panel(universe, _Client())
 
-    return cached_fit("fade_panel", [fixtures / FADE_PANEL], FADE_MODULES, build, cache_root, refit)
+    return cached_fit("fade_panel", [fixtures / FADE_PANEL], FADE_MODULES, build, cache_root)

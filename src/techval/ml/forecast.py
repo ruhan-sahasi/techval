@@ -128,6 +128,9 @@ from .evaluation import evaluate_regression, walk_forward_folds
 from .features import (
     RND_EXPENSE,
     SNM_EXPENSE,
+    WINSOR_LOWER_PCT,
+    WINSOR_MIN_OBSERVATIONS,
+    WINSOR_UPPER_PCT,
     FeatureRow,
     _ratio,
     anniversary,
@@ -257,11 +260,6 @@ _COMPONENT_GUARD = 10.0
 # as a 99,900% growth rate.
 _MAX_GROWTH_RATIO = 100.0
 _MIN_GROWTH_RATIO = 0.01
-
-# Cross-sectional winsorization bounds, matching features.py.
-_WINSOR_LOWER_PCT = 1.0
-_WINSOR_UPPER_PCT = 99.0
-_WINSOR_MIN_OBSERVATIONS = 20
 
 # Standardised feature values beyond this are clipped. A test observation
 # fifteen training standard deviations out is not a measurement the training
@@ -1285,7 +1283,7 @@ def _winsorize_by_year(observations: Sequence[FadeObservation]) -> int:
     date, because filings arrive one at a time and an exact-date cross-section
     here is one company wide.
 
-    A year with fewer than ``_WINSOR_MIN_OBSERVATIONS`` names is skipped rather
+    A year with fewer than ``WINSOR_MIN_OBSERVATIONS`` names is skipped rather
     than trimmed, because at that width the 1st percentile falls between the
     first and second order statistics and the operation degenerates into
     pulling the single most extreme name to its neighbour.
@@ -1295,7 +1293,7 @@ def _winsorize_by_year(observations: Sequence[FadeObservation]) -> int:
     for o in observations:
         groups.setdefault(o.as_of.year, []).append(o)
     for rows in groups.values():
-        if len(rows) < _WINSOR_MIN_OBSERVATIONS:
+        if len(rows) < WINSOR_MIN_OBSERVATIONS:
             continue
         for name in FADE_FEATURES:
             present = [
@@ -1303,9 +1301,9 @@ def _winsorize_by_year(observations: Sequence[FadeObservation]) -> int:
                 for o in rows
                 if o.values.get(name) is not None and np.isfinite(o.values[name])
             ]
-            if len(present) < _WINSOR_MIN_OBSERVATIONS:
+            if len(present) < WINSOR_MIN_OBSERVATIONS:
                 continue
-            low, high = np.percentile(present, [_WINSOR_LOWER_PCT, _WINSOR_UPPER_PCT])
+            low, high = np.percentile(present, [WINSOR_LOWER_PCT, WINSOR_UPPER_PCT])
             for o in rows:
                 value = o.values.get(name)
                 if value is None or not np.isfinite(value):
@@ -1323,7 +1321,6 @@ def build_fade_panel(
     assumptions: Assumptions | None = None,
     *,
     winsorize_cross_section: bool = True,
-    check_point_in_time: bool = True,
 ) -> FadePanel:
     """Build every fiscal year every filer in the universe supports.
 
@@ -1368,9 +1365,8 @@ def build_fade_panel(
             continue
         observations.extend(rows)
 
-    if check_point_in_time:
-        for observation in observations:
-            assert_point_in_time(observation.feature_row())
+    for observation in observations:
+        assert_point_in_time(observation.feature_row())
 
     touched = _winsorize_by_year(observations) if winsorize_cross_section else 0
     _attach_labels(observations)
@@ -1874,8 +1870,8 @@ def _persistence_line(
     """
     current = np.asarray([row.growth for row in rows], dtype=float)
     forward = np.asarray([row.labels[horizon] for row in rows], dtype=float)
-    lo_x, hi_x = np.percentile(current, [_WINSOR_LOWER_PCT, _WINSOR_UPPER_PCT])
-    lo_y, hi_y = np.percentile(forward, [_WINSOR_LOWER_PCT, _WINSOR_UPPER_PCT])
+    lo_x, hi_x = np.percentile(current, [WINSOR_LOWER_PCT, WINSOR_UPPER_PCT])
+    lo_y, hi_y = np.percentile(forward, [WINSOR_LOWER_PCT, WINSOR_UPPER_PCT])
     keep = (
         (current >= lo_x) & (current <= hi_x) & (forward >= lo_y) & (forward <= hi_y)
     )

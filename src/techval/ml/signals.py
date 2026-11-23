@@ -148,7 +148,7 @@ from ..ev_bridge import build_ev_bridge
 from ..financials import build_financials
 from ..market import PriceSeries
 from .features import FeatureRow, assert_point_in_time
-from .protocol import EvalResult, ModelCard, spearman
+from .protocol import EvalResult, ModelCard, _rank, sentence_case, spearman
 
 # Calendar days per month, used to turn a horizon in months into the horizon in
 # days that the price layer counts in. The average Gregorian month, so that four
@@ -635,11 +635,7 @@ class SignalResult:
                     "per rebalance, on a spread that is negative before any cost "
                     "at all, so there is nothing for a break-even cost to erase."
                 )
-        # ``EvalResult.verdict`` opens on the metric's name in lower case, which
-        # is right for a line of its own and wrong after a full stop, so the
-        # first letter is raised here rather than in the protocol.
-        comparison = self.evaluation.verdict()
-        parts.append(comparison[:1].upper() + comparison[1:])
+        parts.append(sentence_case(self.evaluation.verdict()))
         return " ".join(parts)
 
     def rows(self) -> list[tuple[str, Any]]:
@@ -1596,18 +1592,7 @@ def _standardised_ranks(values: np.ndarray) -> np.ndarray | None:
     None where every value is tied, which is the case ``spearman`` refuses for
     the same reason: a constant has no ordering to correlate with.
     """
-    order = np.argsort(values, kind="mergesort")
-    ranks = np.empty(values.size, dtype=float)
-    ranks[order] = np.arange(values.size, dtype=float)
-    ordered = values[order]
-    i = 0
-    while i < values.size:
-        j = i
-        while j + 1 < values.size and ordered[j + 1] == ordered[i]:
-            j += 1
-        if j > i:
-            ranks[order[i : j + 1]] = ranks[order[i : j + 1]].mean()
-        i = j + 1
+    ranks = _rank(values)
     centred = ranks - ranks.mean()
     norm = float(np.sqrt(centred @ centred))
     return None if norm == 0.0 else centred / norm
