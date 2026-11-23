@@ -131,9 +131,12 @@ def test_a_matrix_that_is_not_psd_is_rejected_and_the_pair_is_named():
 
     message = str(excinfo.value)
     assert "positive semi-definite" in message
-    named = [d for d in DRIVERS if d in message]
-    assert len(named) >= 2
-    assert "terminal_growth" not in named[:2] or len(named) > 2
+    # The combination itself names every driver, so the pair is read from the
+    # clause that blames one. Margin and the WACC load equally, so either may
+    # be second.
+    hardest = message.split("loads hardest on ", 1)[1].split(",", 1)[0]
+    assert hardest.startswith("revenue_growth and ")
+    assert "terminal_growth" not in hardest
 
 
 def test_the_non_psd_message_quotes_the_negative_variance():

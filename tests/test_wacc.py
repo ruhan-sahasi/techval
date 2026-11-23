@@ -152,7 +152,7 @@ def test_too_few_observations_raises_naming_the_count():
     px = list(100 * np.cumprod(1 + rng.normal(0, 0.02, 12)))
     with pytest.raises(MissingDataError) as exc:
         estimate_beta(_series("S", px), _series("M", px))
-    assert "10" in str(exc.value) or "11" in str(exc.value)
+    assert "only 11 weekly returns" in str(exc.value)
 
 
 def test_unknown_adjustment_is_rejected():

@@ -167,7 +167,7 @@ def test_gordon_is_the_perpetuity_formula():
 def test_gordon_requires_growth_below_the_discount_rate():
     with pytest.raises(ConfigError) as exc:
         gordon_terminal_value(100.0, 0.05, 0.06)
-    assert "0.05" in str(exc.value) or "5" in str(exc.value)
+    assert "growth of 6.00% is not below the WACC of 5.00%" in str(exc.value)
 
 
 def test_exit_multiple_is_the_multiple_times_terminal_ebitda():

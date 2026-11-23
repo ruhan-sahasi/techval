@@ -783,7 +783,6 @@ def test_rank_only_scores_companies_that_existed_on_the_date(result, panel, extr
     frame = result.model.rank(panel, universe, when, top_k=50, extras=extras)
     live = {m.ticker for m in universe.as_of(when)}
     assert set(frame["ticker"]) <= live
-    assert SLACK not in set(frame["ticker"]) or SLACK in live
 
 
 def test_rank_refuses_a_date_the_panel_does_not_cover(result, panel, universe):

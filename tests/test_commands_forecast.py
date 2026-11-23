@@ -316,7 +316,7 @@ def survivors_only_output(blob, tmp_path_factory) -> str:
         for t in sorted(blob["payloads"])
         if blob["meta"][t].get("status") == "listed"
     ][:45]
-    assert "DDOG" in picks or picks, picks
+    assert picks, picks
     if "DDOG" not in picks:
         picks = ["DDOG"] + picks[:44]
     trimmed = {
