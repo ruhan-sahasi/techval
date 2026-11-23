@@ -41,7 +41,7 @@ import threading
 import time
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Iterable, Iterator, NamedTuple, Sequence
@@ -1074,8 +1074,15 @@ class CompanyFacts:
         allow_annual_fallback: bool = False,
         default_when_absent: float | None = None,
         component_guard: float | None = None,
+        magnitude: bool = False,
     ) -> tuple[float | None, Provenance]:
         """Resolve a flow concept over the trailing twelve months.
+
+        ``magnitude`` reads every fact as its size, for an expense the taxonomy
+        defines as a positive debit. Disney signs its 10-K InterestExpense facts
+        negative and its 10-Q ones positive, so a fourth quarter derived as the
+        year less nine months came out at -3,208mm and the trailing total at
+        -1,829mm, where the same facts read as sizes give 416mm and 1,795mm.
 
         A ladder entry only wins if it can actually cover the window. A tag that
         exists but whose facts stop two years ago is skipped, exactly as for
@@ -1112,6 +1119,9 @@ class CompanyFacts:
             facts = self._entry_series(entry)
             if not facts:
                 continue
+            signed = magnitude and any(f.val < 0 for f in facts)
+            if signed:
+                facts = [replace(f, val=abs(f.val)) for f in facts]
             got = trailing_twelve_months(facts, as_of, kind=kind)
             if got is not None:
                 value, tiles, method = got
@@ -1136,6 +1146,12 @@ class CompanyFacts:
                             "times smaller, so it is a disaggregation component "
                             f"rather than the total and {name} was taken instead"
                         )
+                if signed:
+                    note = (
+                        f"{name} is signed negative in some of this filer's facts "
+                        "and positive in others; each is read as its size, since "
+                        "the concept is an expense"
+                    )
                 return value, Provenance(
                     concept=concept,
                     tag=name,

@@ -13,7 +13,7 @@ walk from enterprise value to equity is the engine's own and not a private one.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 
 import pytest
@@ -419,6 +419,27 @@ def test_a_multiple_for_a_segment_that_was_not_passed_in_is_refused(assumptions)
         _run(assumptions, multiples=multiples, **CORP)
 
 
+def test_leases_counted_as_debt_do_not_move_the_parts_or_their_gap(assumptions):
+    """Segment values are after rent, so a lease liability is no claim on them.
+
+    With 500mm of operating leases in the bridge's debt, the walk subtracted the
+    liability from post-rent values, charging the rent twice, and set the parts
+    against a lease-inclusive enterprise value, then flagged the gap as
+    overstated in favour of the parts when it ran against them.
+    """
+    plain = _run(assumptions, **CORP)
+    leased = replace(
+        _bridge(), operating_lease=500.0, operating_lease_in_debt=500.0,
+        enterprise_value=16_500.0, ev_including_leases=16_500.0,
+    )
+    result = run_sotp(_fin(), leased, [CABLE, STUDIOS], MULTIPLES, assumptions, **CORP)
+    assert result.equity_value == pytest.approx(plain.equity_value)
+    assert result.implied_vs_consolidated.gap == pytest.approx(
+        plain.implied_vs_consolidated.gap
+    )
+    assert not [c for c in result.checks if "in favour of the parts" in c]
+
+
 def test_no_segments_at_all_is_refused(assumptions):
     with pytest.raises(MissingDataError, match="segment detail"):
         _run(assumptions, segments=[], **CORP)
@@ -476,15 +497,19 @@ def test_a_wide_gap_is_flagged_as_an_error_before_it_is_a_mispricing(assumptions
     assert any(c.startswith("FLAG:") and "break-up argument" in c for c in r.checks)
 
 
-def test_lease_conventions_that_do_not_match_are_flagged(assumptions):
-    """Segment footnotes do not allocate lease liabilities, so the gap is mixed."""
+def test_parts_after_rent_are_set_against_the_enterprise_value_before_leases(
+    assumptions,
+):
+    """Segment footnotes do not allocate lease liabilities, so the parts are
+    compared with the enterprise value before the leases the bridge counts."""
     bridge = _bridge()
     bridge.operating_lease_in_debt = 800.0
     bridge.enterprise_value = 16_800.0
     assumptions.leases.capitalize_operating_leases = True
 
     r = run_sotp(_fin(), bridge, [CABLE, STUDIOS], MULTIPLES, assumptions, **CORP)
-    assert any("two conventions" in c for c in r.checks)
+    assert r.implied_vs_consolidated.consolidated_enterprise_value == 16_000.0
+    assert any("before those leases" in c for c in r.checks)
     assert any("post-rent convention" in n for n in r.segments[0].notes)
 
 
@@ -556,7 +581,8 @@ def test_a_net_cash_filer_reports_the_gap_without_a_percentage(assumptions):
     """Dividing by an enterprise value at or below zero gives a sign, not a fact."""
     bridge = _bridge()
     bridge.cash = 20_000.0
-    bridge.enterprise_value = -3_000.0
+    # With leases left out of debt the two enterprise values are one figure.
+    bridge.enterprise_value = bridge.ev_excluding_leases = -3_000.0
     bridge.net_debt = -15_000.0
 
     r = run_sotp(_fin(), bridge, [CABLE, STUDIOS], MULTIPLES, assumptions, **CORP)

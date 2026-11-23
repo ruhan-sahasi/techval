@@ -498,6 +498,7 @@ def build_financials(
         kind="flow",
         scale=_MM,
         component_guard=None,
+        magnitude=False,
     ):
         val, p = facts.resolve_ttm(
             concept,
@@ -508,6 +509,7 @@ def build_financials(
             default_when_absent=default,
             allow_annual_fallback=annual_ok,
             component_guard=component_guard,
+            magnitude=magnitude,
         )
         prov[concept] = p
         if p.method.startswith("latest filed fiscal year"):
@@ -646,7 +648,11 @@ def build_financials(
         net_income=flow("net income", tags.NET_INCOME) or 0.0,
         pretax_income=flow("pre-tax income", tags.PRETAX_INCOME, required=False),
         tax_expense=flow("income tax expense", tags.TAX_EXPENSE, required=False),
-        interest_expense=flow("interest expense", tags.INTEREST_EXPENSE, required=False),
+        # An expense, and Disney signs its annual facts negative and its
+        # quarterly ones positive: read each as its size.
+        interest_expense=flow(
+            "interest expense", tags.INTEREST_EXPENSE, required=False, magnitude=True
+        ),
         operating_lease_cost=flow(
             "operating lease cost",
             tags.OPERATING_LEASE_COST,

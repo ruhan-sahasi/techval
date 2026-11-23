@@ -985,3 +985,16 @@ def test_notes_tagged_as_long_term_debt_as_well_are_counted_once():
     assert fin.straight_debt == 0.0
     assert fin.convertible_debt == pytest.approx(1141.011)
     assert any("notes tagged twice" in w for w in fin.warnings)
+
+
+def test_an_expense_signed_both_ways_is_read_as_its_size():
+    """Disney signs its 10-K InterestExpense facts negative and its 10-Qs positive.
+
+    The fourth quarter, derived as the year less nine months, came out at
+    -3,208mm, and trailing interest expense at -1,829mm, which put Disney's
+    interest coverage below zero and its synthetic rating at BBB.
+    """
+    fin = build_financials("DIS", facts=load_facts("DIS"))
+    assert fin.interest_expense == pytest.approx(1795.0)
+    note = fin.provenance["interest expense"].note
+    assert note and "read as its size" in note

@@ -112,7 +112,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, timedelta
 from typing import Any
 
@@ -764,6 +764,32 @@ class FadeObservation:
             ("Growth", self.growth),
             ("Forward growth (1y)", self.labels.get(1)),
         ]
+
+
+def known_on(
+    observations: Sequence[FadeObservation], when: date
+) -> list[FadeObservation]:
+    """The company-years as a reader on ``when`` could have known them.
+
+    Two cuts. A company-year filed after ``when`` goes entirely. One filed
+    before it keeps only the forward labels whose own filings were public by
+    then, since the label for horizon h is the growth printed in a 10-K h years
+    later. An observation that loses labels is a copy: the panel this reads may
+    be the one an in-process cache hands every caller.
+    """
+    kept = []
+    for o in observations:
+        if o.as_of > when:
+            continue
+        late = {h for h, filed in o.label_dates.items() if filed > when}
+        if late:
+            o = replace(
+                o,
+                labels={h: g for h, g in o.labels.items() if h not in late},
+                label_dates={h: d for h, d in o.label_dates.items() if h not in late},
+            )
+        kept.append(o)
+    return kept
 
 
 # --------------------------------------------------------------------------- #

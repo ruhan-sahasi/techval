@@ -131,8 +131,11 @@ class PeerMetrics:
     # at zero for the cash-rich and quietly unlever them at 0.0x.
     gross_debt: float
     revenue: float
+    # The denominators EV/EBITDA and EV/EBIT were struck on, which are EBITDA
+    # and EBIT before rent where leases are counted as debt. An implied value
+    # multiplies a multiple by these, so they must be the same figures.
     ebitda: float | None
-    ebit: float
+    ebit: float | None
     net_income: float
     gross_profit: float | None
     revenue_growth: float | None
@@ -510,7 +513,7 @@ def compute_peer_metrics(
         gross_debt=bridge.total_debt,
         revenue=fin.revenue,
         ebitda=ebitda,
-        ebit=fin.ebit,
+        ebit=ebit_den,
         net_income=fin.net_income,
         gross_profit=fin.gross_profit,
         revenue_growth=growth,
@@ -653,8 +656,8 @@ def _implied_frame(
                 "High multiple": high_m,
                 "Implied EV low": ev_low,
                 "Implied EV high": ev_high,
-                "Implied price low": equity_low / target_fin.diluted_shares,
-                "Implied price high": equity_high / target_fin.diluted_shares,
+                "Implied price low": equity_low / bridge.diluted_shares,
+                "Implied price high": equity_high / bridge.diluted_shares,
             }
         )
 
@@ -969,12 +972,18 @@ def run_comps(
     market_data: MarketData,
     *,
     peers: list[str] | None = None,
+    valuation_shares: float | None = None,
 ) -> CompsResult:
     """Build the comp set, the statistics over it, and what it implies for the target.
 
     The target is priced the same way as every peer and on the same conventions,
     so the row printed above the set is directly comparable with it. If the
     target itself cannot be built the error propagates: there is nothing to value.
+
+    ``valuation_shares`` is the count the caller settled the target's equity on,
+    a treasury-stock count where one was built. The target's row and its implied
+    prices divide by it, so the comps in a report agree with the bridge above
+    them rather than falling back to diluted WASO.
     """
     requested = list(peers if peers is not None else assumptions.comps.peers)
     notes: list[str] = []
@@ -1002,6 +1011,7 @@ def run_comps(
 
     target_facts = client.company_facts(target_ticker)
     target_fin = build_financials(target_ticker, facts=target_facts)
+    target_fin.valuation_shares = valuation_shares
     target_price = market_data.spot(target_ticker)
     target_bridge = build_ev_bridge(target_fin, target_price, assumptions)
     target = compute_peer_metrics(

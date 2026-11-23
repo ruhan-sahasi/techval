@@ -67,7 +67,9 @@ def tearsheet(
         if facts_dir is not None:
             knowledge = assumptions.knowledge_date
             client = RecordedFacts(facts_dir, knowledge)
-        observations, _ = _panel(directory, symbol, ml_cache_root(assumptions))
+        observations, _ = _panel(
+            directory, symbol, ml_cache_root(assumptions), market.today
+        )
         snap = build_tearsheet(
             symbol,
             assumptions,
@@ -137,7 +139,9 @@ def compare(
         if facts_dir is not None:
             knowledge = assumptions.knowledge_date
             client = RecordedFacts(facts_dir, knowledge)
-        observations, _ = _panel(directory, "", ml_cache_root(assumptions))
+        observations, _ = _panel(
+            directory, "", ml_cache_root(assumptions), market.today
+        )
         snap = build_comparison(
             tickers,
             assumptions,

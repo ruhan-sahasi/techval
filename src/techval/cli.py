@@ -1378,7 +1378,13 @@ def value(
         peer_betas = None
         peer_median_ev_ebitda = None
         if assumptions.comps.peers:
-            comps_result = run_comps(ticker, assumptions, client, market)
+            comps_result = run_comps(
+                ticker,
+                assumptions,
+                client,
+                market,
+                valuation_shares=fin.valuation_shares,
+            )
             median = comps_result.stats.loc["Median"].get("EV/EBITDA")
             if median is not None and pd.notna(median):
                 peer_median_ev_ebitda = float(median)

@@ -59,9 +59,12 @@ and per share. That difference is the break-up argument, and it is also the
 first place to look for an error: a 60 percent gap is usually a wrong multiple
 or a missing corporate line long before it is a mispricing.
 
-The walk from enterprise value down to equity uses ``equity_value_from_ev``, the
-same debt definition the rest of the engine uses, so a sum-of-the-parts price
-per share and a DCF price per share are comparable rather than merely similar.
+The walk from enterprise value down to equity uses ``equity_value_from_dcf_ev``,
+the walk the DCF uses, so a sum-of-the-parts price per share and a DCF price per
+share are comparable rather than merely similar. Like a DCF's flows, segment
+values are after rent, so the walk leaves out the operating lease liability the
+bridge may count as debt, and the parts are set against the enterprise value
+before those leases.
 
 **Segment input shape.** This module deliberately does not import the segment
 builder. It accepts any sequence of mappings or objects carrying:
@@ -90,7 +93,7 @@ import pandas as pd
 
 from ..config import Assumptions
 from ..errors import ConfigError, MissingDataError, NotMeaningfulError
-from ..ev_bridge import EVBridge, equity_value_from_ev
+from ..ev_bridge import EVBridge, equity_value_from_dcf_ev
 from ..financials import Financials
 
 # Metric key -> (how it prints, whether it is an earnings figure). Only revenue
@@ -728,7 +731,11 @@ def run_sotp(
         )
 
     # -- down to equity ------------------------------------------------------ #
-    equity = equity_value_from_ev(net_ev, bridge)
+    # Segment values are after rent, as a DCF's flows are, so they walk to
+    # equity as a DCF value does, without the operating lease liability the
+    # bridge may count as debt, and are set against the enterprise value on
+    # that same footing. Subtracting the liability as well charged rent twice.
+    equity = equity_value_from_dcf_ev(net_ev, bridge)
     shares = bridge.diluted_shares
     if shares <= 0:
         raise NotMeaningfulError(
@@ -736,7 +743,7 @@ def run_sotp(
         )
     per_share = equity / shares
 
-    consolidated_ev = bridge.enterprise_value
+    consolidated_ev = bridge.ev_excluding_leases
     gap = net_ev - consolidated_ev
     gap_notes: list[str] = []
     if consolidated_ev > 0:
@@ -898,12 +905,12 @@ def _checks(
 
     if bridge.operating_lease_in_debt > 0:
         out.append(
-            "FLAG: the bridge counts "
+            "The bridge counts "
             f"{bridge.operating_lease_in_debt:,.0f}mm of operating lease "
-            "liabilities as debt, so the consolidated enterprise value is lease "
-            "inclusive while the segment values are not. Segment footnotes do not "
-            "allocate lease liabilities, so the gap below is measured across two "
-            "conventions and is overstated in favour of the parts."
+            "liabilities as debt, but the segment values are after rent, since "
+            "segment footnotes do not allocate leases. So the parts are set against "
+            "the enterprise value before those leases and walked to equity without "
+            "them, as the DCF is, rather than charging the rent twice."
         )
 
     if gap_pct is None:
