@@ -568,11 +568,11 @@ def project(
 
     ``growth_path`` replaces the straight-line fade from
     ``dcf.revenue_growth_start`` to ``dcf.revenue_growth_terminal`` with one
-    growth rate per projection year. Left None, which is every existing caller,
-    nothing about this function changes. It is the seam
-    ``techval.ml.forecast`` fits a fade curve into, and it is a function
-    argument rather than an assumption because a measured path has to be
-    measured by somebody, not typed into a file.
+    growth rate per projection year. Left None, the fade runs as configured. It
+    is the seam the reverse DCF's duration paths, the scenarios' quantile paths
+    and ``techval.ml.forecast``'s fitted fade curve pass through, and it is a
+    function argument rather than an assumption because a measured path has to
+    be measured by somebody, not typed into a file.
 
     ``shares`` is the count year one starts from, ``fin.shares_for_valuation``
     when left None. The valuation path passes the bridge's count, which differs

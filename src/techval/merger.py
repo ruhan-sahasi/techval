@@ -775,7 +775,7 @@ def _accretion_percent(accretion_dollars: float, standalone_eps: float) -> float
     profitable software acquirers hit both. A negative base inverts the sign, so
     a deal that improves a loss prints as dilution. A base near zero explodes the
     ratio: CrowdStrike's TTM diluted EPS of about four cents turns four cents of
-    dilution into minus eight hundred percent, which describes the denominator
+    dilution into minus one hundred percent, which describes the denominator
     rather than the transaction.
     """
     if standalone_eps <= 0:
@@ -1856,7 +1856,7 @@ def _purchase_accounting_checks(
     assumptions: Assumptions,
     tax_rate: float,
 ) -> list[str]:
-    """The four questions a reader asks of an opening balance sheet."""
+    """The questions a reader asks of an opening balance sheet."""
     checks: list[str] = []
     pa = assumptions.merger.purchase_accounting
     horizon = years[-1]

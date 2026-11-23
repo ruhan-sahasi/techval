@@ -523,7 +523,7 @@ class Company:
     notes: str = ""
 
     def row(self) -> dict[str, object]:
-        """One flat record. Values stay raw; rendering and NM live in cli.py."""
+        """One flat record. Values stay raw; the commands and the dashboard render them."""
         return {
             "ticker": self.ticker,
             "cik": self.cik,

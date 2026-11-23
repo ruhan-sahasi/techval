@@ -887,9 +887,6 @@ def load_dataset(
 # targets: rendering
 # --------------------------------------------------------------------------- #
 
-#: Printed above the ranked list on every run. Both halves are findings from the
-#: module's own evaluation rather than modesty: the first is what the score is,
-#: the second is what the feature set cannot see.
 def _distinct_deals(result: PropensityResult) -> int:
     """Companies actually bought, counted on the matrix the model was scored on.
 
@@ -902,6 +899,9 @@ def _distinct_deals(result: PropensityResult) -> int:
     return len({t for t, lab in zip(result.matrix.tickers, result.matrix.y) if lab})
 
 
+# This block and _BLIND_SPOT below are printed above the ranked list on every
+# run. Both are findings from the module's own evaluation rather than modesty:
+# the first is what the score is, the second is what the feature set cannot see.
 def _worth_block(result: PropensityResult) -> list[str]:
     """What this model is worth, in the numbers rather than in adjectives.
 

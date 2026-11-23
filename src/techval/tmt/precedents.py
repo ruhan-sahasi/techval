@@ -248,10 +248,11 @@ _STAT_ROWS = ["n", "Min", "p25", "Median", "p75", "Max"]
 # --------------------------------------------------------------------------- #
 # Optional collaborators
 #
-# tmt/taxonomy.py is being written in parallel and is not imported here. The
-# shape this module expects from a classifier is one call taking a ticker and
-# returning one of the sub-vertical names in TMTAssumptions.sub_vertical, or
-# None where it will not guess.
+# A classifier is optional, and no command passes one, so every deal the CLI and
+# the dashboard price is labelled from its SIC code through _SIC_SUB_VERTICAL
+# below, and flagged. The shape a classifier must have is one call taking a
+# ticker and returning one of the sub-vertical names in
+# TMTAssumptions.sub_vertical, or None where it will not guess.
 # --------------------------------------------------------------------------- #
 
 

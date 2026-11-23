@@ -11,8 +11,9 @@ so a US filer's EBITDA is already after rent. An enterprise value that counts
 the lease liability as debt therefore has to be divided by EBITDAR, before rent,
 or the same obligation is charged twice: once as a claim in the numerator and
 again as a cost that suppressed the denominator. Every earnings figure here
-comes from ``bridge.multiple_denominator``, the only sanctioned way to pick the
-matching line, so the mismatch cannot be introduced by hand.
+comes from the bridge, ``multiple_denominator`` for EBITDA and
+``ebit_denominator`` for EBIT, the only sanctioned way to pick the matching
+line, so the mismatch cannot be introduced by hand.
 
 **A meaningless multiple is suppressed, not dropped.** A company running a two
 percent GAAP EBITDA margin trades at some enormous EV/EBITDA. That number is
@@ -428,7 +429,8 @@ def compute_peer_metrics(
         )
         ev_numerator = None
 
-    # The single point where the lease convention enters the multiples. Note
+    # Where the lease convention enters the EBITDA multiple; EV/EBIT takes its
+    # figure from ``bridge.ebit_denominator`` on the same rule. Note
     # what follows from it: the columns headed "EBITDA margin" and "Rule of 40"
     # are computed on this same convention-matched figure, so under the
     # capitalise-leases convention they are EBITDAR-based. That is deliberate,
