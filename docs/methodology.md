@@ -686,8 +686,11 @@ A peer that listed eighteen months ago has fewer weeks than the index, and
 zipping the two return vectors together pairs its first week against the
 index's first week two years earlier; the slope that comes back is arithmetic
 performed on unrelated numbers, and it looks entirely plausible on screen. The
-regression here pairs the two series **by date and never by position**, joining
-on the dates they actually share, and refuses below 30 common observations.
+regression here pairs the two series **by period and never by position**: a
+stock's weekly return is set only against the index's return between the same
+two closes, so a return that spans a week with no close is left out rather than
+set beside a one-week index move, and the regression refuses below 30 common
+observations.
 
 The R-squared and the standard error are reported beside the slope rather than
 hidden behind it, because a beta of 1.42 on an R-squared of 0.11 is not a
@@ -713,7 +716,8 @@ a claim whose risk tracks the debt, so leverage raises equity risk by less than
 gross D/E would suggest.
 
 The peer approach, which is the standard sell-side one: unlever each peer at
-**its own** D/E and tax rate, pool the resulting asset betas, then relever at the
+**its own** D/E and at the marginal tax rate, `tax.marginal_tax_rate`, which is
+the same for every peer, pool the resulting asset betas, then relever at the
 target's capital structure. The point of the exercise is to strip out
 capital-structure differences before averaging, so that what is being pooled is
 business risk rather than financing policy. How the pooling is done is §5.3.
@@ -847,8 +851,10 @@ meaningful debt *and* net cash, override the rate.
 Market value of equity against **gross** book debt, not net. The tax shield
 attaches to debt outstanding, not to a net position, so netting cash against debt
 before weighting would understate the shield. Where a company is net cash the
-output says so and notes that its WACC is its cost of equity to within a few
-basis points.
+output says so and states how far its WACC sits below its cost of equity at its
+debt weight. That is a few basis points where the debt is small, and more where
+it is not: Zscaler, net cash by $1.8bn, still carries $1.7bn of convertible notes
+as debt, a 6.0% weight.
 
 Book value is used as a proxy for the market value of debt. For investment-grade
 paper near par this is close. For distressed debt it is badly wrong, and that is
