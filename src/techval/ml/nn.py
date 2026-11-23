@@ -1,8 +1,11 @@
 """Neural network primitives in numpy: forward passes, exact gradients, Adam.
 
-Every model in this package is fitted with the code in this file, and there is
-no framework underneath it. That is a deliberate choice resting on three facts
-about this problem, in descending order of how interesting they are.
+Every model in this package that learns by gradient descent (the peer encoder,
+the warranted-multiple network and the M&A propensity model) is fitted with the
+code in this file, and there is no framework underneath it; the growth-fade
+regressions and the filing-text TF-IDF and SVD come from scikit-learn. That is a
+deliberate choice resting on three facts about this problem, in descending order
+of how interesting they are.
 
 **A gradient a reader can check is worth more beside a valuation than one they
 cannot.** The engine's claim is that every number traces to a filing or to a
