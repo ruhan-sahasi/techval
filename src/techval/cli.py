@@ -85,6 +85,7 @@ from .ml.mna import fit_propensity
 from .ml.signals import Score, test_signal
 from .ml.warranted import fit_warranted
 from .options import CONFIG, FROM_RECORD, NO_CACHE, OPEN_PAGE, iso_date, iso_dates
+from .reverse_dcf import quarter_ends
 from .simulation import run_simulation
 from .terminal import (
     format_money,
@@ -1783,24 +1784,6 @@ def merger(
 
 
 
-def _quarter_ends(start: date, end: date) -> list[date]:
-    """Calendar quarter ends inside a window, inclusive."""
-    out: list[date] = []
-    y, q = start.year, (start.month - 1) // 3
-    while True:
-        m = q * 3 + 3
-        last = date(y, m, 1)
-        last = date(y + (m == 12), 1 if m == 12 else m + 1, 1) - timedelta(days=1)
-        if last > end:
-            break
-        if last >= start:
-            out.append(last)
-        q += 1
-        if q == 4:
-            q, y = 0, y + 1
-    return out
-
-
 @app.command()
 def backtest(
     tickers: str = typer.Argument(..., help="Comma-separated tickers, e.g. DDOG,MDB,ZS"),
@@ -1843,7 +1826,7 @@ def backtest(
         if dates:
             when = [date.fromisoformat(d) for d in dates.split(",")]
         elif start and end:
-            when = _quarter_ends(date.fromisoformat(start), date.fromisoformat(end))
+            when = quarter_ends(date.fromisoformat(start), date.fromisoformat(end))
         else:
             raise ConfigError(
                 "backtest needs its valuation dates: list them with --dates, or "
