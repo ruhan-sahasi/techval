@@ -1736,8 +1736,9 @@ past the horizon is only partly charged, and the note gives the rest.
 
 `Financials` carries the claims a valuation needs rather than a full balance
 sheet, so book equity acquired is assembled from working capital less
-borrowings, preferred and minority interest, and it is understated in a
-direction worth tracking. Lease liabilities are deliberately not deducted: ASC 842 books
+borrowings, preferred and minority interest. Convertible notes the offer
+converts are not deducted, since the price paid already buys their shares. The
+figure is understated in a direction worth tracking. Lease liabilities are deliberately not deducted: ASC 842 books
 a right-of-use asset against the liability at inception and the two stay close,
 so subtracting the liability while the matching asset is absent from the object
 would conjure hundreds of millions of goodwill out of an accounting entry.

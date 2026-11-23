@@ -1939,10 +1939,12 @@ vanishes when g is zero.
 Book equity acquired is understated, so goodwill is overstated. It is built
 from working capital less borrowings and any preferred or minority interest,
 with the current debt and leases inside current liabilities taken back out so a
-borrowing is deducted once; lease liabilities are left out because their
-right-of-use assets are not carried here and deducting one side alone would
-invent goodwill, and non-current operating assets are missing for the same
-reason. The deal therefore looks more dilutive here than it should, not less.
+borrowing is deducted once, and with convertible notes the offer converts left
+in, since the price already buys their shares; lease liabilities are left out
+because their right-of-use assets are not carried here and deducting one side
+alone would invent goodwill, and non-current operating assets are missing for
+the same reason. The deal therefore looks more dilutive here than it should,
+not less.
 The multi-year roll-forward needs D&A, capex and pre-tax income and refuses
 where a filer does not tag them: CrowdStrike as an acquirer fails on the D&A
 tag, the same gap that makes its EV/EBITDA non-meaningful in the comp table.
