@@ -1039,7 +1039,6 @@ def build_observations(
     *,
     current_client: Any,
     target: str | None = None,
-    check_point_in_time: bool = True,
 ) -> ObservationPanel:
     """Price every company at every date and reduce it to one multiple and its features.
 
@@ -1105,8 +1104,7 @@ def build_observations(
                 fin = build_financials(ticker, facts=facts)
                 price = market.spot(ticker)
                 bridge = build_ev_bridge(fin, price, assumptions)
-                if check_point_in_time:
-                    assert_point_in_time(row, fin, prices=market.prices(ticker))
+                assert_point_in_time(row, fin, prices=market.prices(ticker))
             except TechvalError as exc:
                 skips.append(
                     Skip(ticker, when, f"{type(exc).__name__}: {exc}", "not_built")

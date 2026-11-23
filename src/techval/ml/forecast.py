@@ -1321,7 +1321,6 @@ def build_fade_panel(
     assumptions: Assumptions | None = None,
     *,
     winsorize_cross_section: bool = True,
-    check_point_in_time: bool = True,
 ) -> FadePanel:
     """Build every fiscal year every filer in the universe supports.
 
@@ -1366,9 +1365,8 @@ def build_fade_panel(
             continue
         observations.extend(rows)
 
-    if check_point_in_time:
-        for observation in observations:
-            assert_point_in_time(observation.feature_row())
+    for observation in observations:
+        assert_point_in_time(observation.feature_row())
 
     touched = _winsorize_by_year(observations) if winsorize_cross_section else 0
     _attach_labels(observations)
