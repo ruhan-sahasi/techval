@@ -579,7 +579,7 @@ def _render_dcf(d) -> None:
     console.print(table)
 
     # Each enterprise value below includes it once, so it is shown beside them.
-    left = getattr(d, "carryforward_value", 0.0)
+    left = d.carryforward_value
     summary = [("Carryforward left at year N, discounted", left)] if left else []
     summary += [
         ("Enterprise value, Gordon growth", d.enterprise_value_gordon),
@@ -594,7 +594,7 @@ def _render_dcf(d) -> None:
 
     # All three terminal methods are always computed. The assumption picks which
     # one carries the headline, and the reader should see which that was.
-    headline = getattr(d, "headline_method", "gordon")
+    headline = d.headline_method
     for key, label, v in (
         ("gordon", "Gordon growth", d.per_share_gordon),
         ("exit_multiple", "exit multiple", d.per_share_exit),
@@ -657,7 +657,7 @@ def _render_comps(result) -> None:
         _frame_table(result.implied, title="Implied value for the target", index_label="")
     )
 
-    if getattr(result, "regression", None) is not None:
+    if result.regression is not None:
         _render_regression(result.regression)
 
     if result.exclusions:
@@ -1776,7 +1776,7 @@ def merger(
         print_notes(console, r.checks, heading="Cross-checks")
         print_notes(console, r.accretion.notes + r.notes)
 
-        if getattr(r, "purchase_accounting", None) is not None:
+        if r.purchase_accounting is not None:
             _render_purchase_accounting(r.purchase_accounting)
     except TechvalError as exc:
         print_refusal(console, exc)
