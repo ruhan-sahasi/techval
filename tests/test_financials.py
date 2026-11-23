@@ -15,6 +15,7 @@ from techval.edgar import (
     parse_instance,
     trailing_twelve_months,
 )
+from techval import tags
 from techval.errors import MissingDataError, StaleDataError
 from techval.financials import _DebtLadder, build_financials
 
@@ -998,3 +999,31 @@ def test_an_expense_signed_both_ways_is_read_as_its_size():
     assert fin.interest_expense == pytest.approx(1795.0)
     note = fin.provenance["interest expense"].note
     assert note and "read as its size" in note
+
+
+def test_a_net_interest_figure_is_read_as_filed():
+    """Interest income less expense runs either way, so its facts keep their sign.
+
+    Datadog's nonoperating interest expense, moved onto InterestIncomeExpenseNet
+    as the net expense it would be there, with 2026 turned to net income. The
+    trailing year at 30 June 2026 is the second half of 2025's net expense of
+    5.0mm set against the first half of 2026's net income of 6.4mm. Read as
+    sizes, the income was added to the expense and the year came out at 11.4mm.
+    """
+    payload = load_payload("DDOG")
+    gaap = payload["facts"]["us-gaap"]
+    rows = gaap["InterestExpenseNonoperating"]["units"]["USD"]
+    for tag in tags.INTEREST_EXPENSE_GROSS:
+        gaap.pop(tag, None)
+    gaap["InterestIncomeExpenseNet"] = {
+        "units": {
+            "USD": [
+                {**row, "val": row["val"] if row["start"] >= "2026" else -row["val"]}
+                for row in rows
+            ]
+        }
+    }
+    fin = build_financials("DDOG", facts=CompanyFacts(payload, "DDOG"))
+    assert fin.provenance["interest expense"].tag == "InterestIncomeExpenseNet"
+    assert fin.interest_expense == pytest.approx(-(11.059 - 6.038) + 6.374)
+    assert not fin.provenance["interest expense"].note

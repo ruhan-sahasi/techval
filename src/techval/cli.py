@@ -1290,12 +1290,12 @@ def _render_optional_precedents(assumptions, client, market, candidates) -> None
     t.add_column("Premium", justify="right")
     for deal in result.transactions:
         t.add_row(
-            Text(str(deal.ticker), style="bold"),
-            str(getattr(deal, "acquirer", "") or ""),
-            str(getattr(deal, "announced", "") or ""),
-            format_money(getattr(deal, "equity_value", None)),
-            format_multiple(getattr(deal, "ev_revenue", None)),
-            format_pct(getattr(deal, "premium", None)),
+            Text(deal.target_ticker, style="bold"),
+            deal.acquirer_name or "",
+            str(deal.announced or ""),
+            format_money(deal.equity_value),
+            format_multiple(deal.ev_revenue),
+            format_pct(deal.premium),
         )
     console.print(t)
     console.print(

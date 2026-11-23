@@ -65,6 +65,13 @@ INTEREST_EXPENSE = [
     "InterestIncomeExpenseNet",
 ]
 
+# The rungs of that ladder that are expenses, positive debits in the taxonomy,
+# so a minus sign on one of their facts is the filer's sign convention and the
+# fact is read as its size. The net rung is not among them: interest income less
+# expense runs either way, and a half year of net income set against a half
+# year of net expense nets off rather than adding up.
+INTEREST_EXPENSE_GROSS = frozenset(INTEREST_EXPENSE) - {"InterestIncomeExpenseNet"}
+
 # --- cash flow --------------------------------------------------------------
 
 # The combined tag first; then the components summed, for filers that publish

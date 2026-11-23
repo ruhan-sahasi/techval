@@ -498,7 +498,7 @@ def build_financials(
         kind="flow",
         scale=_MM,
         component_guard=None,
-        magnitude=False,
+        magnitude=(),
     ):
         val, p = facts.resolve_ttm(
             concept,
@@ -649,9 +649,13 @@ def build_financials(
         pretax_income=flow("pre-tax income", tags.PRETAX_INCOME, required=False),
         tax_expense=flow("income tax expense", tags.TAX_EXPENSE, required=False),
         # An expense, and Disney signs its annual facts negative and its
-        # quarterly ones positive: read each as its size.
+        # quarterly ones positive: read each fact of the gross concepts as its
+        # size, and a net interest figure as filed.
         interest_expense=flow(
-            "interest expense", tags.INTEREST_EXPENSE, required=False, magnitude=True
+            "interest expense",
+            tags.INTEREST_EXPENSE,
+            required=False,
+            magnitude=tags.INTEREST_EXPENSE_GROSS,
         ),
         operating_lease_cost=flow(
             "operating lease cost",

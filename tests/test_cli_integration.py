@@ -1054,3 +1054,35 @@ def test_a_treasury_stock_count_that_fell_back_takes_no_conversion_shares(
     assert "Method: diluted WASO fallback" in text
     assert "conversion shares to the treasury stock count" not in text
     assert "Enterprise value 77,673.9" in text
+
+
+# --------------------------------------------------------------------------- #
+# the precedent section names the deals it found
+# --------------------------------------------------------------------------- #
+
+
+def test_a_precedent_the_value_report_finds_is_named_with_its_acquirer(monkeypatch, capsys):
+    """The section read ``deal.ticker`` and ``deal.acquirer``.
+
+    A Transaction carries ``target_ticker`` and ``acquirer_name``, so the value
+    report crashed with an AttributeError on the first precedent it found, and
+    the acquirer column, read through a getattr default, would have been blank.
+    """
+    from types import SimpleNamespace
+
+    from techval.tmt.precedents import Transaction
+
+    deal = Transaction(
+        target_ticker="SPLK",
+        acquirer_name="Cisco Systems",
+        announced=date(2023, 9, 21),
+        equity_value=28000.0,
+        ev_revenue=6.9,
+        premium=0.31,
+    )
+    monkeypatch.setattr(
+        C, "build_precedents", lambda *a, **k: SimpleNamespace(transactions=[deal])
+    )
+    C._render_optional_precedents(Assumptions(), None, None, ["SPLK"])
+    text = flat(capsys.readouterr().out)
+    assert "SPLK Cisco Systems 2023-09-21" in text

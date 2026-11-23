@@ -492,16 +492,17 @@ Either convention is defensible so long as it is applied consistently:
 
 | Enterprise value | pairs with | Earnings metric |
 |---|---|---|
-| Excluding lease liabilities | → | EBITDA (after rent) |
-| Including lease liabilities | → | EBITDAR (before rent) |
+| Excluding lease liabilities | → | EBITDA and EBIT (after rent) |
+| Including lease liabilities | → | EBITDAR and EBIT before rent |
 
 **Default: operating leases excluded, EBITDA basis.** That is how a US software
 comp set is normally quoted, and it avoids inventing an interest rate to unwind
 the rent charge.
 
 The engine reports both enterprise values regardless of the setting, and the
-earnings figure that pairs with the chosen one is only reachable through
-`EVBridge.multiple_denominator()`. A mismatch cannot happen by accident. If
+earnings figures that pair with the chosen one are only reachable through
+`EVBridge.multiple_denominator()` for EBITDA and `EVBridge.ebit_denominator()`
+for EBIT. A mismatch cannot happen by accident. If
 leases are capitalised and the filer does not disclose operating lease cost,
 EBITDAR cannot be formed and the affected multiples are suppressed rather than
 shown on an inconsistent basis.
@@ -643,13 +644,17 @@ not disappear.
   context combining a share class with a plan, which is dropped from shares
   outstanding because they are not outstanding shares. Both exclusions understate
   dilution.
-- *The convertible interaction.* Conversion shares are deliberately absent: the
-  EV bridge has already decided whether an instrument is a debt claim or
+- *The convertible interaction.* Conversion shares are deliberately absent from
+  the count: the EV bridge decides whether an instrument is a debt claim or
   converted equity (§4.2), and counting its shares here as well would count the
   same claim twice. Note which way the two conventions cut, though. Diluted WASO
   already contains the conversion shares of an in-the-money convertible under
-  ASU 2020-06, and this count does not. Pairing a treasury-stock count with an
-  if-converted bridge needs those shares added back by hand.
+  ASU 2020-06, and this count does not. So where the bridge carries the notes as
+  equity, it adds their conversion shares to a treasury-stock count itself:
+  at the example file's $148.15 conversion price, Datadog's notes add 6.65mm
+  and take the count to 384.4mm. `if_converted` without a `conversion_price` is
+  refused, since the shares cannot be counted, and a count that fell back to
+  diluted WASO has none added, since it already holds them.
 - *Forfeitures.* `dilution.assumed_forfeiture_rate` is zero by default, because
   ASC 260 does not haircut for forfeitures and guessing a rate is a thumb on the
   scale. Set it and the haircut reaches unvested awards only: options outstanding
@@ -682,8 +687,11 @@ A peer that listed eighteen months ago has fewer weeks than the index, and
 zipping the two return vectors together pairs its first week against the
 index's first week two years earlier; the slope that comes back is arithmetic
 performed on unrelated numbers, and it looks entirely plausible on screen. The
-regression here pairs the two series **by date and never by position**, joining
-on the dates they actually share, and refuses below 30 common observations.
+regression here pairs the two series **by period and never by position**: a
+stock's weekly return is set only against the index's return between the same
+two closes, so a return that spans a week with no close is left out rather than
+set beside a one-week index move, and the regression refuses below 30 common
+observations.
 
 The R-squared and the standard error are reported beside the slope rather than
 hidden behind it, because a beta of 1.42 on an R-squared of 0.11 is not a
@@ -709,7 +717,8 @@ a claim whose risk tracks the debt, so leverage raises equity risk by less than
 gross D/E would suggest.
 
 The peer approach, which is the standard sell-side one: unlever each peer at
-**its own** D/E and tax rate, pool the resulting asset betas, then relever at the
+**its own** D/E and at the marginal tax rate, `tax.marginal_tax_rate`, which is
+the same for every peer, pool the resulting asset betas, then relever at the
 target's capital structure. The point of the exercise is to strip out
 capital-structure differences before averaging, so that what is being pooled is
 business risk rather than financing policy. How the pooling is done is §5.3.
@@ -843,8 +852,10 @@ meaningful debt *and* net cash, override the rate.
 Market value of equity against **gross** book debt, not net. The tax shield
 attaches to debt outstanding, not to a net position, so netting cash against debt
 before weighting would understate the shield. Where a company is net cash the
-output says so and notes that its WACC is its cost of equity to within a few
-basis points.
+output says so and states how far its WACC sits below its cost of equity at its
+debt weight. That is a few basis points where the debt is small, and more where
+it is not: Zscaler, net cash by $1.8bn, still carries $1.7bn of convertible notes
+as debt, a 6.0% weight.
 
 Book value is used as a proxy for the market value of debt. For investment-grade
 paper near par this is close. For distressed debt it is badly wrong, and that is
@@ -1272,7 +1283,7 @@ growth each price needs, so the most demanding price comes first:
 | DDOG | 225.27 | 36.65 | 3.7% | 155.2% | 11 of 1,662 | 0.0% |
 | MDB | 358.38 | 83.54 | 4.9% | 129.1% | 23 of 1,662 | 0.0% |
 | ZS | 166.10 | 66.08 | 5.6% | 75.2% | 141 of 1,662 | 0.1% |
-| DIS | 105.82 | 185.66 | 12.7% | -1.1% | 1,398 of 1,662 | 92.7% |
+| DIS | 105.82 | 191.48 | 12.7% | -2.2% | 1,428 of 1,662 | 93.7% |
 
 A name without filings or prices is listed as refused at the bottom, not
 dropped. The ranking is by base rate rather than by the gap to the base case,
@@ -1301,9 +1312,11 @@ growth then drops to the terminal rate.
 The three are weighted 30/40/30. That is Swanson's rule, which approximates the
 mean of a skewed distribution from its P10, P50 and P90, where an equal split
 overweights both tails. A price above the weighted value is read as the weight
-it puts on the bull case, with bear and base held in proportion; a price below
-it, as the weight on the bear case. Outside all three, no weighting reaches the
-price, and the reading says how far outside it is rather than inventing a
+it puts on the most valuable of the three, the bull case as a rule, with the
+other two held in proportion; a price below it, as the weight on the least
+valuable. The scenarios are ranked by value rather than by name because a record
+case whose growth costs more than it returns makes the bull path the one worth
+least. Outside all three, no weighting reaches the price, and the reading says how far outside it is rather than inventing a
 fourth scenario. The percentiles, weights, neighbourhood and minimum pool sit
 in the `scenarios` block of the assumptions file, which refuses weights that do
 not sum to one and percentiles that do not rise from bear to bull.
@@ -1323,7 +1336,7 @@ its straight line from 20% to 5% compounds more slowly than the median similar
 company-year did. The 225.27 close is 3.1 times the bull case, so no weighting
 of the three reaches it. Across the screen in section 6.6, CrowdStrike trades
 at 8.3 times its bull case, MongoDB at 2.5 and Zscaler at 1.2, and Disney's
-price puts 86% on its bear case.
+price puts 89% on its bear case.
 
 **The band, scored on company-years it had not seen.** Every company-year filed
 from 2016 is set against the 10th-to-90th percentile band of its similar
@@ -1724,8 +1737,9 @@ past the horizon is only partly charged, and the note gives the rest.
 
 `Financials` carries the claims a valuation needs rather than a full balance
 sheet, so book equity acquired is assembled from working capital less
-borrowings, preferred and minority interest, and it is understated in a
-direction worth tracking. Lease liabilities are deliberately not deducted: ASC 842 books
+borrowings, preferred and minority interest. Convertible notes the offer
+converts are not deducted, since the price paid already buys their shares. The
+figure is understated in a direction worth tracking. Lease liabilities are deliberately not deducted: ASC 842 books
 a right-of-use asset against the liability at inception and the two stay close,
 so subtracting the liability while the matching asset is absent from the object
 would conjure hundreds of millions of goodwill out of an accounting entry.
@@ -2407,9 +2421,11 @@ reconciled down to consolidated operating income, so a corporate cost that does
 not actually close the footnote reconciliation is accepted as given. Nothing
 checks that the segment period matches the consolidated period. There is no tax
 leakage on a break-up, which is often what kills the pitch. And segment values
-are struck on a post-rent convention because no segment carries an allocated
-lease liability, so under the lease-inclusive bridge convention (§4.1) the gap
-is measured across two conventions and is flagged rather than corrected.
+are struck after rent, because no segment carries an allocated lease liability.
+Under the lease-inclusive bridge convention (§4.1) the parts are therefore set
+against the enterprise value before leases and walked to equity without the
+lease liability, as the DCF is, rather than charging the rent twice, and a note
+says so.
 
 ### 12.4 The operating metrics a sector is actually priced on
 
