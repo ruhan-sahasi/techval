@@ -643,13 +643,17 @@ not disappear.
   context combining a share class with a plan, which is dropped from shares
   outstanding because they are not outstanding shares. Both exclusions understate
   dilution.
-- *The convertible interaction.* Conversion shares are deliberately absent: the
-  EV bridge has already decided whether an instrument is a debt claim or
+- *The convertible interaction.* Conversion shares are deliberately absent from
+  the count: the EV bridge decides whether an instrument is a debt claim or
   converted equity (§4.2), and counting its shares here as well would count the
   same claim twice. Note which way the two conventions cut, though. Diluted WASO
   already contains the conversion shares of an in-the-money convertible under
-  ASU 2020-06, and this count does not. Pairing a treasury-stock count with an
-  if-converted bridge needs those shares added back by hand.
+  ASU 2020-06, and this count does not. So where the bridge carries the notes as
+  equity, it adds their conversion shares to a treasury-stock count itself:
+  at the example file's $148.15 conversion price, Datadog's notes add 6.65mm
+  and take the count to 384.4mm. `if_converted` without a `conversion_price` is
+  refused, since the shares cannot be counted, and a count that fell back to
+  diluted WASO has none added, since it already holds them.
 - *Forfeitures.* `dilution.assumed_forfeiture_rate` is zero by default, because
   ASC 260 does not haircut for forfeitures and guessing a rate is a thumb on the
   scale. Set it and the haircut reaches unvested awards only: options outstanding
