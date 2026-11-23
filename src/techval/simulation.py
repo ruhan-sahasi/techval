@@ -134,6 +134,8 @@ import pandas as pd
 
 from .config import Assumptions
 from .dcf import (
+    _discount_rate,
+    _margin_start,
     _opening_nol,
     _sbc_ratio,
     _shelter,
@@ -675,14 +677,12 @@ def _prepare(
     assumptions: Assumptions,
 ) -> _Engine:
     cfg = assumptions.dcf
-    wacc = cfg.wacc_override if cfg.wacc_override is not None else wacc_result.wacc
+    wacc = _discount_rate(cfg, wacc_result)
     tax_rate, _ = _tax_rate(fin, assumptions)
     sbc_ratio, _ = _sbc_ratio(fin, assumptions)
     addback = cfg.sbc_treatment == "addback"
     dilute = addback and cfg.sbc_dilution and bridge.price > 0
-    margin_start = (
-        cfg.ebit_margin_start if cfg.ebit_margin_start is not None else fin.ebit_margin
-    )
+    margin_start = _margin_start(fin, cfg)
     return _Engine(
         n=cfg.projection_years,
         mid_year=cfg.mid_year_convention,
