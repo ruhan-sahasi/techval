@@ -237,21 +237,39 @@ def implied_first_year_growth(case: Case, price: float) -> Solve:
     Every other year follows from it exactly as the forward DCF builds them, a
     straight line to ``dcf.revenue_growth_terminal`` in the final projection
     year, so the implied path is in ``extras['path']`` for the base rates.
+
+    A one-year projection has no other year. Its only year is also its last,
+    and the engine grows it at ``dcf.revenue_growth_terminal``, so that is the
+    rate solved for and the one the answer is set against;
+    ``dcf.revenue_growth_start`` moves nothing there.
     """
     from .dcf import _fade
 
     cfg = case.assumptions.dcf
-    lo, hi = GROWTH_BRACKET
-    root = solve_monotone(_guarded(lambda g: case.value(revenue_growth_start=g)), price, lo, hi)
-    assumed = cfg.revenue_growth_start
     years = cfg.projection_years
+    one_year = years == 1
+    rate = "revenue_growth_terminal" if one_year else "revenue_growth_start"
+    lo, hi = GROWTH_BRACKET
+    root = solve_monotone(_guarded(lambda g: case.value(**{rate: g})), price, lo, hi)
+    assumed = getattr(cfg, rate)
+    said = (
+        " A one-year projection's only year is also its last, so it grows at "
+        "dcf.revenue_growth_terminal, and that is the rate solved for."
+        if one_year
+        else ""
+    )
     if root.reached:
-        path = [float(x) for x in _fade(root.x, cfg.revenue_growth_terminal, years)]
+        if one_year:
+            path, fade = [root.x], ""
+        else:
+            path = [float(x) for x in _fade(root.x, cfg.revenue_growth_terminal, years)]
+            fade = (
+                f", fading in a straight line to {cfg.revenue_growth_terminal:.1%} by year {years}"
+            )
         sentence = (
-            f"At {price:,.2f} the price needs {root.x:.1%} revenue growth next year, fading in a "
-            f"straight line to {cfg.revenue_growth_terminal:.1%} by year {years}, against "
-            f"{assumed:.1%} assumed."
-        ) + _jump(root, price, "first-year growth")
+            f"At {price:,.2f} the price needs {root.x:.1%} revenue growth next year{fade}, "
+            f"against {assumed:.1%} assumed."
+        ) + said + _jump(root, price, "first-year growth")
         return Solve(
             "first_year_growth", price, assumed, root.x, (lo, hi), sentence=sentence, extras={"path": path}
         )
@@ -261,9 +279,10 @@ def implied_first_year_growth(case: Case, price: float) -> Solve:
     # low one.
     above = root.edge_value < price
     if above and root.edge_x == hi:
+        fading = "" if one_year else f", fading to {cfg.revenue_growth_terminal:.1%},"
         sentence = (
-            f"No first-year growth up to {hi:.0%} reaches {price:,.2f}: at {hi:.0%}, fading to "
-            f"{cfg.revenue_growth_terminal:.1%}, the DCF is worth {root.edge_value:,.2f}."
+            f"No first-year growth up to {hi:.0%} reaches {price:,.2f}: at {hi:.0%}{fading} "
+            f"the DCF is worth {root.edge_value:,.2f}."
         )
     elif not above and root.edge_x == lo:
         sentence = (
@@ -280,7 +299,7 @@ def implied_first_year_growth(case: Case, price: float) -> Solve:
             f"assumes {'more' if above else 'less'} than the base case."
         )
     return Solve(
-        "first_year_growth", price, assumed, None, (lo, hi), root.edge_x, root.edge_value, sentence
+        "first_year_growth", price, assumed, None, (lo, hi), root.edge_x, root.edge_value, sentence + said
     )
 
 

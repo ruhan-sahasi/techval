@@ -170,6 +170,24 @@ def test_the_base_case_value_implies_the_assumed_terminal_margin(case):
     assert solve.implied == pytest.approx(case.assumptions.dcf.ebit_margin_terminal, abs=1e-5)
 
 
+def test_a_one_year_projection_solves_the_rate_its_only_year_grows_at(case):
+    """With one projection year, year one grows at dcf.revenue_growth_terminal.
+
+    dcf._fade gives the only year the terminal rate, so moving
+    dcf.revenue_growth_start moved nothing, and the base case's own value was
+    said to need -50.0% growth next year against 20.0% assumed.
+    """
+    one = case.with_dcf(projection_years=1)
+    terminal = one.assumptions.dcf.revenue_growth_terminal
+    solve = implied_first_year_growth(one, one.value())
+    assert solve.reached and solve.implied == pytest.approx(terminal, abs=1e-6)
+    assert solve.assumed == terminal
+    assert solve.extras["path"] == [solve.implied]
+    assert "grows at dcf.revenue_growth_terminal, and that is the rate solved for" in solve.sentence
+    faster = implied_first_year_growth(one, one.value(revenue_growth_terminal=0.30))
+    assert faster.implied == pytest.approx(0.30, abs=1e-6)
+
+
 def test_no_terminal_margin_alone_reaches_datadogs_price(case):
     solve = implied_terminal_margin(case, PRICE)
     assert not solve.reached
