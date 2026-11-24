@@ -350,8 +350,7 @@ def test_ev_ebit_is_applied_to_the_ebit_it_was_struck_on(assumptions):
     target = compute_peer_metrics(target_fin, empty, 20.0, assumptions, is_target=True)
     assert target.ebit == pytest.approx(75.0)
     frame = _implied_frame(
-        target, target_fin, build_ev_bridge(target_fin, 20.0, assumptions), peers,
-        assumptions, [],
+        target, build_ev_bridge(target_fin, 20.0, assumptions), peers, assumptions, []
     )
     assert frame.loc["EV/EBIT", "Implied price low"] == pytest.approx(20.0)
 
