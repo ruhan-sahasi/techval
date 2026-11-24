@@ -640,11 +640,9 @@ def market_expectations(
             path = solve.extras.get("path")
             if not path:
                 continue
-            horizon = min(BASE_RATE_HORIZON, len(path))
-            base_rates[solve.lever] = growth_base_rate(
+            base_rates[solve.lever] = path_base_rate(
                 observations,
-                implied_cagr=path_cagr(path, horizon),
-                horizon=horizon,
+                path,
                 trailing=trailing_growth,
                 revenue_mm=getattr(case.fin, "revenue", None),
             )
@@ -659,6 +657,22 @@ def market_expectations(
         notes=notes,
         persistence=persistence,
         simulation=price_in_simulation(case, price),
+    )
+
+
+def path_base_rate(observations, path: list[float], *, trailing: float | None, revenue_mm) -> dict:
+    """``growth_base_rate`` for an implied path, over the years it runs.
+
+    Up to the panel's five: a three-year projection's CAGR set against
+    five-year outcomes is no match.
+    """
+    horizon = min(BASE_RATE_HORIZON, len(path))
+    return growth_base_rate(
+        observations,
+        implied_cagr=path_cagr(path, horizon),
+        horizon=horizon,
+        trailing=trailing,
+        revenue_mm=revenue_mm,
     )
 
 
@@ -857,16 +871,8 @@ def _screen_row(ticker, payload, source, assumptions, when, observations) -> dic
         trailing = latest_growth(observations, ticker)
         scenarios = value_scenarios(case, price, observations, trailing=trailing)
     if observations is not None and growth.reached:
-        # Over the years the path runs, as market_expectations counts it: a
-        # three-year projection's CAGR against five-year outcomes is no match.
-        path = growth.extras["path"]
-        horizon = min(BASE_RATE_HORIZON, len(path))
-        base = growth_base_rate(
-            observations,
-            implied_cagr=path_cagr(path, horizon),
-            horizon=horizon,
-            trailing=trailing,
-            revenue_mm=case.fin.revenue,
+        base = path_base_rate(
+            observations, growth.extras["path"], trailing=trailing, revenue_mm=case.fin.revenue
         )
     sim = price_in_simulation(case, price)
     return dict(
