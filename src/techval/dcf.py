@@ -751,8 +751,13 @@ def value_driver_terminal_value(
 
 
 def _pv_terminal_gordon(tv: float, wacc: float, n: int, mid_year: bool) -> float:
-    # The perpetuity's own flows arrive mid-year under this convention, so the
-    # value dated end of year N is carried back only N-0.5 years.
+    """A perpetuity valued at the end of year N, carried back to today.
+
+    The perpetuity's own flows arrive mid-year under that convention, so the
+    value is carried back only N-0.5 years. The APV's unlevered value and tax
+    shield and every simulated draw use the same clock; numpy arrays pass
+    through as they are.
+    """
     exponent = (n - 0.5) if mid_year else float(n)
     return tv * (1.0 + wacc) ** (-exponent)
 
