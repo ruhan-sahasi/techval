@@ -1568,7 +1568,7 @@ convention is to quote accretion as a percentage of standalone EPS, and that
 percentage fails in two directions. A negative base inverts the sign, so a deal
 that improves a loss prints as dilution. A base near zero explodes the ratio:
 CrowdStrike's TTM diluted EPS of about four cents turns four cents of dilution
-into minus eight hundred percent, which describes the denominator rather than the
+into minus one hundred percent, which describes the denominator rather than the
 transaction. Below a ten-cent floor the engine reports cents per share only and
 says why.
 

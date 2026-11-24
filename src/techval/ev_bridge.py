@@ -397,10 +397,11 @@ def equity_value_from_dcf_ev(
 def equity_value_from_ev(
     enterprise_value: float, bridge: EVBridge
 ) -> float:
-    """Walk back the other way, for a DCF that values the enterprise.
+    """Walk back the other way, for an enterprise value implied by a multiple.
 
-    Uses the same debt definition the bridge used, so a DCF equity value and a
-    comps equity value are reconcilable rather than merely similar.
+    Uses the same debt definition the bridge used, so a comps equity value and a
+    DCF equity value are reconcilable rather than merely similar. The DCF walks
+    back through ``equity_value_from_dcf_ev``, which handles leases its own way.
     """
     return (
         enterprise_value

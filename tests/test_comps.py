@@ -182,12 +182,11 @@ def test_implied_range_applies_peer_percentiles_to_the_target(result, ddog):
 def test_row_is_suppressed_where_the_target_metric_is_not_positive(
     assumptions, market
 ):
-    """You cannot apply an EV/EBITDA to a negative EBITDA."""
+    """You cannot apply an EV/EBIT to a negative EBIT: Zscaler's is -133mm."""
     assumptions.comps.peers = ["DDOG", "MDB"]
     r = run_comps("ZS", assumptions, FixtureClient(), market)
-    if "EV/EBIT" in r.implied.index:
-        assert r.implied.loc["EV/EBIT"]["Target metric"] > 0
-    assert any("EV/EBIT" in n for n in r.notes)
+    assert "EV/EBIT" not in r.implied.index
+    assert any(n.startswith("EV/EBIT is not applied: ZS's own EBIT") for n in r.notes)
 
 
 def test_no_meaningful_peer_means_no_implied_row(result):

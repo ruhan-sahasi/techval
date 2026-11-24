@@ -171,7 +171,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-from .config import Assumptions
+from .config import Assumptions, DCFAssumptions
 from .errors import ConfigError, MissingDataError, NotMeaningfulError
 from .ev_bridge import EVBridge, equity_value_from_dcf_ev
 from .financials import Financials
@@ -418,6 +418,16 @@ def _explicit_path(path: Sequence[float], n: int) -> np.ndarray:
     return values
 
 
+def _discount_rate(cfg: DCFAssumptions, wacc_result: "WACCResult") -> float:
+    """The rate the case is discounted at: dcf.wacc_override where set, else the WACC."""
+    return cfg.wacc_override if cfg.wacc_override is not None else wacc_result.wacc
+
+
+def _margin_start(fin: Financials, cfg: DCFAssumptions) -> float:
+    """The EBIT margin the fade starts from: dcf.ebit_margin_start where set, else the TTM."""
+    return cfg.ebit_margin_start if cfg.ebit_margin_start is not None else fin.ebit_margin
+
+
 def _tax_rate(fin: Financials, assumptions: Assumptions) -> tuple[float, str | None]:
     marginal = assumptions.tax.marginal_tax_rate
     if not assumptions.tax.use_effective_rate:
@@ -558,11 +568,11 @@ def project(
 
     ``growth_path`` replaces the straight-line fade from
     ``dcf.revenue_growth_start`` to ``dcf.revenue_growth_terminal`` with one
-    growth rate per projection year. Left None, which is every existing caller,
-    nothing about this function changes. It is the seam
-    ``techval.ml.forecast`` fits a fade curve into, and it is a function
-    argument rather than an assumption because a measured path has to be
-    measured by somebody, not typed into a file.
+    growth rate per projection year. Left None, the fade runs as configured. It
+    is the seam the reverse DCF's duration paths, the scenarios' quantile paths
+    and ``techval.ml.forecast``'s fitted fade curve pass through, and it is a
+    function argument rather than an assumption because a measured path has to
+    be measured by somebody, not typed into a file.
 
     ``shares`` is the count year one starts from, ``fin.shares_for_valuation``
     when left None. The valuation path passes the bridge's count, which differs
@@ -601,10 +611,7 @@ def project(
         if growth_path is None
         else _explicit_path(growth_path, n)
     )
-    margin_start = (
-        cfg.ebit_margin_start if cfg.ebit_margin_start is not None else fin.ebit_margin
-    )
-    margin = _fade(margin_start, cfg.ebit_margin_terminal, n)
+    margin = _fade(_margin_start(fin, cfg), cfg.ebit_margin_terminal, n)
 
     factors = (
         discount_factors(n, cfg.wacc_override, cfg.mid_year_convention)
@@ -973,7 +980,7 @@ def run_dcf(
             hint="a per-share value cannot be formed without a share count.",
         )
 
-    wacc = cfg.wacc_override if cfg.wacc_override is not None else wacc_result.wacc
+    wacc = _discount_rate(cfg, wacc_result)
     if cfg.wacc_override is not None:
         notes.append(
             f"WACC is overridden at {wacc:.2%}. The computed cost of capital of "

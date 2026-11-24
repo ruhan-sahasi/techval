@@ -44,7 +44,7 @@ def test_a_price_override_asks_what_another_price_assumes(tmp_path):
     assert result.exit_code == 0, result.output
     text = flat(result.output)
     # The base case's own value implies roughly the engine's own cost of capital.
-    assert "11.28% a year" in text or "11.27% a year" in text
+    assert "11.28% a year" in text
 
 
 def test_json_output_is_the_whole_result(tmp_path):
@@ -85,7 +85,7 @@ def test_history_rides_in_the_json(tmp_path):
     assert result.exit_code == 0, result.output
     payload = json.loads(result.output)
     rows = payload["history"]
-    assert rows[-1]["date"] == "2026-06-30" or rows[-1]["date"] == "2026-09-10"
+    assert rows[-1]["date"] == "2026-06-30"
     assert any(r["refused"] is None and r["implied_return"] for r in rows)
 
 

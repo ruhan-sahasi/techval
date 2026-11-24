@@ -1023,7 +1023,7 @@ def _classify_filer(ticker: str, client, assumptions, override: str | None):
             ) from exc
         return picked, 1.0, "named on the command line, overriding the classifier"
 
-    configured = getattr(assumptions.tmt, "sub_vertical", None)
+    configured = assumptions.tmt.sub_vertical
     if configured:
         try:
             picked = SubVertical(str(configured).strip().lower())

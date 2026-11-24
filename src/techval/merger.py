@@ -523,6 +523,33 @@ def _net_debt(bridge: EVBridge) -> float:
     )
 
 
+def _pro_forma_net_debt(
+    acq_bridge: EVBridge, tgt_bridge: EVBridge, cons: Consideration
+) -> float:
+    """Net debt of the combined company at close.
+
+    Post-deal debt is D_acq + D_tgt + new debt; post-deal cash is C_acq + C_tgt
+    less the cash used. Net debt is the difference, which puts cash used on the
+    same side as new borrowing, not against it. Borrowings repaid at close are in
+    the target's net debt and, through the facility that repaid them, in the new
+    debt too, so they are counted once.
+    """
+    return (
+        _net_debt(acq_bridge)
+        + _net_debt(tgt_bridge)
+        + cons.new_debt
+        + cons.cash_used
+        - cons.target_debt_repaid
+    )
+
+
+def _net_position(net_debt: float) -> str:
+    """A net debt figure in words, quoted as net cash when it is negative."""
+    if net_debt >= 0:
+        return f"net debt of {net_debt:,.0f}mm"
+    return f"net cash of {-net_debt:,.0f}mm"
+
+
 def build_consideration(
     acq_fin: Financials,
     tgt_fin: Financials,
@@ -748,7 +775,7 @@ def _accretion_percent(accretion_dollars: float, standalone_eps: float) -> float
     profitable software acquirers hit both. A negative base inverts the sign, so
     a deal that improves a loss prints as dilution. A base near zero explodes the
     ratio: CrowdStrike's TTM diluted EPS of about four cents turns four cents of
-    dilution into minus eight hundred percent, which describes the denominator
+    dilution into minus one hundred percent, which describes the denominator
     rather than the transaction.
     """
     if standalone_eps <= 0:
@@ -1829,7 +1856,7 @@ def _purchase_accounting_checks(
     assumptions: Assumptions,
     tax_rate: float,
 ) -> list[str]:
-    """The four questions a reader asks of an opening balance sheet."""
+    """The questions a reader asks of an opening balance sheet."""
     checks: list[str] = []
     pa = assumptions.merger.purchase_accounting
     horizon = years[-1]
@@ -1979,15 +2006,7 @@ def _purchase_accounting_checks(
         else:
             rent = acq_fin.operating_lease_cost + tgt_fin.operating_lease_cost
 
-    # Borrowings repaid at close are in the target's net debt and, through the
-    # facility that repaid them, in the new debt too; they are counted once.
-    net_debt_close = (
-        _net_debt(acq_bridge)
-        + _net_debt(tgt_bridge)
-        + cons.new_debt
-        + cons.cash_used
-        - cons.target_debt_repaid
-    )
+    net_debt_close = _pro_forma_net_debt(acq_bridge, tgt_bridge, cons)
     # Every dollar of free cash flow reduces net debt, whether it repays the
     # facility or sits in the bank. The sweep decides how much interest is saved,
     # not how levered the company is.
@@ -2011,19 +2030,9 @@ def _purchase_accounting_checks(
         # says "falling" on the way to a worse number is worse than no check. A
         # negative balance is quoted as net cash, on the headline check's wording.
         direction = "falling" if net_debt_horizon < net_debt_close else "rising"
-        at_close = (
-            f"net debt of {net_debt_close:,.0f}mm"
-            if net_debt_close >= 0
-            else f"net cash of {-net_debt_close:,.0f}mm"
-        )
-        at_horizon = (
-            f"net debt of {net_debt_horizon:,.0f}mm"
-            if net_debt_horizon >= 0
-            else f"net cash of {-net_debt_horizon:,.0f}mm"
-        )
         checks.append(
-            f"Pro forma {at_close} at close is {net_debt_close / open_den:,.1f}x "
-            f"{label}, {direction} to {at_horizon} and "
+            f"Pro forma {_net_position(net_debt_close)} at close is {net_debt_close / open_den:,.1f}x "
+            f"{label}, {direction} to {_net_position(net_debt_horizon)} and "
             f"{net_debt_horizon / horizon_den:,.1f}x by year {horizon.year}. The "
             f"acquisition facility itself runs from {cons.new_debt:,.0f}mm to "
             f"{horizon.debt_balance:,.0f}mm; the rest of the move is cash retained on "
@@ -2140,28 +2149,12 @@ def run_merger(
             + (syn.pretax_cost_synergies + syn.pretax_revenue_synergies)
             * syn.phase_in_year_one
         )
-        # Cash spent on the deal leaves the balance sheet, so it RAISES net debt.
-        # Post-deal debt is D_acq + D_tgt + new debt; post-deal cash is
-        # C_acq + C_tgt - cash used. Net debt is the difference, which puts cash
-        # used on the same side as new borrowing, not against it. Borrowings
-        # repaid at close are in the target's net debt and, through the facility
-        # that repaid them, in the new debt too; they are counted once, as in the
-        # purchase-accounting leverage check.
-        pf_net_debt = (
-            _net_debt(acq_bridge)
-            + _net_debt(tgt_bridge)
-            + cons.new_debt
-            + cons.cash_used
-            - cons.target_debt_repaid
-        )
+        # Cash spent on the deal leaves the balance sheet, so it RAISES net
+        # debt; the purchase-accounting leverage check reads the same figure.
+        pf_net_debt = _pro_forma_net_debt(acq_bridge, tgt_bridge, cons)
         if pf_earnings > 0:
-            position = (
-                f"net debt of {pf_net_debt:,.0f}mm"
-                if pf_net_debt >= 0
-                else f"net cash of {-pf_net_debt:,.0f}mm"
-            )
             line = (
-                f"Pro forma {position} is {pf_net_debt / pf_earnings:,.1f}x pro forma "
+                f"Pro forma {_net_position(pf_net_debt)} is {pf_net_debt / pf_earnings:,.1f}x pro forma "
                 f"{den_label}"
             )
             if acq_den > 0:

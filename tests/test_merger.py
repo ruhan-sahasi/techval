@@ -234,7 +234,7 @@ def test_cash_deal_turns_on_the_after_tax_cost_of_the_cash(hand_case):
 
 
 def test_percentage_is_withheld_when_the_base_is_near_zero(hand_case):
-    """Four cents of dilution on four cents of EPS is not minus eight hundred percent."""
+    """Four cents of dilution on four cents of EPS is not minus one hundred percent."""
     _, a, acq, tgt = hand_case
     thin = replace(acq, net_income=20.0)
     r = run_merger(

@@ -85,6 +85,7 @@ from .ml.mna import fit_propensity
 from .ml.signals import Score, test_signal
 from .ml.warranted import fit_warranted
 from .options import CONFIG, FROM_RECORD, NO_CACHE, OPEN_PAGE, iso_date, iso_dates
+from .reverse_dcf import quarter_ends
 from .simulation import run_simulation
 from .terminal import (
     format_money,
@@ -578,7 +579,7 @@ def _render_dcf(d) -> None:
     console.print(table)
 
     # Each enterprise value below includes it once, so it is shown beside them.
-    left = getattr(d, "carryforward_value", 0.0)
+    left = d.carryforward_value
     summary = [("Carryforward left at year N, discounted", left)] if left else []
     summary += [
         ("Enterprise value, Gordon growth", d.enterprise_value_gordon),
@@ -593,7 +594,7 @@ def _render_dcf(d) -> None:
 
     # All three terminal methods are always computed. The assumption picks which
     # one carries the headline, and the reader should see which that was.
-    headline = getattr(d, "headline_method", "gordon")
+    headline = d.headline_method
     for key, label, v in (
         ("gordon", "Gordon growth", d.per_share_gordon),
         ("exit_multiple", "exit multiple", d.per_share_exit),
@@ -656,7 +657,7 @@ def _render_comps(result) -> None:
         _frame_table(result.implied, title="Implied value for the target", index_label="")
     )
 
-    if getattr(result, "regression", None) is not None:
+    if result.regression is not None:
         _render_regression(result.regression)
 
     if result.exclusions:
@@ -1775,30 +1776,12 @@ def merger(
         print_notes(console, r.checks, heading="Cross-checks")
         print_notes(console, r.accretion.notes + r.notes)
 
-        if getattr(r, "purchase_accounting", None) is not None:
+        if r.purchase_accounting is not None:
             _render_purchase_accounting(r.purchase_accounting)
     except TechvalError as exc:
         print_refusal(console, exc)
         raise typer.Exit(1)
 
-
-
-def _quarter_ends(start: date, end: date) -> list[date]:
-    """Calendar quarter ends inside a window, inclusive."""
-    out: list[date] = []
-    y, q = start.year, (start.month - 1) // 3
-    while True:
-        m = q * 3 + 3
-        last = date(y, m, 1)
-        last = date(y + (m == 12), 1 if m == 12 else m + 1, 1) - timedelta(days=1)
-        if last > end:
-            break
-        if last >= start:
-            out.append(last)
-        q += 1
-        if q == 4:
-            q, y = 0, y + 1
-    return out
 
 
 @app.command()
@@ -1843,7 +1826,7 @@ def backtest(
         if dates:
             when = [date.fromisoformat(d) for d in dates.split(",")]
         elif start and end:
-            when = _quarter_ends(date.fromisoformat(start), date.fromisoformat(end))
+            when = quarter_ends(date.fromisoformat(start), date.fromisoformat(end))
         else:
             raise ConfigError(
                 "backtest needs its valuation dates: list them with --dates, or "

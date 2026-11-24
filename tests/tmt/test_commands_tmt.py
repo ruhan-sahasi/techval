@@ -51,6 +51,7 @@ from conftest import (
     flat,
     load_facts,
     load_instance_file,
+    usage_error,
 )
 
 # The date every fixture was retrieved, and the date every run below is pinned
@@ -1087,7 +1088,7 @@ def test_the_skeleton_is_written_into_a_folder_that_did_not_exist(tmp_path):
 def test_a_folder_named_as_the_skeleton_is_refused_before_the_run(tmp_path):
     result = runner.invoke(C.app, ["sotp", "DIS", "--emit-plan", str(tmp_path)])
     assert result.exit_code == 2
-    text = flat(result.output.replace("\u2502", " "))
+    text = usage_error(result.output)
     assert "Invalid value for '--emit-plan'" in text
 
 

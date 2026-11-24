@@ -298,7 +298,7 @@ class KPI:
         return self.confidence > 0.0
 
     def row(self) -> dict[str, Any]:
-        """One flat record. Values stay raw; rendering and NM live in cli.py."""
+        """One flat record. Values stay raw; the commands and the dashboard render them."""
         return {
             "name": self.name,
             "value": self.value,

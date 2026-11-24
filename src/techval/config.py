@@ -678,8 +678,8 @@ class TMTAssumptions(_Base):
         None,
         description=(
             "Override the classified sub-vertical: infrastructure_software, "
-            "application_software, internet, semiconductors, hardware, payments, "
-            "media_entertainment, telecom, towers_fiber, gaming. Null classifies "
+            "application_software, internet, semiconductors, hardware, it_services, "
+            "payments, media_entertainment, telecom, towers_fiber, gaming. Null classifies "
             "from the filer's SIC code and business description."
         ),
     )

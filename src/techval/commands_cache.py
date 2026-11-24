@@ -1,8 +1,8 @@
 """techval cache: what the HTTP cache holds, and pruning what has aged out.
 
-The cache keeps every response forever by default, so a valuation reproduces;
-a tracker run daily adds a price history per holding per day. These two
-commands make that visible and give the owner the decision: ``info`` counts,
+The cache keeps every response, so a valuation reproduces, and nothing in it
+expires, so it only grows. These two commands make that visible and give the
+owner the decision: ``info`` counts,
 ``prune`` removes entries older than a cutoff, and ``--dry-run`` says what it
 would remove first. Removed entries are simply refetched when next needed.
 """

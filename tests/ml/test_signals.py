@@ -509,7 +509,7 @@ def test_an_acquisition_is_terminated_at_the_offer_price():
     for o in taken:
         assert o.exit_price == pytest.approx(offer)
         assert o.forward_return is not None
-        assert "40" not in o.note or "offer price" in o.note
+        assert f"the {offer:,.2f} offer price" in o.note
         # The whole horizon is accounted for, not the part before the deal.
         assert o.held_days == pytest.approx(365, abs=2)
 

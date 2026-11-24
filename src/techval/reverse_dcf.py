@@ -23,7 +23,7 @@ from datetime import date
 from typing import Callable
 
 from .config import Assumptions
-from .dcf import run_dcf
+from .dcf import _discount_rate, run_dcf
 from .errors import TechvalError
 
 # The discount rate's bracket. Below terminal growth the Gordon value is not
@@ -45,8 +45,7 @@ class Case:
     @property
     def discount_rate(self) -> float:
         """The rate the base case is discounted at: dcf.wacc_override where set."""
-        override = self.assumptions.dcf.wacc_override
-        return override if override is not None else self.wacc.wacc
+        return _discount_rate(self.assumptions.dcf, self.wacc)
 
     def with_dcf(self, **dcf_changes) -> "Case":
         """The same company under changed ``assumptions.dcf`` fields, as an independent copy.
