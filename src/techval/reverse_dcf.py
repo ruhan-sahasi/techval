@@ -406,6 +406,16 @@ def path_cagr(path: list[float], horizon: int) -> float:
     return growth ** (1.0 / len(years)) - 1.0
 
 
+def latest_growth(observations, ticker: str) -> float | None:
+    """The revenue growth the company's own latest year in the panel printed.
+
+    The centre of the similar-starters base rates and of the scenario pool, and
+    the growth the duration lever holds. None when the panel has no year for it.
+    """
+    own = [o for o in observations if o.ticker == ticker and o.growth is not None]
+    return max(own, key=lambda o: o.fiscal_year_end).growth if own else None
+
+
 def realised_path(obs, horizon: int) -> list[float] | None:
     """The growth a company-year's later 10-Ks printed, years 1 to ``horizon``.
 
@@ -844,8 +854,7 @@ def _screen_row(ticker, payload, source, assumptions, when, observations) -> dic
     if observations is not None:
         from .scenarios import value_scenarios
 
-        own = [o for o in observations if o.ticker == ticker and o.growth is not None]
-        trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
+        trailing = latest_growth(observations, ticker)
         scenarios = value_scenarios(case, price, observations, trailing=trailing)
     if observations is not None and growth.reached:
         # Over the years the path runs, as market_expectations counts it: a

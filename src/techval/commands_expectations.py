@@ -169,13 +169,12 @@ def _panel(directory: Path, symbol: str, cache_root: Path | None, when: date):
     """
     from .ml.forecast import known_on
     from .ml.panels import FADE_PANEL, fade_panel
+    from .reverse_dcf import latest_growth
 
     if not (directory / FADE_PANEL).is_file():
         return None, None
     observations = known_on(fade_panel(directory, cache_root).observations, when)
-    own = [o for o in observations if o.ticker == symbol and o.growth is not None]
-    trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
-    return observations, trailing
+    return observations, latest_growth(observations, symbol)
 
 
 def _print(result) -> None:
