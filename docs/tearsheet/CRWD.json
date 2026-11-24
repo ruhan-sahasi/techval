@@ -200,7 +200,7 @@
           },
           "kind": "column",
           "subtitle": "First-year revenue growth the 207.80 close needs at each terminal EBIT margin, faded on the engine's straight line, everything else as assumed. At this price the base case earns 3.1% a year against a 11.3% cost of capital. No terminal margin up to 95% reaches it alone: at 95% the DCF is worth 64.12.",
-          "title": "The close needs 218% growth next year; 1 of 1,662 TMT company-years ever compounded that path",
+          "title": "The close needs 218% growth next year; 1 of 1,661 TMT company-years ever compounded that path",
           "wide": true
         },
         "expectations_history": {
@@ -239,17 +239,17 @@
                   {
                     "label": "close 127.33",
                     "x": "2025-06-30",
-                    "y": 0.033236
+                    "y": 0.033171
                   },
                   {
                     "label": "close 122.59",
                     "x": "2025-09-30",
-                    "y": 0.033986
+                    "y": 0.033849
                   },
                   {
                     "label": "close 117.19",
                     "x": "2025-12-31",
-                    "y": 0.034856
+                    "y": 0.034655
                   },
                   {
                     "label": "close 97.60",
@@ -295,17 +295,17 @@
                   {
                     "label": "close 127.33",
                     "x": "2025-06-30",
-                    "y": 0.144192
+                    "y": 0.144196
                   },
                   {
                     "label": "close 122.59",
                     "x": "2025-09-30",
-                    "y": 0.145379
+                    "y": 0.145388
                   },
                   {
                     "label": "close 117.19",
                     "x": "2025-12-31",
-                    "y": 0.144447
+                    "y": 0.14446
                   },
                   {
                     "label": "close 97.60",
@@ -571,10 +571,10 @@
                 "value": 12.287997
               },
               {
-                "label": "Base: 15.3% a year",
-                "note": "P50, the mean path of 41 company-years",
+                "label": "Base: 15.2% a year",
+                "note": "P50, the mean path of 42 company-years",
                 "role": "model",
-                "value": 18.25423
+                "value": 18.220488
               },
               {
                 "label": "Bull: 29.5% a year",
@@ -585,7 +585,7 @@
               {
                 "label": "Weighted 30/40/30",
                 "role": "total",
-                "value": 19.964826
+                "value": 19.951329
               },
               {
                 "label": "Engine base case",
@@ -598,10 +598,10 @@
           "notes": [
             {
               "what": "Calibration",
-              "why": "Held out from 2016, the 10th-to-90th percentile band held 69.1% of 674 company-years it had not seen, against a nominal 80%; 19.3% beat it and 11.6% fell below, so these bull cases have run low against what followed."
+              "why": "Held out from 2016, the 10th-to-90th percentile band held 69.1% of 673 company-years it had not seen, against a nominal 80%; 19.3% beat it and 11.6% fell below, so these bull cases have run low against what followed."
             }
           ],
-          "subtitle": "Per share. Each scenario is the mean growth path of the company-years around the 10th, 50th or 90th percentile of realised five-year growth among the 415 that started within 10 points of 21.7%, valued through the engine's DCF with everything else at the base case. CRWD.",
+          "subtitle": "Per share. Each scenario is the mean growth path of the company-years around the 10th, 50th or 90th percentile of realised five-year growth among the 414 that started within 10 points of 21.7%, valued through the engine's DCF with everything else at the base case. CRWD.",
           "title": "Even the bull case, the path the 90th percentile of similar company-years took, is worth 29.92; the close is 6.9 times it",
           "wide": true
         },
@@ -864,10 +864,10 @@
         }
       ],
       "status": "ok",
-      "takeaway": "At the 2026-09-09 close of 207.80, on a 4.83% risk-free rate and a 11.25% WACC, the DCF values CRWD at 16.38 a share on Gordon growth and 14.24 on the value driver, 8% and 7% of the price. No exit-multiple value is drawn; the note under the football field says why. Run backwards, the close earns 3.1% a year if the base case holds, or needs 218% revenue growth next year, a path 1 of 1,662 TMT company-years ever compounded. Correlating the simulation's four drivers widens the spread of value by 22%.",
+      "takeaway": "At the 2026-09-09 close of 207.80, on a 4.83% risk-free rate and a 11.25% WACC, the DCF values CRWD at 16.38 a share on Gordon growth and 14.24 on the value driver, 8% and 7% of the price. No exit-multiple value is drawn; the note under the football field says why. Run backwards, the close earns 3.1% a year if the base case holds, or needs 218% revenue growth next year, a path 1 of 1,661 TMT company-years ever compounded. Correlating the simulation's four drivers widens the spread of value by 22%.",
       "title": "Valuation engine"
     }
   },
-  "techval_commit": "e2c03eb",
+  "techval_commit": "c62c84a",
   "title": "CRWD, valued by the engine"
 }

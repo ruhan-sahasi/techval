@@ -11,13 +11,16 @@ terminal method the assumptions select.
 A lever that cannot reach the price inside its bracket is reported as such,
 with the value the DCF reaches at the bracket's edge. That is an answer, not
 a failure: "no terminal margin below 95% gets there" says more about a price
-than an extrapolated 140% margin would.
+than an extrapolated 140% margin would. Where the value jumps over the price
+instead of passing through it, the solve gives the point of the jump and its
+sentence says that at no value of the lever is the DCF worth exactly the price.
 
 Money is USD millions, per-share figures dollars, rates decimals.
 """
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Callable
@@ -25,6 +28,13 @@ from typing import Callable
 from .config import Assumptions
 from .dcf import _discount_rate, run_dcf
 from .errors import TechvalError
+
+# How far apart, as a share of the target, the values either side of a bisected
+# root may lie before the root is read as a jump over the target. Where the
+# value passes through the target they differ by about 0.002% at the steepest,
+# a rate half a point above terminal growth; the value-driver terminal value's
+# fallback to Gordon at a zero terminal margin jumps by several percent.
+JUMP_TOLERANCE = 1e-3
 
 # The discount rate's bracket. Below terminal growth the Gordon value is not
 # defined, and half a point above it is already a perpetuity near infinity;
@@ -73,11 +83,17 @@ class Case:
 
 @dataclass(frozen=True)
 class Root:
-    """A bracketed solve: the root, or the bracket edge nearest the target."""
+    """A bracketed solve: the root, or the bracket edge nearest the target.
+
+    ``gap`` is set where the value jumps over the target at ``x`` rather than
+    passing through it: the values just below and just above ``x``, neither of
+    which is the target.
+    """
 
     x: float | None
     edge_x: float | None = None
     edge_value: float | None = None
+    gap: tuple[float, float] | None = None
 
     @property
     def reached(self) -> bool:
@@ -95,7 +111,9 @@ def solve_monotone(
     """Bisect a monotone f for f(x) = target on [lo, hi], either direction.
 
     Out of reach, the edge whose value lies nearer the target is returned with
-    its value, so the caller can say how far the bracket gets.
+    its value, so the caller can say how far the bracket gets. A value that
+    jumps over the target is bisected down to the jump, which is returned with
+    the values either side of it in ``gap``.
     """
     f_lo, f_hi = f(lo), f(hi)
     if not (min(f_lo, f_hi) <= target <= max(f_lo, f_hi)):
@@ -107,12 +125,17 @@ def solve_monotone(
         mid = (lo + hi) / 2.0
         f_mid = f(mid)
         if (f_mid < target) == rising:
-            lo = mid
+            lo, f_lo = mid, f_mid
         else:
-            hi = mid
+            hi, f_hi = mid, f_mid
         if hi - lo < tol:
             break
-    return Root((lo + hi) / 2.0)
+    # A value that passes through the target has closed on it from both sides
+    # by now; one still apart across a bracket this narrow jumped over it.
+    gap = None
+    if not abs(f_hi - f_lo) <= JUMP_TOLERANCE * max(1.0, abs(target)):
+        gap = (f_lo, f_hi)
+    return Root((lo + hi) / 2.0, gap=gap)
 
 
 @dataclass(frozen=True)
@@ -132,6 +155,19 @@ class Solve:
     @property
     def reached(self) -> bool:
         return self.implied is not None
+
+
+def _jump(root: Root, price: float, lever: str) -> str:
+    """The sentence a reached solve adds when its root is a jump over the price."""
+    if root.gap is None:
+        return ""
+    before, after = (
+        f"{v:,.2f}" if math.isfinite(v) else "a DCF that cannot be formed" for v in root.gap
+    )
+    return (
+        f" The DCF's value jumps from {before} to {after} there, so at no {lever} "
+        f"is it worth exactly {price:,.2f}."
+    )
 
 
 def _guarded(f: Callable[[float], float]) -> Callable[[float], float]:
@@ -161,7 +197,7 @@ def implied_discount_rate(case: Case, price: float) -> Solve:
         sentence = (
             f"At {price:,.2f} a buyer earns {root.x:.2%} a year if the base case holds, "
             f"against a cost of capital of {assumed:.2%}."
-        )
+        ) + _jump(root, price, "rate")
         return Solve("discount_rate", price, assumed, root.x, (lo, hi), sentence=sentence)
     # Which way the price misses decides the sentence, not which edge is
     # nearer: value usually falls as the rate rises, but where the base case's
@@ -201,21 +237,39 @@ def implied_first_year_growth(case: Case, price: float) -> Solve:
     Every other year follows from it exactly as the forward DCF builds them, a
     straight line to ``dcf.revenue_growth_terminal`` in the final projection
     year, so the implied path is in ``extras['path']`` for the base rates.
+
+    A one-year projection has no other year. Its only year is also its last,
+    and the engine grows it at ``dcf.revenue_growth_terminal``, so that is the
+    rate solved for and the one the answer is set against;
+    ``dcf.revenue_growth_start`` moves nothing there.
     """
     from .dcf import _fade
 
     cfg = case.assumptions.dcf
-    lo, hi = GROWTH_BRACKET
-    root = solve_monotone(_guarded(lambda g: case.value(revenue_growth_start=g)), price, lo, hi)
-    assumed = cfg.revenue_growth_start
     years = cfg.projection_years
+    one_year = years == 1
+    rate = "revenue_growth_terminal" if one_year else "revenue_growth_start"
+    lo, hi = GROWTH_BRACKET
+    root = solve_monotone(_guarded(lambda g: case.value(**{rate: g})), price, lo, hi)
+    assumed = getattr(cfg, rate)
+    said = (
+        " A one-year projection's only year is also its last, so it grows at "
+        "dcf.revenue_growth_terminal, and that is the rate solved for."
+        if one_year
+        else ""
+    )
     if root.reached:
-        path = [float(x) for x in _fade(root.x, cfg.revenue_growth_terminal, years)]
+        if one_year:
+            path, fade = [root.x], ""
+        else:
+            path = [float(x) for x in _fade(root.x, cfg.revenue_growth_terminal, years)]
+            fade = (
+                f", fading in a straight line to {cfg.revenue_growth_terminal:.1%} by year {years}"
+            )
         sentence = (
-            f"At {price:,.2f} the price needs {root.x:.1%} revenue growth next year, fading in a "
-            f"straight line to {cfg.revenue_growth_terminal:.1%} by year {years}, against "
-            f"{assumed:.1%} assumed."
-        )
+            f"At {price:,.2f} the price needs {root.x:.1%} revenue growth next year{fade}, "
+            f"against {assumed:.1%} assumed."
+        ) + said + _jump(root, price, "first-year growth")
         return Solve(
             "first_year_growth", price, assumed, root.x, (lo, hi), sentence=sentence, extras={"path": path}
         )
@@ -225,9 +279,10 @@ def implied_first_year_growth(case: Case, price: float) -> Solve:
     # low one.
     above = root.edge_value < price
     if above and root.edge_x == hi:
+        fading = "" if one_year else f", fading to {cfg.revenue_growth_terminal:.1%},"
         sentence = (
-            f"No first-year growth up to {hi:.0%} reaches {price:,.2f}: at {hi:.0%}, fading to "
-            f"{cfg.revenue_growth_terminal:.1%}, the DCF is worth {root.edge_value:,.2f}."
+            f"No first-year growth up to {hi:.0%} reaches {price:,.2f}: at {hi:.0%}{fading} "
+            f"the DCF is worth {root.edge_value:,.2f}."
         )
     elif not above and root.edge_x == lo:
         sentence = (
@@ -244,7 +299,7 @@ def implied_first_year_growth(case: Case, price: float) -> Solve:
             f"assumes {'more' if above else 'less'} than the base case."
         )
     return Solve(
-        "first_year_growth", price, assumed, None, (lo, hi), root.edge_x, root.edge_value, sentence
+        "first_year_growth", price, assumed, None, (lo, hi), root.edge_x, root.edge_value, sentence + said
     )
 
 
@@ -264,7 +319,7 @@ def implied_terminal_margin(case: Case, price: float) -> Solve:
         sentence = (
             f"At {price:,.2f} the price needs a {root.x:.1%} EBIT margin by year "
             f"{cfg.projection_years}, against {assumed:.1%} assumed, growth unchanged."
-        )
+        ) + _jump(root, price, "margin")
         return Solve("terminal_margin", price, assumed, root.x, (lo, hi), sentence=sentence)
     if root.edge_x == hi:
         sentence = (

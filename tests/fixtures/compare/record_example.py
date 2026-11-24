@@ -5,10 +5,11 @@ Run from the repository root:
     .venv/bin/python tests/fixtures/compare/record_example.py
 
 The five companies the fixtures carry, from the committed companyfacts and
-closes, the suite's pinned 0.0483 risk-free rate and the fade panel, each
-valued on the assumptions file and on its own record. The provenance run times
-are zeroed, since they are the only thing two rebuilds of an unchanged tree
-would disagree on.
+closes, the suite's pinned 0.0483 risk-free rate and the fade panel as it
+stood on the page's date, as the compare command reads it, each valued on the
+assumptions file and on its own record. The provenance run times are zeroed,
+since they are the only thing two rebuilds of an unchanged tree would
+disagree on.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from techval.config import Assumptions
 from techval.dashboard.collect import techval_commit
 from techval.dashboard.render import write_dashboard
 from techval.dashboard.snapshot import dump_snapshot
+from techval.ml.forecast import known_on
 from techval.ml.panels import fade_panel
 from techval.market import CsvSource
 from techval.tearsheet import RecordedFacts
@@ -41,7 +43,7 @@ def main() -> None:
         client=RecordedFacts(FIXTURES),
         prices=CsvSource(FIXTURES / "prices"),
         price_feed="Committed fixture",
-        observations=fade_panel(FIXTURES).observations,
+        observations=known_on(fade_panel(FIXTURES).observations, TODAY),
         panel="tests/fixtures/fade_companyfacts.json.gz",
         today=TODAY,
         collected_at=TODAY.isoformat(),

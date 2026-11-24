@@ -83,6 +83,34 @@ def test_the_solver_reports_the_edge_when_the_target_is_out_of_reach():
 def test_the_solver_handles_a_decreasing_function():
     root = solve_monotone(lambda x: 10 - x, target=4.0, lo=0.0, hi=10.0)
     assert root.reached and root.x == pytest.approx(6.0, abs=1e-6)
+    assert root.gap is None
+
+
+def test_the_solver_reports_a_jump_over_the_target():
+    root = solve_monotone(lambda x: x if x < 1 else x + 1, target=1.5, lo=0.0, hi=3.0)
+    assert root.x == pytest.approx(1.0, abs=1e-6)
+    assert root.gap == pytest.approx((1.0, 2.0), abs=1e-6)
+
+
+def test_a_margin_where_the_value_jumps_over_the_price_says_so(case):
+    """Under the value-driver headline the value jumps at a zero terminal margin.
+
+    Steady-state NOPAT stops being positive there, so the headline falls back
+    to Gordon, whose terminal value carries the reinvestment growth needs as a
+    loss: 10.66 at a zero margin against 11.03 just above it. A price between
+    the two was given the jump as a margin that is worth it.
+    """
+    vd = case.with_dcf()
+    vd.assumptions.dcf.terminal.method = "value_driver"
+    below, above = vd.value(ebit_margin_terminal=0.0), vd.value(ebit_margin_terminal=1e-6)
+    assert above - below > 0.3
+    price = (below + above) / 2
+    solve = implied_terminal_margin(vd, price)
+    assert solve.reached and solve.implied == pytest.approx(0.0, abs=1e-6)
+    assert solve.sentence.endswith(
+        f"The DCF's value jumps from {below:,.2f} to {above:,.2f} there, so at no "
+        f"margin is it worth exactly {price:,.2f}."
+    )
 
 
 def test_the_base_case_value_implies_the_engines_own_discount_rate(case):
@@ -142,6 +170,24 @@ def test_the_base_case_value_implies_the_assumed_terminal_margin(case):
     assert solve.implied == pytest.approx(case.assumptions.dcf.ebit_margin_terminal, abs=1e-5)
 
 
+def test_a_one_year_projection_solves_the_rate_its_only_year_grows_at(case):
+    """With one projection year, year one grows at dcf.revenue_growth_terminal.
+
+    dcf._fade gives the only year the terminal rate, so moving
+    dcf.revenue_growth_start moved nothing, and the base case's own value was
+    said to need -50.0% growth next year against 20.0% assumed.
+    """
+    one = case.with_dcf(projection_years=1)
+    terminal = one.assumptions.dcf.revenue_growth_terminal
+    solve = implied_first_year_growth(one, one.value())
+    assert solve.reached and solve.implied == pytest.approx(terminal, abs=1e-6)
+    assert solve.assumed == terminal
+    assert solve.extras["path"] == [solve.implied]
+    assert "grows at dcf.revenue_growth_terminal, and that is the rate solved for" in solve.sentence
+    faster = implied_first_year_growth(one, one.value(revenue_growth_terminal=0.30))
+    assert faster.implied == pytest.approx(0.30, abs=1e-6)
+
+
 def test_no_terminal_margin_alone_reaches_datadogs_price(case):
     solve = implied_terminal_margin(case, PRICE)
     assert not solve.reached
@@ -188,6 +234,7 @@ def test_a_reachable_margin_round_trips(case):
     target = case.value(ebit_margin_terminal=0.45)
     solve = implied_terminal_margin(case, target)
     assert solve.reached and solve.implied == pytest.approx(0.45, abs=1e-5)
+    assert "jumps" not in solve.sentence
 
 
 def test_duration_is_the_fewest_whole_years_of_held_growth_that_reach_the_price(case):
@@ -480,14 +527,14 @@ def test_a_dated_screen_reads_the_panel_as_it_stood_on_its_date(fade_observation
 
     The screen took its trailing growth from the FY2025 10-K, filed in February
     2026, and counted 217 company-years whose five-year outcome was not public
-    until after its date: 8 of 1,662 where the panel as it stood gives 8 of
+    until after its date: 10 of 1,662 where the panel as it stood gives 10 of
     1,445.
     """
     when = date(2024, 12, 31)
     payloads = {"DDOG": load_payload("DDOG")}
     a = pinned_assumptions()
     (row,) = screen(payloads, CsvSource(PRICES), a, when, fade_observations)
-    assert (row["base_hits"], row["base_n"]) == (8, 1445)
+    assert (row["base_hits"], row["base_n"]) == (10, 1445)
     known = known_on(fade_observations, when)
     assert all(o.as_of <= when for o in known)
     assert all(d <= when for o in known for d in o.label_dates.values())
