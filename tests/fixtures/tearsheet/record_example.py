@@ -5,9 +5,10 @@ Run from the repository root:
     .venv/bin/python tests/fixtures/tearsheet/record_example.py
 
 Two pages, from the committed companyfacts and closes, the suite's pinned
-0.0483 risk-free rate and the fade panel. CrowdStrike against Datadog, MongoDB
-and Zscaler on the assumptions file; Disney on its own record, dcf.from_record,
-the case the assumptions file's software defaults were not written for. The
+0.0483 risk-free rate and the fade panel as it stood on the page's date, as
+the tearsheet command reads it. CrowdStrike against Datadog, MongoDB and
+Zscaler on the assumptions file; Disney on its own record, dcf.from_record, the
+case the assumptions file's software defaults were not written for. The
 provenance run times are zeroed, since they are the only thing two rebuilds of
 an unchanged tree would disagree on.
 """
@@ -21,6 +22,7 @@ from techval.config import Assumptions
 from techval.dashboard.collect import techval_commit
 from techval.dashboard.render import write_dashboard
 from techval.dashboard.snapshot import dump_snapshot
+from techval.ml.forecast import known_on
 from techval.ml.panels import fade_panel
 from techval.market import CsvSource
 from techval.tearsheet import RecordedFacts, build_tearsheet
@@ -44,7 +46,7 @@ def build(ticker: str, peers: list[str], from_record: bool) -> None:
         client=RecordedFacts(FIXTURES),
         prices=CsvSource(FIXTURES / "prices"),
         price_feed="Committed fixture",
-        observations=fade_panel(FIXTURES).observations,
+        observations=known_on(fade_panel(FIXTURES).observations, TODAY),
         panel="tests/fixtures/fade_companyfacts.json.gz",
         today=TODAY,
         collected_at=TODAY.isoformat(),
