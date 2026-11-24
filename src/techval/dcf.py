@@ -1287,18 +1287,16 @@ def _cross_checks(
     terminal = projections[-1]
 
     # The rate the CAPM build actually used, which is what g has to be judged
-    # against. The assumptions file leaves it null when it is pulled live.
-    risk_free = getattr(wacc_result, "risk_free_rate", None)
-    if risk_free is None:
-        risk_free = assumptions.market.risk_free_rate
-    if risk_free is not None and g > risk_free:
+    # against: pulled live where the assumptions file leaves it null.
+    risk_free = wacc_result.risk_free_rate
+    if g > risk_free:
         out.append(
             f"FLAG: terminal growth of {g:.2%} exceeds the risk-free rate of "
             f"{risk_free:.2%}. The long bond yield embeds expected nominal growth "
             "plus a term premium, so a firm compounding above it in perpetuity "
             "eventually becomes the economy. Defensible only with an explicit case."
         )
-    elif risk_free is not None:
+    else:
         out.append(
             f"Terminal growth of {g:.2%} sits below the {risk_free:.2%} risk-free "
             "rate, so the perpetuity does not outgrow the long bond."
