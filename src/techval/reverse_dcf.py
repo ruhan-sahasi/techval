@@ -406,6 +406,18 @@ def path_cagr(path: list[float], horizon: int) -> float:
     return growth ** (1.0 / len(years)) - 1.0
 
 
+def realised_path(obs, horizon: int) -> list[float] | None:
+    """The growth a company-year's later 10-Ks printed, years 1 to ``horizon``.
+
+    None while any of those years is unlabelled, so the base rates, the
+    persistence curve and the scenarios all count the same company-years: those
+    with a full ``horizon`` of outcomes.
+    """
+    if not all(h in obs.labels for h in range(1, horizon + 1)):
+        return None
+    return [obs.labels[h] for h in range(1, horizon + 1)]
+
+
 def growth_base_rate(
     observations,
     *,
@@ -426,9 +438,8 @@ def growth_base_rate(
     companies that stopped growing and were bought are in the denominator.
     """
     def realised(obs) -> float | None:
-        if not all(h in obs.labels for h in range(1, horizon + 1)):
-            return None
-        return path_cagr([obs.labels[h] for h in range(1, horizon + 1)], horizon)
+        path = realised_path(obs, horizon)
+        return None if path is None else path_cagr(path, horizon)
 
     rows = [(obs, realised(obs)) for obs in observations]
     rows = [(obs, r) for obs, r in rows if r is not None]
@@ -650,7 +661,7 @@ def persistence_curve(observations, *, growth: float, horizons: int = BASE_RATE_
     horizon, the company-years labelled all ``horizons`` years out, so each
     added year can only lose companies and the curve never rises.
     """
-    cohort = [o for o in observations if all(h in o.labels for h in range(1, horizons + 1))]
+    cohort = [o for o in observations if realised_path(o, horizons) is not None]
     out = []
     survivors = cohort
     for h in range(1, horizons + 1):
