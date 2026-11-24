@@ -309,6 +309,22 @@ days, the sum of the daily share count over the window) before any period algebr
 runs, then divided by total days at the end. The integral is additive, so every
 subtraction and tiling rule applies unchanged.
 
+Diluted averages are not additive even as integrals. Each is struck on its own
+window's anti-dilution test and average share price, so a year-to-date diluted
+count is not the day-weighted mean of its quarters'. Datadog lost money over the
+first nine months of 2023 and made it over the year, so its nine-month diluted
+count is its basic one, 322.39mm, and its annual count is 350.29mm. The fourth
+quarter recovered as their difference averages 433mm, and the trailing count at
+2024-09-30 came to 376.37mm against 333.30mm basic.
+
+**Treatment.** A trailing diluted count is checked against the basic average,
+whose integral does subtract. When its excess over basic falls outside the range
+spanned by zero and the dilution the filer reported for each period ending in the
+trailing year, it is rebuilt as the basic average plus the dilution filed for the
+latest of those periods, and the provenance and a warning say so. Datadog's
+becomes 355.85mm. A count inside the range is kept as tiled, so the rebuild only
+touches figures no filed count supports.
+
 ### 2.6 Dimensioned facts, and the instance document
 
 `companyfacts` publishes undimensioned facts only. Anything a filer reports along

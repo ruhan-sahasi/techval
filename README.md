@@ -1820,6 +1820,9 @@ are all observed in filings committed as test fixtures:
   magnitude is an ordinary year.
 - **Averages that are not sums.** Weighted-average share counts are aggregated as
   integrals (average times days) so they can be added and subtracted at all.
+  Diluted counts do not subtract even then, since each period's is struck on its
+  own anti-dilution test, so a trailing diluted count outside what the basic
+  average and the filer's own dilution allow is rebuilt from those two.
 - **Dimensioned facts are absent from `companyfacts`.** That endpoint publishes
   undimensioned facts only, so option counts under the award-type and plan axes, a
   dual-class issuer's shares under the class-of-stock axis, and every segment and

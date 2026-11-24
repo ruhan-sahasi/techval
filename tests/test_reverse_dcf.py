@@ -527,14 +527,14 @@ def test_a_dated_screen_reads_the_panel_as_it_stood_on_its_date(fade_observation
 
     The screen took its trailing growth from the FY2025 10-K, filed in February
     2026, and counted 217 company-years whose five-year outcome was not public
-    until after its date: 8 of 1,662 where the panel as it stood gives 8 of
+    until after its date: 10 of 1,662 where the panel as it stood gives 10 of
     1,445.
     """
     when = date(2024, 12, 31)
     payloads = {"DDOG": load_payload("DDOG")}
     a = pinned_assumptions()
     (row,) = screen(payloads, CsvSource(PRICES), a, when, fade_observations)
-    assert (row["base_hits"], row["base_n"]) == (8, 1445)
+    assert (row["base_hits"], row["base_n"]) == (10, 1445)
     known = known_on(fade_observations, when)
     assert all(o.as_of <= when for o in known)
     assert all(d <= when for o in known for d in o.label_dates.values())

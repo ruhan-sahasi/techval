@@ -210,6 +210,46 @@ def test_split_warning_reaches_the_user(crwd):
     assert any("4-for-1 share split" in w for w in crwd.warnings)
 
 
+def test_a_diluted_count_no_filed_period_supports_is_rebuilt_from_basic():
+    """Datadog lost money over nine months of 2023 and made it over the year.
+
+    So its nine-month diluted count is its basic count, 322.39mm, and its annual
+    one is 350.29mm, and the fourth quarter recovered as their difference
+    carried the year's dilution, an average of 433mm over the quarter. The
+    trailing count at 2024-09-30 came to 376.37mm against 333.30mm basic, where
+    no period the filer reported diluted by more than 26.26mm.
+    """
+    fin = build_financials("DDOG", facts=load_facts("DDOG", knowledge_date=date(2024, 11, 15)))
+    assert fin.as_of == date(2024, 9, 30)
+    assert fin.basic_shares == pytest.approx(333.30, abs=0.005)
+    # The basic average plus the 22.55mm the filer reported for 2024 to date.
+    assert fin.diluted_shares == pytest.approx(333.30 + (357.330 - 334.778), abs=0.005)
+    assert fin.provenance["diluted shares"].periods[-1] == "2024-01-01..2024-09-30"
+    assert any(
+        w.startswith("diluted shares: tiling the trailing year from filed diluted averages "
+                     "gave 376.37mm, outside the 333.30mm to 359.56mm")
+        for w in fin.warnings
+    )
+
+
+def test_a_diluted_count_below_the_basic_one_is_rebuilt():
+    """CrowdStrike's fiscal 2025 diluted count is its basic one, after a loss.
+
+    Its nine months to October 2024 were profitable and diluted, so the fourth
+    quarter recovered as the difference fell below basic, and so did the
+    trailing count at 2025-04-30: 977.25mm against 984.92mm.
+    """
+    fin = build_financials("CRWD", facts=load_facts("CRWD", knowledge_date=date(2025, 8, 20)))
+    assert fin.as_of == date(2025, 4, 30)
+    assert fin.diluted_shares == pytest.approx(fin.basic_shares) == pytest.approx(984.92, abs=0.005)
+    assert any("gave 977.25mm, outside the 984.92mm to " in w for w in fin.warnings)
+
+
+def test_a_diluted_count_the_filed_periods_support_is_kept(ddog):
+    assert ddog.provenance["diluted shares"].tag == "WeightedAverageNumberOfDilutedSharesOutstanding"
+    assert not any(w.startswith("diluted shares") for w in ddog.warnings)
+
+
 # --------------------------------------------------------------------------- #
 # derived measures and controls
 # --------------------------------------------------------------------------- #

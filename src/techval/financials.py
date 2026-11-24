@@ -444,7 +444,82 @@ def _ebit_from_pretax(flow, prov, warnings, missing: MissingDataError) -> float:
     return pretax + interest
 
 
-def _diluted_shares(flow, warnings, facts: CompanyFacts, as_of: date) -> float:
+# How far outside the range the filer's own counts allow a trailing diluted
+# count may sit before it is rebuilt, as a share of the basic count: room for
+# counts filed in whole millions, as Disney and Verizon file theirs.
+_DILUTION_SLACK = 0.001
+
+
+def _within_filed_dilution(diluted, warnings, prov, facts: CompanyFacts, as_of: date) -> float:
+    """The trailing diluted count, rebuilt where tiling it made it impossible.
+
+    Diluted averages of overlapping periods do not subtract the way basic ones
+    do: each is struck on its own period's anti-dilution test and average price.
+    Datadog lost money in the first nine months of 2023 and made it over the
+    year, so its nine-month diluted count is the basic one and its annual count
+    is not, and the fourth quarter recovered as the difference carried the whole
+    year's dilution. Its trailing count at 2024-09-30 came to 376.37mm, against
+    333.30mm basic and no filed period diluting by more than 26.26mm.
+    CrowdStrike's went the other way, below its basic count, through 2025.
+
+    A count is rebuilt when its excess over the basic average falls outside the
+    range spanned by zero and the dilution the filer reported for each period
+    ending in the trailing year: it becomes the basic average, which does
+    subtract, plus the dilution filed for the latest such period, the longest
+    where several end together. The range is the filer's own because a negative
+    excess is not impossible in itself: Splunk filed diluted counts a fraction
+    of a million below its basic ones.
+    """
+    basic, basic_prov = facts.resolve_ttm(
+        "basic shares", tags.BASIC_SHARES, as_of, kind="average", required=False
+    )
+    diluted_tag = prov["diluted shares"].tag
+    if basic is None or diluted_tag is None:
+        return diluted
+    basic /= _MM
+    start = as_of - timedelta(days=364)
+    by_period = {(f.start, f.end): f for f in facts.facts(basic_prov.tag) if not f.is_instant}
+    pairs = [
+        (f, (f.val - by_period[(f.start, f.end)].val) / _MM)
+        for f in facts.facts(diluted_tag)
+        if not f.is_instant and (f.start, f.end) in by_period and start <= f.end <= as_of
+    ]
+    if not pairs:
+        return diluted
+    low = min(0.0, *(dilution for _, dilution in pairs))
+    high = max(0.0, *(dilution for _, dilution in pairs))
+    slack = _DILUTION_SLACK * basic
+    if basic + low - slack <= diluted <= basic + high + slack:
+        return diluted
+    latest, dilution = max(pairs, key=lambda pair: (pair[0].end, pair[0].days))
+    period = f"{latest.start}..{latest.end}"
+    rebuilt = basic + dilution
+    tiled = prov["diluted shares"]
+    prov["diluted shares"] = Provenance(
+        concept="diluted shares",
+        tag=f"{basic_prov.tag} + dilution from {diluted_tag}",
+        method=f"basic weighted average ({basic_prov.method}) plus the dilution filed for {period}",
+        periods=basic_prov.periods + [period],
+        forms=basic_prov.forms + [latest.form],
+        filed=max(filter(None, [basic_prov.filed, latest.filed.isoformat()])),
+        note=(
+            f"the diluted averages tiled to {diluted:,.2f}mm, outside the "
+            f"{basic + low:,.2f}mm to {basic + high:,.2f}mm the filed counts allow"
+        ),
+        tags_tried=tiled.tags_tried,
+    )
+    warnings.append(
+        f"diluted shares: tiling the trailing year from filed diluted averages gave "
+        f"{diluted:,.2f}mm, outside the {basic + low:,.2f}mm to {basic + high:,.2f}mm "
+        f"that the {basic:,.2f}mm basic average and the dilution filed for the "
+        "trailing year's periods allow. Diluted averages of overlapping periods do "
+        "not subtract, so the count is the basic average plus the "
+        f"{dilution:,.2f}mm of dilution filed for {period}"
+    )
+    return rebuilt
+
+
+def _diluted_shares(flow, warnings, prov, facts: CompanyFacts, as_of: date) -> float:
     """The diluted weighted average count, or the basic count for a loss-maker that files no diluted one.
 
     Take-Two has filed a basic count and no diluted one for two years. With a
@@ -454,9 +529,11 @@ def _diluted_shares(flow, warnings, facts: CompanyFacts, as_of: date) -> float:
     count would leave out the dilution the per-share value has to carry. So is
     a filer that does file a diluted count but too thinly to tile a trailing
     year, MongoDB at some dates, since its own figure exists and is not this.
+    A tiled count the filed counts cannot support is rebuilt; see
+    ``_within_filed_dilution``.
     """
     try:
-        return flow("diluted shares", tags.DILUTED_SHARES, kind="average")
+        diluted = flow("diluted shares", tags.DILUTED_SHARES, kind="average")
     except MissingDataError:
         recent = as_of - timedelta(days=_LAPSED_DAYS)
         if any(f.end >= recent for tag in tags.DILUTED_SHARES for f in facts.facts(tag) if not f.is_instant):
@@ -471,6 +548,7 @@ def _diluted_shares(flow, warnings, facts: CompanyFacts, as_of: date) -> float:
             "basic weighted average is the diluted one"
         )
         return basic
+    return _within_filed_dilution(diluted, warnings, prov, facts, as_of)
 
 
 def build_financials(
@@ -665,7 +743,7 @@ def build_financials(
         ),
         capex=flow("capital expenditure", tags.CAPEX, required=False, annual_ok=True),
         cfo=flow("cash from operations", tags.CFO, required=False, annual_ok=True),
-        diluted_shares=_diluted_shares(flow, warnings, facts, as_of),
+        diluted_shares=_diluted_shares(flow, warnings, prov, facts, as_of),
         basic_shares=flow(
             "basic shares", tags.BASIC_SHARES, kind="average", required=False
         ),
