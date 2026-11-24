@@ -594,35 +594,27 @@ def _sanity_flags(sections: dict[str, Section], raw_length: int) -> list[str]:
     return flags
 
 
-def load_sections(
-    ticker: str,
-    client: Any,
-    form: str = "10-K",
-    filing: dict | None = None,
-) -> FilingSections:
-    """Fetch a filing and split it, once per filing per process.
+def load_sections(ticker: str, client: Any, form: str = "10-K") -> FilingSections:
+    """Fetch a filer's latest filing of a form and split it, once per filing per process.
 
-    ``filing`` is a row from ``EdgarClient.filings``. Pass one to pin the split to a
-    particular year, as a risk diff does when it reads this year against last year;
-    leave it out for the most recent filing of that form, which the client's
-    knowledge date already constrains, so a point-in-time run reads the document
-    that existed then rather than the newest one on file.
+    The latest is the latest the client's knowledge date allows, so a
+    point-in-time run reads the document that existed then rather than the
+    newest one on file.
 
     Raises ``MissingDataError`` when the filer has no such form, rather than
     falling back to an adjacent one: Item 1A of a 10-K and Item 1A of a 10-Q are
-    different documents with the same name, and quietly swapping them would make a
-    risk diff read as a year of dramatic change.
+    different documents with the same name, and quietly swapping them would make
+    two years' risk factors read as a year of dramatic change.
     """
-    if filing is None:
-        available = client.filings(ticker, forms=(form,), limit=1)
-        if not available:
-            raise MissingDataError(
-                f"{form} filing",
-                ticker=ticker,
-                hint="no filing of this form is on file for this company by the "
-                "client's knowledge date",
-            )
-        filing = available[0]
+    available = client.filings(ticker, forms=(form,), limit=1)
+    if not available:
+        raise MissingDataError(
+            f"{form} filing",
+            ticker=ticker,
+            hint="no filing of this form is on file for this company by the "
+            "client's knowledge date",
+        )
+    filing = available[0]
 
     key = (ticker.upper(), str(filing.get("accession", "")), form.upper())
     cached = _LOAD_CACHE.get(key)

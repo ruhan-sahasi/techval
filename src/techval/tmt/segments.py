@@ -635,12 +635,7 @@ def _consolidated_from_facts(
     return None
 
 
-def build_segments(
-    ticker: str,
-    client,
-    assumptions: Assumptions,
-    facts: CompanyFacts | None = None,
-) -> SegmentReport:
+def build_segments(ticker: str, client, assumptions: Assumptions) -> SegmentReport:
     """Segment and geography economics for one filer, from its latest 10-K.
 
     The annual report is used rather than the latest filing of any kind. A 10-Q
@@ -648,7 +643,7 @@ def build_segments(
     annual figure; pairing a quarterly segment against an annual consolidated
     total is the mistake this module exists to make impossible.
 
-    ``facts`` is only consulted where the instance document carries no
+    Company facts are only fetched where the instance document carries no
     undimensioned revenue for the chosen period, which happens for filers whose
     segment note is the only place revenue is tagged. The fallback is flagged,
     because a total and its parts then come from two different sources.
@@ -665,9 +660,9 @@ def build_segments(
     revenue_tag, period = _pick_revenue(index)
 
     notes: list[str] = []
+    facts: CompanyFacts | None = None
     if revenue_tag is None or period is None:
-        if facts is None:
-            facts = _company_facts(client, ticker)
+        facts = _company_facts(client, ticker)
         if facts is None:
             raise MissingDataError(
                 "segment revenue",
@@ -684,8 +679,7 @@ def build_segments(
     else:
         consolidated = index.get((revenue_tag, period[0], period[1], "c", ""))
         if consolidated is None:
-            if facts is None:
-                facts = _company_facts(client, ticker)
+            facts = _company_facts(client, ticker)
             consolidated = (
                 _consolidated_from_facts(facts, period) if facts is not None else None
             )
