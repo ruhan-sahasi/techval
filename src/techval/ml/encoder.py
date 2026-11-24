@@ -1132,43 +1132,21 @@ class PeerEncoder:
         i = self._index(ticker)
         sims = self.embeddings @ self.embeddings[i]
         order = np.argsort(-sims, kind="stable")
+        floor = float(self.assumptions_peers.get("min_market_cap", 0.0))
+        ratio = float(self.assumptions_peers.get("max_size_ratio", 0.0))
         out: list[tuple[str, float]] = []
         for j in order:
             j = int(j)
             if j == i:
                 continue
-            if apply_size_gate and not self._passes_size_gate(self.tickers[i], self.tickers[j]):
+            if apply_size_gate and not _within_band(
+                self.log_market_cap, self.tickers[i], self.tickers[j], floor=floor, ratio=ratio
+            ):
                 continue
             out.append((self.tickers[j], float(np.clip(sims[j], -1.0, 1.0))))
             if len(out) >= want:
                 break
         return out
-
-    def _passes_size_gate(self, target: str, candidate: str) -> bool:
-        """Both bands, worked in logs because the panel carries sizes that way.
-
-        ``scale_log_market_cap`` is the natural log of market capitalisation in
-        USD millions, and it has been through the cross-sectional winsorization,
-        so a company at the very top or bottom of a date's distribution has been
-        pulled to the boundary before this comparison sees it. That widens the
-        gate slightly at the extremes and it is the price of using the same
-        numbers the model was fitted on rather than a second, unwinsorized copy.
-        """
-        floor = float(self.assumptions_peers.get("min_market_cap", 0.0))
-        ratio = float(self.assumptions_peers.get("max_size_ratio", 0.0))
-        here = self.log_market_cap.get(target)
-        there = self.log_market_cap.get(candidate)
-        if here is None or there is None:
-            # Size unknown is not size out of band. A candidate whose market
-            # capitalisation could not be sourced is passed through and the gap
-            # is visible in the panel's missing-share column rather than being
-            # silently resolved against it.
-            return True
-        if floor > 0.0 and there < np.log(floor):
-            return False
-        if ratio > 0.0 and abs(here - there) > np.log(ratio):
-            return False
-        return True
 
     def to_frame(self) -> pd.DataFrame:
         return pd.DataFrame(
@@ -1881,6 +1859,8 @@ def evaluate_peer_encoder(
     relevance: dict[tuple[str, int], dict[str, float]] = {}
     rankings: dict[str, dict[tuple[str, int], list[str]]] = {m: {} for m in METHOD_NAMES}
     gated: dict[tuple[str, int], list[str]] = {}
+    floor = float(assumptions.ml.peers.min_market_cap)
+    ratio = float(assumptions.ml.peers.max_size_ratio)
     warm_keys: set[tuple[str, int]] = set()
     cold_keys: set[tuple[str, int]] = set()
     notes: list[str] = []
@@ -2000,7 +1980,7 @@ def evaluate_peer_encoder(
             gated[key] = [
                 t
                 for t in rankings["encoder"][key]
-                if _within_band(sizes_by_date[as_of], target, t, assumptions)
+                if _within_band(sizes_by_date[as_of], target, t, floor=floor, ratio=ratio)
             ]
 
     if not relevance:
@@ -2123,16 +2103,29 @@ def _size_growth_block(space: _Space, keys: Sequence[tuple[str, date]]) -> np.nd
 
 
 def _within_band(
-    log_size: Mapping[str, float], target: str, candidate: str, assumptions: Assumptions
+    log_size: Mapping[str, float], target: str, candidate: str, *, floor: float, ratio: float
 ) -> bool:
+    """The size gate: ``floor`` on the candidate, ``ratio`` between the two.
+
+    Both bands are worked in logs because the panel carries sizes that way.
+    ``scale_log_market_cap`` is the natural log of market capitalisation in USD
+    millions, and it has been through the cross-sectional winsorization, so a
+    company at the very top or bottom of a date's distribution has been pulled
+    to the boundary before this comparison sees it. That widens the gate
+    slightly at the extremes and it is the price of using the same numbers the
+    model was fitted on rather than a second, unwinsorized copy. A floor or
+    ratio of zero is no gate.
+    """
     here, there = log_size.get(target), log_size.get(candidate)
     if here is None or there is None:
+        # Size unknown is not size out of band. A candidate whose market
+        # capitalisation could not be sourced is passed through and the gap is
+        # visible in the panel's missing-share column rather than being
+        # silently resolved against it.
         return True
-    floor = float(assumptions.ml.peers.min_market_cap)
-    ratio = float(assumptions.ml.peers.max_size_ratio)
-    if floor > 0.0 and there < float(np.log(floor)):
+    if floor > 0.0 and there < np.log(floor):
         return False
-    if ratio > 0.0 and abs(here - there) > float(np.log(ratio)):
+    if ratio > 0.0 and abs(here - there) > np.log(ratio):
         return False
     return True
 
