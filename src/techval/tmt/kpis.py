@@ -116,7 +116,7 @@ from typing import Any, Iterable
 import pandas as pd
 
 from .. import tags
-from ..edgar import PERIODIC_FORMS, CompanyFacts, Fact, trailing_twelve_months
+from ..edgar import PERIODIC_FORMS, CompanyFacts, Fact, Provenance, trailing_twelve_months
 from ..errors import ConfigError, DataSourceError, MissingDataError
 from .taxonomy import _knowledge_date
 
@@ -1184,27 +1184,10 @@ def derive_billings(
     """
     settings = settings or KPISettings()
 
-    ends = [
-        f.end
-        for tag in tags.REVENUE
-        for f in facts.facts(tag)
-        if not f.is_instant and f.end <= as_of
-    ]
-    if not ends:
+    read = _ttm_revenue(facts, as_of)
+    if read is None:
         return None
-    statement_end = max(ends)
-
-    try:
-        revenue, prov = facts.resolve_ttm(
-            "revenue",
-            tags.REVENUE,
-            statement_end,
-            component_guard=tags.REVENUE_COMPONENT_GUARD,
-        )
-    except MissingDataError:
-        return None
-    if revenue is None:
-        return None
+    statement_end, revenue, prov = read
 
     now = _deferred_revenue(facts, statement_end)
     if now is None:
@@ -2004,7 +1987,9 @@ def build_kpis(
             "ARPU and churn"
         )
 
-    revenue = _trailing_revenue(facts, as_of)
+    # Trailing revenue in USD millions, for the ARR bound.
+    read = _ttm_revenue(facts, as_of)
+    revenue = None if read is None else read[1] / _MM
     merged, bound_flags = apply_sanity_bounds(merged, settings, revenue=revenue)
     result.flags.extend(bound_flags)
 
@@ -2064,8 +2049,13 @@ def _missing_reasons(
     return out
 
 
-def _trailing_revenue(facts: CompanyFacts, as_of: date) -> float | None:
-    """Trailing twelve month revenue in USD millions, for the ARR bound only."""
+def _ttm_revenue(facts: CompanyFacts, as_of: date) -> tuple[date, float, Provenance] | None:
+    """Trailing twelve-month revenue, in dollars, to the latest period filed by ``as_of``.
+
+    The period end, the revenue and its provenance, read through the component
+    guard as the valuation reads it; None where no revenue period ends by then
+    or the window cannot be tiled.
+    """
     ends = [
         f.end
         for tag in tags.REVENUE
@@ -2074,16 +2064,17 @@ def _trailing_revenue(facts: CompanyFacts, as_of: date) -> float | None:
     ]
     if not ends:
         return None
+    statement_end = max(ends)
     try:
-        value, _prov = facts.resolve_ttm(
+        revenue, prov = facts.resolve_ttm(
             "revenue",
             tags.REVENUE,
-            max(ends),
+            statement_end,
             component_guard=tags.REVENUE_COMPONENT_GUARD,
         )
     except MissingDataError:
         return None
-    return None if value is None else value / _MM
+    return None if revenue is None else (statement_end, revenue, prov)
 
 
 def _valuation_date(client: Any, assumptions: Any) -> date:
