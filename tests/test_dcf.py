@@ -20,6 +20,7 @@ from techval.dcf import (
 )
 from techval.edgar import CompanyFacts
 from techval.errors import ConfigError
+from techval.financials import build_financials
 from techval.ev_bridge import (
     build_ev_bridge,
     equity_value_from_dcf_ev,
@@ -27,7 +28,7 @@ from techval.ev_bridge import (
 )
 from techval.wacc import compute_wacc
 
-from conftest import load_facts
+from conftest import load_facts, load_payload
 
 # Pinned so the per-share figures quoted in the docstrings below stay true
 # whatever the CAPM build does next. Every test that reads a number rather than
@@ -666,6 +667,25 @@ def test_the_opening_balance_is_read_from_the_filings_when_the_assumption_is_nul
     note = next(n for n in d.notes if "NOL carryforwards open" in n)
     assert "OperatingLossCarryforwards" in note
     assert "2025-12-31" in note
+
+
+def test_build_financials_hands_the_dcf_its_fact_set(market, assumptions):
+    """The filings path needed a fact set nothing outside the tests attached.
+
+    Every command builds its Financials through build_financials, which kept
+    no handle on the facts it read, so with the opening balance left null the
+    DCF refused even for a filer that tags its carryforward undimensioned, and
+    said the filer had probably tagged it only by jurisdiction.
+    """
+    payload = load_payload("DDOG")
+    payload["facts"]["us-gaap"]["OperatingLossCarryforwards"] = {
+        "units": {"USD": [{"val": 2_500_000_000, "end": "2025-12-31", "filed": "2026-02-18", "form": "10-K"}]}
+    }
+    fin = build_financials("DDOG", facts=CompanyFacts(payload, "DDOG"))
+    assumptions.dcf.nol.track = True
+    bridge = build_ev_bridge(fin, market.spot("DDOG"), assumptions)
+    d = run_dcf(fin, bridge, compute_wacc(fin, bridge, market, assumptions), assumptions)
+    assert d.projections[0].nol_opening == pytest.approx(2_500.0)
 
 
 def test_the_assumption_beats_the_tag(ddog, ddog_bridge, assumptions, wacc_result):

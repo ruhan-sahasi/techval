@@ -97,6 +97,11 @@ class Financials:
     provenance: dict[str, Provenance] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
 
+    # The fact set these were read from, for a reader that needs a concept no
+    # field carries: the DCF's opening NOL balance, read only when
+    # dcf.nol.track asks for it and the assumptions file gives none.
+    facts: CompanyFacts | None = field(default=None, repr=False, compare=False)
+
     # -- derived ----------------------------------------------------------- #
 
     @property
@@ -807,6 +812,7 @@ def build_financials(
         ),
         provenance=prov,
         warnings=warnings,
+        facts=facts,
     )
 
     if fin.operating_working_capital is not None:

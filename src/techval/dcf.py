@@ -482,9 +482,9 @@ def _opening_nol(fin: Financials, assumptions: Assumptions) -> tuple[float, str]
     absent from the fact set while sitting in plain sight in the 10-K. That is a
     reason to raise and ask for the number, not to guess at one.
 
-    ``Financials`` carries no handle back to the fact set, so a caller that has
-    one attaches it as ``fin.facts`` and the filings path opens. With nothing
-    attached the assumption is the only source, which is the common case.
+    ``build_financials`` keeps the fact set on ``fin.facts`` for this; a
+    ``Financials`` built by hand without one has the assumption as its only
+    source.
     """
     cfg = assumptions.dcf.nol
     if cfg.opening_balance is not None:
@@ -493,7 +493,7 @@ def _opening_nol(fin: Financials, assumptions: Assumptions) -> tuple[float, str]
             "assumptions file rather than from a tag."
         )
 
-    facts = getattr(fin, "facts", None)
+    facts = fin.facts
     if facts is not None:
         # The carryforward is a tax-footnote disclosure made once a year, so the
         # newest instant can be almost a full year behind the balance-sheet date
