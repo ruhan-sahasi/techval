@@ -187,6 +187,23 @@ def by_ticker(result: P.PrecedentSet, ticker: str) -> P.Transaction:
 # --------------------------------------------------------------------------- #
 
 
+def test_the_valued_companys_conversion_price_does_not_reach_the_targets(
+    merger_client, merger_assumptions, merger_prices
+):
+    """The example assumptions file carries Datadog's 148.15 conversion price.
+
+    The set applied it to every target: Splunk's 3,103mm of notes became
+    equity, its enterprise value fell from 27,287mm to 24,184mm and its
+    EV/revenue from 7.10x to 6.29x. Comps strips the strike for its peers.
+    """
+    plain = P.build_precedents(DEAL_TICKERS, merger_client, merger_assumptions, prices=merger_prices)
+    merger_assumptions.convertibles.conversion_price = 148.15
+    leaked = P.build_precedents(DEAL_TICKERS, merger_client, merger_assumptions, prices=merger_prices)
+    size = lambda result: {t.target_ticker: t.enterprise_value for t in result.transactions}
+    assert size(leaked) == size(plain)
+    assert size(plain)["SPLK"] == pytest.approx(27_286.8, abs=0.1)
+
+
 def test_find_merger_filings_returns_only_deal_forms(merger_client):
     found = P.find_merger_filings("SPLK", merger_client)
     assert found, "Splunk filed a merger proxy and an 8-K inside ten years"
