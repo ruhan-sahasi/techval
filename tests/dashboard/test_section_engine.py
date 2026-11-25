@@ -25,6 +25,8 @@ from techval.dashboard.collect import CollectContext, collect_section
 from techval.dashboard.sections import engine as E
 from techval.dashboard.snapshot import to_jsonable, validate_section
 from techval.market import CsvSource
+from techval.ml.forecast import known_on
+from techval.scenarios import band_coverage
 from conftest import FIXTURES, PRICES, FixtureClient, pinned_assumptions
 from .walk import ROOT, SNAPSHOT, kit_charts, numbers_at
 
@@ -531,6 +533,22 @@ def test_a_close_below_every_value_growth_reaches_is_called_too_low(fade_observa
     title = E._expectations(m)["title"]
     assert title == "Even shrinking 50% next year, the DCF is worth more than the close"
     assert m.expectations.implied_growth is None and m.expectations.growth_missed == "below"
+
+
+def test_the_calibration_note_reads_the_shares_it_has(fade_observations):
+    """The note always said the bull cases ran low, and formatted absent shares.
+
+    Cut to mid-2019 nothing held out can be scored, and the shares are None.
+    Where more company-years fell below the band than beat it, the bear cases
+    ran high, not the bull cases low.
+    """
+    m = E.measure("DDOG", [], pinned_assumptions(), fixture_sources(fade_observations), today=date(2026, 9, 9), history=False)
+    c = m.scenarios.calibration
+    assert E._scenarios(m)["notes"][0]["why"].endswith("so these bull cases have run low against what followed.")
+    m.scenarios = E.ScenarioRead(m.scenarios.result, {**c, "share_above": 0.05, "share_below": 0.15})
+    assert E._scenarios(m)["notes"][0]["why"].endswith("so these bear cases have run high against what followed.")
+    m.scenarios = E.ScenarioRead(m.scenarios.result, band_coverage(known_on(fade_observations, date(2019, 6, 30))))
+    assert "could be scored" in E._scenarios(m)["notes"][0]["why"]
 
 
 def test_a_close_below_every_margin_value_names_the_low_edge():
