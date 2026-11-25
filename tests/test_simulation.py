@@ -38,11 +38,6 @@ FAST_DRAWS = 2_000
 
 
 @pytest.fixture
-def wacc_result(ddog, ddog_bridge, market, assumptions):
-    return compute_wacc(ddog, ddog_bridge, market, assumptions)
-
-
-@pytest.fixture
 def sim(assumptions):
     """Default assumptions with a pinned WACC and a quick sample."""
     assumptions.dcf.wacc_override = PINNED_WACC

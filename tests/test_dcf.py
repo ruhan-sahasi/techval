@@ -35,11 +35,6 @@ from conftest import load_facts
 PINNED_WACC = 0.105
 
 
-@pytest.fixture
-def wacc_result(ddog, ddog_bridge, market, assumptions):
-    return compute_wacc(ddog, ddog_bridge, market, assumptions)
-
-
 def _steady_year(rows, assumptions, tax_rate, g):
     """Year N+1 rebuilt independently of the module, to check it against.
 
