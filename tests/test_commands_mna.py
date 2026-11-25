@@ -487,9 +487,9 @@ class DelistedClient(MergerFixtureClient):
     """The fixture client with the real ticker lookup put back.
 
     Resolution goes through ``EdgarClient.ticker_to_cik`` against the committed
-    ticker file, so a delisted target fails here for exactly the reason it fails
-    against live SEC data, and the command's escape hatch is tested rather than
-    the double.
+    ticker file, so a delisted target is missing from it here as it is from live
+    SEC data, and the former-ticker index and the command's TICKER=CIK route are
+    tested rather than the double.
     """
 
     def ticker_to_cik(self, ticker: str) -> int:
@@ -581,22 +581,20 @@ def test_a_cik_on_the_command_line_gets_past_the_delisting(monkeypatch, merger_c
     assert "25,856" in flat(_section(out, "Deal size and provenance"))
 
 
-def test_the_help_example_is_one_that_can_actually_run(monkeypatch, merger_config):
-    """The argument help used to read "e.g. SPLK,ZEN,MNDT,WORK", none of which resolve.
+def test_the_help_examples_are_ones_that_can_actually_run(monkeypatch, merger_config):
+    """The argument help once read "e.g. SPLK,ZEN,MNDT,WORK", none of which resolved.
 
-    This runs the example the help now gives, against the committed ticker file
-    with the delisting wall intact.
+    They resolve now, through the former-ticker index, and the help gives them
+    bare again beside the TICKER=CIK form. Both run here against the committed
+    ticker file, which carries none of the four.
     """
     monkeypatch.setattr(C, "EdgarClient", DelistedClient)
-    out = _run(
-        [
-            "precedents",
-            "SPLK=1353283,ZEN=1463172,MNDT=1370880,WORK=1764925",
-            "--config",
-            str(merger_config),
-        ]
-    )
-    assert "4 of 4 ticker(s)" in flat(out)
+    # Typer draws the argument help in a box, whose borders split the sentence.
+    help_text = flat(_run(["precedents", "--help"]).replace("\u2502", " "))
+    assert "e.g. SPLK,ZEN,MNDT,WORK" in help_text and "e.g. SPLK=1353283" in help_text
+    for targets in ("SPLK,ZEN,MNDT,WORK", "SPLK=1353283,ZEN=1463172,MNDT=1370880,WORK=1764925"):
+        out = _run(["precedents", targets, "--config", str(merger_config)])
+        assert "4 of 4 ticker(s)" in flat(out)
 
 
 def test_the_run_echoes_the_assumptions_that_drove_it(precedent_output):

@@ -1307,15 +1307,7 @@ def find_merger_filings(
     return ordered
 
 
-def extract_transaction(
-    text: str,
-    ticker: str,
-    client,
-    filing: dict,
-    *,
-    target_name: str | None = None,
-    target_cik: int | None = None,
-) -> Transaction | None:
+def extract_transaction(text: str, ticker: str, client, filing: dict) -> Transaction | None:
     """Read one filing into a transaction, or decline to.
 
     Returns ``None`` when the document is not a merger agreement for this filer:
@@ -1333,12 +1325,10 @@ def extract_transaction(
     if not _MERGER_AGREEMENT.search(flat):
         return None
 
-    name = target_name
-    if name is None:
-        try:
-            name = client.company_facts(ticker).entity_name
-        except (TechvalError, AttributeError, OSError):
-            name = None
+    try:
+        name = client.company_facts(ticker).entity_name
+    except (TechvalError, AttributeError, OSError):
+        name = None
     filer_tokens = _filer_tokens(name or ticker)
 
     found = _consideration_clause(flat, filer_tokens)
@@ -1418,7 +1408,6 @@ def extract_transaction(
     return Transaction(
         target_ticker=ticker.upper(),
         target_name=name,
-        target_cik=target_cik,
         acquirer_name=acquirer,
         acquirer_ticker=acquirer_ticker,
         announced=announced,

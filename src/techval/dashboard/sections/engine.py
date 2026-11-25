@@ -1335,15 +1335,13 @@ def measure(
         with sources.record(
             "expectations", "techval.reverse_dcf.market_expectations", [*everything, sources.panel_name]
         ):
-            from ...reverse_dcf import Case, market_expectations
+            from ...reverse_dcf import Case, latest_growth, market_expectations
 
             observations = _observations(sources)
-            own = [o for o in observations if o.ticker == ticker and o.growth is not None]
-            trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
             exp = market_expectations(
                 Case(fin=fin, bridge=bridge, wacc=w, assumptions=a),
                 price,
-                trailing_growth=trailing,
+                trailing_growth=latest_growth(observations, ticker),
                 observations=observations,
             )
     except TechvalError as exc:
@@ -1369,14 +1367,15 @@ def measure(
     # -- bear, base and bull from what similar company-years did -------------- #
     try:
         with sources.record("scenarios", "techval.scenarios.value_scenarios", [*everything, sources.panel_name]):
-            from ...reverse_dcf import Case
+            from ...reverse_dcf import Case, latest_growth
             from ...scenarios import band_coverage, value_scenarios
 
             observations = _observations(sources)
-            own = [o for o in observations if o.ticker == ticker and o.growth is not None]
-            trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
             scenarios = value_scenarios(
-                Case(fin=fin, bridge=bridge, wacc=w, assumptions=a), price, observations, trailing=trailing
+                Case(fin=fin, bridge=bridge, wacc=w, assumptions=a),
+                price,
+                observations,
+                trailing=latest_growth(observations, ticker),
             )
             if scenarios is not None:
                 measured.scenarios = ScenarioRead(scenarios.to_dict(), band_coverage(observations))

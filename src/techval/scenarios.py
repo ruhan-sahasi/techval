@@ -20,7 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date
 
-from .reverse_dcf import BASE_RATE_HORIZON, SIMILAR_BAND, path_cagr
+from .reverse_dcf import BASE_RATE_HORIZON, SIMILAR_BAND, path_cagr, realised_path
 
 # The percentiles each scenario is read at, and the half-width of the
 # neighbourhood averaged around each: 10th percentile means ranks 5 to 15.
@@ -66,12 +66,7 @@ def realised_paths(
     min_similar: int = MIN_SIMILAR,
 ) -> Pool:
     """Every labelled company-year's realised growth path, among similar starters when there are enough."""
-    def path(obs) -> list[float] | None:
-        if not all(h in obs.labels for h in range(1, horizon + 1)):
-            return None
-        return [float(obs.labels[h]) for h in range(1, horizon + 1)]
-
-    rows = [(obs, path(obs)) for obs in observations]
+    rows = [(obs, realised_path(obs, horizon)) for obs in observations]
     rows = [(obs, p) for obs, p in rows if p is not None]
     if trailing is not None:
         near = [p for obs, p in rows if obs.growth is not None and abs(obs.growth - trailing) <= band]
@@ -341,10 +336,11 @@ def band_coverage(
     import numpy as np
 
     test_from = test_from or date(2016, 1, 1)
-    labelled = [o for o in observations if all(h in o.labels for h in range(1, horizon + 1))]
+    paths = [(o, realised_path(o, horizon)) for o in observations]
+    labelled = [o for o, path in paths if path is not None]
     # One array per field, so each company-year's pool is two comparisons
     # rather than a pass over every other company-year in Python.
-    cagrs = np.array([path_cagr([o.labels[h] for h in range(1, horizon + 1)], horizon) for o in labelled])
+    cagrs = np.array([path_cagr(path, horizon) for _, path in paths if path is not None])
     lag = round(365.25 * horizon) + EMBARGO_DAYS
     known = np.array([o.as_of.toordinal() + lag for o in labelled])
     growth = np.array([np.nan if o.growth is None else o.growth for o in labelled])

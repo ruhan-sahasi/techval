@@ -592,7 +592,6 @@ _IMPLIED_COLUMNS = [
 
 def _implied_frame(
     target: PeerMetrics,
-    target_fin: Financials,
     bridge: EVBridge,
     peers: list[PeerMetrics],
     assumptions: Assumptions,
@@ -973,7 +972,6 @@ def run_comps(
     client: EdgarClient,
     market_data: MarketData,
     *,
-    peers: list[str] | None = None,
     valuation_shares: float | None = None,
 ) -> CompsResult:
     """Build the comp set, the statistics over it, and what it implies for the target.
@@ -987,7 +985,7 @@ def run_comps(
     prices divide by it, so the comps in a report agree with the bridge above
     them rather than falling back to diluted WASO.
     """
-    requested = list(peers if peers is not None else assumptions.comps.peers)
+    requested = list(assumptions.comps.peers)
     notes: list[str] = []
 
     wanted: list[str] = []
@@ -1063,9 +1061,7 @@ def run_comps(
             "and are listed separately. The statistics above are over the rest."
         )
 
-    implied = _implied_frame(
-        target, target_fin, target_bridge, built, assumptions, notes
-    )
+    implied = _implied_frame(target, target_bridge, built, assumptions, notes)
 
     regression = None
     if assumptions.comps.regression.enabled:

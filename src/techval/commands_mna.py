@@ -438,16 +438,14 @@ def _render_sub_vertical_stats(result: PrecedentSet) -> None:
 def pin_ciks(client, pinned: dict[str, int]):
     """Teach an existing client the CIK of a delisted target, and return it.
 
-    This exists because of a circularity that makes ``precedents`` unusable for
-    the deals it is for. ``EdgarClient.ticker_to_cik`` resolves through
-    https://www.sec.gov/files/company_tickers.json, and that file lists CURRENT
-    registrants only. A completed acquisition delists its target, the target
-    files a Form 15 and drops out of the file, and the command that reads
-    completed acquisitions can then no longer name one. Measured on 2026-09-11:
-    the file carries 10,407 tickers, DDOG and VZ among them; SPLK, ZEN, MNDT,
-    WORK and TWTR are all absent, and all five are US filers. Every completed
-    TMT deal in this package's own fixtures is in that state, and the command's
-    own --help example was five tickers none of which could resolve.
+    This began as the way round a circularity that made ``precedents`` unusable
+    for the deals it is for. ``EdgarClient.ticker_to_cik`` resolved through
+    https://www.sec.gov/files/company_tickers.json alone, and that file lists
+    CURRENT registrants only. A completed acquisition delists its target, the
+    target files a Form 15 and drops out of the file, and the command that reads
+    completed acquisitions could then no longer name one. Measured on
+    2026-09-11: the file carries 10,407 tickers, DDOG and VZ among them; SPLK,
+    ZEN, MNDT, WORK and TWTR are all absent, and all five are US filers.
 
     The refusal a reader hit said "not present in the SEC ticker file; the engine
     covers US filers only", which points at the wrong cause: it reads as a
@@ -461,9 +459,10 @@ def pin_ciks(client, pinned: dict[str, int]):
     label on every row and in every flag, so the printed table reads the way a
     reader expects while the resolution goes around a file that cannot help.
 
-    The real fix is an escape hatch on ``ticker_to_cik`` itself, which lives in
-    ``edgar.py`` and belongs to another change. This one is the command layer
-    doing what it can from outside.
+    ``EdgarClient.resolve_ticker`` now takes that route itself: past the ticker
+    file it reads the former-ticker index, built from the departed registrants'
+    own last cover pages, so all five of those resolve bare. ``TICKER=CIK``
+    stays for a target the index does not carry.
 
     **Why the override goes on the instance and not on a wrapper.** The obvious
     shape is a proxy object that delegates everything except ``ticker_to_cik``,
@@ -494,9 +493,9 @@ def pin_ciks(client, pinned: dict[str, int]):
 def parse_targets(raw: str) -> tuple[list[str], dict[str, int]]:
     """``SPLK,ZEN=1385157,MNDT`` into a ticker list and the CIKs supplied with it.
 
-    A bare ticker resolves the normal way. ``TICKER=CIK`` pins the CIK and skips
-    the lookup, which is the only way to name a target whose delisting took it
-    out of the SEC ticker file.
+    A bare ticker resolves the normal way, a delisted one through the
+    former-ticker index. ``TICKER=CIK`` pins the CIK and skips the lookup, for a
+    target the index does not carry.
     """
     names: list[str] = []
     pinned: dict[str, int] = {}
@@ -535,9 +534,9 @@ def precedents(
     tickers: str = typer.Argument(
         ...,
         help=(
-            "Comma-separated target tickers. A completed target is delisted and "
-            "drops out of the SEC ticker file, so name it as TICKER=CIK: e.g. "
-            "SPLK=1353283,ZEN=1463172,MNDT=1370880,WORK=1764925."
+            "Comma-separated target tickers, e.g. SPLK,ZEN,MNDT,WORK. A delisted "
+            "target resolves through the former-ticker index this package carries; "
+            "name one it does not carry as TICKER=CIK, e.g. SPLK=1353283."
         ),
     ),
     config: Path = CONFIG,
@@ -579,12 +578,12 @@ def precedents(
     ``price_source: csv`` in the assumptions with the closes supplied.
 
     **Naming a target that has been delisted.** The same delisting that takes the
-    price history also takes the ticker out of the SEC's own ticker file, which
-    is what ``ticker_to_cik`` resolves through, so a bare ``SPLK`` cannot be
-    looked up at all. Write ``SPLK=1353283`` and the CIK goes straight to the
-    submissions and companyfacts endpoints, which serve a delisted filer in full.
-    See ``pin_ciks`` for the measurement behind that and for where the real
-    fix belongs.
+    price history also takes the ticker out of the SEC's own ticker file. A bare
+    ``SPLK`` still resolves, through the former-ticker index built from the
+    departed registrants' own last cover pages, and the run prints that it did.
+    A target the index does not carry can be named with its CIK,
+    ``SPLK=1353283``, which goes straight to the submissions and companyfacts
+    endpoints; they serve a delisted filer in full.
     """
     try:
         assumptions = Assumptions.load(config)

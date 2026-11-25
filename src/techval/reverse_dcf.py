@@ -406,6 +406,28 @@ def path_cagr(path: list[float], horizon: int) -> float:
     return growth ** (1.0 / len(years)) - 1.0
 
 
+def latest_growth(observations, ticker: str) -> float | None:
+    """The revenue growth the company's own latest year in the panel printed.
+
+    The centre of the similar-starters base rates and of the scenario pool, and
+    the growth the duration lever holds. None when the panel has no year for it.
+    """
+    own = [o for o in observations if o.ticker == ticker and o.growth is not None]
+    return max(own, key=lambda o: o.fiscal_year_end).growth if own else None
+
+
+def realised_path(obs, horizon: int) -> list[float] | None:
+    """The growth a company-year's later 10-Ks printed, years 1 to ``horizon``.
+
+    None while any of those years is unlabelled, so the base rates, the
+    persistence curve and the scenarios all count the same company-years: those
+    with a full ``horizon`` of outcomes.
+    """
+    if not all(h in obs.labels for h in range(1, horizon + 1)):
+        return None
+    return [obs.labels[h] for h in range(1, horizon + 1)]
+
+
 def growth_base_rate(
     observations,
     *,
@@ -426,9 +448,8 @@ def growth_base_rate(
     companies that stopped growing and were bought are in the denominator.
     """
     def realised(obs) -> float | None:
-        if not all(h in obs.labels for h in range(1, horizon + 1)):
-            return None
-        return path_cagr([obs.labels[h] for h in range(1, horizon + 1)], horizon)
+        path = realised_path(obs, horizon)
+        return None if path is None else path_cagr(path, horizon)
 
     rows = [(obs, realised(obs)) for obs in observations]
     rows = [(obs, r) for obs, r in rows if r is not None]
@@ -619,11 +640,9 @@ def market_expectations(
             path = solve.extras.get("path")
             if not path:
                 continue
-            horizon = min(BASE_RATE_HORIZON, len(path))
-            base_rates[solve.lever] = growth_base_rate(
+            base_rates[solve.lever] = path_base_rate(
                 observations,
-                implied_cagr=path_cagr(path, horizon),
-                horizon=horizon,
+                path,
                 trailing=trailing_growth,
                 revenue_mm=getattr(case.fin, "revenue", None),
             )
@@ -641,6 +660,22 @@ def market_expectations(
     )
 
 
+def path_base_rate(observations, path: list[float], *, trailing: float | None, revenue_mm) -> dict:
+    """``growth_base_rate`` for an implied path, over the years it runs.
+
+    Up to the panel's five: a three-year projection's CAGR set against
+    five-year outcomes is no match.
+    """
+    horizon = min(BASE_RATE_HORIZON, len(path))
+    return growth_base_rate(
+        observations,
+        implied_cagr=path_cagr(path, horizon),
+        horizon=horizon,
+        trailing=trailing,
+        revenue_mm=revenue_mm,
+    )
+
+
 def persistence_curve(observations, *, growth: float, horizons: int = BASE_RATE_HORIZON) -> list[dict]:
     """The share of company-years that grew at least ``growth`` in every one of h years.
 
@@ -650,7 +685,7 @@ def persistence_curve(observations, *, growth: float, horizons: int = BASE_RATE_
     horizon, the company-years labelled all ``horizons`` years out, so each
     added year can only lose companies and the curve never rises.
     """
-    cohort = [o for o in observations if all(h in o.labels for h in range(1, horizons + 1))]
+    cohort = [o for o in observations if realised_path(o, horizons) is not None]
     out = []
     survivors = cohort
     for h in range(1, horizons + 1):
@@ -833,20 +868,11 @@ def _screen_row(ticker, payload, source, assumptions, when, observations) -> dic
     if observations is not None:
         from .scenarios import value_scenarios
 
-        own = [o for o in observations if o.ticker == ticker and o.growth is not None]
-        trailing = max(own, key=lambda o: o.fiscal_year_end).growth if own else None
+        trailing = latest_growth(observations, ticker)
         scenarios = value_scenarios(case, price, observations, trailing=trailing)
     if observations is not None and growth.reached:
-        # Over the years the path runs, as market_expectations counts it: a
-        # three-year projection's CAGR against five-year outcomes is no match.
-        path = growth.extras["path"]
-        horizon = min(BASE_RATE_HORIZON, len(path))
-        base = growth_base_rate(
-            observations,
-            implied_cagr=path_cagr(path, horizon),
-            horizon=horizon,
-            trailing=trailing,
-            revenue_mm=case.fin.revenue,
+        base = path_base_rate(
+            observations, growth.extras["path"], trailing=trailing, revenue_mm=case.fin.revenue
         )
     sim = price_in_simulation(case, price)
     return dict(

@@ -137,6 +137,7 @@ from .dcf import (
     _discount_rate,
     _margin_start,
     _opening_nol,
+    _pv_terminal_gordon,
     _sbc_ratio,
     _shelter,
     _tax_rate,
@@ -626,10 +627,6 @@ class _Engine:
             t = (i + 1) - 0.5 if self.mid_year else float(i + 1)
             pv_explicit = pv_explicit + fcff * (1.0 + wacc) ** (-t)
 
-        # Both perpetuities are flows rather than prices, so both carry the
-        # half-year uplift under the mid-year convention. An exit multiple would
-        # not, which is why it is not simulated here.
-        exponent = (self.n - 0.5) if self.mid_year else float(self.n)
         formed = np.ones(live, dtype=bool)
 
         if self.method == "value_driver":
@@ -653,7 +650,10 @@ class _Engine:
             full_rate = fcff + cash_taxes - self.tax_rate * np.maximum(ebit, 0.0)
             terminal = full_rate * (1.0 + g) / (wacc - g)
 
-        ev = pv_explicit + terminal * (1.0 + wacc) ** (-exponent)
+        # Both perpetuities are flows rather than prices, so both carry the
+        # half-year uplift under the mid-year convention. An exit multiple would
+        # not, which is why it is not simulated here.
+        ev = pv_explicit + _pv_terminal_gordon(terminal, wacc, self.n, self.mid_year)
         if self.track_nol:
             # What each draw's balance shelters after year N, as the scalar path adds.
             ev = ev + carryforward_value(

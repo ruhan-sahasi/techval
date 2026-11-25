@@ -131,7 +131,13 @@ import numpy as np
 import pandas as pd
 
 from .config import APVAssumptions, Assumptions
-from .dcf import DCFResult, _carryforward_after, _tax_rate, discount_factors
+from .dcf import (
+    DCFResult,
+    _carryforward_after,
+    _pv_terminal_gordon,
+    _tax_rate,
+    discount_factors,
+)
 from .errors import ConfigError, NotMeaningfulError
 from .ev_bridge import EVBridge
 from .financials import Financials
@@ -342,8 +348,7 @@ def _value_at(
     n = len(flows)
     factors = discount_factors(n, rate, mid_year)
     pv_explicit = float(np.sum(flows * factors))
-    exponent = (n - 0.5) if mid_year else float(n)
-    pv_terminal = (terminal_flow / (rate - g)) * (1.0 + rate) ** (-exponent)
+    pv_terminal = _pv_terminal_gordon(terminal_flow / (rate - g), rate, n, mid_year)
     return pv_explicit, pv_terminal, factors
 
 
@@ -463,8 +468,7 @@ def run_apv(
 
     if debt > 0:
         terminal_shield_value = annual_shield * (1.0 + g) / (shield_rate - g)
-        exponent = (n - 0.5) if mid_year else float(n)
-        pv_shield_terminal = terminal_shield_value * (1.0 + shield_rate) ** (-exponent)
+        pv_shield_terminal = _pv_terminal_gordon(terminal_shield_value, shield_rate, n, mid_year)
     else:
         terminal_shield_value = 0.0
         pv_shield_terminal = 0.0
@@ -740,11 +744,10 @@ def _reconciliation(
     rate_used = ku if cfg.shield_discount_rate == "unlevered_cost_of_equity" else kd
     if other_rate > g:
         n = len(flows)
-        exponent = (n - 0.5) if mid_year else float(n)
         annual = tax_rate * interest
         alternative = float(
             np.sum(annual * discount_factors(n, other_rate, mid_year))
-        ) + (annual * (1.0 + g) / (other_rate - g)) * (1.0 + other_rate) ** (-exponent)
+        ) + _pv_terminal_gordon(annual * (1.0 + g) / (other_rate - g), other_rate, n, mid_year)
         swing = pv_tax_shield - alternative
         label = (
             "Modigliani-Miller at the cost of debt"
