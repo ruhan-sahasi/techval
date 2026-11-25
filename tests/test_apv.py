@@ -797,6 +797,31 @@ def test_the_interest_gap_flag_reads_the_way_the_gap_runs(mdb, assumptions, mark
     assert "convertible" not in line and "costs less than the synthetic yield" in line
 
 
+def test_the_notes_state_only_what_the_rates_and_shares_bear_out(filers, assumptions, market):
+    """Three notes were printed whatever the numbers said.
+
+    Datadog's 11.27% cost of debt was said to sit below its 11.26% unlevered
+    cost of equity, two lines from the flag saying it is at or above it.
+    Zscaler's shield at 6.6% of value and Datadog's at 3.0% were called close
+    to immaterial, against a 1% reconciliation flag. And a size premium was
+    left out of the sentence building the unlevered cost of equity from its
+    parts, so the parts did not add up to it.
+    """
+    _, wacc_result, _, ddog = _stack(filers["DDOG"], assumptions, market)
+    notes = " ".join(ddog.notes + ddog.checks)
+    assert wacc_result.pretax_cost_of_debt >= unlevered_cost_of_equity(
+        wacc_result, build_ev_bridge(filers["DDOG"], market.spot("DDOG"), assumptions), assumptions
+    )
+    assert "sits below the" not in notes
+    assert "does not come out above the WACC answer on that account" in notes
+    assert "at 3.0% of value it is not immaterial" in notes
+    _, _, _, mdb = _stack(filers["MDB"], assumptions, market)
+    assert "at 0.2% of value the financing side of this valuation is close to immaterial" in " ".join(mdb.checks)
+    assumptions.market.size_premium = 0.01
+    _, _, _, crwd = _stack(filers["CRWD"], assumptions, market)
+    assert "equity risk premium, and a 1.00% size premium." in crwd.notes[0]
+
+
 @pytest.mark.parametrize("filed", [0.0, -12.0])
 def test_debt_with_no_interest_filed_is_flagged_not_divided_by(zs, assumptions, market, filed):
     """Palo Alto Networks files zero interest expense on its debt, and the check divided by it."""
