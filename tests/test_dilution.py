@@ -370,6 +370,17 @@ def test_bands_tagged_on_the_range_tables_own_concepts_are_valued(ddog, tsm):
     assert not any("no exercise-price bands" in n for n in count.notes)
 
 
+def test_the_gap_note_compares_the_basic_counts(ddog_count, ddog):
+    """Datadog's diluted weighted average, 366.93mm, is above the 359.08mm outstanding.
+
+    The note said the weighted average sits below today's count, which is
+    true of its basic part, 352.33mm, and not of the figure it named.
+    """
+    (note,) = [n for n in ddog_count.notes if n.startswith("Fully diluted")]
+    assert f"its basic count of {ddog.basic_shares:,.2f}mm sits below the 359.08mm" in note
+    assert "pulling opposite ways" in note
+
+
 def test_single_weighted_average_used_when_no_bands_are_tagged(ddog_count):
     """The notes have to say which of the two was used, and Datadog tags none."""
     assert any(
