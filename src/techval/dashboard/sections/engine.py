@@ -192,9 +192,13 @@ class Expectations:
     implied_return: float | None
     wacc: float
     implied_growth: float | None
+    # Where no growth in the bracket reaches the close: "above" every value it
+    # gave or "below", and the edge the solve stopped at. Likewise the margin.
+    growth_missed: str | None
+    growth_edge: float | None
     assumed_margin: float
-    margin_reached: bool
-    margin_edge: float
+    margin_missed: str | None
+    margin_edge: float | None
     margin_edge_value: float | None
     frontier: list[tuple[float, float | None]]
     implied_cagr: float | None
@@ -685,8 +689,13 @@ def _expectations(m: Measured) -> dict[str, Any]:
         )
     elif e.implied_growth is not None:
         title = f"The close needs {e.implied_growth:.0%} revenue growth next year"
+    elif e.growth_missed == "below":
+        title = (
+            f"Even shrinking {abs(e.growth_edge):.0%} next year, the DCF is worth more "
+            "than the close"
+        )
     else:
-        title = "No first-year growth up to 300% reaches the close on its own"
+        title = f"No first-year growth up to {e.growth_edge:.0%} reaches the close on its own"
     subtitle = (
         f"First-year revenue growth the {m.price:,.2f} close needs at each terminal EBIT margin, "
         "faded on the engine's straight line, everything else as assumed."
@@ -696,10 +705,15 @@ def _expectations(m: Measured) -> dict[str, Any]:
             f" At this price the base case earns {e.implied_return:.1%} a year against a "
             f"{e.wacc:.1%} cost of capital."
         )
-    if not e.margin_reached and e.margin_edge_value is not None:
+    if e.margin_missed == "above":
         subtitle += (
             f" No terminal margin up to {e.margin_edge:.0%} reaches it alone: at "
             f"{e.margin_edge:.0%} the DCF is worth {e.margin_edge_value:,.2f}."
+        )
+    elif e.margin_missed == "below":
+        subtitle += (
+            f" Even at a {e.margin_edge:.0%} terminal margin the DCF is worth "
+            f"{e.margin_edge_value:,.2f}, above the close."
         )
     figure = make_figure(
         "column",
@@ -1354,9 +1368,11 @@ def measure(
             implied_return=rate.implied,
             wacc=dcf.wacc,
             implied_growth=growth.implied,
+            growth_missed=growth.missed,
+            growth_edge=growth.edge,
             assumed_margin=a.dcf.ebit_margin_terminal,
-            margin_reached=margin.reached,
-            margin_edge=margin.bracket[1],
+            margin_missed=margin.missed,
+            margin_edge=margin.edge,
             margin_edge_value=margin.edge_value,
             frontier=[(r["margin"], r["implied_growth"]) for r in exp.frontier],
             implied_cagr=base["implied_cagr"] if base else None,

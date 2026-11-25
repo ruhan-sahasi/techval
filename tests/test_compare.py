@@ -44,6 +44,22 @@ def compared(fade_observations):
     return measure_all(["DDOG", "CRWD", "DIS", "NOPE"], pinned_assumptions(), sources(fade_observations), today=AS_OF)
 
 
+def test_a_price_no_growth_reaches_is_the_one_that_asks_the_most(fade_observations):
+    """At an 11% terminal margin no first-year growth up to 300% reaches CrowdStrike's close.
+
+    That price needs more than any company-year compounded, which the screen
+    ranks first, but its growth solve found no root, so the takeaway passed
+    over it and named Datadog's 209%.
+    """
+    a = pinned_assumptions()
+    a.dcf.ebit_margin_terminal = 0.11
+    rows = measure_all(["DDOG", "CRWD"], a, sources(fade_observations), today=AS_OF)
+    assert takeaway(rows, AS_OF.isoformat()).endswith(
+        " CRWD's price asks the most: no first-year growth up to 300% reaches it."
+    )
+    assert rows[1].base.expectations.growth_missed == "above"
+
+
 def test_every_company_keeps_its_place_and_one_with_no_filings_is_refused(compared):
     assert [c.ticker for c in compared] == ["DDOG", "CRWD", "DIS", "NOPE"]
     nope = compared[3]
