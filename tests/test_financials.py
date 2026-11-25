@@ -1013,6 +1013,24 @@ def test_a_loss_maker_with_neither_count_is_refused_naming_both_ladders():
     assert "the basic weighted average would stand in" in str(refused.value)
 
 
+def test_the_annual_fallback_takes_the_latest_year_on_any_rung():
+    """A retired rung keeps its last annual figure forever.
+
+    Disney's operating lease cost is annual only, and at May 2024 comes from
+    LeaseCost for fiscal 2023, 1,318mm. Given a fiscal 2018 rent expense under
+    OperatingLeasesRentExpenseNet, a rung above it that Disney stopped
+    tagging, the fallback took the first rung with any annual figure and read
+    900mm from five years before.
+    """
+    payload = load_payload("DIS")
+    payload["facts"]["us-gaap"]["OperatingLeasesRentExpenseNet"] = {
+        "units": {"USD": [{"start": "2017-10-01", "end": "2018-09-29", "val": 900_000_000, "filed": "2018-11-21", "form": "10-K"}]}
+    }
+    fin = build_financials("DIS", facts=CompanyFacts(payload, "DIS", knowledge_date=date(2024, 5, 7)))
+    assert fin.operating_lease_cost == pytest.approx(1318.0)
+    assert fin.provenance["operating lease cost"].periods == ["2022-10-02..2023-09-30"]
+
+
 def test_a_profitable_filer_with_no_diluted_count_is_refused():
     with pytest.raises(MissingDataError, match="diluted shares"):
         build_financials("DDOG", facts=CompanyFacts(_without_diluted(loss=False), "DDOG"))
