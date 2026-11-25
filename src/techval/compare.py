@@ -207,6 +207,17 @@ def takeaway(rows: list[Compared], when: str) -> str:
         return "No company in the set could be valued."
     above = sum(1 for c in valued if (_ratio(c.base) or 0) >= 1)
     first = f"At the closes of {when}, the base case reaches the price of {above} of the {len(valued)} companies valued."
+    beyond = [c for c in valued if c.base.expectations and c.base.expectations.growth_missed == "above"]
+    if beyond:
+        # A close above every value growth reaches needs more than any
+        # company-year did, so it asks the most, as the screen ranks it.
+        edge = beyond[0].base.expectations.growth_edge
+        if len(beyond) == 1:
+            who, it = f"{beyond[0].ticker}'s price asks", "it"
+        else:
+            names = [c.ticker for c in beyond]
+            who, it = f"The prices of {', '.join(names[:-1])} and {names[-1]} ask", "any of them"
+        return first + f" {who} the most: no first-year growth up to {edge:.0%} reaches {it}."
     needing = [c for c in valued if c.base.expectations and c.base.expectations.implied_growth is not None]
     if not needing:
         return first

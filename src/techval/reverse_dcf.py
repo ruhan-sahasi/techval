@@ -156,6 +156,13 @@ class Solve:
     def reached(self) -> bool:
         return self.implied is not None
 
+    @property
+    def missed(self) -> str | None:
+        """Where an unreached price sat: "above" every value the bracket gave, or "below"."""
+        if self.reached:
+            return None
+        return "above" if self.edge_value < self.price else "below"
+
 
 def _jump(root: Root, price: float, lever: str) -> str:
     """The sentence a reached solve adds when its root is a jump over the price."""
@@ -491,16 +498,13 @@ def growth_margin_frontier(case: Case, price: float, margins=FRONTIER_MARGINS) -
     rows = []
     for m in margins:
         solve = implied_first_year_growth(case.with_dcf(ebit_margin_terminal=m), price)
-        missed = None
-        if not solve.reached:
-            missed = "above" if solve.edge_value < price else "below"
         rows.append(
             {
                 "margin": m,
                 "implied_growth": solve.implied,
                 "edge_value": None if solve.reached else solve.edge_value,
                 "growth_edge": solve.edge,
-                "growth_missed": missed,
+                "growth_missed": solve.missed,
             }
         )
     return rows
@@ -884,11 +888,7 @@ def _screen_row(ticker, payload, source, assumptions, when, observations) -> dic
         # Where the growth solve found no root: the edge it stopped at, and
         # whether the price sat above every value it reached or below.
         growth_edge=growth.edge,
-        growth_missed=(
-            None
-            if growth.reached
-            else "above" if growth.edge_value < price else "below"
-        ),
+        growth_missed=growth.missed,
         base_share=None if base is None else base["all"]["share"],
         base_hits=None if base is None else base["all"]["hits"],
         base_n=None if base is None else base["all"]["n"],

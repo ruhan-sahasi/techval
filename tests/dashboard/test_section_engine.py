@@ -15,6 +15,7 @@ import json
 import math
 import re
 from contextlib import nullcontext
+from dataclasses import replace
 from datetime import date
 
 import pytest
@@ -502,6 +503,51 @@ def fixture_sources(observations=None):
         panel_name=E.FADE_PANEL,
         observations=observations,
     )
+
+
+class _ScaledCloses(CsvSource):
+    """The committed closes, with one symbol's divided by a factor."""
+
+    def __init__(self, symbol: str, factor: float) -> None:
+        super().__init__(PRICES)
+        self.symbol, self.factor = symbol, factor
+
+    def fetch(self, symbol, start, end):
+        series = super().fetch(symbol, start, end)
+        if symbol.upper() != self.symbol:
+            return series
+        return replace(series, closes=series.closes / self.factor)
+
+
+def test_a_close_below_every_value_growth_reaches_is_called_too_low(fade_observations):
+    """Datadog at a fiftieth of its close, 4.51, is below its DCF even shrinking 50%.
+
+    The title said no first-year growth up to 300% reaches the close, which
+    reads as a price too high for any growth when it is too low for any.
+    """
+    sources = fixture_sources(fade_observations)
+    sources.prices = _ScaledCloses("DDOG", 50.0)
+    m = E.measure("DDOG", [], pinned_assumptions(), sources, today=date(2026, 9, 9), history=False)
+    title = E._expectations(m)["title"]
+    assert title == "Even shrinking 50% next year, the DCF is worth more than the close"
+    assert m.expectations.implied_growth is None and m.expectations.growth_missed == "below"
+
+
+def test_a_close_below_every_margin_value_names_the_low_edge():
+    """The margin's miss was always written at the top of its bracket, 95%.
+
+    A close below what a -20% terminal margin is worth missed at the bottom,
+    and its value there was printed as the value at 95%.
+    """
+    expectations = E.Expectations(
+        implied_return=None, wacc=0.11, implied_growth=None, growth_missed="below",
+        growth_edge=-0.5, assumed_margin=0.2, margin_missed="below", margin_edge=-0.2,
+        margin_edge_value=3.0, frontier=[(0.1, None), (0.2, None)], implied_cagr=None,
+        base_hits=None, base_n=None,
+    )
+    subtitle = E._expectations(_measured(expectations=expectations))["subtitle"]
+    assert subtitle.endswith(" Even at a -20% terminal margin the DCF is worth 3.00, above the close.")
+    assert "95%" not in subtitle
 
 
 def test_a_company_with_no_peers_is_valued_on_its_own_beta_and_says_why_comps_are_missing():

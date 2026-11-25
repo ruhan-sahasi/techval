@@ -20,6 +20,7 @@ from techval.dcf import (
 )
 from techval.edgar import CompanyFacts
 from techval.errors import ConfigError
+from techval.financials import build_financials
 from techval.ev_bridge import (
     build_ev_bridge,
     equity_value_from_dcf_ev,
@@ -27,7 +28,7 @@ from techval.ev_bridge import (
 )
 from techval.wacc import compute_wacc
 
-from conftest import load_facts
+from conftest import load_facts, load_payload
 
 # Pinned so the per-share figures quoted in the docstrings below stay true
 # whatever the CAPM build does next. Every test that reads a number rather than
@@ -666,6 +667,53 @@ def test_the_opening_balance_is_read_from_the_filings_when_the_assumption_is_nul
     note = next(n for n in d.notes if "NOL carryforwards open" in n)
     assert "OperatingLossCarryforwards" in note
     assert "2025-12-31" in note
+
+
+def test_build_financials_hands_the_dcf_its_fact_set(market, assumptions):
+    """The filings path needed a fact set nothing outside the tests attached.
+
+    Every command builds its Financials through build_financials, which kept
+    no handle on the facts it read, so with the opening balance left null the
+    DCF refused even for a filer that tags its carryforward undimensioned, and
+    said the filer had probably tagged it only by jurisdiction.
+    """
+    payload = load_payload("DDOG")
+    payload["facts"]["us-gaap"]["OperatingLossCarryforwards"] = {
+        "units": {"USD": [{"val": 2_500_000_000, "end": "2025-12-31", "filed": "2026-02-18", "form": "10-K"}]}
+    }
+    fin = build_financials("DDOG", facts=CompanyFacts(payload, "DDOG"))
+    assumptions.dcf.nol.track = True
+    bridge = build_ev_bridge(fin, market.spot("DDOG"), assumptions)
+    d = run_dcf(fin, bridge, compute_wacc(fin, bridge, market, assumptions), assumptions)
+    assert d.projections[0].nol_opening == pytest.approx(2_500.0)
+
+
+def test_the_carryforward_sentences_say_what_the_arithmetic_did(
+    ddog, ddog_bridge, assumptions, wacc_result
+):
+    """Three sentences outran the numbers beside them.
+
+    A 3,000mm balance shelters 449mm, discounted, over the explicit period and
+    38mm more after it, and the first sentence called the 449mm what the NOL
+    is worth. The 80% limitation was said to bind in a year a 10mm section 382
+    cap stopped first, or a 5mm balance ran out. And a 30mm pool under a 50mm
+    cap, used up in year 2, was said to stay inside the cap through the period.
+    """
+    off = run_dcf(ddog, ddog_bridge, wacc_result, assumptions).enterprise_value
+
+    def lines(balance, cap=None):
+        assumptions.dcf.nol.track = True
+        assumptions.dcf.nol.opening_balance = balance
+        assumptions.dcf.nol.section_382_limit = cap
+        d = run_dcf(ddog, ddog_bridge, wacc_result, assumptions)
+        return d, " ".join(d.checks + d.notes)
+
+    d, text = lines(3_000.0)
+    assert f"the NOL adds {d.enterprise_value - off:,.0f}mm to the enterprise value" in text
+    assert "limitation binds in year 1" in text
+    assert "limitation binds" not in lines(3_000.0, cap=10.0)[1]
+    assert "limitation binds" not in lines(5.0)[1]
+    assert "The cap never binds: the balance under it is used up in year 2." in lines(30.0, cap=50.0)[1]
 
 
 def test_the_assumption_beats_the_tag(ddog, ddog_bridge, assumptions, wacc_result):
