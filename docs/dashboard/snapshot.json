@@ -4383,17 +4383,17 @@
                   {
                     "label": "close 129.69",
                     "x": "2024-06-30",
-                    "y": 0.037154
+                    "y": 0.037438
                   },
                   {
                     "label": "close 115.06",
                     "x": "2024-09-30",
-                    "y": 0.03928
+                    "y": 0.039883
                   },
                   {
                     "label": "close 142.89",
                     "x": "2024-12-31",
-                    "y": 0.036892
+                    "y": 0.037598
                   },
                   {
                     "label": "close 99.21",
@@ -4439,17 +4439,17 @@
                   {
                     "label": "close 129.69",
                     "x": "2024-06-30",
-                    "y": 0.124257
+                    "y": 0.124233
                   },
                   {
                     "label": "close 115.06",
                     "x": "2024-09-30",
-                    "y": 0.123994
+                    "y": 0.123942
                   },
                   {
                     "label": "close 142.89",
                     "x": "2024-12-31",
-                    "y": 0.122958
+                    "y": 0.122901
                   },
                   {
                     "label": "close 99.21",
@@ -4820,7 +4820,7 @@
             "tests/fixtures/companyfacts_DDOG.json",
             "tests/fixtures/prices/DDOG.csv"
           ],
-          "seconds": 0.02
+          "seconds": 0.01
         },
         {
           "entry_point": "techval.comps.run_comps",
@@ -4836,7 +4836,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.08
+          "seconds": 0.06
         },
         {
           "entry_point": "techval.wacc.compute_wacc",
@@ -4852,7 +4852,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.0
+          "seconds": 0.01
         },
         {
           "entry_point": "techval.market.PriceSeries.fifty_two_week_range",
@@ -4893,7 +4893,7 @@
             "tests/fixtures/prices/SPY.csv",
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 0.07
+          "seconds": 0.04
         },
         {
           "entry_point": "techval.scenarios.value_scenarios",
@@ -4910,7 +4910,7 @@
             "tests/fixtures/prices/SPY.csv",
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 0.17
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.reverse_dcf.expectations_history",
@@ -4919,7 +4919,7 @@
             "tests/fixtures/companyfacts_DDOG.json",
             "tests/fixtures/prices/DDOG.csv"
           ],
-          "seconds": 0.2
+          "seconds": 0.15
         },
         {
           "entry_point": "techval.dcf.sensitivity_wacc_growth",
@@ -8125,7 +8125,7 @@
                 "announced": "2026-06-15",
                 "closed": null,
                 "consideration": "mixed",
-                "ev_revenue": 4.416518,
+                "ev_revenue": 4.380775,
                 "offer_price": 159.828405,
                 "premium_1d": 0.112546,
                 "premium_30d": 0.269949,
@@ -8138,7 +8138,7 @@
                 "announced": "2026-05-18",
                 "closed": null,
                 "consideration": "cash",
-                "ev_revenue": 2.623491,
+                "ev_revenue": 2.682694,
                 "offer_price": 38.5,
                 "premium_1d": 0.298045,
                 "premium_30d": 0.305727,
@@ -8221,7 +8221,7 @@
           "data": {
             "format": "mult:1",
             "labelHeader": "Target",
-            "median": 5.543229,
+            "median": 5.525357,
             "refusals": [
               "EV/Revenue for SLAB",
               "EV/Revenue for WORK",
@@ -8255,7 +8255,7 @@
                 "announced": "2026-06-15",
                 "label": "ROKU",
                 "status": "pending",
-                "value": 4.416518
+                "value": 4.380775
               },
               {
                 "acquirer": "Neon Maple Parent Inc.",
@@ -8269,7 +8269,7 @@
                 "announced": "2026-05-18",
                 "label": "RAMP",
                 "status": "pending",
-                "value": 2.623491
+                "value": 2.682694
               }
             ],
             "valueLabel": "EV/Revenue"
@@ -8489,7 +8489,7 @@
                 "format": "mult:1",
                 "label": "Median EV/Revenue",
                 "sub": "6 deals carry the multiple; the floor is 5",
-                "value": 5.543229
+                "value": 5.525357
               }
             ]
           },
@@ -8689,7 +8689,7 @@
           "inputs": [
             "tests/fixtures/merger"
           ],
-          "seconds": 0.11
+          "seconds": 0.1
         },
         {
           "entry_point": "techval.tmt.precedents.build_precedents",
@@ -8756,7 +8756,7 @@
             "tests/fixtures/companyfacts_DDOG.json",
             "tests/fixtures/filing_text_DDOG_2025.json.gz"
           ],
-          "seconds": 0.15
+          "seconds": 0.16
         }
       ],
       "refusals": [
@@ -8774,7 +8774,7 @@
         },
         {
           "what": "EV/Revenue for WORK",
-          "why": "The target's financials as at 2020-12-01 could not be built (could not source 'diluted shares' for WORK over period twelve months ended 2020-07-31; us-gaap tags tried (in order): WeightedAverageNumberOfDilutedSharesOutstanding; hint: no us-gaap tag in the ladder appears in this filer's company facts), so the deal size and the multiples are not reported."
+          "why": "The target's financials as at 2020-12-01 could not be built (could not source 'diluted shares' for WORK over period twelve months ended 2020-07-31; us-gaap tags tried (in order): WeightedAverageNumberOfDilutedSharesOutstanding, WeightedAverageNumberOfSharesOutstandingBasic; hint: with a net loss the basic weighted average would stand in for the diluted one, and it cannot be tiled either: no us-gaap tag in the ladder appears in this filer's company facts), so the deal size and the multiples are not reported."
         },
         {
           "what": "EV/EBITDA statistic",
@@ -10052,6 +10052,6 @@
       "title": "Warranted multiple"
     }
   },
-  "techval_commit": "7551ea2",
+  "techval_commit": "9df555c",
   "title": "Valuation engine and model results"
 }

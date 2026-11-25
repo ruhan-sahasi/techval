@@ -534,14 +534,29 @@ def _diluted_shares(flow, warnings, prov, facts: CompanyFacts, as_of: date) -> f
     """
     try:
         diluted = flow("diluted shares", tags.DILUTED_SHARES, kind="average")
-    except MissingDataError:
+    except MissingDataError as missing:
         recent = as_of - timedelta(days=_LAPSED_DAYS)
         if any(f.end >= recent for tag in tags.DILUTED_SHARES for f in facts.facts(tag) if not f.is_instant):
             raise
         net_income = flow("net income", tags.NET_INCOME)
         if net_income is None or net_income >= 0:
             raise
-        basic = flow("diluted shares", tags.BASIC_SHARES, kind="average")
+        try:
+            basic = flow("diluted shares", tags.BASIC_SHARES, kind="average")
+        except MissingDataError as no_basic:
+            # Both ladders were tried, so the refusal names both, not only
+            # the basic one the fallback reached for last.
+            raise MissingDataError(
+                "diluted shares",
+                ticker=missing.ticker,
+                tags_tried=missing.tags_tried + no_basic.tags_tried,
+                period=missing.period,
+                hint=(
+                    "with a net loss the basic weighted average would stand in for "
+                    "the diluted one, and it cannot be tiled either"
+                    + (f": {no_basic.hint}" if no_basic.hint else "")
+                ),
+            ) from no_basic
         warnings.append(
             f"diluted shares: the filer reports no diluted count, and with a net loss "
             f"of {-net_income:,.1f}mm every potential share is anti-dilutive, so the "

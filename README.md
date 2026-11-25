@@ -1062,7 +1062,7 @@ $ techval precedents RAMP,PAYO,IRDM,SLAB --config assumptions.yaml
 Announced   Target  Acquirer          Cons.  % cash    Offer  Unaff. 1d  Prem. 1d  Prem. 30d  Gap, pts  EV/Rev
 2026-06-29  IRDM    Rocket Lab        mixed     n/a      n/a      43.52       n/a        n/a       n/a      NM
 2026-06-15  PAYO    Neon Maple Parent  cash    100%     7.40       6.75      9.6%      37.2%     -27.6    2.9x
-2026-05-18  RAMP    MMS USA Holdings   cash    100%    38.50      29.66     29.8%      30.6%      -0.8    2.6x
+2026-05-18  RAMP    MMS USA Holdings   cash    100%    38.50      29.66     29.8%      30.6%      -0.8    2.7x
 2026-02-04  SLAB    Texas Instruments  cash    100%   231.00     136.62     69.1%      58.8%     +10.3      NM
 
 IRDM  Iridium Communications Inc.  <- Rocket Lab Corporation  announced 2026-06-29

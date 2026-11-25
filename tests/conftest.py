@@ -47,6 +47,7 @@ from techval.edgar import CompanyFacts, DimensionedFact, HttpCache
 from techval.ev_bridge import build_ev_bridge
 from techval.financials import Financials, build_financials
 from techval.market import CsvSource, MarketData
+from techval.wacc import compute_wacc
 
 FIXTURES = Path(__file__).parent / "fixtures"
 PRICES = FIXTURES / "prices"
@@ -277,3 +278,9 @@ def vz():
 @pytest.fixture
 def ddog_bridge(ddog, assumptions, market):
     return build_ev_bridge(ddog, market.spot("DDOG"), assumptions)
+
+
+@pytest.fixture
+def wacc_result(ddog, ddog_bridge, market, assumptions):
+    """Datadog's WACC on the shared assumptions, which the DCF tests start from."""
+    return compute_wacc(ddog, ddog_bridge, market, assumptions)
