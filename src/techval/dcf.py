@@ -1678,12 +1678,27 @@ def _nol_check(
     out = [
         f"The carryforward shelters {sheltered:,.0f}mm of taxable income across "
         f"the explicit period, worth {shielded:,.0f}mm of cash tax not paid and "
-        f"{pv_shield:,.0f}mm discounted. That present value is what the NOL is "
-        "worth to this valuation."
+        f"{pv_shield:,.0f}mm discounted. "
+        + (
+            f"With the {carryforward:,.0f}mm the balance left after year "
+            f"{projections[-1].year} is worth, the NOL adds "
+            f"{pv_shield + carryforward:,.0f}mm to the enterprise value."
+            if carryforward > 0
+            else "That present value is what the NOL is worth to this valuation."
+        )
     ]
 
+    # A year whose shelter the limitation itself cut short. Cash tax is paid in
+    # a year the section 382 cap or the end of the balance stops first too,
+    # and that is not the limitation binding.
     paying = next(
-        (p for p in projections if p.nol_used > 0 and p.cash_taxes > 0), None
+        (
+            p for p in projections
+            if p.nol_used > 0
+            and p.cash_taxes > 0
+            and p.nol_used >= cfg.annual_limitation_pct * p.ebit * (1.0 - 1e-9)
+        ),
+        None,
     )
     if paying is not None:
         out.append(
@@ -1710,13 +1725,16 @@ def _nol_check(
             "the cap a year leaves unused carries to the next; losses the "
             "projection makes are not capped. "
             + (
-                f"The cap binds from year {binds.year}, and "
+                f"The cap binds from year {binds.year}, and {still_capped:,.0f}mm is "
+                f"still under it at the end of year {projections[-1].year}."
                 if binds is not None
                 else "Taxable income stays inside the cap through the explicit "
-                "period, and "
+                f"period, and {still_capped:,.0f}mm is still under it at the end of "
+                f"year {projections[-1].year}."
+                if still_capped > 0
+                else "The cap never binds: the balance under it is used up in year "
+                f"{next(p.year for p in projections if p.nol_capped_closing <= 0)}."
             )
-            + f"{still_capped:,.0f}mm is still under it at the end of year "
-            f"{projections[-1].year}."
         )
         if equity_value > 0:
             # The statute's own formula run backwards, so a mistyped cap shows.
