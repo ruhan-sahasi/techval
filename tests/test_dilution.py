@@ -11,6 +11,7 @@ test is visible in the test.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import date
 
 import pytest
@@ -345,6 +346,28 @@ def test_bands_are_valued_one_at_a_time(ddog, tsm):
 
     assert any("exercise-price band" in n for n in count.notes)
     assert any("out of the money" in n for n in count.notes)
+
+
+def test_bands_tagged_on_the_range_tables_own_concepts_are_valued(ddog, tsm):
+    """The exercise-price-range table has a count and a strike concept of its own.
+
+    Its count was read and its strike was not, so bands tagged that way never
+    had a strike: the single $94.00 average was used, for 0.6mm of net new
+    shares against 3.6mm banded, and the notes said both that bands were
+    tagged and that the filer tagged none.
+    """
+    table = "ShareBasedCompensationSharesAuthorizedUnderStockOptionPlansExercisePriceRange"
+    renamed = {
+        OPTION_COUNT: f"{table}NumberOfOutstandingOptions",
+        OPTION_STRIKE: f"{table}OutstandingOptionsWeightedAverageExercisePrice",
+    }
+    facts = [
+        replace(f, tag=renamed[f.tag]) if f.dimensions and f.tag in renamed else f
+        for f in _banded_facts()
+    ]
+    count = build_share_count("TEST", 100.0, ddog, tsm, InstanceClient(facts, "0001-26-000001"))
+    assert count.net_new_from_options == pytest.approx(3.6)
+    assert not any("no exercise-price bands" in n for n in count.notes)
 
 
 def test_single_weighted_average_used_when_no_bands_are_tagged(ddog_count):

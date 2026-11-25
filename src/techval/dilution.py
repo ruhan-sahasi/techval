@@ -112,6 +112,8 @@ _OPTION_STRIKE_TAGS = frozenset(
     for t in (
         "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingWeightedAverageExercisePrice",
         "ShareBasedCompensationArrangementsByShareBasedPaymentAwardOptionsOutstandingWeightedAverageExercisePrice",
+        # The exercise-price-range table's own strike, the twin of its count.
+        "ShareBasedCompensationSharesAuthorizedUnderStockOptionPlansExercisePriceRangeOutstandingOptionsWeightedAverageExercisePrice",
     )
 )
 _RSU_COUNT_TAGS = frozenset(
@@ -432,8 +434,8 @@ def _option_blocks(
         band_note
         + [
             f"Options at {when}: {plain.value / _MM:,.2f}mm at a single "
-            f"weighted-average exercise price of {strike.value:,.2f}, the filer "
-            "tagging no exercise-price bands to split it by."
+            f"weighted-average exercise price of {strike.value:,.2f}"
+            + ("." if banded else ", the filer tagging no exercise-price bands to split it by.")
         ],
         [],
     )
