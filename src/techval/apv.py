@@ -868,15 +868,22 @@ def _reconciliation(
             "report this; read the shield as an upper bound."
         )
     elif abs(interest / filed - 1.0) > _INTEREST_GAP_FLAG:
-        out.append(
-            f"FLAG: modelled interest of {interest:,.0f}mm is "
-            f"{interest / filed:,.1f}x the {filed:,.0f}mm this filer actually reports "
-            f"on {debt:,.0f}mm of debt. A deduction is taken on interest paid, not on "
-            "a synthetic yield, so the shield here is larger than the one the tax "
-            "return will show. This is the low-coupon convertible signature: the "
-            "lender was paid in an equity option, which is not deductible. Read the "
-            "shield as an upper bound."
+        ratio = interest / filed
+        line = (
+            f"FLAG: modelled interest of {interest:,.0f}mm is {ratio:,.1f}x the "
+            f"{filed:,.0f}mm this filer actually reports on {debt:,.0f}mm of debt. A "
+            "deduction is taken on interest paid, not on a synthetic yield, so the "
+            f"shield here is {'larger' if ratio > 1.0 else 'smaller'} than the one "
+            "the tax return will show."
         )
+        if ratio > 1.0 and bridge.convertible_in_debt > 0:
+            line += (
+                " This is the low-coupon convertible signature: the lender was paid "
+                "in an equity option, which is not deductible."
+            )
+        elif ratio > 1.0:
+            line += " The debt it carries costs less than the synthetic yield."
+        out.append(line + f" Read the shield as {'an upper' if ratio > 1.0 else 'a lower'} bound.")
     else:
         out.append(
             f"Modelled interest of {interest:,.0f}mm is within "

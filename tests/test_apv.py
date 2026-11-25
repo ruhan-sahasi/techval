@@ -32,10 +32,10 @@ from techval.dcf import (
 )
 from techval.errors import ConfigError, NotMeaningfulError
 from techval.ev_bridge import EVBridge, build_ev_bridge
-from techval.financials import Financials
+from techval.financials import Financials, build_financials
 from techval.wacc import WACCResult, compute_wacc
 
-from conftest import hand_financials
+from conftest import hand_financials, load_facts
 
 # Datadog's convertible conversion price from the notes footnote. With the stock
 # far above it the notes are equity under ASU 2020-06, which leaves the company
@@ -777,6 +777,24 @@ def test_the_synthetic_yield_gap_against_filed_interest_is_flagged(
     assert any(
         line.startswith("FLAG:") and "interest paid" in line for line in result.checks
     )
+
+
+def test_the_interest_gap_flag_reads_the_way_the_gap_runs(mdb, assumptions, market):
+    """Modelled interest below the filed figure got the same sentence as above it.
+
+    MongoDB's modelled interest is 0.7x its filed 2mm, so the shield is the
+    smaller of the two, and it was called an upper bound. Disney's 1.4x was put
+    down to low-coupon convertibles, and its debt is straight bonds.
+    """
+    _, _, _, low = _stack(mdb, assumptions, market)
+    (line,) = [c for c in low.checks if c.startswith("FLAG: modelled interest")]
+    assert "the shield here is smaller than" in line and line.endswith("as a lower bound.")
+    assert "convertible" not in line
+    dis = build_financials("DIS", facts=load_facts("DIS"))
+    _, _, _, straight = _stack(dis, assumptions, market)
+    (line,) = [c for c in straight.checks if c.startswith("FLAG: modelled interest")]
+    assert "the shield here is larger than" in line and line.endswith("as an upper bound.")
+    assert "convertible" not in line and "costs less than the synthetic yield" in line
 
 
 @pytest.mark.parametrize("filed", [0.0, -12.0])
