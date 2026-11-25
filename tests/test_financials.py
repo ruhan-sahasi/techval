@@ -997,6 +997,22 @@ def test_a_loss_maker_with_no_diluted_count_is_valued_on_its_basic_one():
     assert any("every potential share is anti-dilutive" in w for w in fin.warnings)
 
 
+def test_a_loss_maker_with_neither_count_is_refused_naming_both_ladders():
+    """The refusal named only the basic ladder, the last one the fallback tried.
+
+    Slack's recorded facts at its deal date carry neither count, and the
+    precedent refusal read "could not source 'diluted shares'" with
+    WeightedAverageNumberOfSharesOutstandingBasic as the only tag tried.
+    """
+    payload = _without_diluted(loss=True)
+    del payload["facts"]["us-gaap"]["WeightedAverageNumberOfSharesOutstandingBasic"]
+    with pytest.raises(MissingDataError) as refused:
+        build_financials("DDOG", facts=CompanyFacts(payload, "DDOG"))
+    assert refused.value.concept == "diluted shares"
+    assert refused.value.tags_tried == [*tags.DILUTED_SHARES, *tags.BASIC_SHARES]
+    assert "the basic weighted average would stand in" in str(refused.value)
+
+
 def test_a_profitable_filer_with_no_diluted_count_is_refused():
     with pytest.raises(MissingDataError, match="diluted shares"):
         build_financials("DDOG", facts=CompanyFacts(_without_diluted(loss=False), "DDOG"))
