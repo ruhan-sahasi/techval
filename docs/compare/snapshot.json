@@ -7,7 +7,7 @@
       "Committed fixture daily closes for CRWD, DDOG, MDB, ZS, DIS, through 2026-09-09",
       "Fade panel of point-in-time TMT company-years: tests/fixtures/fade_companyfacts.json.gz"
     ],
-    "standfirst": "5 companies through the same engine as the techval results page, each valued twice: on the assumptions file, and on its own record, its growth, margin and reinvestment set from its filings. The reverse DCF and the scenarios are the base case's. 5 could be valued; any that could not is named with the reason. Nothing here is advice."
+    "standfirst": "5 companies through the same engine as the techval results page, each valued twice: on the assumptions file, and on its own record, its growth, margin and reinvestment set from its filings, except CRWD's D&A, which stays at the assumption. The reverse DCF and the scenarios are the base case's. 5 could be valued; any that could not is named with the reason. Nothing here is advice."
   },
   "schema": 1,
   "sections": {
@@ -264,7 +264,7 @@
           },
           "kind": "dot",
           "order": 1,
-          "subtitle": "Gordon DCF value per share over the close. The base case is the assumptions file's; the record case sets growth, margin and reinvestment from each company's own filings.",
+          "subtitle": "Gordon DCF value per share over the close. The base case is the assumptions file's; the record case sets growth, margin and reinvestment from each company's own filings where they report them.",
           "title": "1 of 5 base cases reach the close, and 0 do on the companies' own records",
           "wide": true
         }
@@ -333,6 +333,6 @@
       "title": "How the prices compare"
     }
   },
-  "techval_commit": "fc706ab",
+  "techval_commit": "f8ba711",
   "title": "CRWD, DDOG, MDB, ZS, DIS, compared"
 }
