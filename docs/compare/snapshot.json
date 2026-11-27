@@ -190,7 +190,7 @@
                 "did": "1,440 of 1,661",
                 "growth": -0.027832,
                 "implied": 0.128685,
-                "record": 82.753109,
+                "record": 89.487476,
                 "wacc": 0.087114,
                 "weighted": 174.950369
               }
@@ -245,7 +245,7 @@
                 "label": "DIS",
                 "values": {
                   "base": 1.842897,
-                  "record": 0.794328
+                  "record": 0.85897
                 }
               }
             ],
@@ -333,6 +333,6 @@
       "title": "How the prices compare"
     }
   },
-  "techval_commit": "c62c84a",
+  "techval_commit": "fc706ab",
   "title": "CRWD, DDOG, MDB, ZS, DIS, compared"
 }

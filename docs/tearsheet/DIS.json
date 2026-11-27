@@ -17,8 +17,8 @@
         "apv": {
           "data": {
             "domain": [
-              180000.0,
-              210000.0
+              195000.0,
+              220000.0
             ],
             "format": "num:0",
             "gapFormat": "signed:0",
@@ -29,22 +29,22 @@
               {
                 "label": "No shield (unlevered)",
                 "values": {
-                  "apv": 185347.800787,
-                  "wacc": 194863.092266
+                  "apv": 196685.141179,
+                  "wacc": 206841.847048
                 }
               },
               {
                 "label": "Harris-Pringle, Ku 9.04%",
                 "values": {
-                  "apv": 194300.301511,
-                  "wacc": 194863.092266
+                  "apv": 205637.641904,
+                  "wacc": 206841.847048
                 }
               },
               {
                 "label": "Modigliani-Miller, Kd 5.52%",
                 "values": {
-                  "apv": 204277.614408,
-                  "wacc": 194863.092266
+                  "apv": 215614.9548,
+                  "wacc": 206841.847048
                 }
               }
             ],
@@ -65,7 +65,7 @@
           "refused": [
             "APV, Miles-Ezzell"
           ],
-          "subtitle": "Enterprise value, USD mm, on the Gordon terminal value: 194,863 from the WACC DCF at 8.71%. The unlevered cost of equity is 9.04%, 33bp above the WACC. Modelled interest of 2,541.5mm is 1.4x the 1,795.0mm filed.",
+          "subtitle": "Enterprise value, USD mm, on the Gordon terminal value: 206,842 from the WACC DCF at 8.71%. The unlevered cost of equity is 9.04%, 33bp above the WACC. Modelled interest of 2,541.5mm is 1.4x the 1,795.0mm filed.",
           "title": "The shield rate decides which side of the WACC DCF APV lands",
           "wide": true
         },
@@ -157,44 +157,44 @@
                 "label": "10%",
                 "labelled": false,
                 "role": "model",
-                "value": 0.471906
+                "value": 0.45324
               },
               {
                 "label": "20%",
                 "labelled": false,
                 "role": "model",
-                "value": 0.072084
+                "value": 0.058864
               },
               {
                 "label": "30%",
                 "labelled": false,
                 "role": "model",
-                "value": -0.104265
+                "value": -0.115752
               },
               {
                 "label": "40%",
                 "labelled": false,
                 "role": "model",
-                "value": -0.212361
+                "value": -0.222887
               },
               {
                 "label": "50%",
                 "labelled": false,
                 "role": "model",
-                "value": -0.2882
+                "value": -0.298075
               },
               {
                 "label": "60%",
                 "labelled": false,
                 "role": "model",
-                "value": -0.345568
+                "value": -0.354955
               }
             ],
             "valueLabel": "First-year growth needed"
           },
           "kind": "column",
-          "subtitle": "First-year revenue growth the 104.18 close needs at each terminal EBIT margin, faded on the engine's straight line, everything else as assumed. At this price the base case earns 7.7% a year against a 8.7% cost of capital.",
-          "title": "The close needs 11% growth next year; 1074 of 1,661 TMT company-years ever compounded that path",
+          "subtitle": "First-year revenue growth the 104.18 close needs at each terminal EBIT margin, faded on the engine's straight line, everything else as assumed. At this price the base case earns 8.0% a year against a 8.7% cost of capital.",
+          "title": "The close needs 10% growth next year; 1076 of 1,661 TMT company-years ever compounded that path",
           "wide": true
         },
         "expectations_history": {
@@ -228,17 +228,17 @@
                   {
                     "label": "close 98.70",
                     "x": "2025-03-31",
-                    "y": 0.079976
+                    "y": 0.08371
                   },
                   {
                     "label": "close 124.01",
                     "x": "2025-06-30",
-                    "y": 0.070881
+                    "y": 0.077236
                   },
                   {
                     "label": "close 114.50",
                     "x": "2025-09-30",
-                    "y": 0.073876
+                    "y": 0.079887
                   },
                   {
                     "label": "close 113.77",
@@ -248,12 +248,12 @@
                   {
                     "label": "close 96.38",
                     "x": "2026-03-31",
-                    "y": 0.075202
+                    "y": 0.075519
                   },
                   {
                     "label": "close 96.25",
                     "x": "2026-06-30",
-                    "y": 0.075738
+                    "y": 0.075936
                   }
                 ]
               },
@@ -331,7 +331,7 @@
             }
           ],
           "subtitle": "The return a buyer at each quarter-end close earns if that quarter's base case holds, against the cost of capital, each quarter built only from filings public by then. DIS.",
-          "title": "Through closes from 96 to 124, the implied return stayed between 7.1% and 11.1% a year",
+          "title": "Through closes from 96 to 124, the implied return stayed between 7.4% and 11.1% a year",
           "wide": true
         },
         "football": {
@@ -358,17 +358,17 @@
                 "role": "baseline"
               },
               {
-                "hi": 149.203292,
+                "hi": 160.441032,
                 "label": "DCF, Gordon growth",
-                "lo": 54.303503,
-                "mid": 82.753109,
+                "lo": 59.117587,
+                "mid": 89.487476,
                 "role": "model"
               },
               {
-                "hi": 98.113662,
+                "hi": 105.160287,
                 "label": "DCF, value driver",
-                "lo": 58.848009,
-                "mid": 75.010726,
+                "lo": 63.532221,
+                "mid": 80.66614,
                 "role": "model"
               }
             ]
@@ -379,7 +379,7 @@
             "DCF, exit multiple"
           ],
           "subtitle": "DIS, USD per share at the 2026-09-09 close. DCF bands span WACC 7.21% to 10.21% and terminal growth 1.5% to 3.5%, ticked at the base case.",
-          "title": "2 of 3 methods bracket the price",
+          "title": "3 of 3 methods bracket the price",
           "wide": true
         },
         "montecarlo": {
@@ -416,42 +416,46 @@
               650.0,
               675.0,
               700.0,
-              725.0
+              725.0,
+              750.0,
+              775.0
             ],
             "format": "num:0",
             "reference": [
               {
-                "label": "Base case 82.75",
-                "value": 82.753109
+                "label": "Base case 89.49",
+                "value": 89.487476
               }
             ],
             "sd": {
-              "correlated": 45.885521,
-              "independent": 37.559874,
-              "ratio": 1.221663
+              "correlated": 48.653962,
+              "independent": 39.856517,
+              "ratio": 1.220728
             },
             "series": [
               {
                 "counts": [
-                  23,
-                  327,
-                  1438,
-                  2440,
-                  2367,
-                  1625,
-                  858,
-                  448,
-                  222,
-                  123,
-                  61,
-                  37,
-                  15,
-                  7,
+                  21,
+                  255,
+                  1143,
+                  2184,
+                  2404,
+                  1722,
+                  1066,
+                  555,
+                  303,
+                  163,
+                  88,
+                  38,
+                  30,
+                  14,
+                  5,
                   1,
                   1,
                   2,
                   3,
                   1,
+                  0,
                   0,
                   0,
                   0,
@@ -469,32 +473,34 @@
               },
               {
                 "counts": [
-                  9,
-                  192,
-                  1245,
-                  2663,
-                  2777,
-                  1733,
-                  792,
-                  349,
-                  150,
-                  42,
-                  30,
-                  10,
-                  2,
+                  7,
+                  145,
+                  899,
+                  2312,
+                  2803,
+                  1982,
+                  1022,
+                  466,
+                  220,
+                  80,
+                  29,
+                  20,
+                  7,
                   3,
-                  1,
-                  0,
-                  0,
-                  1,
-                  0,
-                  0,
-                  0,
-                  0,
+                  3,
                   0,
                   0,
                   0,
                   1,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  1,
+                  0,
                   0,
                   0,
                   0,
@@ -506,7 +512,7 @@
             ]
           },
           "kind": "hist",
-          "subtitle": "Value per share, USD, 10,000 seeded draws each on the Gordon terminal value. Standard deviation 45.89 correlated against 37.56 independent, a ratio of 1.22.",
+          "subtitle": "Value per share, USD, 10,000 seeded draws each on the Gordon terminal value. Standard deviation 48.65 correlated against 39.86 independent, a ratio of 1.22.",
           "title": "Correlating the drivers widens the spread by 22%",
           "wide": true
         },
@@ -538,14 +544,14 @@
               {
                 "assumed": 0.2,
                 "label": "Year 1 revenue growth",
-                "source": "fiscal-year revenue of 94,425mm to 2025-09-27 against 91,361mm the year before",
-                "value": 0.033537
+                "source": "revenue of 98,861mm over the twelve months to 2026-06-27 against 94,535mm a year earlier",
+                "value": 0.045761
               },
               {
                 "assumed": 0.05,
                 "label": "Year N revenue growth",
                 "source": "the lower of the trailing rate and the assumed year-N rate, and no lower than the perpetuity rate",
-                "value": 0.033537
+                "value": 0.045761
               },
               {
                 "assumed": 0.2,
@@ -575,7 +581,7 @@
           },
           "kind": "table",
           "subtitle": "dcf.from_record is on, so these figures replace the assumptions file's for every DCF on this page except the quarterly history, where each quarter reads its own filings. The company as it stands, not a forecast.",
-          "title": "The DCF is set from DIS's own filings: growth fading from 3.4% and its 18.4% margin held",
+          "title": "The DCF is set from DIS's own filings: growth fading from 4.6% and its 18.4% margin held",
           "wide": true
         },
         "scenarios": {
@@ -620,7 +626,7 @@
               {
                 "label": "Engine base case",
                 "role": "baseline",
-                "value": 82.753109
+                "value": 89.487476
               }
             ]
           },
@@ -662,45 +668,45 @@
             "valueLabel": "Value per share",
             "values": [
               [
-                95.697988,
-                105.224174,
-                116.772318,
-                131.0626,
-                149.203292
+                103.297832,
+                113.471716,
+                125.805034,
+                141.06693,
+                160.441032
               ],
               [
-                81.744319,
-                88.927952,
-                97.426939,
-                107.63896,
-                120.13997
+                88.402846,
+                96.074903,
+                105.151747,
+                116.058097,
+                129.409067
               ],
               [
-                70.693963,
-                76.27433,
-                82.753109,
-                90.366254,
-                99.440271
+                76.608413,
+                82.568196,
+                89.487476,
+                97.618248,
+                107.30922
               ],
               [
-                61.726351,
-                66.164835,
-                71.240906,
-                77.10258,
-                83.947532
+                67.038178,
+                71.778439,
+                77.199639,
+                83.459857,
+                90.770205
               ],
               [
-                54.303503,
-                57.902318,
-                61.967823,
-                66.597091,
-                71.916125
+                59.117587,
+                62.96109,
+                67.303014,
+                72.247032,
+                77.927714
               ]
             ]
           },
           "kind": "heat",
-          "subtitle": "Gordon DCF, implied value per share in USD, WACC down the side and terminal growth across the top. The base case, a 8.71% WACC and 2.5% terminal growth, gives 82.75 against a price of 104.18.",
-          "title": "6 of 25 cells clear the 104.18 price"
+          "subtitle": "Gordon DCF, implied value per share in USD, WACC down the side and terminal growth across the top. The base case, a 8.71% WACC and 2.5% terminal growth, gives 89.49 against a price of 104.18.",
+          "title": "8 of 25 cells clear the 104.18 price"
         }
       },
       "headline": null,
@@ -839,10 +845,10 @@
         }
       ],
       "status": "ok",
-      "takeaway": "At the 2026-09-09 close of 104.18, on a 4.83% risk-free rate and a 8.71% WACC, the DCF values DIS at 82.75 a share on Gordon growth and 75.01 on the value driver, 79% and 72% of the price. No exit-multiple value is drawn; the note under the football field says why. Run backwards, the close earns 7.7% a year if the base case holds, or needs 11% revenue growth next year, a path 1074 of 1,661 TMT company-years ever compounded. Correlating the simulation's four drivers widens the spread of value by 22%.",
+      "takeaway": "At the 2026-09-09 close of 104.18, on a 4.83% risk-free rate and a 8.71% WACC, the DCF values DIS at 89.49 a share on Gordon growth and 80.67 on the value driver, 86% and 77% of the price. No exit-multiple value is drawn; the note under the football field says why. Run backwards, the close earns 8.0% a year if the base case holds, or needs 10% revenue growth next year, a path 1076 of 1,661 TMT company-years ever compounded. Correlating the simulation's four drivers widens the spread of value by 22%.",
       "title": "Valuation engine"
     }
   },
-  "techval_commit": "c62c84a",
+  "techval_commit": "fc706ab",
   "title": "DIS, valued by the engine"
 }

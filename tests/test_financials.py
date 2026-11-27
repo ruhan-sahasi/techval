@@ -90,6 +90,25 @@ def test_cover_window_tiles_without_gap_or_overlap():
     assert sum(t.days for t in tiles) == 365
 
 
+def test_a_last_tile_may_end_a_few_days_past_the_window_when_none_ends_on_it():
+    """Disney's fiscal quarters end on Saturdays.
+
+    The year to 27 June 2025, a calendar year before its June 2026 quarter end,
+    is tiled by quarters ending on 28 June 2025. A last tile ending a day after
+    the window passed the filter on tile ends and could never finish, so the
+    record case could not form the year before and fell back to fiscal years.
+    """
+    facts = [
+        _fact("2024-06-30", "2024-09-28", 1.0),
+        _fact("2024-09-29", "2025-06-28", 3.0),
+    ]
+    tiles = cover_window(facts, date(2024, 6, 28), date(2025, 6, 27))
+    assert tiles is not None and [t.end for t in tiles] == [date(2024, 9, 28), date(2025, 6, 28)]
+    # A tiling that ends on the window is still the one taken.
+    exact = [*facts, _fact("2024-09-29", "2025-06-27", 3.0)]
+    assert cover_window(exact, date(2024, 6, 28), date(2025, 6, 27))[-1].end == date(2025, 6, 27)
+
+
 def test_ttm_returns_none_when_the_window_cannot_be_tiled():
     """Annual-only data cannot produce a twelve months ending mid-year.
 
@@ -1073,6 +1092,24 @@ def test_an_expense_signed_both_ways_is_read_as_its_size():
     assert fin.interest_expense == pytest.approx(1795.0)
     note = fin.provenance["interest expense"].note
     assert note and "read as its size" in note
+
+
+@pytest.mark.parametrize(
+    "ticker, known, expected",
+    [("DDOG", date(2024, 11, 20), 5.717), ("CRWD", date(2024, 11, 27), 26.069), ("VZ", date(2024, 10, 25), 6604.0)],
+)
+def test_interest_expense_is_read_across_the_move_to_a_new_tag(ticker, known, expected):
+    """Filers moved interest expense from InterestExpense to InterestExpenseNonoperating in 2024.
+
+    A trailing year straddling the move has its early periods under the old
+    tag and its late ones under the new, so neither tiled it alone and
+    interest expense came back as nothing. Verizon's year to September 2024
+    is fiscal 2023's 5,524mm less its first nine months' 3,925mm, both
+    filed before the move, plus 2024's nine months of 5,005mm filed after it.
+    """
+    fin = build_financials(ticker, facts=load_facts(ticker, knowledge_date=known))
+    assert fin.interest_expense == pytest.approx(expected, abs=0.001)
+    assert fin.provenance["interest expense"].tag == "InterestExpense then InterestExpenseNonoperating"
 
 
 def test_a_net_interest_figure_is_read_as_filed():

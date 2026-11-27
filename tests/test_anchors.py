@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
 import techval.anchors as A
+from techval import tags
 from techval.anchors import record_anchors, record_case, trailing_growth, unanchored
 from techval.config import Assumptions
+from techval.edgar import CompanyFacts
 from techval.financials import build_financials
 
-from conftest import load_facts, pinned_assumptions
+from conftest import load_facts, load_payload, pinned_assumptions
 
 
 def company(ticker):
@@ -28,11 +32,29 @@ def test_datadogs_growth_is_its_trailing_twelve_months_against_a_year_before():
     assert "twelve months to 2026-06-30" in how
 
 
-def test_a_year_the_quarters_cannot_tile_falls_back_to_the_fiscal_years():
-    # Disney's twelve months to mid-2025 cannot be tiled from the pruned fixture.
+def test_a_52_53_week_filer_is_measured_on_its_trailing_years():
+    """Disney's year before ends on 28 June 2025, a day after the anniversary.
+
+    That last quarter could not finish a tiling, so the growth fell back to the
+    fiscal years, 3.4%, where the trailing years give 98,861mm against 94,535mm.
+    """
     fin, facts = company("DIS")
     growth, how = trailing_growth(fin, facts)
-    assert "fiscal-year revenue" in how and -0.2 < growth < 0.2
+    assert growth == pytest.approx(98_861 / 94_535 - 1, abs=1e-4)
+    assert "twelve months to 2026-06-27 against 94,535mm a year earlier" in how
+
+
+def test_a_year_the_quarters_cannot_tile_falls_back_to_the_fiscal_years():
+    """With only annual revenue on file there is no year before to tile."""
+    payload = load_payload("DIS")
+    annual = lambda r: 350 <= (date.fromisoformat(r["end"]) - date.fromisoformat(r["start"])).days <= 380
+    for name in tags.REVENUE:
+        for rows in payload["facts"]["us-gaap"].get(name, {"units": {}})["units"].values():
+            rows[:] = [r for r in rows if annual(r)]
+    facts = CompanyFacts(payload, "DIS")
+    fin = build_financials("DIS", facts=load_facts("DIS"))
+    growth, how = trailing_growth(fin, facts)
+    assert "fiscal-year revenue" in how and growth == pytest.approx(94_425 / 91_361 - 1, abs=1e-4)
 
 
 def test_each_anchor_says_what_the_assumptions_file_had_and_where_the_figure_came_from():

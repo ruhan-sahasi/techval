@@ -91,6 +91,10 @@ def ladder_concepts() -> dict[str, list[str]]:
         for entry in value:
             if isinstance(entry, str):
                 concepts.append(entry)
+            elif isinstance(entry, tags.Renamed):
+                # One concept across a change of tag: its tags are rungs of the
+                # same ladder in their own right, read here as one series.
+                concepts.extend(c for c in entry if c not in concepts)
             elif isinstance(entry, tuple):
                 concepts.extend(entry)
         if concepts:

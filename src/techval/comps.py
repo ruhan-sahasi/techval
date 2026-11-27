@@ -437,6 +437,23 @@ def compute_peer_metrics(
     # because a margin on one basis sitting beside a multiple on another would
     # describe two different firms, and the table note says which basis is live.
     ebitda, basis = bridge.multiple_denominator(fin)
+    # Leases are debt in this comparison, but none is read for this filer while
+    # it reports rent, so its EV and its earnings are both after rent: a pairing
+    # consistent on its own and not with everyone else's EBITDAR. Its earnings
+    # multiples and margins are left out rather than mixed in.
+    unleased = (
+        assumptions.leases.capitalize_operating_leases
+        and bridge.operating_lease_in_debt <= 0
+        and (fin.operating_lease_cost or 0) > 0
+    )
+    unleased_note = (
+        f"leases are debt in this comparison, but no operating lease liability is "
+        f"read for {fin.ticker} at {fin.as_of} against "
+        f"{fin.operating_lease_cost or 0:,.0f}mm of lease cost, so its earnings are "
+        "after rent and not comparable with the others' EBITDAR"
+    )
+    if unleased:
+        ebitda = None
     ebitda_margin = None if ebitda is None or not fin.revenue else ebitda / fin.revenue
     growth = _revenue_growth(fin, facts, flags)
     rule_of_40 = (
@@ -454,7 +471,9 @@ def compute_peer_metrics(
             flags.append(f"{metric} NM: {note or exc}")
             return None
 
-    if ebitda is None:
+    if unleased:
+        ebitda_note = unleased_note
+    elif ebitda is None:
         ebitda_note = f"{basis} cannot be formed from this filer's tags"
     elif ebitda_margin is None:
         ebitda_note = "no revenue reported"
@@ -478,10 +497,18 @@ def compute_peer_metrics(
     # EV/EBIT carries the same lease trap as EV/EBITDA, so it takes its
     # denominator from the bridge too rather than reaching for GAAP EBIT.
     ebit_den, ebit_basis = bridge.ebit_denominator(fin)
+    if unleased:
+        ebit_den = None
+    # The margin of the figure the multiple divides by: EBIT before rent where
+    # leases are debt, as the EBITDA margin above is EBITDAR-based there.
+    ebit_label = "EBIT-before-rent margin" if bridge.operating_lease_in_debt > 0 else "EBIT margin"
+    ebit_margin = ebit_den / fin.revenue if ebit_den is not None and fin.revenue else 0.0
     ebit_note = (
-        f"{ebit_basis} cannot be formed from this filer's tags"
+        unleased_note
+        if unleased
+        else f"{ebit_basis} cannot be formed from this filer's tags"
         if ebit_den is None
-        else f"EBIT margin {fin.ebit_margin:.1%}"
+        else f"{ebit_label} {ebit_margin:.1%}"
     )
 
     ev_ebitda = take("EV/EBITDA", ev_numerator, ebitda, ebitda_note)
@@ -536,7 +563,7 @@ def compute_peer_metrics(
             "EV/EBIT",
             take("EV/EBIT", ev_numerator, ebit_den, ebit_note),
             assumptions.comps.ev_ebitda_nm_threshold,
-            f"on an EBIT margin of {fin.ebit_margin:.1%}",
+            f"on an {ebit_label} of {ebit_margin:.1%}",
         ),
         pe=cap(
             "P/E",

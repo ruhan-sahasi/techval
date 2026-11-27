@@ -1446,7 +1446,7 @@ fixtures:
 ```
 $ techval value DIS --from-record
 Assumption                         Assumptions file  From the record  Source
-Year 1 revenue growth                         20.0%             3.4%  fiscal-year revenue of 94,425mm to 2025-09-27 against 91,361mm the year before
+Year 1 revenue growth                         20.0%             4.6%  revenue of 98,861mm over the twelve months to 2026-06-27 against 94,535mm a year earlier
 Terminal EBIT margin                          20.0%            18.4%  today's EBIT margin, 18,238mm on 98,861mm of revenue, held
 Capex, share of revenue                        3.0%             8.8%  trailing capex of 8,696mm on 98,861mm of revenue
 Working capital, share of revenue             -5.0%            -6.8%  working capital of -6,771mm on 98,861mm of revenue, with current debt and leases taken out

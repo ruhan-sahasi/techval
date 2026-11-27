@@ -2,7 +2,8 @@
 
 Ordered by how specific and how trustworthy each tag is, most specific first.
 A tuple entry is a composite: its tags are summed over periods where all of them
-are present.
+are present. A ``Renamed`` entry is one figure a filer moved from one tag to the
+next, read as a single series.
 
 The ladders are longer than the obvious ones because real filers do not use the
 obvious tags. Observed in the fixtures committed with this package: Datadog
@@ -14,6 +15,27 @@ than ``ShortTermInvestments``.
 """
 
 from __future__ import annotations
+
+
+class Renamed(tuple):
+    """One concept a filer moved from one tag to the next, read as one series.
+
+    Unlike a composite tuple, whose tags are parts to be added, these name the
+    same figure. The new tag carries the periods after the switch and, from the
+    next annual report, their comparatives; the old one keeps the periods
+    before. Across the switch neither covers a trailing year on its own.
+    """
+
+    def __new__(cls, *names: str) -> "Renamed":
+        return super().__new__(cls, names)
+
+    def __getnewargs__(self) -> tuple[str, ...]:
+        return tuple(self)
+
+    @property
+    def name(self) -> str:
+        return " then ".join(self)
+
 
 # --- income statement -------------------------------------------------------
 
@@ -62,6 +84,10 @@ INTEREST_EXPENSE = [
     "InterestExpenseDebt",
     "InterestExpense",
     "InterestExpenseNonoperating",
+    # Filers moved from InterestExpense to InterestExpenseNonoperating through
+    # 2024, Datadog, CrowdStrike and Verizon among them, so a trailing year
+    # that straddles the move is read across both.
+    Renamed("InterestExpense", "InterestExpenseNonoperating"),
     "InterestIncomeExpenseNet",
 ]
 
@@ -70,7 +96,9 @@ INTEREST_EXPENSE = [
 # fact is read as its size. The net rung is not among them: interest income less
 # expense runs either way, and a half year of net income set against a half
 # year of net expense nets off rather than adding up.
-INTEREST_EXPENSE_GROSS = frozenset(INTEREST_EXPENSE) - {"InterestIncomeExpenseNet"}
+INTEREST_EXPENSE_GROSS = frozenset(
+    entry for entry in INTEREST_EXPENSE if isinstance(entry, str)
+) - {"InterestIncomeExpenseNet"}
 
 # --- cash flow --------------------------------------------------------------
 
