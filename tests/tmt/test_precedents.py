@@ -270,6 +270,18 @@ def _read(client, ticker, accession, form, filed):
     )
 
 
+def test_the_proxy_dates_the_signing_and_not_a_closing_price(merger_client):
+    """Silicon Labs' proxy: "on February 2, 2026 and February 3, 2026 were $143.42 and $136.62".
+
+    Read case-blind, that "on" opened the agreement sentence, and the date
+    reached the signing two sentences later: "executed the merger agreement
+    shortly after midnight Central Time on February 4, 2026". The 8-K says 4
+    February too.
+    """
+    txn = _read(merger_client, "SLAB", SLAB_PROXY, "DEFM14A", date(2026, 3, 27))
+    assert txn is not None and txn.announced == date(2026, 2, 4)
+
+
 def test_the_deal_comes_from_the_8k_even_though_the_proxy_is_newer(
     merger_client, merger_assumptions
 ):

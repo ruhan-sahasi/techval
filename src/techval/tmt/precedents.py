@@ -666,11 +666,18 @@ _SUBSIDIARY_OF = re.compile(
 # clause is required: the same 8-K carries "On November 30, 2020, Stewart
 # Butterfield ... entered into a written agreement", which is a voting
 # undertaking by the chief executive and not the merger.
-_AGREEMENT_DATE = re.compile(
-    r"\bOn\s+(?P<month>January|February|March|April|May|June|July|August|"
-    r"September|October|November|December)\s+(?P<day>\d{1,2}),\s+(?P<year>\d{4})\s*,?\s*"
-    r".{0,220}?(?:entered\s+into|executed)\s+.{0,90}?"
-    r"(?:Agreement\s+and\s+Plan\s+of\s+Merger|Merger\s+Agreement)",
+_DATE = (
+    r"(?P<month>January|February|March|April|May|June|July|August|"
+    r"September|October|November|December)\s+(?P<day>\d{1,2}),\s+(?P<year>\d{4})"
+)
+_SIGNED = r"(?:entered\s+into|executed)\s+.{0,90}?(?:Agreement\s+and\s+Plan\s+of\s+Merger|Merger\s+Agreement)"
+_AGREEMENT_DATE = re.compile(r"\bOn\s+" + _DATE + r"\s*,?\s*(?P<gap>.{0,220}?)" + _SIGNED, re.I)
+# The proxy's narrative puts the date after the verb: "executed the merger
+# agreement shortly after midnight Central Time on February 4, 2026".
+_AGREEMENT_DATE_AFTER = re.compile(_SIGNED + r"\s.{0,80}?\bon\s+" + _DATE, re.I)
+_ANOTHER_DATE = re.compile(
+    r"(?:January|February|March|April|May|June|July|August|September|October|"
+    r"November|December)\s+\d{1,2},\s+\d{4}",
     re.I,
 )
 
@@ -852,10 +859,24 @@ def _filer_tokens(name: str) -> set[str]:
 
 
 def _agreement_date(text: str) -> date | None:
-    """The date the merger agreement was signed, as the document states it."""
-    m = _AGREEMENT_DATE.search(text)
-    if not m:
+    """The date the merger agreement was signed, as the document states it.
+
+    The earlier in the document of two phrasings: "On <date>, <parties>
+    entered into ..." and "... executed the merger agreement ... on <date>". A
+    date the first finds with another date before the verb is passed over: in
+    Silicon Labs' proxy, "on February 2, 2026 and February 3, 2026 were
+    $143.42 and $136.62" dates two closing prices, and the signing it reached
+    came two sentences later.
+    """
+    before = next(
+        (m for m in _AGREEMENT_DATE.finditer(text) if not _ANOTHER_DATE.search(m.group("gap"))),
+        None,
+    )
+    after = _AGREEMENT_DATE_AFTER.search(text)
+    found = [m for m in (before, after) if m is not None]
+    if not found:
         return None
+    m = min(found, key=lambda m: m.start())
     month = _MONTHS.get(m.group("month").lower())
     if month is None:
         return None
