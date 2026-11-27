@@ -55,6 +55,14 @@ def test_the_page_names_its_live_sources_and_validates(fade_observations):
     assert "SEC EDGAR companyfacts, DDOG" in inputs and "csv daily closes, DDOG" in inputs
 
 
+def test_a_peer_that_could_not_be_read_is_not_named_as_a_source():
+    """A peer with no filings was listed as compared against and as read."""
+    snap = sheet("DDOG", ("CRWD", "NOPE"))
+    assert "trading comps against CRWD," in snap.page["standfirst"]
+    assert snap.page["sources"][0].startswith("SEC EDGAR companyfacts for DDOG, CRWD, DDOG's")
+    assert not any("NOPE" in s for s in snap.page["sources"])
+
+
 def test_a_company_with_no_peers_or_panel_still_gets_a_page_that_says_what_is_missing():
     snap = sheet("CRWD")
     page = snap.sections["engine"]

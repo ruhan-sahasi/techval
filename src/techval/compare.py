@@ -302,9 +302,11 @@ def build_comparison(
                 f"case's. {len(valued)} could be valued; any that could not is named with the reason. "
                 "Nothing here is advice."
             ),
+            # Only what was read: a company refused for want of filings is named
+            # with its reason among the refusals, not here.
             "sources": [
-                f"SEC EDGAR companyfacts for {', '.join(symbols)}",
-                f"{price_feed} daily closes for {', '.join(symbols)}, through {today}",
+                f"SEC EDGAR companyfacts for {', '.join(valued)}",
+                f"{price_feed} daily closes for {', '.join(valued)}, through {today}",
                 *([f"Fade panel of point-in-time TMT company-years: {panel}"] if observations is not None else []),
             ],
         },

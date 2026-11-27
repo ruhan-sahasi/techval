@@ -130,6 +130,11 @@ def test_the_comparison_is_a_one_section_page_that_validates(fade_observations):
     assert [section["figures"][f]["order"] for f in ("value", "returns", "table")] == [1, 2, 3]
     assert [r["what"] for r in section["refusals"]] == ["NOPE"]
     assert "2 could be valued" in back.page["standfirst"]
+    # NOPE has no filings to read; the sources name what was.
+    assert back.page["sources"][:2] == [
+        "SEC EDGAR companyfacts for DDOG, DIS",
+        "csv daily closes for DDOG, DIS, through 2026-09-09",
+    ]
 
 
 def test_the_example_comparison_is_exactly_what_its_committed_snapshot_renders():

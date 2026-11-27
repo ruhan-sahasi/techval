@@ -128,7 +128,12 @@ def build_tearsheet(
 
 
 def _standfirst(m: E.Measured, peers: list[str], panel: bool) -> str:
-    comps = f"trading comps against {', '.join(peers)}" if peers else "no trading comps, since no peers are set"
+    if not peers:
+        comps = "no trading comps, since no peers are set"
+    elif m.peers_read:
+        comps = f"trading comps against {', '.join(m.peers_read)}"
+    else:
+        comps = "no trading comps, since none of the peers set could be read"
     reads = (
         "what the price assumes and bear, base and bull from what similar company-years did"
         if panel
@@ -150,7 +155,7 @@ def _standfirst(m: E.Measured, peers: list[str], panel: bool) -> str:
 
 
 def _sources(m: E.Measured, peers: list[str], price_feed: str, panel: str, has_panel: bool) -> list[str]:
-    names = ", ".join([m.ticker, *peers])
+    names = ", ".join([m.ticker, *m.peers_read])
     out = [
         f"SEC EDGAR companyfacts for {names}, {m.ticker}'s filings through {m.filings_through}",
         f"{price_feed} daily closes for {names}, through {m.price_date}",
