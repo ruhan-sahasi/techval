@@ -240,6 +240,8 @@ class Measured:
     bands: list[Band]
     comps_quantiles: tuple[float, float]
     peers_requested: list[str]
+    # The requested peers the comps could build; a sources line names only these.
+    peers_read: list[str] = field(default_factory=list)
     per_share_gordon: float | None = None
     per_share_value_driver: float | None = None
     sensitivity: Sensitivity | None = None
@@ -1307,6 +1309,7 @@ def measure(
         bands=bands,
         comps_quantiles=tuple(a.comps.apply_percentiles),
         peers_requested=peers,
+        peers_read=[p.ticker for p in comps.peers] if comps is not None else [],
         refusals=refusals,
         anchors=[
             {"label": LABELS[x.field], "assumed": x.assumed, "value": x.value, "source": x.source, "field": x.field}

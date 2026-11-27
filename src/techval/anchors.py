@@ -189,6 +189,21 @@ def unanchored(fields) -> list[str]:
     return [f for f in wanted if f not in have]
 
 
+# The record-case fields as a sentence names them.
+_IN_WORDS = {
+    "revenue_growth_start": "growth",
+    "ebit_margin_terminal": "margin",
+    "capex_pct_revenue": "capex",
+    "da_pct_revenue": "D&A",
+    "nwc_pct_revenue": "working capital",
+}
+
+
+def left_at_assumption(fields) -> list[str]:
+    """The record-case fields ``fields`` leaves at the assumption, in words."""
+    return [_IN_WORDS[f] for f in unanchored(fields)]
+
+
 def record_case(assumptions, fin, facts):
     """The assumptions with the record anchors applied, and the anchors; unchanged when the switch is off.
 

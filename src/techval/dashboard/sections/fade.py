@@ -332,19 +332,35 @@ def _survivorship_note(s: Survivorship) -> dict[str, str]:
         f"optimistic. The panel keeps the {s.leavers} of its {s.filers} filers that "
         "later left until their last filing."
     )
+    # A gap is the survivors' mean less everyone's: negative where the filers
+    # that left had grown faster, and then the measurement is not the flattery
+    # the first sentence describes, and the note says what it did find.
+    flatters = all(g > 0 for _, g in s.gaps)
     if s.gaps:
+        at = " points at " + _years([h for h, _ in s.gaps])
+        if flatters:
+            why += (
+                " Dropping them would lift mean forward growth by "
+                + _join([f"{g * 100:.1f}" for _, g in s.gaps]) + at + "."
+            )
+        elif all(g < 0 for _, g in s.gaps):
+            why += (
+                " On this panel they had grown faster than the filers that stayed: dropping "
+                "them would lower mean forward growth by "
+                + _join([f"{-g * 100:.1f}" for _, g in s.gaps]) + at + "."
+            )
+        else:
+            why += (
+                " On this panel dropping them would move mean forward growth by "
+                + _join([f"{g * 100:+.1f}" for _, g in s.gaps]) + at + ", so the bias runs both ways."
+            )
+    if flatters:
         why += (
-            " Dropping them would lift mean forward growth by "
-            + _join([f"{g * 100:.1f}" for _, g in s.gaps])
-            + " points at "
-            + _years([h for h, _ in s.gaps])
-            + "."
+            " The years after they left are in no filing, so what is left of the bias "
+            "points the same way."
         )
-    why += (
-        " The years after they left are in no filing, so what is left of the bias "
-        "points the same way."
-    )
-    return {"what": "Survivorship flatters a fade curve", "why": why}
+    what = "Survivorship flatters a fade curve" if flatters else "Survivorship on this panel"
+    return {"what": what, "why": why}
 
 
 def _curve_figure(curve: Curve, survivorship: Survivorship) -> dict[str, Any]:

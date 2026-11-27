@@ -17,6 +17,7 @@ from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import date
 
+from .anchors import left_at_assumption
 from .dashboard.sections import engine as E
 from .dashboard.snapshot import make_figure
 from .errors import TechvalError
@@ -87,7 +88,8 @@ def value_figure(rows: list[Compared]) -> dict:
         "dot",
         title,
         "Gordon DCF value per share over the close. The base case is the assumptions file's; "
-        "the record case sets growth, margin and reinvestment from each company's own filings.",
+        "the record case sets growth, margin and reinvestment from each company's own filings "
+        "where they report them.",
         {
             "series": [
                 {"key": "base", "name": "Base case", "role": "model"},
@@ -233,6 +235,11 @@ def takeaway(rows: list[Compared], when: str) -> str:
     )
 
 
+def _words(items: list[str]) -> str:
+    """["a"] -> "a"; ["a", "b", "c"] -> "a, b and c"."""
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
 def build_comparison(
     tickers: list[str],
     assumptions,
@@ -289,6 +296,21 @@ def build_comparison(
     )
     validate_section(section)
     valued = [c.ticker for c in rows if c.base is not None]
+    # A record case sets what the filings carry and leaves the rest at the
+    # assumption; the standfirst names what it left.
+    gaps = [
+        (c.ticker, gap)
+        for c in rows
+        if c.record is not None
+        and (gap := left_at_assumption(a["field"] for a in c.record.anchors))
+    ]
+    named = [f"{ticker}'s {_words(gap)}" for ticker, gap in gaps]
+    exceptions = (
+        f", except {_words(named)}, which "
+        f"{'stays' if sum(len(gap) for _, gap in gaps) == 1 else 'stay'} at the assumption"
+        if gaps
+        else ""
+    )
     return Snapshot(
         title=f"{', '.join(symbols)}, compared",
         techval_commit=commit,
@@ -298,13 +320,15 @@ def build_comparison(
             "standfirst": (
                 f"{len(symbols)} companies through the same engine as the techval results page, each "
                 "valued twice: on the assumptions file, and on its own record, its growth, margin and "
-                "reinvestment set from its filings. The reverse DCF and the scenarios are the base "
+                f"reinvestment set from its filings{exceptions}. The reverse DCF and the scenarios are the base "
                 f"case's. {len(valued)} could be valued; any that could not is named with the reason. "
                 "Nothing here is advice."
             ),
+            # Only what was read: a company refused for want of filings is named
+            # with its reason among the refusals, not here.
             "sources": [
-                f"SEC EDGAR companyfacts for {', '.join(symbols)}",
-                f"{price_feed} daily closes for {', '.join(symbols)}, through {today}",
+                f"SEC EDGAR companyfacts for {', '.join(valued)}",
+                f"{price_feed} daily closes for {', '.join(valued)}, through {today}",
                 *([f"Fade panel of point-in-time TMT company-years: {panel}"] if observations is not None else []),
             ],
         },

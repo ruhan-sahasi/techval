@@ -117,6 +117,14 @@ def test_the_takeaway_names_the_price_that_asks_the_most(compared):
     assert "CRWD's price asks the most" in text
 
 
+def test_the_standfirst_names_what_a_record_case_left_at_the_assumption():
+    snap = build_comparison(
+        ["CRWD", "DDOG"], pinned_assumptions(), client=RecordedFacts(FIXTURES), prices=CsvSource(PRICES),
+        price_feed="csv", observations=None, panel="x", today=AS_OF, collected_at="2026-09-09", commit="abc1234",
+    )
+    assert "set from its filings, except CRWD's D&A, which stays at the assumption." in snap.page["standfirst"]
+
+
 def test_the_comparison_is_a_one_section_page_that_validates(fade_observations):
     snap = build_comparison(
         ["DDOG", "DIS", "NOPE"], pinned_assumptions(), client=RecordedFacts(FIXTURES), prices=CsvSource(PRICES),
@@ -130,6 +138,11 @@ def test_the_comparison_is_a_one_section_page_that_validates(fade_observations):
     assert [section["figures"][f]["order"] for f in ("value", "returns", "table")] == [1, 2, 3]
     assert [r["what"] for r in section["refusals"]] == ["NOPE"]
     assert "2 could be valued" in back.page["standfirst"]
+    # NOPE has no filings to read; the sources name what was.
+    assert back.page["sources"][:2] == [
+        "SEC EDGAR companyfacts for DDOG, DIS",
+        "csv daily closes for DDOG, DIS, through 2026-09-09",
+    ]
 
 
 def test_the_example_comparison_is_exactly_what_its_committed_snapshot_renders():

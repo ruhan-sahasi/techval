@@ -127,6 +127,19 @@ def test_no_copy_on_the_page_carries_an_em_dash():
         assert not [s for s in strings(S.shape(facts)) if "\u2014" in s]
 
 
+def test_a_correction_below_one_narrows_the_standard_error():
+    """Newey-West can shrink the standard error, where the dates' ICs alternate.
+
+    At an inflation of 0.77x the t-statistic subtitle said the correction
+    "widens the standard error 0.77x", and the autocorrelation subtitle that
+    the overlap makes the naive standard error too small.
+    """
+    figures = S.shape(_facts(t_naive=-1.70, t_newey_west=-2.20, inflation=0.773))["figures"]
+    subtitles = " ".join(fig["subtitle"] for fig in figures.values())
+    assert "Newey-West at lag 3 narrows the standard error 0.77x" in subtitles
+    assert "widens" not in subtitles and "too small" not in subtitles
+
+
 def test_the_takeaway_is_built_from_the_values_it_was_given():
     text = S.shape(_facts())["takeaway"]
     assert "the wrong sign" in text
