@@ -33,6 +33,7 @@ from techval.dashboard.sections.fade import (
     Refusal,
     Results,
     Survivorship,
+    _survivorship_note,
     Valuation,
     shape,
     verdict_status,
@@ -259,6 +260,20 @@ def test_the_survivorship_note_states_the_direction_and_the_measured_gaps():
     assert "fades too slowly" in note["why"] and "too optimistic" in note["why"]
     assert "1.0, 2.0 and 3.0 points at one, two and three years" in note["why"]
     assert "40 of its 100 filers" in note["why"]
+
+
+def test_a_survivorship_gap_that_runs_the_other_way_is_not_called_flattery():
+    """The gaps are survivors less everyone, negative where the leavers grew faster.
+
+    The note said dropping the leavers would "lift mean forward growth by -0.4,
+    -0.6 and -0.2 points", under a heading that survivorship flatters the curve.
+    """
+    note = _survivorship_note(Survivorship(40, 100, gaps=((1, -0.004), (2, -0.006), (3, -0.002))))
+    assert note["what"] == "Survivorship on this panel"
+    assert "would lower mean forward growth by 0.4, 0.6 and 0.2 points at one, two and three years" in note["why"]
+    assert "points the same way" not in note["why"]
+    mixed = _survivorship_note(Survivorship(40, 100, gaps=((1, 0.01), (2, -0.006))))
+    assert "by +1.0 and -0.6 points at one and two years, so the bias runs both ways" in mixed["why"]
 
 
 def test_an_unvalued_path_is_a_refusal_with_its_reason_and_no_figure():
