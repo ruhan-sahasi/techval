@@ -355,6 +355,21 @@ def test_ev_ebit_is_applied_to_the_ebit_it_was_struck_on(assumptions):
     assert frame.loc["EV/EBIT", "Implied price low"] == pytest.approx(20.0)
 
 
+
+def test_the_ev_ebit_flag_quotes_the_margin_it_divided_by(assumptions, market):
+    """With leases as debt EV/EBIT divides by EBIT before rent.
+
+    Datadog's is 73.1mm, a 1.8% margin, and its 1,080x was said to be on an
+    EBIT margin of 0.4%, at which the multiple would be about 4,800x.
+    Zscaler's was flagged at -4.0% against -1.5% before rent.
+    """
+    assumptions.leases.capitalize_operating_leases = True
+    assumptions.comps.peers = ["DDOG", "ZS", "CRWD"]
+    r = run_comps("MDB", assumptions, FixtureClient(), market)
+    flags = {p.ticker: " ".join(p.flags) for p in r.peers}
+    assert "exceeds the 100x cut-off on an EBIT-before-rent margin of 1.8%" in flags["DDOG"]
+    assert "EV/EBIT NM: EBIT-before-rent margin -1.5%" in flags["ZS"]
+
 def test_negative_enterprise_value_withholds_ev_multiples(assumptions):
     """Cash above market cap plus debt makes every EV multiple negative.
 
