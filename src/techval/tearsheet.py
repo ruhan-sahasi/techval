@@ -17,6 +17,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Iterator, Sequence
 
+from .anchors import left_at_assumption
 from .config import Assumptions
 from .dashboard.collect import entry_module
 from .dashboard.sections import engine as E
@@ -144,7 +145,9 @@ def _standfirst(m: E.Measured, peers: list[str], panel: bool) -> str:
         f"a DCF with its bridge and sensitivity, {comps}, a Monte Carlo of value, APV, and {reads}. "
         + (
             "The DCF is the record case, its growth, margin and reinvestment set from the "
-            "company's own filings rather than the assumptions file. "
+            "company's own filings rather than the assumptions file"
+            + _except(left_at_assumption(x["field"] for x in m.anchors))
+            + ". "
             if m.anchors
             else ""
         )
@@ -152,6 +155,14 @@ def _standfirst(m: E.Measured, peers: list[str], panel: bool) -> str:
         "figure is the engine's own, and where it could not form one a note says so in its place. "
         "Nothing here is advice."
     )
+
+
+def _except(left: list[str]) -> str:
+    """", except its D&A, which stays at the assumption", or nothing."""
+    if not left:
+        return ""
+    names = left[0] if len(left) == 1 else ", ".join(left[:-1]) + " and " + left[-1]
+    return f", except its {names}, which {'stays' if len(left) == 1 else 'stay'} at the assumption"
 
 
 def _sources(m: E.Measured, peers: list[str], price_feed: str, panel: str, has_panel: bool) -> list[str]:

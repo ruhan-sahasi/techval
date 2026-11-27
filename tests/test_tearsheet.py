@@ -55,6 +55,23 @@ def test_the_page_names_its_live_sources_and_validates(fade_observations):
     assert "SEC EDGAR companyfacts, DDOG" in inputs and "csv daily closes, DDOG" in inputs
 
 
+def test_a_record_case_names_what_the_filings_left_at_the_assumption():
+    """CrowdStrike's filings carry no D&A line the record case can read.
+
+    The page said its growth, margin and reinvestment were all set from the
+    filings, beside a record figure saying D&A stayed at the assumption.
+    """
+    a = pinned_assumptions()
+    a.dcf.from_record = True
+    snap = build_tearsheet(
+        "CRWD", a, client=RecordedFacts(FIXTURES), prices=CsvSource(PRICES), price_feed="csv",
+        observations=None, panel="x", today=AS_OF, collected_at="2026-10-11", commit="abc1234",
+    )
+    assert "rather than the assumptions file, except its D&A, which stays at the assumption." in (
+        snap.page["standfirst"]
+    )
+
+
 def test_a_peer_that_could_not_be_read_is_not_named_as_a_source():
     """A peer with no filings was listed as compared against and as read."""
     snap = sheet("DDOG", ("CRWD", "NOPE"))
