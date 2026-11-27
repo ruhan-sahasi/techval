@@ -807,17 +807,25 @@ def _scenarios(m: Measured) -> dict[str, Any]:
         },
         wide=True,
     )
-    figure["notes"] = [
-        {
-            "what": "Calibration",
-            "why": (
-                f"Held out from {c['test_from'][:4]}, the 10th-to-90th percentile band held "
-                f"{c['share_inside']:.1%} of {c['n']:,} company-years it had not seen, against a nominal "
-                f"{c['nominal']:.0%}; {c['share_above']:.1%} beat it and {c['share_below']:.1%} fell "
-                "below, so these bull cases have run low against what followed."
-            ),
-        }
-    ]
+    if not c["n"]:
+        why = (
+            f"Held out from {c['test_from'][:4]}, no company-year on this panel could be "
+            "scored against the band, so its calibration is not reported."
+        )
+    else:
+        # The tail that missed more is the one the panel's history got wrong.
+        lean = ""
+        if c["share_above"] > c["share_below"]:
+            lean = ", so these bull cases have run low against what followed"
+        elif c["share_below"] > c["share_above"]:
+            lean = ", so these bear cases have run high against what followed"
+        why = (
+            f"Held out from {c['test_from'][:4]}, the 10th-to-90th percentile band held "
+            f"{c['share_inside']:.1%} of {c['n']:,} company-years it had not seen, against a nominal "
+            f"{c['nominal']:.0%}; {c['share_above']:.1%} beat it and {c['share_below']:.1%} fell "
+            f"below{lean}."
+        )
+    figure["notes"] = [{"what": "Calibration", "why": why}]
     return figure
 
 

@@ -373,6 +373,13 @@ def scenarios(
 
 
 def _calibration_sentence(c: dict) -> str:
+    if not c["n"]:
+        # A dated run before the panel holds a full outcome from the held-out
+        # years on: there is no share to report.
+        return (
+            f"Held out from {c['test_from'][:4]}, no company-year on this panel could be "
+            "scored against the band, so its calibration is not reported."
+        )
     return (
         f"Held out from {c['test_from'][:4]}, the band from the 10th to the 90th percentile held "
         f"{c['share_inside']:.1%} of {c['n']:,} company-years it had not seen, against a nominal "

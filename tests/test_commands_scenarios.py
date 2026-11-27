@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import json
+from datetime import date
 
 from typer.testing import CliRunner
 
 from techval.cli import app
+from techval.commands_expectations import _calibration_sentence
+from techval.ml.forecast import known_on
+from techval.scenarios import band_coverage
 
 from conftest import FIXTURES, flat, offline_config
 
@@ -30,6 +34,20 @@ def test_scenarios_print_three_valued_paths_the_weighting_and_the_calibration(tm
         assert phrase in text, phrase
     assert "above even the bull case" in text
     assert "held 69.1% of 674" in text
+
+
+def test_a_panel_with_nothing_held_out_to_score_says_so(fade_observations):
+    """Cut to mid-2019, no company-year from 2016 on has its five-year outcome.
+
+    The band's shares came back as None and the sentence formatted them, so a
+    dated run that early printed its scenarios and then failed.
+    """
+    c = band_coverage(known_on(fade_observations, date(2019, 6, 30)))
+    assert c["n"] == 0 and c["share_inside"] is None
+    assert _calibration_sentence(c) == (
+        "Held out from 2016, no company-year on this panel could be scored against the "
+        "band, so its calibration is not reported."
+    )
 
 
 def test_a_price_inside_the_scenarios_is_read_as_a_weight(tmp_path):

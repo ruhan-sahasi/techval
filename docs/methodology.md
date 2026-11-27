@@ -618,9 +618,10 @@ out as:
 | Memo: difference | +10.79, +2.9% |
 
 Equity value moves from $82.7bn to $85.1bn. The two counts sit apart for two
-reasons pulling opposite ways: the weighted average is struck over a past window
-and so falls below the count outstanding today, while it already carries a share
-of the award overhang that the walk above adds back in full.
+reasons pulling opposite ways: the weighted average is struck over a past
+window, so its basic count of 352.33mm falls below the 359.08mm outstanding
+today, while it already carries a share of the award overhang that the walk
+above adds back in full.
 
 Where the filer tags options by exercise-price range, each band is valued on
 its own terms rather than through one average strike, because a band is either

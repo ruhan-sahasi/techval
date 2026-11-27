@@ -112,6 +112,8 @@ _OPTION_STRIKE_TAGS = frozenset(
     for t in (
         "ShareBasedCompensationArrangementByShareBasedPaymentAwardOptionsOutstandingWeightedAverageExercisePrice",
         "ShareBasedCompensationArrangementsByShareBasedPaymentAwardOptionsOutstandingWeightedAverageExercisePrice",
+        # The exercise-price-range table's own strike, the twin of its count.
+        "ShareBasedCompensationSharesAuthorizedUnderStockOptionPlansExercisePriceRangeOutstandingOptionsWeightedAverageExercisePrice",
     )
 )
 _RSU_COUNT_TAGS = frozenset(
@@ -432,8 +434,8 @@ def _option_blocks(
         band_note
         + [
             f"Options at {when}: {plain.value / _MM:,.2f}mm at a single "
-            f"weighted-average exercise price of {strike.value:,.2f}, the filer "
-            "tagging no exercise-price bands to split it by."
+            f"weighted-average exercise price of {strike.value:,.2f}"
+            + ("." if banded else ", the filer tagging no exercise-price bands to split it by.")
         ],
         [],
     )
@@ -732,13 +734,29 @@ def build_share_count(
 
     gap = fully_diluted - fin.diluted_shares
     pct = gap / fin.diluted_shares if fin.diluted_shares else 0.0
+    if fin.basic_shares is None:
+        why = (
+            "The two move apart because the weighted average is struck over a past "
+            "window, while it already carries a share of the award overhang that is "
+            "added here in full."
+        )
+    else:
+        # The average's basic count lags today's for a company issuing shares
+        # and leads it for one buying them back; only the first pulls against
+        # the overhang the average already carries.
+        lags = fin.basic_shares < basic
+        why = (
+            f"The two move apart for two reasons pulling "
+            f"{'opposite ways' if lags else 'the same way'}: the weighted average is "
+            f"struck over a past window, so its basic count of "
+            f"{fin.basic_shares:,.2f}mm sits {'below' if lags else 'above'} the "
+            f"{basic:,.2f}mm outstanding today, while it already carries a share of "
+            "the award overhang that is added here in full."
+        )
     notes.append(
         f"Fully diluted {fully_diluted:,.2f}mm against a trailing diluted "
         f"weighted average of {fin.diluted_shares:,.2f}mm, a difference of "
-        f"{gap:+,.2f}mm shares or {pct:+.2%}. The two move apart for two reasons "
-        f"pulling opposite ways: the weighted average is struck over a past window "
-        f"and so sits below the {basic:,.2f}mm outstanding today, while it already "
-        "carries a share of the award overhang that is added here in full."
+        f"{gap:+,.2f}mm shares or {pct:+.2%}. " + why
     )
     notes.append(_CONVERTIBLE_NOTE)
 

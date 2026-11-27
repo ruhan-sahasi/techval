@@ -1167,24 +1167,31 @@ class CompanyFacts:
             partial.append(name)
 
         if allow_annual_fallback:
+            # The latest year on any rung, ladder order breaking ties. A rung the
+            # filer stopped tagging keeps its last annual figure forever, and
+            # taken in ladder order it would beat this year's on a lower rung.
+            latest = None
             for entry, name in zip(ladder, names):
                 facts = self._entry_series(entry)
                 fy = latest_annual(facts, as_of) if facts else None
-                if fy is not None:
-                    return fy.val, Provenance(
-                        concept=concept,
-                        tag=name,
-                        method="latest filed fiscal year, not trailing twelve months",
-                        periods=[f"{fy.start}..{fy.end}"],
-                        forms=[fy.form],
-                        filed=str(fy.filed),
-                        tags_tried=names,
-                        note=(
-                            "the filer reports this only annually, so the twelve "
-                            "months ending on the latest balance-sheet date cannot "
-                            "be constructed; this is the most recent full year"
-                        ),
-                    )
+                if fy is not None and (latest is None or fy.end > latest[0].end):
+                    latest = (fy, name)
+            if latest is not None:
+                fy, name = latest
+                return fy.val, Provenance(
+                    concept=concept,
+                    tag=name,
+                    method="latest filed fiscal year, not trailing twelve months",
+                    periods=[f"{fy.start}..{fy.end}"],
+                    forms=[fy.form],
+                    filed=str(fy.filed),
+                    tags_tried=names,
+                    note=(
+                        "the filer reports this only annually, so the twelve "
+                        "months ending on the latest balance-sheet date cannot "
+                        "be constructed; this is the most recent full year"
+                    ),
+                )
 
         if default_when_absent is not None:
             return default_when_absent, Provenance(

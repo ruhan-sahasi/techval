@@ -126,6 +126,7 @@ from typing import Any, Iterable, Protocol, Sequence
 import numpy as np
 import pandas as pd
 
+from ..comps import _for_company
 from ..config import Assumptions
 from ..edgar import SEC_TICKERS_URL, CompanyFacts
 from ..errors import DataSourceError, NotMeaningfulError, TechvalError
@@ -1770,6 +1771,11 @@ def build_precedents(
     completed target: a precedent set with real premia over closed deals needs
     ``price_source: csv`` and the closes supplied.
     """
+    # A conversion price is read from one company's indenture: the one being
+    # valued. Applied to the targets it would reclassify each target's notes
+    # on another company's strike, so they are priced as comps prices its
+    # peers, with the notes left in debt unless the target's own strike is set.
+    assumptions = _for_company(assumptions, is_target=False)
     as_of = assumptions.knowledge_date or getattr(client, "knowledge_date", None) or date.today()
     mna = assumptions.ml.mna
 
