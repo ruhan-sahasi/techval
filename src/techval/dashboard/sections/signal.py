@@ -320,8 +320,8 @@ def _t_statistics(f: SignalFacts) -> dict[str, Any]:
     subtitle = (
         f"t-statistic of the mean IC over {len(f.ic)} {_cadence(f.spacing_months)} "
         f"dates. The naive one treats the dates as independent; Newey-West at lag "
-        f"{f.lag} widens the standard error {_num(f.inflation, 2)}x for the "
-        f"{f.horizon_months}-month windows they share."
+        f"{f.lag} {'widens' if f.inflation >= 1 else 'narrows'} the standard error "
+        f"{_num(f.inflation, 2)}x for the {f.horizon_months}-month windows they share."
     )
     return make_figure(
         "dot",
@@ -406,7 +406,12 @@ def _ic_autocorrelation(f: SignalFacts) -> dict[str, Any]:
         f"share of the {f.horizon_months}-month return window two dates that far apart "
         "have in common. Overlap alone does not autocorrelate a cross-sectional IC. "
         "Overlap with a persistent score does, a trailing multiple persists, and "
-        "that is what makes the naive standard error too small."
+        + (
+            "that is what makes the naive standard error too small."
+            if f.inflation >= 1
+            else "here the correction narrows the naive standard error instead, so the "
+            "dates' ICs alternate more than they persist."
+        )
     )
     return make_figure(
         "dot",
