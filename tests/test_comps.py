@@ -356,6 +356,24 @@ def test_ev_ebit_is_applied_to_the_ebit_it_was_struck_on(assumptions):
 
 
 
+def test_a_filer_with_no_lease_liability_read_stays_out_of_an_ebitdar_table(assumptions, market):
+    """Disney tags its lease liabilities only at the fiscal year end.
+
+    At its June balance sheet none is read, so with leases capitalised its EV
+    carries no lease debt and its multiples fell back to EBITDA after rent:
+    9.93x, the only EV/EBITDA in the set, became the median applied to
+    MongoDB's EBITDAR, while its bridge note said it used EBITDAR.
+    """
+    assumptions.leases.capitalize_operating_leases = True
+    assumptions.comps.peers = ["DDOG", "ZS", "DIS"]
+    r = run_comps("MDB", assumptions, FixtureClient(), market)
+    dis = next(p for p in r.peers if p.ticker == "DIS")
+    assert dis.ev_ebitda is None and dis.ev_ebit is None and dis.ebitda_margin is None
+    assert any("no operating lease liability is read for DIS" in f for f in dis.flags)
+    assert any(f.startswith("Warning: leases are capitalised, but no operating lease") for f in dis.flags)
+    assert r.stats.loc["n", "EV/EBITDA"] == 0
+
+
 def test_the_ev_ebit_flag_quotes_the_margin_it_divided_by(assumptions, market):
     """With leases as debt EV/EBIT divides by EBIT before rent.
 

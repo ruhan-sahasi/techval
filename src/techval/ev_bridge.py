@@ -230,7 +230,15 @@ def build_ev_bridge(
         if assumptions.leases.include_finance_leases_in_debt
         else 0.0
     )
-    if capitalize:
+    if capitalize and operating_lease_in_debt <= 0 and (fin.operating_lease_cost or 0) > 0:
+        notes.append(
+            f"Warning: leases are capitalised, but no operating lease liability is "
+            f"read at {fin.as_of} while {fin.operating_lease_cost:,.0f}mm of operating "
+            "lease cost is, so this enterprise value carries no lease debt and its "
+            "earnings multiples are on EBITDA, after rent. A comparison on EBITDAR "
+            "leaves them out."
+        )
+    elif capitalize:
         notes.append(
             "Operating lease liabilities are counted as debt, so every multiple "
             "built on this bridge uses EBITDAR, before operating lease cost."
