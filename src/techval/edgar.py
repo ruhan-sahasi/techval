@@ -49,6 +49,7 @@ from typing import Any, Collection, Iterable, Iterator, NamedTuple, Sequence
 import requests
 
 from . import former_tickers
+from .tags import Renamed
 from .errors import DataSourceError, MissingDataError, StaleDataError
 
 SEC_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
@@ -1027,10 +1028,33 @@ class CompanyFacts:
             )
         return sorted(out, key=lambda f: (f.start or f.end, f.end))
 
+    def _renamed_series(self, names: Renamed) -> list[Fact]:
+        """A concept filed under successive tags, as one series.
+
+        Every period either tag carries is kept. Where both carry one, the rule
+        that picks between two filings of one tag picks here too: an audited
+        periodic report first, then the later filing.
+        """
+        best: dict[tuple[date | None, date], Fact] = {}
+        for name in names:
+            for f in self.facts(name):
+                if f.is_instant:
+                    continue
+                key, prev = (f.start, f.end), best.get((f.start, f.end))
+                if prev is None or (self._rank(f.form), -f.filed.toordinal()) < (
+                    self._rank(prev.form),
+                    -prev.filed.toordinal(),
+                ):
+                    best[key] = f
+        return sorted(best.values(), key=lambda f: (f.end, f.days))
+
     def _entry_series(self, entry: str | tuple[str, ...]) -> list[Fact]:
-        """A ladder entry's duration facts: the tag's own, or the composite's sum."""
+        """A ladder entry's duration facts: the tag's own, a renamed concept's
+        across its tags, or a composite's sum."""
         if isinstance(entry, str):
             return [f for f in self.facts(entry) if not f.is_instant]
+        if isinstance(entry, Renamed):
+            return self._renamed_series(entry)
         return self._composite_series(entry)
 
     def _largest_covering(
@@ -1114,14 +1138,21 @@ class CompanyFacts:
         ordinary year.
         """
         ladder = list(ladder)
-        names = [t if isinstance(t, str) else " + ".join(t) for t in ladder]
+        names = [
+            t if isinstance(t, str) else t.name if isinstance(t, Renamed) else " + ".join(t)
+            for t in ladder
+        ]
         partial: list[str] = []
 
         for index, (entry, name) in enumerate(zip(ladder, names)):
             facts = self._entry_series(entry)
             if not facts:
                 continue
-            signed = name in magnitude and any(f.val < 0 for f in facts)
+            # A renamed concept is read as a size where every tag it spans is.
+            gross = name in magnitude or (
+                isinstance(entry, Renamed) and all(t in magnitude for t in entry)
+            )
+            signed = gross and any(f.val < 0 for f in facts)
             if signed:
                 facts = [replace(f, val=abs(f.val)) for f in facts]
             got = trailing_twelve_months(facts, as_of, kind=kind)

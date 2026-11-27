@@ -1075,6 +1075,24 @@ def test_an_expense_signed_both_ways_is_read_as_its_size():
     assert note and "read as its size" in note
 
 
+@pytest.mark.parametrize(
+    "ticker, known, expected",
+    [("DDOG", date(2024, 11, 20), 5.717), ("CRWD", date(2024, 11, 27), 26.069), ("VZ", date(2024, 10, 25), 6604.0)],
+)
+def test_interest_expense_is_read_across_the_move_to_a_new_tag(ticker, known, expected):
+    """Filers moved interest expense from InterestExpense to InterestExpenseNonoperating in 2024.
+
+    A trailing year straddling the move has its early periods under the old
+    tag and its late ones under the new, so neither tiled it alone and
+    interest expense came back as nothing. Verizon's year to September 2024
+    is fiscal 2023's 5,524mm less its first nine months' 3,925mm, both
+    filed before the move, plus 2024's nine months of 5,005mm filed after it.
+    """
+    fin = build_financials(ticker, facts=load_facts(ticker, knowledge_date=known))
+    assert fin.interest_expense == pytest.approx(expected, abs=0.001)
+    assert fin.provenance["interest expense"].tag == "InterestExpense then InterestExpenseNonoperating"
+
+
 def test_a_net_interest_figure_is_read_as_filed():
     """Interest income less expense runs either way, so its facts keep their sign.
 
