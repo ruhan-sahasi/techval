@@ -4444,12 +4444,12 @@
                   {
                     "label": "close 115.06",
                     "x": "2024-09-30",
-                    "y": 0.123942
+                    "y": 0.123786
                   },
                   {
                     "label": "close 142.89",
                     "x": "2024-12-31",
-                    "y": 0.122901
+                    "y": 0.122776
                   },
                   {
                     "label": "close 99.21",
@@ -4836,7 +4836,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.06
+          "seconds": 0.05
         },
         {
           "entry_point": "techval.wacc.compute_wacc",
@@ -4852,7 +4852,7 @@
             "tests/fixtures/prices/ZS.csv",
             "tests/fixtures/prices/SPY.csv"
           ],
-          "seconds": 0.01
+          "seconds": 0.0
         },
         {
           "entry_point": "techval.market.PriceSeries.fifty_two_week_range",
@@ -4893,7 +4893,7 @@
             "tests/fixtures/prices/SPY.csv",
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 0.04
+          "seconds": 0.03
         },
         {
           "entry_point": "techval.scenarios.value_scenarios",
@@ -4910,7 +4910,7 @@
             "tests/fixtures/prices/SPY.csv",
             "tests/fixtures/fade_companyfacts.json.gz"
           ],
-          "seconds": 0.05
+          "seconds": 0.04
         },
         {
           "entry_point": "techval.reverse_dcf.expectations_history",
@@ -10052,6 +10052,6 @@
       "title": "Warranted multiple"
     }
   },
-  "techval_commit": "9df555c",
+  "techval_commit": "fc706ab",
   "title": "Valuation engine and model results"
 }
