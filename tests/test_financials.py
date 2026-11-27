@@ -90,6 +90,25 @@ def test_cover_window_tiles_without_gap_or_overlap():
     assert sum(t.days for t in tiles) == 365
 
 
+def test_a_last_tile_may_end_a_few_days_past_the_window_when_none_ends_on_it():
+    """Disney's fiscal quarters end on Saturdays.
+
+    The year to 27 June 2025, a calendar year before its June 2026 quarter end,
+    is tiled by quarters ending on 28 June 2025. A last tile ending a day after
+    the window passed the filter on tile ends and could never finish, so the
+    record case could not form the year before and fell back to fiscal years.
+    """
+    facts = [
+        _fact("2024-06-30", "2024-09-28", 1.0),
+        _fact("2024-09-29", "2025-06-28", 3.0),
+    ]
+    tiles = cover_window(facts, date(2024, 6, 28), date(2025, 6, 27))
+    assert tiles is not None and [t.end for t in tiles] == [date(2024, 9, 28), date(2025, 6, 28)]
+    # A tiling that ends on the window is still the one taken.
+    exact = [*facts, _fact("2024-09-29", "2025-06-27", 3.0)]
+    assert cover_window(exact, date(2024, 6, 28), date(2025, 6, 27))[-1].end == date(2025, 6, 27)
+
+
 def test_ttm_returns_none_when_the_window_cannot_be_tiled():
     """Annual-only data cannot produce a twelve months ending mid-year.
 

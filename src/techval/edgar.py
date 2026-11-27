@@ -1362,6 +1362,12 @@ def cover_window(
     anniversary of the start date. Eight days rather than four, because a 53-week
     fiscal year inserts a whole extra week and the quarters that follow one are
     offset by seven days, not by the day or two a 52-week year drifts.
+
+    The same slack lets the last tile end a few days after ``window_end``, where
+    no tiling ends on it: a caller asking for the year to a calendar
+    anniversary of a 52/53-week filer's quarter end, as the record case does
+    for the year before, finds that quarter ending a day or two later. A tiling
+    that ends on the window is always preferred.
     """
     by_start: dict[date, list[Fact]] = {}
     for f in facts:
@@ -1373,8 +1379,10 @@ def cover_window(
 
     starts = sorted(by_start)
 
-    def _walk(cursor: date, depth: int) -> list[Fact] | None:
+    def _walk(cursor: date, depth: int, overrun: bool) -> list[Fact] | None:
         if abs((cursor - window_end).days) <= 1:
+            return []
+        if overrun and depth > 0 and 1 < (cursor - window_end).days <= slack_days + 1:
             return []
         if cursor > window_end or depth > 8:
             return None
@@ -1387,12 +1395,13 @@ def cover_window(
         for f in candidates:
             if f.end > window_end + timedelta(days=slack_days):
                 continue
-            rest = _walk(f.end + timedelta(days=1), depth + 1)
+            rest = _walk(f.end + timedelta(days=1), depth + 1, overrun)
             if rest is not None:
                 return [f, *rest]
         return None
 
-    return _walk(window_start, 0)
+    exact = _walk(window_start, 0, False)
+    return exact if exact is not None else _walk(window_start, 0, True)
 
 
 def trailing_twelve_months(
