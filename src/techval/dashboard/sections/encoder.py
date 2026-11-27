@@ -528,9 +528,16 @@ def _warm_cold(results: Mapping[str, Any], refusals: list[dict[str, str]]) -> di
             }
         )
     if warm is not None and cold is not None:
+        moves = (
+            "falls" if cold["score"] < warm["score"]
+            else "rises" if cold["score"] > warm["score"]
+            else "holds"
+        )
         title = (
-            f"On a company it never trained on, the encoder falls from "
+            f"On a company it never trained on, the encoder {moves} from "
             f"{warm['score']:.2f} to {cold['score']:.2f}"
+            if moves != "holds"
+            else f"On a company it never trained on, the encoder holds at {warm['score']:.2f}"
         )
     else:
         present = warm or cold
@@ -726,13 +733,15 @@ def _truncation(results: Mapping[str, Any], refusals: list[dict[str, str]]) -> d
         m for m in METHOD_NAMES if m in base_by and all(by[m]["ndcg"] == base_by[m]["ndcg"] for _, by in by_cut)
     ]
     enc_drop = base_by["encoder"]["ndcg"] - shortest_by["encoder"]["ndcg"]
+    # A shorter excerpt can score higher, and then it lifts the encoder.
+    effect = f"costs the encoder {enc_drop:.3f}" if enc_drop >= 0 else f"lifts the encoder {-enc_drop:.3f}"
     if unmoved:
         title = (
-            f"Cutting the excerpts to {shortest['chars']:,} characters costs the encoder "
-            f"{enc_drop:.3f}, and {_count(len(unmoved), 'baseline')} not move at all"
+            f"Cutting the excerpts to {shortest['chars']:,} characters {effect}, and "
+            f"{_count(len(unmoved), 'baseline')} not move at all"
         )
     else:
-        title = f"Cutting the excerpts to {shortest['chars']:,} characters costs the encoder {enc_drop:.3f}"
+        title = f"Cutting the excerpts to {shortest['chars']:,} characters {effect}"
 
     def x_label(c):
         return f"{c['chars']:,}"

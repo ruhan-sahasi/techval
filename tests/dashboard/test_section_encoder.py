@@ -219,6 +219,20 @@ def test_the_takeaway_and_titles_are_built_from_the_values_they_describe():
     assert "0.6123" not in again["takeaway"]
 
 
+def test_the_direction_words_follow_the_numbers():
+    """A cold start that scores higher, or a shorter excerpt that helps, read backwards.
+
+    The warm/cold title said the encoder "falls from 0.41 to 0.52", and the
+    truncation title that cutting the excerpts "costs the encoder -0.018".
+    """
+    r = results()
+    r["warm_cold"] = {"warm": _part(0.41, 0.3, 60), "cold": _part(0.52, 0.12, 30)}
+    r["truncation"]["cuts"][-1]["methods"] = _methods(1.03)
+    figs = S.shape(r)["figures"]
+    assert "the encoder rises from 0.41 to 0.52" in figs["warm_cold"]["title"]
+    assert "characters lifts the encoder 0.018" in figs["truncation"]["title"]
+
+
 def test_the_headline_follows_the_schema_and_quotes_the_models_verdict():
     headline = S.shape(results())["headline"]
     assert tuple(headline) == HEADLINE_KEYS
